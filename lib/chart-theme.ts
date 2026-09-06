@@ -18,6 +18,8 @@ export function getChartColors(theme: 'dark' | 'light') {
     sprout: stone,
     transparent: steel,
     shielded: iris,
+    shielding: dark ? '#65C79A' : '#14734B',
+    deshielding: dark ? '#E2A66E' : '#A34F12',
     coinbase: steel,
     gold,
     yellow: gold,

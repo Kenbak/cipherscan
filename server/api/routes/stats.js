@@ -96,13 +96,20 @@ router.get('/api/privacy-stats', async (req, res) => {
     const stats = statsResult.rows[0];
 
     let scoreBreakdown = stats.privacy_score_breakdown || null;
+    let currentScore = stats.privacy_score == null ? null : Number(stats.privacy_score);
+    let scoreUpdatedAt = stats.updated_at.toISOString();
+    let scoreSource = 'snapshot';
     if (!scoreBreakdown) {
       try {
         const rolling = await fetchPrivacyScoreInputs(pool);
         const supplyShieldedPercent = parseInt(stats.chain_supply, 10) > 0
           ? (parseInt(stats.shielded_pool_size, 10) / parseInt(stats.chain_supply, 10)) * 100
           : 0;
-        scoreBreakdown = calculatePrivacyScore({ ...rolling, supplyShieldedPercent }).breakdown;
+        const calculated = calculatePrivacyScore({ ...rolling, supplyShieldedPercent });
+        scoreBreakdown = calculated.breakdown;
+        currentScore = calculated.total;
+        scoreUpdatedAt = new Date().toISOString();
+        scoreSource = 'rolling-fallback';
       } catch {
         scoreBreakdown = null;
       }
@@ -123,8 +130,8 @@ router.get('/api/privacy-stats', async (req, res) => {
       LIMIT $1
     `, [trendDays]);
 
-    // Use the most recent daily privacy score instead of the old global one
-    const latestDailyScore = trendsResult.rows.length > 0 ? parseInt(trendsResult.rows[0].privacy_score) || 0 : parseInt(stats.privacy_score);
+    // The headline and its breakdown must describe the same snapshot.
+    // Daily scores belong only to the historical series.
 
     res.json({
       totals: {
@@ -147,7 +154,9 @@ router.get('/api/privacy-stats', async (req, res) => {
       },
       metrics: {
         shieldedPercentage: parseFloat(stats.shielded_percentage),
-        privacyScore: latestDailyScore, // Use latest daily score
+        privacyScore: currentScore,
+        scoreUpdatedAt,
+        scoreSource,
         scoreBreakdown,
         scoreVersion: 2,
         avgShieldedPerDay: parseFloat(stats.avg_shielded_per_day),

@@ -14,7 +14,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { getChartColors } from '@/lib/chart-theme';
 import { CURRENCY } from '@/lib/config';
 import { useApiQuery } from '@/hooks/useApiQuery';
-import { ChartCard } from '@/components/network/ChartCard';
+import { PrivacyFlowCard } from './PrivacyFlowCard';
 import { PeriodSelector, Period } from './PeriodSelector';
 import {
   PRIVACY_BAR_CHART_MARGIN,
@@ -37,7 +37,7 @@ export function AnonymitySetChart() {
   const colors = getChartColors(theme);
   const [period, setPeriod] = useState<Period>('30d');
 
-  const { data: res, loading } = useApiQuery<{ thresholds: Threshold[] }>(
+  const { data: res, loading, error } = useApiQuery<{ thresholds: Threshold[] }>(
     '/api/analytics/anonymity-set',
     { period },
   );
@@ -59,32 +59,28 @@ export function AnonymitySetChart() {
   };
 
   return (
-    <ChartCard
-      title="Anonymity set"
-      height={400}
+    <PrivacyFlowCard
+      title="Flows above an amount"
+      description={<>Counts of public shielding and deshielding flows at or above each {CURRENCY} threshold
+            ({period === 'all' ? 'full history' : `last ${period}`}). Thresholds overlap; this is not a measured anonymity set.</>}
       controls={<PeriodSelector value={period} onChange={setPeriod} />}
     >
       {loading ? (
         <div className="flex h-[340px] items-center justify-center">
           <div className="h-8 w-8 animate-spin rounded-full border-2 border-cipher-gold/30 border-t-cipher-gold" />
         </div>
-      ) : (
+      ) : error ? <p role="status" className="text-caption text-muted py-8">Public flow observations could not load.</p> : data.length === 0 ? <p className="text-caption text-muted py-8">No public flow observations for this period.</p> : (
         <div>
-          <p className="mb-3 text-xs leading-relaxed text-muted">
-            How many transactions in the {period === 'all' ? 'full history' : `last ${period}`} could
-            be <em>your</em> source at each {CURRENCY} threshold? Higher counts mean a larger crowd
-            to hide in.
-          </p>
           <ResponsiveContainer initialDimension={{ width: 500, height: 300 }} width="100%" height={CHART_HEIGHT}>
             <BarChart data={chartData} margin={PRIVACY_BAR_CHART_MARGIN}>
-              <CartesianGrid strokeDasharray="2 6" stroke={colors.gridStroke} />
+              <CartesianGrid vertical={false} stroke={colors.gridStroke} />
               <XAxis
                 dataKey="label"
                 tick={{ fill: colors.axis, fontSize: 12 }}
-                angle={-35}
-                textAnchor="end"
-                height={64}
-                interval={0}
+                minTickGap={24}
+                textAnchor="middle"
+                height={56}
+                interval="preserveStartEnd"
                 label={privacyXAxisTitle(`${CURRENCY} threshold`, colors.axis)}
               />
               <YAxis
@@ -102,14 +98,14 @@ export function AnonymitySetChart() {
                   String(name) === 'shield' ? 'Shield (in)' : 'Deshield (out)',
                 ]}
               />
-              <Bar dataKey="shield" fill={colors.gold} name="shield" radius={[3, 3, 0, 0]} />
-              <Bar dataKey="deshield" fill={colors.transparent} name="deshield" radius={[3, 3, 0, 0]} />
+              <Bar isAnimationActive={false} dataKey="shield" fill={colors.shielding} name="shield" radius={[3, 3, 0, 0]} />
+              <Bar isAnimationActive={false} dataKey="deshield" fill={colors.deshielding} name="deshield" radius={[3, 3, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
-          <PrivacyBarLegend shieldColor={colors.gold} deshieldColor={colors.transparent} />
+          <PrivacyBarLegend shieldColor={colors.shielding} deshieldColor={colors.deshielding} />
         </div>
       )}
-    </ChartCard>
+    </PrivacyFlowCard>
   );
 }
 
