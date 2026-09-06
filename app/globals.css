@@ -204,6 +204,10 @@
   --color-green-rgb: 101 199 154;
   --color-yellow-rgb: 248 188 33;
   --color-purple-rgb: 182 160 224;
+  /* Transaction composition: neutral public/mixed, violet fully shielded. */
+  --tx-transparent-rgb: 161 169 173;
+  --tx-mixed-rgb: 100 110 125;
+  --tx-shielded-rgb: var(--color-purple-rgb);
   --color-orange-rgb: 226 166 110;
 
   /* Brand — hex shortcuts for use in custom CSS */
@@ -417,6 +421,8 @@
   --color-green-rgb: 20 115 75;
   --color-yellow-rgb: 219 158 0;
   --color-purple-rgb: 112 64 181;
+  --tx-transparent-rgb: 104 117 135;
+  --tx-mixed-rgb: 52 65 84;
   --color-orange-rgb: 163 74 22;
 
   /* Brand — hex shortcuts for use in custom CSS */
@@ -1122,6 +1128,72 @@
 
   .footer-border {
     border-color: var(--color-border-subtle);
+  }
+
+  /* Transaction composition is separate from flow direction and pool identity.
+     Both maps consume these roles; orange is reserved for unshielding. */
+  [data-type='transparent'] {
+    --tx-category-rgb: var(--tx-transparent-rgb);
+  }
+  [data-type='mixed'] {
+    --tx-category-rgb: var(--tx-mixed-rgb);
+  }
+  [data-type='shielded'] {
+    --tx-category-rgb: var(--tx-shielded-rgb);
+  }
+
+  .tx-category-label { color: var(--color-text-muted); }
+  .tx-category-label[data-type='shielded'] { color: rgb(var(--tx-shielded-rgb)); }
+
+  .tx-category-swatch {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    flex-shrink: 0;
+    background: rgb(var(--tx-category-rgb));
+  }
+
+  /* Ambient/fullscreen views deliberately retain their dark canvas. */
+  .mempool-visualization[data-immersive='true'] {
+    --tx-transparent-rgb: 161 169 173;
+    --tx-mixed-rgb: 100 110 125;
+    --color-purple-rgb: 182 160 224;
+    --tx-shielded-rgb: var(--color-purple-rgb);
+    --color-text-primary: #F1F3F5;
+    --color-text-secondary: #C2C7CF;
+    --color-text-muted: #9CA4B0;
+    --color-surface-solid: #111316;
+    --popover-bg: #111316;
+    --inset-bg: #0B0C0E;
+    --color-border: #24272D;
+  }
+
+  /* ===== MEMPOOL TREEMAP ===== */
+  .treemap-surface {
+    background: var(--inset-bg);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+  }
+
+  .treemap-cell {
+    fill: rgb(var(--tx-category-rgb));
+    opacity: 0.88;
+    transition: opacity var(--duration-fast) var(--ease-out-expo);
+  }
+
+  .treemap-cell:hover { opacity: 1; }
+
+  .treemap-tooltip {
+    position: absolute;
+    transform: translate(-50%, calc(-100% - 10px));
+    pointer-events: none;
+    z-index: 10;
+    padding: 8px 10px;
+    white-space: nowrap;
+    background: var(--popover-bg);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--dropdown-shadow);
   }
 
 

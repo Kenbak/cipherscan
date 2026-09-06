@@ -1,4 +1,5 @@
 import { Metadata } from 'next';
+import { Suspense } from 'react';
 import MempoolLiveClient from './MempoolLiveClient';
 
 export const metadata: Metadata = {
@@ -8,5 +9,11 @@ export const metadata: Metadata = {
 };
 
 export default function MempoolLivePage() {
-  return <MempoolLiveClient />;
+  // The client reads ?view= via useSearchParams, which Next requires to sit
+  // under a Suspense boundary or the route cannot be statically prerendered.
+  return (
+    <Suspense fallback={<div className="fixed inset-0 z-[9999] bg-cipher-bg-dark" />}>
+      <MempoolLiveClient />
+    </Suspense>
+  );
 }

@@ -72,3 +72,14 @@ test('metadata uses the new mainnet identity and preserves network indexation bo
     assert.equal(home.robots.index, network !== 'crosslink-testnet');
   }
 });
+
+const { summarizeMempool } = load('lib/mempool-summary.ts');
+
+test('mempool composition separates fully shielded count from inclusive pool share', () => {
+  const rows = [{ type: 'shielded' }, { type: 'mixed' }, { type: 'mixed' }, { type: 'transparent' }];
+  assert.deepEqual(summarizeMempool(rows), { shielded: 1, mixed: 2, transparent: 1, shown: 4, shieldedShare: 75 });
+  // Recomputed from the current list after a stream removal, rather than stale poll stats.
+  assert.equal(summarizeMempool(rows.slice(1)).shieldedShare, 67);
+  assert.equal(summarizeMempool([]).shieldedShare, null);
+  assert.equal(summarizeMempool([{ type: 'transparent' }]).shieldedShare, 0);
+});

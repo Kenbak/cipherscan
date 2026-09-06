@@ -54,25 +54,27 @@ export interface MempoolBubblesHandle {
 
 // Resolve theme-aware colors from CSS variables at runtime so bubbles
 // adapt to light/dark mode (brand colors differ between themes).
-function readThemeColors() {
+function readThemeColors(element?: HTMLElement | null, immersive = false) {
   if (typeof window === 'undefined') {
     return {
-      gold: '248 188 33',
-      purple: '182 160 224',
-      orange: '226 166 110',
+      brandGold: '248 188 33',
+      transparent: '161 169 173',
+      shielded: '182 160 224',
+      mixed: '100 110 125',
       isLight: false,
       labelText: 'rgba(255, 255, 255, 0.95)',
       labelShadow: 'rgba(0, 0, 0, 0.45)',
     };
   }
-  const root = getComputedStyle(document.documentElement);
-  const isLight = document.documentElement.classList.contains('light');
+  const root = getComputedStyle(element ?? document.documentElement);
+  const isLight = !immersive && document.documentElement.classList.contains('light');
   return {
-    gold: root.getPropertyValue('--color-gold-rgb').trim() || '248 188 33',
-    purple: root.getPropertyValue('--color-purple-rgb').trim() || '182 160 224',
-    orange: root.getPropertyValue('--color-orange-rgb').trim() || '226 166 110',
+    brandGold: root.getPropertyValue('--color-gold-rgb').trim() || '248 188 33',
+    transparent: root.getPropertyValue('--tx-transparent-rgb').trim() || '161 169 173',
+    shielded: root.getPropertyValue('--tx-shielded-rgb').trim() || '182 160 224',
+    mixed: root.getPropertyValue('--tx-mixed-rgb').trim() || '100 110 125',
     isLight,
-    labelText: isLight ? 'rgba(255, 255, 255, 0.98)' : 'rgba(255, 255, 255, 0.92)',
+    labelText: isLight ? 'rgb(23, 26, 32)' : 'rgba(255, 255, 255, 0.92)',
     labelShadow: isLight ? 'rgba(0, 0, 0, 0.5)' : 'rgba(0, 0, 0, 0.45)',
   };
 }
@@ -94,24 +96,24 @@ function buildColors(theme: ReturnType<typeof readThemeColors>): Record<'transpa
   const popA = theme.isLight ? 0.7 : 0.6;
   return {
     shielded: {
-      fill: `rgba(${theme.purple.replace(/ /g, ', ')}, ${fillA})`,
-      stroke: `rgba(${theme.purple.replace(/ /g, ', ')}, ${strokeA})`,
-      glow: `rgba(${theme.purple.replace(/ /g, ', ')}, ${glowA})`,
-      pop: `rgba(${theme.purple.replace(/ /g, ', ')}, ${popA})`,
+      fill: `rgba(${theme.shielded.replace(/ /g, ', ')}, ${fillA})`,
+      stroke: `rgba(${theme.shielded.replace(/ /g, ', ')}, ${strokeA})`,
+      glow: `rgba(${theme.shielded.replace(/ /g, ', ')}, ${glowA})`,
+      pop: `rgba(${theme.shielded.replace(/ /g, ', ')}, ${popA})`,
       label: theme.labelText,
     },
     mixed: {
-      fill: `rgba(${theme.orange.replace(/ /g, ', ')}, ${fillA - 0.04})`,
-      stroke: `rgba(${theme.orange.replace(/ /g, ', ')}, ${strokeA - 0.05})`,
-      glow: `rgba(${theme.orange.replace(/ /g, ', ')}, ${glowA - 0.02})`,
-      pop: `rgba(${theme.orange.replace(/ /g, ', ')}, ${popA - 0.1})`,
+      fill: `rgba(${theme.mixed.replace(/ /g, ', ')}, ${fillA - 0.04})`,
+      stroke: `rgba(${theme.mixed.replace(/ /g, ', ')}, ${strokeA - 0.05})`,
+      glow: `rgba(${theme.mixed.replace(/ /g, ', ')}, ${glowA - 0.02})`,
+      pop: `rgba(${theme.mixed.replace(/ /g, ', ')}, ${popA - 0.1})`,
       label: theme.labelText,
     },
     transparent: {
-      fill: `rgba(${theme.gold.replace(/ /g, ', ')}, ${fillA - 0.12})`,
-      stroke: `rgba(${theme.gold.replace(/ /g, ', ')}, ${strokeA - 0.15})`,
-      glow: `rgba(${theme.gold.replace(/ /g, ', ')}, ${glowA - 0.06})`,
-      pop: `rgba(${theme.gold.replace(/ /g, ', ')}, ${popA - 0.15})`,
+      fill: `rgba(${theme.transparent.replace(/ /g, ', ')}, ${fillA - 0.12})`,
+      stroke: `rgba(${theme.transparent.replace(/ /g, ', ')}, ${strokeA - 0.15})`,
+      glow: `rgba(${theme.transparent.replace(/ /g, ', ')}, ${glowA - 0.06})`,
+      pop: `rgba(${theme.transparent.replace(/ /g, ', ')}, ${popA - 0.15})`,
       label: theme.labelText,
     },
   };
@@ -212,14 +214,14 @@ export const MempoolBubbles = forwardRef<MempoolBubblesHandle, MempoolBubblesPro
   // Watch for theme changes (light/dark class on <html>)
   useEffect(() => {
     const refresh = () => {
-      themeRef.current = readThemeColors();
+      themeRef.current = readThemeColors(containerRef.current, ambient || isFullscreen);
       colorsRef.current = buildColors(themeRef.current);
     };
     refresh();
     const observer = new MutationObserver(refresh);
     observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
     return () => observer.disconnect();
-  }, []);
+  }, [ambient, isFullscreen]);
 
   // Sync transactions to bubbles
   useEffect(() => {
@@ -317,7 +319,7 @@ export const MempoolBubbles = forwardRef<MempoolBubblesHandle, MempoolBubblesPro
       timeRef.current += 1;
       const bubbles = bubblesRef.current;
       const theme = themeRef.current;
-      const goldRgb = theme.gold.replace(/ /g, ', ');
+      const goldRgb = theme.brandGold.replace(/ /g, ', ');
 
       // === BACKGROUND GRATICULE ===
       // The rebrand stripped this canvas's whole background layer. Most of
@@ -641,7 +643,7 @@ export const MempoolBubbles = forwardRef<MempoolBubblesHandle, MempoolBubblesPro
           ctx.globalAlpha = b.opacity * 0.6;
           ctx.fillText(letter, b.x, b.y + 1);
           // Letter
-          ctx.fillStyle = colors.label;
+          ctx.fillStyle = theme.isLight && isHovered && b.type !== 'transparent' ? 'white' : colors.label;
           ctx.globalAlpha = b.opacity;
           ctx.fillText(letter, b.x, b.y);
           ctx.textAlign = 'start';
@@ -806,7 +808,8 @@ export const MempoolBubbles = forwardRef<MempoolBubblesHandle, MempoolBubblesPro
   return (
     <div
       ref={containerRef}
-      className={`relative w-full overflow-hidden ${className} ${isFullscreen || ambient ? 'bg-cipher-bg-dark' : ''}`}
+      data-immersive={isFullscreen || ambient}
+      className={`mempool-visualization relative w-full overflow-hidden ${className} ${isFullscreen || ambient ? 'bg-cipher-bg-dark' : ''}`}
       style={{ cursor: (isFullscreen || ambient) && !cursorVisible ? 'none' : undefined }}
     >
       <canvas
@@ -831,7 +834,7 @@ export const MempoolBubbles = forwardRef<MempoolBubblesHandle, MempoolBubblesPro
 
       {/* Top-right timestamp */}
       <div
-        className={`absolute ${ambient ? 'top-14' : 'top-4'} right-6 font-mono text-caption tracking-wider pointer-events-none select-none text-muted`}
+        className={`hidden sm:block absolute ${ambient ? 'top-14' : 'top-4'} right-6 font-mono text-caption tracking-wider pointer-events-none select-none text-muted`}
       >
         {new Date().toISOString().slice(11, 19)} UTC
       </div>
@@ -858,11 +861,7 @@ export const MempoolBubbles = forwardRef<MempoolBubblesHandle, MempoolBubblesPro
             <div className="space-y-0.5">
               <div className="flex items-center justify-between gap-4">
                 <span className="text-muted">Type</span>
-                <span className={
-                  hoveredTx.type === 'shielded' ? 'text-cipher-purple font-mono' :
-                  hoveredTx.type === 'mixed' ? 'text-cipher-orange font-mono' :
-                  'text-cipher-gold font-mono'
-                }>
+                <span className="tx-category-label font-mono" data-type={hoveredTx.type}>
                   {hoveredTx.type.toUpperCase()}
                 </span>
               </div>
@@ -883,7 +882,7 @@ export const MempoolBubbles = forwardRef<MempoolBubblesHandle, MempoolBubblesPro
               ) : hoveredTx.vShieldedSpend > 0 || hoveredTx.vShieldedOutput > 0 ? (
                 <div className="flex items-center justify-between gap-4">
                   <span className="text-muted">Sapling</span>
-                  <span className="text-cipher-purple font-mono">{hoveredTx.vShieldedSpend}s → {hoveredTx.vShieldedOutput}o</span>
+                  <span className="text-cipher-green font-mono">{hoveredTx.vShieldedSpend}s → {hoveredTx.vShieldedOutput}o</span>
                 </div>
               ) : null}
             </div>
@@ -902,15 +901,15 @@ export const MempoolBubbles = forwardRef<MempoolBubblesHandle, MempoolBubblesPro
           }}
         >
           <div className="flex items-center gap-1.5">
-            <div className="w-2.5 h-2.5 rounded-full bg-brand-gold/40 border border-cipher-gold/70" />
+            <div className="tx-category-swatch rounded-full" data-type="transparent" aria-hidden="true" />
             <span>T · Transparent</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <div className="w-2.5 h-2.5 rounded-full bg-cipher-orange/40 border border-cipher-orange/70" />
+            <div className="tx-category-swatch rounded-full" data-type="mixed" aria-hidden="true" />
             <span>M · Mixed</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <div className="w-2.5 h-2.5 rounded-full bg-cipher-purple/50 border border-cipher-purple/80" />
+            <div className="tx-category-swatch rounded-full" data-type="shielded" aria-hidden="true" />
             <span>S · Shielded</span>
           </div>
         </div>
@@ -943,7 +942,7 @@ export const MempoolBubbles = forwardRef<MempoolBubblesHandle, MempoolBubblesPro
               <div className="text-caption tracking-wider">
                 <span className="text-white/50">{stats.total} pending</span>
                 <span className="text-white/20 mx-1.5">·</span>
-                <span className="text-cipher-purple/60">{stats.shieldedPct}% shielded</span>
+                <span className="tx-category-label" data-type="shielded">{stats.shieldedPct}% shielded + mixed (shown)</span>
               </div>
             )}
           </div>
@@ -953,9 +952,9 @@ export const MempoolBubbles = forwardRef<MempoolBubblesHandle, MempoolBubblesPro
             className="absolute top-5 right-6 flex items-center gap-3 font-mono text-caption pointer-events-none select-none transition-opacity duration-1000"
             style={{ opacity: cursorVisible ? 0.5 : 0.2 }}
           >
-            <span className="text-cipher-gold/70">T</span>
-            <span className="text-cipher-orange/70">M</span>
-            <span className="text-cipher-purple/70">S</span>
+            <span className="tx-category-label" data-type="transparent">T</span>
+            <span className="tx-category-label" data-type="mixed">M</span>
+            <span className="tx-category-label" data-type="shielded">S</span>
           </div>
         </>
       )}

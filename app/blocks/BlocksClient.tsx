@@ -329,6 +329,7 @@ export default function BlocksClient({
         <MetricCard size="compact"
           label="Block Height"
           value={liveHeight != null ? liveHeight.toLocaleString() : '—'}
+          hint="Latest known network height"
         />
         <MetricCard size="compact"
           label="Blocks (24h)"
