@@ -2,14 +2,12 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
-import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts';
 import { getApiUrl } from '@/lib/api-config';
 import { Card, CardBody } from '@/components/ui/Card';
-import { Badge } from '@/components/ui/Badge';
-import { PageHeader } from '@/components/ui/SectionHeader';
+import { PageHeader, SectionHeader } from '@/components/ui/SectionHeader';
 import { NodeMapExplorer } from '@/components/network/NodeMapExplorer';
-import { CLIENT_COLORS, clientLabel, clientColor, CLIENT_BADGE_CLASSES } from '@/lib/network-colors';
-import { RadialGauge, scoreColor } from '@/components/ui/RadialGauge';
+import { clientLabel, clientColor } from '@/lib/network-colors';
+import { scoreColor } from '@/components/ui/RadialGauge';
 
 interface NodeEntry {
   id: number;
@@ -114,8 +112,10 @@ export default function NodesClient() {
   const [stats, setStats] = useState<NodeStats | null>(null);
   const [clients, setClients] = useState<ClientEntry[]>([]);
   const [versions, setVersions] = useState<VersionEntry[]>([]);
+  const [versionClient, setVersionClient] = useState('all');
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState(false);
   const [sortBy, setSortBy] = useState('last_seen');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   const [page, setPage] = useState(0);
@@ -129,6 +129,7 @@ export default function NodesClient() {
 
   const fetchData = useCallback(async () => {
     try {
+      setFetchError(false);
       const [nodeRes, statsRes, healthRes, relRes, upgradeRes, concRes] = await Promise.all([
         fetch(`${apiUrl}/api/network/nodes/list?limit=${PAGE_SIZE}&offset=${page * PAGE_SIZE}&sort=${sortBy}&dir=${sortDir}`),
         fetch(`${apiUrl}/api/network/nodes/stats`),
@@ -138,6 +139,7 @@ export default function NodesClient() {
         fetch(`${apiUrl}/api/network/nodes/concentration`),
       ]);
 
+      setFetchError([nodeRes, statsRes, healthRes, relRes, upgradeRes, concRes].some(res => !res.ok));
       if (nodeRes.ok) {
         const nodeData = await nodeRes.json();
         setNodes(nodeData.nodes || []);
@@ -156,6 +158,7 @@ export default function NodesClient() {
       if (upgradeRes.ok) setUpgrade(await upgradeRes.json());
       if (concRes.ok) setConcentration(await concRes.json());
     } catch (err) {
+      setFetchError(true);
       console.error('Failed to fetch node data:', err);
     } finally {
       setLoading(false);
@@ -175,15 +178,14 @@ export default function NodesClient() {
   };
 
   const identifiedCount = clients.filter(c => c.client !== 'Unknown').reduce((s, c) => s + c.count, 0);
-  const coveragePct = stats?.activeNodes ? ((identifiedCount / stats.activeNodes) * 100).toFixed(0) : '0';
-  const totalPages = Math.ceil(total / PAGE_SIZE);
+  const coveragePct = stats?.activeNodes ? ((identifiedCount / stats.activeNodes) * 100).toFixed(0) : '—';
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
       <PageHeader
         eyebrow="NETWORK_NODES"
         title={<>Zcash Nodes</>}
-        subtitle="Verified reachable nodes discovered via network crawl"
+        subtitle="Explore the nodes we observe: their connections, software, hosting and reachability."
         actions={
           <Link href="/network" className="text-xs text-muted hover:text-secondary font-mono transition-colors">
             &larr; Network Overview
@@ -191,230 +193,100 @@ export default function NodesClient() {
         }
       />
 
-      {/* Hero Stat Strip */}
-      {stats && (
-        <Card className="mb-8 animate-fade-in-up">
-          <CardBody>
-            <div className="flex flex-col sm:flex-row sm:items-end gap-6">
-              <div>
-                <div className="text-caption font-mono uppercase tracking-wider text-muted mb-1">
-                  Reachable Nodes
-                </div>
-                <div className="text-4xl font-semibold font-mono text-primary tabular-nums">
-                  {stats.activeNodes.toLocaleString()}
-                </div>
-              </div>
-              <div className="flex flex-wrap gap-x-6 gap-y-2 sm:ml-auto text-xs font-mono">
-                <StatChip label="Countries" value={stats.countries} />
-                <StatChip label="Avg Ping" value={stats.avgPingMs ? `${stats.avgPingMs.toFixed(0)}ms` : '—'} />
-                <StatChip label="Tor" value={stats.torNodes} />
-                <StatChip label="Total Seen" value={stats.totalNodes.toLocaleString()} />
-                <StatChip label="Cities" value={stats.cities} />
-              </div>
-            </div>
-          </CardBody>
-        </Card>
-      )}
-
-      {/* Client Distribution + Version Breakdown */}
-      {clients.length > 0 && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8 animate-fade-in-up stagger-2">
-          {/* Pie Chart */}
-          <Card className="h-full">
-            <CardBody className="h-full flex flex-col">
-              <div className="flex items-start justify-between gap-4 mb-4">
-                <div>
-                  <h3 className="text-sm font-semibold text-primary">Client Distribution</h3>
-                  <p className="mt-1 text-caption text-muted">
-                    Verified via protocol handshake during network crawl.
-                  </p>
-                </div>
-                <span className="shrink-0 font-mono text-xs text-cipher-gold">
-                  {coveragePct}% identified
-                </span>
-              </div>
-
-              {/* Version Breakdown is a longer scrollable list, so this card is
-                  naturally shorter — center the chart in the leftover height
-                  instead of leaving it pinned to the top with dead space below. */}
-              <div className="flex-1 grid items-center gap-4 sm:grid-cols-[160px_1fr]">
-                <div className="h-[160px]" role="img" aria-label="Client distribution donut chart">
-                  <ResponsiveContainer initialDimension={{ width: 500, height: 300 }} width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={clients.filter(c => c.count > 0)}
-                        dataKey="count"
-                        nameKey="client"
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={44}
-                        outerRadius={68}
-                        paddingAngle={2}
-                        stroke="none"
-                      >
-                        {clients.filter(c => c.count > 0).map(item => (
-                          <Cell key={item.client} fill={clientColor(item.client)} />
-                        ))}
-                      </Pie>
-                      <Tooltip
-                        formatter={(value, name) => [`${Number(value)} nodes`, String(name)]}
-                        contentStyle={{
-                          background: 'var(--color-surface-solid)',
-                          border: '1px solid var(--color-border)',
-                          borderRadius: '8px',
-                          fontSize: '12px',
-                        }}
-                      />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
-
-                <div className="space-y-2.5">
-                  {clients.filter(c => c.count > 0).map(item => {
-                    const pct = stats?.activeNodes ? ((item.count / stats.activeNodes) * 100).toFixed(1) : '0';
-                    return (
-                      <div key={item.client} className="flex items-center gap-2 text-xs">
-                        <span
-                          className="h-2.5 w-2.5 rounded-full shrink-0"
-                          style={{ backgroundColor: clientColor(item.client) }}
-                        />
-                        <span className="min-w-16 text-secondary">{clientLabel(item.client)}</span>
-                        <span className="font-mono font-semibold text-primary">{item.count}</span>
-                        <span className="ml-auto font-mono text-muted">{pct}%</span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </CardBody>
-          </Card>
-
-          {/* Version Breakdown */}
-          <Card className="h-full">
-            <CardBody className="h-full flex flex-col">
-              <h3 className="text-sm font-semibold text-primary mb-1">Version Breakdown</h3>
-              <p className="text-caption text-muted mb-4">
-                Self-reported version strings from connected peers.
-              </p>
-              {/* Capped + scrollable rather than letting 12 rows dictate this
-                  card's (and its sibling's) height. */}
-              <div className="space-y-2 max-h-[248px] overflow-y-auto pr-1 -mr-1">
-                {versions.slice(0, 12).map((v, i) => (
-                  <div
-                    key={`${v.client}-${v.version}-${i}`}
-                    className="flex items-center gap-3 rounded-lg border border-cipher-border/60 px-3 py-2"
-                  >
-                    <span
-                      className="h-2 w-2 rounded-full shrink-0"
-                      style={{ backgroundColor: clientColor(v.client) }}
-                    />
-                    <span className="text-xs text-secondary">{clientLabel(v.client)}</span>
-                    <span className="min-w-0 flex-1 truncate font-mono text-xs text-primary">
-                      {v.version}
-                    </span>
-                    <span className="font-mono text-xs font-semibold text-cipher-gold">{v.count}</span>
-                  </div>
-                ))}
-              </div>
-            </CardBody>
-          </Card>
-        </div>
-      )}
-
-      {/* Node Map — geographic (client/infra) and topology-graph lenses on one surface */}
-      <Card className="mb-8 animate-fade-in-up stagger-3">
-        <CardBody>
-          <NodeMapExplorer />
-        </CardBody>
+      <nav aria-label="Node page sections" className="flex flex-wrap gap-x-5 gap-y-3 font-mono text-caption text-muted mb-6">
+        <a href="#node-explorer" className="hover:text-primary">Map & topology</a>
+        <a href="#node-software" className="hover:text-primary">Software & protocol</a>
+        <a href="#node-observations" className="hover:text-primary">Reliability & hosting</a>
+        <a href="#node-directory" className="hover:text-primary">Node directory</a>
+      </nav>
+      <Card className="network-summary-panel card-static mb-8">
+        <dl className="network-summary-grid network-live-facts">
+          {[
+            { label: 'Reachable nodes', value: stats?.activeNodes.toLocaleString() ?? '—', hint: 'Verified by the crawler' },
+            { label: 'Countries', value: stats?.countries ?? '—', hint: stats ? `${stats.cities} observed cities` : 'Geographic coverage' },
+            { label: 'Tor nodes', value: stats?.torNodes ?? '—', hint: 'Observed Tor infrastructure' },
+            { label: 'Average ping', value: stats?.avgPingMs != null ? `${stats.avgPingMs.toFixed(0)} ms` : '—', hint: 'From crawler observations' },
+          ].map(item => <div key={item.label}>
+            <dt className="type-label text-muted uppercase mb-2">{item.label}</dt>
+            <dd className="type-metric text-primary">{item.value}</dd>
+            <dd className="text-caption text-muted mt-2">{item.hint}</dd>
+          </div>)}
+        </dl>
+        <p className="border-t border-cipher-border px-5 py-3 text-caption text-muted">
+          {stats ? `${stats.totalNodes.toLocaleString()} nodes seen in total · Last observation ${stats.lastUpdated ? formatRelativeTime(stats.lastUpdated) : 'unavailable'}` : 'Awaiting crawler observations.'}
+          {' '}Discovery coverage is not a census of the network.
+        </p>
       </Card>
+      {fetchError && <p role="status" className="text-caption text-warning mb-6">Some node observations could not load. Previously received values remain visible. <button onClick={fetchData} className="underline underline-offset-4">Retry</button></p>}
+      <section id="node-explorer" className="network-section mb-10">
+        <Card className="card-static"><CardBody><NodeMapExplorer /></CardBody></Card>
+      </section>
 
-      {/* Network Intelligence */}
-      {(health || reliability || upgrade || concentration) && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8 animate-fade-in-up stagger-4">
-          {/* Health Score */}
-          {health && (
-            <Card>
-              <CardBody>
-                <div className="flex items-start justify-between mb-5 gap-3">
-                  <div>
-                    <h3 className="text-sm font-semibold text-primary">Network Health</h3>
-                    <p className="text-caption text-muted mt-0.5">Composite of connectivity, upgrade adoption, client &amp; geo diversity, reliability</p>
-                  </div>
-                  <RadialGauge value={health.healthScore} label="SCORE" />
-                </div>
-                <div className="space-y-3">
-                  <HealthBar label="Connectivity" score={health.components.connectivity.score} detail={`avg ${health.components.connectivity.avgDegree} peers`} />
-                  <HealthBar label="Upgrade Adoption" score={health.components.upgrade.score} detail={`${health.components.upgrade.adoptionPct}% on latest`} />
-                  <HealthBar label="Client Diversity" score={health.components.clientDiversity.score} detail={health.components.clientDiversity.topClient ? `${health.components.clientDiversity.topClient} ${health.components.clientDiversity.topClientPct}%` : '—'} />
-                  <HealthBar label="Geographic" score={health.components.geographic.score} detail={`${health.components.geographic.countries} countries`} />
-                  <HealthBar label="Reliability" score={health.components.reliability.score} detail={health.components.reliability.avgReliabilityPct != null ? `${health.components.reliability.avgReliabilityPct}% uptime` : '—'} />
-                </div>
-              </CardBody>
-            </Card>
-          )}
+      <section id="node-software" className="network-section mb-10">
+        <SectionHeader label="SOFTWARE_PROTOCOL" />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          <Card className="h-full">
+            <CardBody className="h-full flex flex-col">
+              <h3 className="text-sm font-semibold text-primary">Client distribution</h3>
+              <p className="mt-1 text-caption text-muted">Software identified in crawler handshakes.</p>
+              <div className="flex items-baseline justify-between gap-4 mt-6 mb-3 text-caption">
+                <span className="text-secondary">{stats?.activeNodes.toLocaleString() ?? '—'} reachable nodes</span>
+                <span className="font-mono text-muted">{coveragePct}% identified</span>
+              </div>
+              <div className="flex h-3 gap-0.5 overflow-hidden mb-5" aria-hidden="true">
+                {clients.filter(item => item.count > 0).map(item => <span key={item.client} style={{ flex: item.count, backgroundColor: clientColor(item.client) }} />)}
+              </div>
+              {clients.length === 0 ? <p className="text-caption text-muted">{loading ? 'Loading client observations…' : 'Client observations are unavailable.'}</p> : <table className="w-full text-caption">
+                <thead><tr className="border-b border-cipher-border text-muted"><th scope="col" className="text-left py-3 font-normal">Client</th><th scope="col" className="text-right py-3 font-normal">Nodes</th><th scope="col" className="text-right py-3 font-normal">Share</th></tr></thead>
+                <tbody className="divide-y divide-cipher-border">
+                  {clients.filter(item => item.count > 0).map(item => <tr key={item.client}>
+                    <th scope="row" className="text-left py-3 font-normal text-secondary"><span className="inline-flex items-center gap-2"><span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: clientColor(item.client) }} aria-hidden="true" />{clientLabel(item.client)}</span></th>
+                    <td className="text-right py-3 font-mono tabular-nums text-primary">{item.count.toLocaleString()}</td>
+                    <td className="text-right py-3 font-mono tabular-nums text-muted">{stats?.activeNodes ? (item.count / stats.activeNodes * 100).toFixed(1) : '—'}%</td>
+                  </tr>)}
+                </tbody>
+              </table>}
+            </CardBody>
+          </Card>
 
-          {/* Reliability & Performance */}
-          {reliability && (
-            <Card>
-              <CardBody>
-                <div className="flex items-start justify-between mb-1 gap-3">
-                  <div>
-                    <h3 className="text-sm font-semibold text-primary">Reliability &amp; Performance</h3>
-                    <p className="text-caption text-muted mt-0.5">Uptime across crawl cycles, handshake latency, service flags</p>
-                  </div>
-                  <Badge className="text-caption bg-brand-gold/15 text-cipher-gold border-cipher-gold/30 whitespace-nowrap">
-                    {reliability.services.fullNodePct}% full nodes
-                  </Badge>
-                </div>
-                <div className="text-right text-caption text-muted mb-4">{reliability.maxSeen.toLocaleString()} crawls tracked</div>
-                <div className="grid grid-cols-2 gap-4 mb-5">
-                  <div>
-                    <div className="text-2xl font-semibold font-mono tabular-nums text-primary">{reliability.avgReliabilityPct != null ? `${reliability.avgReliabilityPct}%` : '—'}</div>
-                    <div className="flex items-center gap-1.5 mt-0.5">
-                      {reliability.avgReliabilityPct != null && (
-                        <span className="h-1.5 w-1.5 rounded-full shrink-0" style={{ backgroundColor: scoreColor(reliability.avgReliabilityPct) }} />
-                      )}
-                      <span className="text-caption text-muted uppercase tracking-wider">Avg Uptime</span>
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-2xl font-semibold font-mono tabular-nums text-primary">{reliability.latency.median != null ? `${reliability.latency.median}ms` : '—'}</div>
-                    <div className="text-caption text-muted uppercase tracking-wider mt-0.5">Median Ping</div>
-                  </div>
-                </div>
-                <div className="text-caption text-muted uppercase tracking-wider mb-1.5">Handshake Latency</div>
-                <div className="space-y-1.5">
-                  {reliability.latency.buckets.map(b => {
-                    const max = Math.max(1, ...reliability.latency.buckets.map(x => x.count));
-                    return (
-                      <div key={b.label} className="flex items-center gap-2 text-caption">
-                        <span className="font-mono text-muted w-20">{b.label}</span>
-                        <div className="flex-1 h-1.5 bg-cipher-border/40 rounded-full overflow-hidden">
-                          <div className="h-full rounded-full bg-brand-gold/70" style={{ width: `${(b.count / max) * 100}%` }} />
-                        </div>
-                        <span className="font-mono tabular-nums text-primary w-8 text-right">{b.count}</span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </CardBody>
-            </Card>
-          )}
-
+          <Card className="h-full">
+            <CardBody className="h-full flex flex-col">
+              <h3 className="text-sm font-semibold text-primary">Reported versions</h3>
+              <p className="text-caption text-muted mt-1">The 12 most common client/version pairs, reported by peers.</p>
+              <div className="flex items-center justify-between gap-3 mt-6 mb-4">
+                <label htmlFor="version-client" className="text-caption text-muted">Filter by client</label>
+                <select id="version-client" value={versionClient} onChange={e => setVersionClient(e.target.value)} className="min-w-0 rounded border border-cipher-border bg-cipher-bg px-3 py-2 text-caption font-mono text-primary">
+                  <option value="all">All clients</option>
+                  {[...new Set(versions.map(v => v.client))].map(client => <option key={client} value={client}>{clientLabel(client)}</option>)}
+                </select>
+              </div>
+              <div className="max-h-80 overflow-auto" tabIndex={0} role="region" aria-label="Reported version records">
+                {versions.length === 0 ? <p className="text-caption text-muted">{loading ? 'Loading version observations…' : 'Version observations are unavailable.'}</p> : <table className="w-full text-caption">
+                  <thead className="sticky top-0 bg-cipher-card"><tr className="border-b border-cipher-border text-muted"><th scope="col" className="text-left py-3 pr-3 font-normal">Client</th><th scope="col" className="text-left py-3 pr-3 font-normal">Version</th><th scope="col" className="text-right py-3 font-normal">Nodes</th></tr></thead>
+                  <tbody className="divide-y divide-cipher-border">
+                    {versions.filter(v => versionClient === 'all' || v.client === versionClient).map((v, i) => <tr key={`${v.client}-${v.version}-${i}`}>
+                      <td className="py-3 pr-3 text-secondary"><span className="inline-flex items-center gap-2"><span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: clientColor(v.client) }} aria-hidden="true" />{clientLabel(v.client)}</span></td>
+                      <td className="py-3 pr-3 font-mono text-primary break-all">{v.version}</td>
+                      <td className="py-3 text-right font-mono tabular-nums text-primary">{v.count.toLocaleString()}</td>
+                    </tr>)}
+                  </tbody>
+                </table>}
+              </div>
+              <p className="text-caption text-muted mt-4 pt-4 border-t border-cipher-border">Counts refer to reachable nodes. A version string is self-reported.</p>
+            </CardBody>
+          </Card>
           {/* Upgrade Readiness */}
           {upgrade && (
-            <Card>
+            <Card className="lg:col-span-2">
               <CardBody>
                 <div className="flex items-start justify-between mb-5 gap-3">
                   <div>
-                    <h3 className="text-sm font-semibold text-primary">Upgrade Readiness</h3>
-                    <p className="text-caption text-muted mt-0.5">Protocol version adoption (latest: NU6.3)</p>
+                    <h3 className="text-sm font-semibold text-primary">Protocol adoption</h3>
+                    <p className="text-caption text-muted mt-0.5">Reference protocol {upgrade.latestProtocol} or newer · among nodes reporting a protocol version</p>
                   </div>
                   <span className="text-2xl font-semibold font-mono tabular-nums" style={{ color: scoreColor(upgrade.readinessPct) }}>{upgrade.readinessPct}%</span>
                 </div>
-                <div className="w-full h-3 bg-cipher-border/40 rounded-full overflow-hidden mb-4">
-                  <div className="h-full rounded-full transition-[width,background-color]" style={{ width: `${upgrade.readinessPct}%`, backgroundColor: scoreColor(upgrade.readinessPct) }} />
-                </div>
+                <p className="text-caption text-muted mb-4">{upgrade.latestCount.toLocaleString()} of {upgrade.totalActive.toLocaleString()} reporting nodes meet the reference protocol.</p>
                 <div className="space-y-2.5">
                   {upgrade.versions.map(v => (
                     <div key={v.protocolVersion} className="flex items-center gap-2 text-caption">
@@ -430,112 +302,130 @@ export default function NodesClient() {
             </Card>
           )}
 
-          {/* Concentration Risk */}
+        </div>
+      </section>
+
+      <section id="node-observations" className="network-section mb-10">
+        <SectionHeader label="RELIABILITY_HOSTING" />
+        {!reliability && !concentration && <p className="text-sm text-muted mb-5">{loading ? 'Loading crawler observations…' : 'Reliability and hosting observations are unavailable.'}</p>}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          {reliability && (
+            <Card className="card-static"><CardBody>
+              <h3 className="text-sm font-semibold text-primary">Reliability &amp; latency</h3>
+              <p className="text-caption text-muted mt-1 mb-6">Successful crawler observations and handshake response times.</p>
+              <dl className="grid grid-cols-3 gap-4 border-y border-cipher-border py-5 mb-6">
+                {[
+                  { label: 'Reachability', value: reliability.avgReliabilityPct != null ? `${reliability.avgReliabilityPct}%` : '—' },
+                  { label: 'Median ping', value: reliability.latency.median != null ? `${reliability.latency.median} ms` : '—' },
+                  { label: 'Full-node flags', value: reliability.services.known > 0 ? `${reliability.services.fullNodePct}%` : '—' },
+                ].map(item => <div key={item.label} className="min-w-0">
+                  <dt className="text-caption text-muted mb-2">{item.label}</dt>
+                  <dd className="type-metric type-metric-compact text-primary">{item.value}</dd>
+                </div>)}
+              </dl>
+              <figure>
+                <figcaption className="flex flex-wrap items-baseline justify-between gap-2 text-caption mb-5"><span className="text-secondary font-mono">Handshake latency</span><span className="text-muted">{reliability.latency.measured.toLocaleString()} measured nodes · milliseconds</span></figcaption>
+                <div className="grid grid-cols-5 gap-3" role="img" aria-label={`Handshake latency distribution: ${reliability.latency.buckets.map(bucket => `${bucket.label}: ${bucket.count} nodes`).join(', ')}`}>
+                  {reliability.latency.buckets.map(bucket => {
+                    const max = Math.max(1, ...reliability.latency.buckets.map(item => item.count));
+                    return <div key={bucket.label} className="min-w-0 text-center" aria-hidden="true">
+                      <div className="h-24 flex flex-col justify-end items-center border-b border-cipher-border">
+                        <span className="font-mono text-caption text-primary tabular-nums mb-2">{bucket.count}</span>
+                        <div className="w-full max-w-12 bg-cipher-gold" style={{ height: `${bucket.count / max * 64}px` }} />
+                      </div>
+                      <div className="font-mono text-caption text-muted mt-3">{bucket.label.replace('ms', '')}</div>
+                    </div>;
+                  })}
+                </div>
+              </figure>
+              <p className="border-t border-cipher-border pt-4 mt-6 text-caption text-muted leading-relaxed">Full-node share uses {reliability.services.known.toLocaleString()} nodes reporting service flags. Most-seen node: {reliability.maxSeen.toLocaleString()} successful crawls.</p>
+            </CardBody></Card>
+          )}
           {concentration && (
-            <Card>
-              <CardBody>
-                <div className="flex items-start justify-between mb-5 gap-3">
-                  <div>
-                    <h3 className="text-sm font-semibold text-primary">Concentration Risk</h3>
-                    <p className="text-caption text-muted mt-0.5">ISP and subnet clustering analysis</p>
-                  </div>
-                  <div className="flex flex-col items-end gap-1 shrink-0">
-                    <Badge className={`text-caption ${
-                      concentration.concentrationRisk === 'high' ? 'bg-red-500/15 text-red-300 border-red-500/30' :
-                      concentration.concentrationRisk === 'medium' ? 'bg-amber-500/15 text-amber-300 border-amber-500/30' :
-                      'bg-cipher-green/15 text-cipher-green border-cipher-green/30'
-                    }`}>
-                      {concentration.concentrationRisk.toUpperCase()}
-                    </Badge>
-                    {concentration.isps[0] && (
-                      <span className="text-caption font-mono tabular-nums text-muted">
-                        top: <span className="text-primary font-semibold">{concentration.isps[0].percentage}%</span>
-                      </span>
-                    )}
-                  </div>
-                </div>
-                <div className="mb-4">
-                  <div className="text-caption text-muted uppercase tracking-wider mb-1.5">Top ISPs</div>
-                  <div className="space-y-1.5">
-                    {concentration.isps.slice(0, 5).map(isp => {
-                      const max = Math.max(1, ...concentration.isps.slice(0, 5).map(x => x.percentage));
-                      return (
-                        <div key={isp.isp} className="flex items-center gap-2 text-caption">
-                          <span className="text-secondary truncate w-28 shrink-0">{isp.isp}</span>
-                          <div className="flex-1 h-1.5 bg-cipher-border/40 rounded-full overflow-hidden">
-                            <div className="h-full rounded-full bg-brand-gold/70" style={{ width: `${(isp.percentage / max) * 100}%` }} />
-                          </div>
-                          <span className="font-mono tabular-nums text-primary w-8 text-right">{isp.nodeCount}</span>
-                          <span className="font-mono tabular-nums text-muted w-11 text-right">{isp.percentage}%</span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-                {concentration.subnets.length > 0 && (
-                  <div>
-                    <div className="text-caption text-muted uppercase tracking-wider mb-1.5">Clustered Subnets (/24)</div>
-                    <div className="flex flex-wrap gap-1.5">
-                      {concentration.subnets.slice(0, 6).map(s => (
-                        <span key={s.subnet} className="px-2 py-0.5 rounded bg-cipher-bg/80 border border-cipher-border/50 text-caption font-mono text-muted">
-                          {s.subnet} <span className="text-primary font-semibold">×{s.nodeCount}</span>
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </CardBody>
-            </Card>
+            <Card className="card-static"><CardBody>
+              <h3 className="text-sm font-semibold text-primary">Hosting concentration</h3>
+              <p className="text-caption text-muted mt-1 mb-6">Hosting providers represented in the crawler observations.</p>
+              <div className="flex flex-wrap justify-between items-baseline gap-4 border-y border-cipher-border py-5 mb-4">
+                <div><p className="text-caption text-muted mb-2">Largest ISP share</p><p className="type-metric type-metric-compact text-primary">{concentration.isps[0] ? `${concentration.isps[0].percentage}%` : '—'}</p></div>
+                <div className="text-right"><p className="text-caption text-muted mb-2">Crawler classification</p><p className="text-sm font-mono text-secondary capitalize">{concentration.concentrationRisk}</p></div>
+              </div>
+              <table className="w-full text-caption">
+                <caption className="sr-only">Top hosting providers by observed node count</caption>
+                <thead><tr className="border-b border-cipher-border text-muted"><th className="text-left py-3 pr-3">Provider</th><th className="text-right py-3 px-3">Nodes</th><th className="text-right py-3">Share</th></tr></thead>
+                <tbody className="divide-y divide-cipher-border">
+                  {concentration.isps.slice(0, 5).map(isp => <tr key={isp.isp}>
+                    <td className="text-secondary py-3 pr-3">{isp.isp}</td>
+                    <td className="text-primary text-right font-mono tabular-nums py-3 px-3">{isp.nodeCount}</td>
+                    <td className="text-muted text-right font-mono tabular-nums py-3">{isp.percentage}%</td>
+                  </tr>)}
+                </tbody>
+              </table>
+              {concentration.subnets.length > 0 && <details className="mt-5 border-t border-cipher-border">
+                <summary className="cursor-pointer text-caption font-mono text-secondary py-4">Clustered subnets <span className="text-muted">· /24 groups</span></summary>
+                <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 pb-2 text-caption font-mono">
+                  {concentration.subnets.slice(0, 6).map(subnet => <div key={subnet.subnet} className="flex justify-between gap-3"><dt className="text-muted">{subnet.subnet}</dt><dd className="text-primary tabular-nums">{subnet.nodeCount} nodes</dd></div>)}
+                </dl>
+              </details>}
+            </CardBody></Card>
           )}
         </div>
-      )}
-
+        {health && <details className="node-assessment network-detail-panel network-detail-disclosure mt-5 rounded-lg border border-cipher-border">
+          <summary className="network-detail-toggle">
+            <span>
+              <span className="block font-mono text-sm text-primary">Crawler assessment</span>
+              <span className="block text-caption text-muted mt-1">Five inputs from observed nodes. Expand to inspect the score.</span>
+            </span>
+            <span className="flex items-center gap-4 shrink-0">
+              <span className="font-mono text-xl text-primary tabular-nums">{health.healthScore}<span className="text-caption text-muted"> / 100</span></span>
+              <svg className="network-detail-chevron w-4 h-4 text-muted" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="m6 3 5 5-5 5" stroke="currentColor" strokeWidth="1.5" /></svg>
+            </span>
+          </summary>
+          <div className="border-t border-cipher-border p-5 sm:p-6">
+            <table className="w-full text-caption">
+              <caption className="text-left text-caption text-muted pb-4">Crawler-derived scores, not a network-wide health verdict.</caption>
+              <thead><tr className="border-b border-cipher-border text-muted"><th className="text-left py-3 pr-3">Input</th><th className="text-left py-3 pr-3">Observation</th><th className="text-right py-3">Score / 100</th></tr></thead>
+              <tbody className="divide-y divide-cipher-border">
+                {[
+                  { label: 'Connectivity', score: health.components.connectivity.score, observation: `${health.components.connectivity.avgDegree} average peers` },
+                  { label: 'Protocol adoption', score: health.components.upgrade.score, observation: `${health.components.upgrade.adoptionPct}% at reference protocol or newer` },
+                  { label: 'Client diversity', score: health.components.clientDiversity.score, observation: health.components.clientDiversity.topClient ? `${health.components.clientDiversity.topClient} · ${health.components.clientDiversity.topClientPct}%` : 'Unavailable' },
+                  { label: 'Geographic spread', score: health.components.geographic.score, observation: `${health.components.geographic.countries} countries` },
+                  { label: 'Crawl reachability', score: health.components.reliability.score, observation: health.components.reliability.avgReliabilityPct != null ? `${health.components.reliability.avgReliabilityPct}% of observations` : 'Unavailable' },
+                ].map(item => <tr key={item.label}>
+                  <th scope="row" className="text-left font-normal text-secondary py-3 pr-3">{item.label}</th>
+                  <td className="text-muted py-3 pr-3">{item.observation}</td>
+                  <td className="font-mono tabular-nums text-primary text-right py-3">{item.score}</td>
+                </tr>)}
+              </tbody>
+            </table>
+          </div>
+        </details>}
+      </section>
       {/* Node Table */}
-      <Card className="animate-fade-in-up stagger-4">
+      <section id="node-directory" className="network-section">
+      <SectionHeader label="NODE_DIRECTORY" />
+      <Card>
         <CardBody>
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex flex-wrap items-end justify-between gap-4 mb-6">
             <div>
-              <h3 className="text-sm font-semibold text-primary">Node List</h3>
-              <p className="text-caption text-muted mt-0.5">
-                {total.toLocaleString()} nodes discovered across {stats?.countries ?? 0} countries
-              </p>
+              <h3 className="text-sm font-semibold text-primary">Observed nodes</h3>
+              <p className="text-caption text-muted mt-1">Reported software, location and the latest crawler measurements.</p>
             </div>
-            {totalPages > 1 && (
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setPage(p => Math.max(0, p - 1))}
-                  disabled={page === 0}
-                  className="px-2 py-1 text-xs font-mono rounded border border-cipher-border text-muted hover:text-primary disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                >
-                  Prev
-                </button>
-                <span className="text-xs font-mono text-muted">
-                  {page + 1}/{totalPages}
-                </span>
-                <button
-                  onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
-                  disabled={page >= totalPages - 1}
-                  className="px-2 py-1 text-xs font-mono rounded border border-cipher-border text-muted hover:text-primary disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                >
-                  Next
-                </button>
-              </div>
-            )}
+            <DirectoryPagination page={page} total={total} pageSize={PAGE_SIZE} onChange={setPage} />
           </div>
 
           {loading ? (
             <div className="flex items-center justify-center py-12">
               <div className="animate-pulse text-muted text-sm font-mono">Loading nodes...</div>
             </div>
-          ) : (
-            <div className="overflow-x-auto -mx-5 px-5">
-              <table className="w-full text-xs">
+          ) : nodes.length === 0 ? <p className="text-sm text-muted py-8">{fetchError ? 'Node records could not load. Use Retry above.' : 'No node records are available.'}</p> : (
+            <div className="overflow-x-auto" tabIndex={0} role="region" aria-label="Node records, scroll horizontally on small screens">
+              <table className="w-full text-caption">
+                <caption className="sr-only">Observed nodes. Select a column heading to sort.</caption>
                 <thead>
                   <tr className="border-b border-cipher-border text-muted font-mono uppercase tracking-wider">
-                    <SortHeader label="Client" col="client_impl" current={sortBy} dir={sortDir} onClick={handleSort} />
-                    <th className="px-3 py-2.5 text-left">Version</th>
-                    <SortHeader label="Country" col="country_code" current={sortBy} dir={sortDir} onClick={handleSort} />
-                    <th className="px-3 py-2.5 text-left">Tor</th>
+                    <SortHeader label="Client / version" col="client_impl" current={sortBy} dir={sortDir} onClick={handleSort} />
+                    <SortHeader label="Location" col="country_code" current={sortBy} dir={sortDir} onClick={handleSort} />
                     <SortHeader label="Peers" col="degree" current={sortBy} dir={sortDir} onClick={handleSort} align="right" />
                     <SortHeader label="Ping" col="ping_ms" current={sortBy} dir={sortDir} onClick={handleSort} align="right" />
                     <SortHeader label="Last Seen" col="last_seen" current={sortBy} dir={sortDir} onClick={handleSort} align="right" />
@@ -543,38 +433,29 @@ export default function NodesClient() {
                 </thead>
                 <tbody className="divide-y divide-cipher-border/40">
                   {nodes.map(node => (
-                    <tr key={node.id} className="hover:bg-cipher-card/50 transition-colors">
-                      <td className="px-3 py-2.5">
-                        <Badge className={`text-caption ${CLIENT_BADGE_CLASSES[node.client] || CLIENT_BADGE_CLASSES.Unknown}`}>
+                    <tr key={node.id} className="hover:bg-cipher-hover transition-colors">
+                      <td className="px-4 py-3">
+                        <span className="flex items-center gap-2 text-primary whitespace-nowrap">
+                          <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: clientColor(node.client) }} aria-hidden="true" />
                           {clientLabel(node.client)}
-                        </Badge>
+                        </span>
+                        <span className="block mt-1 pl-4 font-mono text-muted whitespace-nowrap">{node.version || 'Version unavailable'}</span>
                       </td>
-                      <td className="px-3 py-2.5 font-mono text-primary">
-                        {node.version || <span className="text-muted">—</span>}
+                      <td className="px-4 py-3">
+                        <span className="inline-flex items-center gap-2 text-secondary whitespace-nowrap">
+                          {node.countryCode && <span aria-hidden="true">{countryFlag(node.countryCode)}</span>}
+                          {node.country || node.countryCode || 'Location unavailable'}
+                        </span>
+                        {node.isTor && <span className="block mt-1 text-caption text-cipher-purple">{node.torType === 'exit' ? 'Tor exit' : node.torType === 'relay' ? 'Tor hidden service' : 'Tor'}</span>}
                       </td>
-                      <td className="px-3 py-2.5">
-                        {node.countryCode ? (
-                          <span className="inline-flex items-center gap-1.5" title={node.country || ''}>
-                            <span className="text-sm leading-none">{countryFlag(node.countryCode)}</span>
-                            <span className="text-muted">{node.countryCode}</span>
-                          </span>
-                        ) : <span className="text-muted">—</span>}
-                      </td>
-                      <td className="px-3 py-2.5">
-                        {node.isTor && (
-                          <Badge className="text-caption bg-purple-500/15 text-purple-300 border-purple-500/30">
-                            {node.torType === 'exit' ? 'Exit' : node.torType === 'relay' ? 'Hidden' : 'Tor'}
-                          </Badge>
-                        )}
-                      </td>
-                      <td className="px-3 py-2.5 text-right font-mono text-muted">
+                      <td className="px-4 py-3 text-right font-mono tabular-nums text-secondary whitespace-nowrap">
                         {node.degree ?? '—'}
                       </td>
-                      <td className="px-3 py-2.5 text-right font-mono text-muted">
-                        {node.pingMs ? `${node.pingMs.toFixed(0)}ms` : '—'}
+                      <td className="px-4 py-3 text-right font-mono tabular-nums text-secondary whitespace-nowrap">
+                        {node.pingMs != null ? `${node.pingMs.toFixed(0)}ms` : '—'}
                       </td>
-                      <td className="px-3 py-2.5 text-right font-mono text-muted">
-                        {formatRelativeTime(node.lastSeen)}
+                      <td className="px-4 py-3 text-right font-mono tabular-nums text-secondary whitespace-nowrap">
+                        <time dateTime={node.lastSeen} title={node.lastSeen}>{formatRelativeTime(node.lastSeen)}</time>
                       </td>
                     </tr>
                   ))}
@@ -582,19 +463,26 @@ export default function NodesClient() {
               </table>
             </div>
           )}
+          {!loading && nodes.length > 0 && <div className="flex flex-wrap items-center justify-between gap-4 border-t border-cipher-border mt-4 pt-5">
+            <p className="text-caption text-muted">— means unavailable. Peers are observed graph relationships.</p>
+            <DirectoryPagination page={page} total={total} pageSize={PAGE_SIZE} onChange={setPage} />
+          </div>}
         </CardBody>
       </Card>
+      </section>
     </div>
   );
 }
 
-function StatChip({ label, value }: { label: string; value: string | number }) {
-  return (
-    <div className="flex items-baseline gap-1.5">
-      <span className="text-muted uppercase tracking-wider text-caption">{label}</span>
-      <span className="font-semibold text-primary">{value}</span>
-    </div>
-  );
+function DirectoryPagination({ page, total, pageSize, onChange }: { page: number; total: number; pageSize: number; onChange: (page: number) => void }) {
+  const pages = Math.max(1, Math.ceil(total / pageSize));
+  return <div className="flex flex-wrap items-center gap-3 text-caption font-mono">
+    <span className="text-muted" aria-live="polite">{total ? `${(page * pageSize + 1).toLocaleString()}–${Math.min((page + 1) * pageSize, total).toLocaleString()}` : '0'} <span className="font-sans">of</span> {total.toLocaleString()}</span>
+    {pages > 1 && <div className="flex items-center gap-1">
+      <button aria-label="Previous node page" onClick={() => onChange(Math.max(0, page - 1))} disabled={page === 0} className="px-3 py-2 rounded border border-cipher-border text-secondary hover:bg-cipher-hover disabled:opacity-40 disabled:cursor-not-allowed">← Prev</button>
+      <button aria-label="Next node page" onClick={() => onChange(Math.min(pages - 1, page + 1))} disabled={page >= pages - 1} className="px-3 py-2 rounded border border-cipher-border text-secondary hover:bg-cipher-hover disabled:opacity-40 disabled:cursor-not-allowed">Next →</button>
+    </div>}
+  </div>;
 }
 
 function SortHeader({
@@ -605,29 +493,12 @@ function SortHeader({
   const active = col === current;
   return (
     <th
-      className={`px-3 py-2.5 cursor-pointer hover:text-primary transition-colors text-${align} select-none`}
-      onClick={() => onClick(col)}
+      className={`px-4 py-3 whitespace-nowrap ${align === 'right' ? 'text-right' : 'text-left'}`}
+      aria-sort={active ? (dir === 'asc' ? 'ascending' : 'descending') : 'none'}
     >
-      {label}
-      {active && <span className="ml-0.5 text-cipher-gold">{dir === 'asc' ? '↑' : '↓'}</span>}
+      <button onClick={() => onClick(col)} className="py-1 uppercase tracking-wider hover:text-primary focus-visible:outline-cipher-gold">{label}
+      <span aria-hidden="true" className={`inline-block w-4 ml-1 ${active ? 'text-cipher-gold' : 'text-muted'}`}>{active ? (dir === 'asc' ? '↑' : '↓') : '↕'}</span></button>
     </th>
-  );
-}
-
-function HealthBar({ label, score, detail }: { label: string; score: number; detail: string }) {
-  const color = scoreColor(score);
-  return (
-    <div className="flex items-center gap-3">
-      <span className="h-1.5 w-1.5 rounded-full shrink-0" style={{ backgroundColor: color }} />
-      <span className="text-caption text-secondary w-[104px] shrink-0">{label}</span>
-      <div className="flex-1 h-1.5 bg-cipher-border/40 rounded-full overflow-hidden">
-        <div
-          className="h-full rounded-full transition-[width,background-color]"
-          style={{ width: `${score}%`, backgroundColor: color }}
-        />
-      </div>
-      <span className="text-caption font-mono tabular-nums text-muted w-24 text-right shrink-0">{detail}</span>
-    </div>
   );
 }
 

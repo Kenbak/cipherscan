@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { OrbitControls, Instances, Instance, Html } from '@react-three/drei';
+import { OrbitControls, Instances, Instance } from '@react-three/drei';
 import * as THREE from 'three';
 import {
   forceSimulation,
@@ -15,6 +15,7 @@ import {
   type Simulation,
   type SimulationNode,
 } from 'd3-force-3d';
+import { useTheme } from '@/contexts/ThemeContext';
 import { getApiUrl } from '@/lib/api-config';
 import { clientColor as sharedClientColor, clientLabel as sharedClientLabel, CLIENT_COLORS } from '@/lib/network-colors';
 
@@ -53,7 +54,7 @@ interface PositionedNode extends SimNode {
   color: string;
 }
 
-const TOR_COLOR = '#A855F7';
+const TOR_COLOR = '#B6A0E0';
 // Known-but-unreachable ("off") nodes: lighter slate so they're visible against
 // the dark background while still clearly secondary to the reachable core.
 const OFF_COLOR = '#6B7FA0';
@@ -72,31 +73,9 @@ function clientLabel(client: string | null, reachable = true) {
 function nodeCategory(n: { client: string | null; isTor: boolean; reachable: boolean }): string {
   if (!n.reachable) return 'off';
   if (n.isTor) return 'Tor';
-  const c = n.client || '';
-  if (c in CLIENT_COLORS) return c;
-  return 'Unidentified';
-}
-
-function countryFlag(code: string | null): string {
-  if (!code || code.length !== 2) return '';
-  const codePoints = [...code.toUpperCase()].map((c) => 0x1f1e6 + c.charCodeAt(0) - 65);
-  return String.fromCodePoint(...codePoints);
-}
-
-/** Small, fixed-size label that tracks a 3D point (no distance scaling). */
-function HubLabel({ node }: { node: PositionedNode }) {
-  return (
-    <Html
-      position={[node.x, node.y + node.radius + 0.8, node.z]}
-      center
-      zIndexRange={[15, 0]}
-      style={{ pointerEvents: 'none' }}
-    >
-      <div className="whitespace-nowrap rounded bg-cipher-card/70 border border-cipher-border/50 px-1 py-0.5 font-mono text-caption leading-none text-secondary">
-        {clientLabel(node.client, node.reachable)}{node.countryCode ? ` · ${countryFlag(node.countryCode)} ${node.countryCode}` : ''}
-      </div>
-    </Html>
-  );
+  const c = n.client || 'Unknown';
+  if (c === 'Unknown') return 'Unidentified';
+  return c in CLIENT_COLORS ? c : 'Other';
 }
 
 function Scene({
@@ -104,23 +83,29 @@ function Scene({
   edgePairs,
   focus,
   pinned,
-  hubs,
   hidden,
   onHover,
   onPin,
+  palette,
+  rotating,
+  resetKey,
 }: {
   nodes: PositionedNode[];
   edgePairs: [number, number][];
   focus: PositionedNode | null;
   pinned: PositionedNode | null;
-  hubs: PositionedNode[];
   hidden: Set<string>;
+  palette: { edge: string; selected: string; tor: string; off: string };
+  rotating: boolean;
+  resetKey: number;
   onHover: (n: PositionedNode | null) => void;
   onPin: (n: PositionedNode | null) => void;
 }) {
   const groupRef = useRef<THREE.Group>(null);
-  const { camera, controls } = useThree() as unknown as {
+  const { camera, controls, invalidate, size } = useThree() as unknown as {
     camera: THREE.PerspectiveCamera;
+    invalidate: () => void;
+    size: { width: number; height: number };
     controls: { target: THREE.Vector3; update: () => void } | null;
   };
 
@@ -165,6 +150,29 @@ function Scene({
     return g;
   }, [focus, edgePairs, posById, isVisible]);
 
+  // Fit the complete observed graph on initial load, resize or explicit reset.
+  useEffect(() => {
+    if (!nodes.length || !controls || !groupRef.current || size.width <= 0 || size.height <= 0) return;
+    flyRef.current = null;
+    groupRef.current.rotation.set(0, 0, 0);
+    const bounds = new THREE.Box3();
+    nodes.forEach(node => {
+      bounds.expandByPoint(new THREE.Vector3(node.x - node.radius, node.y - node.radius, node.z - node.radius));
+      bounds.expandByPoint(new THREE.Vector3(node.x + node.radius, node.y + node.radius, node.z + node.radius));
+    });
+    const sphere = bounds.getBoundingSphere(new THREE.Sphere());
+    const verticalFov = THREE.MathUtils.degToRad(camera.fov);
+    const horizontalFov = 2 * Math.atan(Math.tan(verticalFov / 2) * size.width / Math.max(1, size.height));
+    const distance = sphere.radius / Math.sin(Math.min(verticalFov, horizontalFov) / 2) * 1.06;
+    controls.target.copy(sphere.center);
+    camera.position.copy(sphere.center).add(new THREE.Vector3(0, 0, Math.max(40, distance)));
+    camera.updateProjectionMatrix();
+    controls.update();
+    invalidate();
+  }, [nodes, controls, camera, invalidate, size.width, size.height, resetKey]);
+  useEffect(() => () => lineGeom.dispose(), [lineGeom]);
+  useEffect(() => () => highlightGeom?.dispose(), [highlightGeom]);
+
   // When a node is pinned, glide the camera to frame it.
   useEffect(() => {
     if (!pinned || !groupRef.current) return;
@@ -172,11 +180,12 @@ function Scene({
     groupRef.current.localToWorld(world);
     const dir = camera.position.clone().sub(world).normalize();
     flyRef.current = { pos: world, dir, active: true };
-  }, [pinned, camera]);
+    invalidate();
+  }, [pinned, camera, invalidate]);
 
   useFrame((_, delta) => {
     // Auto-rotate only when nothing is being inspected.
-    if (groupRef.current && !focus) groupRef.current.rotation.y += delta * 0.04;
+    if (groupRef.current && rotating && !focus) groupRef.current.rotation.y += delta * 0.04;
 
     // Smooth camera fly-to on pin.
     const fly = flyRef.current;
@@ -186,6 +195,7 @@ function Scene({
       camera.position.lerp(desired, 0.12);
       controls.update();
       if (camera.position.distanceTo(desired) < 1.2) fly.active = false;
+      else invalidate();
     }
   });
 
@@ -193,10 +203,10 @@ function Scene({
     <group ref={groupRef}>
       <lineSegments geometry={lineGeom}>
         <lineBasicMaterial
-          color="#91AC90"
+          color={palette.edge}
           transparent
-          opacity={focus ? 0.05 : 0.2}
-          blending={THREE.AdditiveBlending}
+          opacity={focus ? 0.045 : 0.16}
+          blending={THREE.NormalBlending}
           depthWrite={false}
         />
       </lineSegments>
@@ -204,24 +214,23 @@ function Scene({
       {highlightGeom && (
         <lineSegments geometry={highlightGeom}>
           <lineBasicMaterial
-            color="#8CE8DD"
+            color={palette.selected}
             transparent
             opacity={0.75}
-            blending={THREE.AdditiveBlending}
+            blending={THREE.NormalBlending}
             depthWrite={false}
           />
         </lineSegments>
       )}
 
-      {/* Reachable core — bright, emissive spheres. */}
+      {/* Reachable nodes retain the shared client colors without lighting effects. */}
       {reachableVisible.length > 0 && (
         <Instances limit={reachableVisible.length} range={reachableVisible.length}>
           <sphereGeometry args={[1, 12, 12]} />
-          <meshStandardMaterial roughness={0.35} metalness={0.1} emissiveIntensity={0.55} toneMapped={false} />
+          <meshBasicMaterial toneMapped={false} />
           {reachableVisible.map((n) => {
             const isFocus = focus?.id === n.id;
-            const c = new THREE.Color(n.color);
-            if (isFocus) c.multiplyScalar(1.9);
+            const c = new THREE.Color(isFocus ? palette.selected : n.isTor ? palette.tor : n.color);
             return (
               <Instance
                 key={n.id}
@@ -241,11 +250,10 @@ function Scene({
       {offVisible.length > 0 && (
         <Instances limit={offVisible.length} range={offVisible.length}>
           <sphereGeometry args={[1, 8, 8]} />
-          <meshStandardMaterial roughness={0.7} metalness={0} transparent opacity={0.65} toneMapped={false} />
+          <meshBasicMaterial transparent opacity={0.6} toneMapped={false} />
           {offVisible.map((n) => {
             const isFocus = focus?.id === n.id;
-            const c = new THREE.Color(n.color);
-            if (isFocus) c.multiplyScalar(2.2);
+            const c = new THREE.Color(isFocus ? palette.selected : palette.off);
             return (
               <Instance
                 key={n.id}
@@ -261,12 +269,23 @@ function Scene({
         </Instances>
       )}
 
-      {hubs.filter((n) => isVisible(n)).map((n) => (pinned?.id === n.id ? null : <HubLabel key={`hub-${n.id}`} node={n} />))}
     </group>
   );
 }
 
-export function TopologyGraph() {
+export function TopologyGraph({ active = true }: { active?: boolean }) {
+  const { theme } = useTheme();
+  const [rotating, setRotating] = useState(false);
+  const [resetKey, setResetKey] = useState(0);
+  const [palette, setPalette] = useState({ edge: CLIENT_COLORS.zcashd, selected: CLIENT_COLORS.Zebra, tor: TOR_COLOR, off: OFF_COLOR });
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => {
+      const styles = getComputedStyle(document.documentElement);
+      const rgb = (token: string) => `rgb(${styles.getPropertyValue(token).trim().split(/\s+/).join(',')})`;
+      setPalette({ edge: styles.getPropertyValue('--color-text-muted').trim(), selected: rgb('--color-gold-rgb'), tor: rgb('--color-purple-rgb'), off: styles.getPropertyValue('--color-text-muted').trim() });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [theme]);
   const [loading, setLoading] = useState(true);
   const [nodes, setNodes] = useState<PositionedNode[]>([]);
   const [edgePairs, setEdgePairs] = useState<[number, number][]>([]);
@@ -275,7 +294,6 @@ export function TopologyGraph() {
   const [hovered, setHovered] = useState<PositionedNode | null>(null);
   const [pinned, setPinned] = useState<PositionedNode | null>(null);
   const [query, setQuery] = useState('');
-  const [searchOpen, setSearchOpen] = useState(false);
   const [hidden, setHidden] = useState<Set<string>>(new Set());
 
   const toggleCategory = (cat: string) =>
@@ -290,22 +308,19 @@ export function TopologyGraph() {
   const rawFocus = pinned ?? hovered;
   const focus = rawFocus && !hidden.has(nodeCategory(rawFocus)) ? rawFocus : null;
 
-  const hubs = useMemo(
-    () => nodes.filter((n) => n.reachable).sort((a, b) => (b.degree || 0) - (a.degree || 0)).slice(0, 6),
-    [nodes]
-  );
-
-  // Search over the most-connected reachable nodes (pseudonymous — match by client/country).
   const searchResults = useMemo(() => {
-    const top = nodes.filter((n) => n.reachable).sort((a, b) => (b.degree || 0) - (a.degree || 0)).slice(0, 60);
     const q = query.trim().toLowerCase();
-    const filtered = q
-      ? top.filter((n) =>
-          clientLabel(n.client).toLowerCase().includes(q) ||
-          (n.countryCode || '').toLowerCase().includes(q))
-      : top;
-    return filtered.slice(0, 8);
-  }, [nodes, query]);
+    return nodes.filter(node => !hidden.has(nodeCategory(node)) && (q
+      ? `${clientLabel(node.client)} ${node.countryCode || ''} #${node.id}`.toLowerCase().includes(q)
+      : node.reachable))
+      .sort((a, b) => (b.degree || 0) - (a.degree || 0)).slice(0, 6);
+  }, [nodes, query, hidden]);
+  const selectNode = (node: PositionedNode) => {
+    setPinned(node); setHovered(null); setQuery(''); setRotating(false);
+  };
+  const resetView = () => {
+    setPinned(null); setHovered(null); setQuery(''); setRotating(false); setResetKey(value => value + 1);
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -394,129 +409,66 @@ export function TopologyGraph() {
   }, []);
 
   return (
-    <div className="relative">
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="text-sm font-mono text-secondary uppercase tracking-wider">Network Topology</h3>
-        {!loading && nodes.length > 0 && (
-          <span className="text-caption text-muted font-mono">
-            {counts ? `${counts.reachable} reachable · ${counts.off} off` : `${nodes.length} nodes`} · {edgeCount} links · drag to rotate · click to pin
-          </span>
-        )}
-      </div>
-
-      <div className="relative w-full h-[460px] rounded-lg border border-cipher-border overflow-hidden bg-[radial-gradient(ellipse_at_center,#0b1220_0%,#060910_70%,#04060c_100%)]">
-        {loading ? (
-          <div className="absolute inset-0 flex items-center justify-center z-10">
-            <span className="text-sm text-muted animate-pulse font-mono">Computing layout…</span>
+    <div>
+      <div className="border border-cipher-border rounded-lg overflow-hidden">
+        <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 border-b border-cipher-border">
+          <p className="text-caption text-muted font-mono">{loading ? 'Loading graph observations…' : `${counts?.reachable ?? nodes.filter(node => node.reachable).length} reachable · ${counts?.off ?? nodes.filter(node => !node.reachable).length} unverified · ${edgeCount.toLocaleString()} links`}</p>
+          <div className="flex gap-2">
+            <button type="button" onClick={resetView} disabled={!nodes.length} className="px-3 py-2 rounded border border-cipher-border text-caption font-mono text-secondary hover:text-primary disabled:opacity-50">Reset view</button>
+            <button type="button" aria-pressed={rotating} disabled={!nodes.length} onClick={() => setRotating(value => !value)} className="px-3 py-2 rounded border border-cipher-border text-caption font-mono text-secondary hover:text-primary disabled:opacity-50">{rotating ? 'Pause rotation' : 'Rotate view'}</button>
           </div>
-        ) : nodes.length === 0 ? (
-          <div className="absolute inset-0 flex items-center justify-center z-10">
-            <span className="text-sm text-muted">No topology data available yet.</span>
+        </div>
+        <div className="grid lg:grid-cols-[minmax(0,1fr)_260px]">
+          <div className="relative min-w-0 h-[360px] sm:h-[500px] bg-cipher-bg" aria-label="Interactive 3D graph of observed peer advertisements">
+            {loading ? <div className="absolute inset-0 flex items-center justify-center"><span className="text-sm text-muted font-mono">Computing layout…</span></div>
+              : nodes.length === 0 ? <div className="absolute inset-0 flex items-center justify-center"><span className="text-sm text-muted">No topology data available yet.</span></div>
+              : <Canvas
+                  frameloop={active ? rotating ? 'always' : 'demand' : 'never'}
+                  camera={{ position: [0, 0, 190], fov: 55, near: 0.1, far: 2000 }}
+                  dpr={[1, 1.5]} gl={{ antialias: true, alpha: true }}
+                  onPointerMissed={() => { setPinned(null); setHovered(null); }}
+                >
+                  <Scene palette={palette} rotating={rotating && active} resetKey={resetKey} nodes={nodes} edgePairs={edgePairs} focus={focus} pinned={pinned} hidden={hidden} onHover={setHovered} onPin={node => { if (node) selectNode(node); }} />
+                  <OrbitControls makeDefault enablePan={false} enableDamping dampingFactor={0.08} rotateSpeed={0.6} minDistance={15} maxDistance={1200} />
+                </Canvas>}
           </div>
-        ) : (
-          <>
-            <Canvas
-              camera={{ position: [0, 0, 190], fov: 55, near: 0.1, far: 2000 }}
-              dpr={[1, 2]}
-              gl={{ antialias: true, alpha: true }}
-            >
-              <ambientLight intensity={0.6} />
-              <pointLight position={[100, 100, 100]} intensity={1.2} />
-              <pointLight position={[-100, -80, -60]} intensity={0.5} color="#A1A9AD" />
-              <Scene
-                nodes={nodes}
-                edgePairs={edgePairs}
-                focus={focus}
-                pinned={pinned}
-                hubs={hubs}
-                hidden={hidden}
-                onHover={setHovered}
-                onPin={(n) => setPinned((prev) => (prev?.id === n?.id ? null : n))}
-              />
-              <OrbitControls
-                makeDefault
-                enablePan={false}
-                enableDamping
-                dampingFactor={0.08}
-                rotateSpeed={0.6}
-                minDistance={40}
-                maxDistance={520}
-              />
-            </Canvas>
-
-            {/* Counts badge */}
-            {counts && (
-              <div className="absolute top-3 right-3 z-20 rounded-md bg-cipher-card/80 border border-cipher-border px-2.5 py-1 text-caption font-mono text-muted backdrop-blur-sm">
-                {counts.reachable} reachable · {counts.off} off · {counts.edges} links
+          <aside className="border-t lg:border-t-0 lg:border-l border-cipher-border p-4 min-w-0" aria-label="Node inspector">
+            <label htmlFor="topology-search" className="block type-label text-muted mb-2">Find a node</label>
+            <input id="topology-search" type="search" value={query} onChange={event => setQuery(event.target.value)} placeholder="Client, country or #ID" className="w-full min-w-0 rounded border border-cipher-border bg-cipher-bg px-3 py-2.5 text-caption font-mono text-primary placeholder:text-muted focus-visible:outline-cipher-gold" />
+            <p className="text-caption text-muted mt-2">IDs refer to this graph snapshot.</p>
+            {focus && !query.trim() ? <div className="mt-5">
+              <div className="flex items-center justify-between gap-3 mb-4"><h3 className="font-mono text-sm text-primary">Node #{focus.id}</h3>{pinned && <button onClick={() => setPinned(null)} className="text-caption text-muted hover:text-primary underline underline-offset-4">Clear</button>}</div>
+              <dl className="space-y-3 text-caption">
+                <Row label="Client" value={sharedClientLabel(focus.client)} />
+                <Row label="Status" value={focus.reachable ? 'Reachable' : 'Unverified'} />
+                <Row label="Country" value={focus.countryCode || 'Unknown'} />
+                <Row label="Tor" value={focus.isTor ? 'Yes' : 'No'} />
+                <Row label="Degree" value={focus.degree != null ? String(focus.degree) : '—'} />
+                <Row label="Betweenness" value={focus.betweenness != null ? focus.betweenness.toFixed(4) : '—'} />
+                <Row label="Closeness" value={focus.closeness != null ? focus.closeness.toFixed(4) : '—'} />
+              </dl>
+              <p className="text-caption text-muted mt-5">{pinned ? 'Highlighted lines are advertisements involving this node.' : 'Click the node to keep these details open.'}</p>
+            </div> : <div className="mt-5">
+              <p className="text-caption text-muted mb-2">{query.trim() ? 'Matching nodes · highest degree first' : 'Inspect a hub · highest degree first'}</p>
+              <div className="divide-y divide-cipher-border">
+                {searchResults.map(node => <button key={node.id} onClick={() => selectNode(node)} className="w-full flex items-center gap-2 py-3 text-left text-caption hover:bg-cipher-bg">
+                  <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: !node.reachable ? palette.off : node.isTor ? palette.tor : nodeColor(node) }} />
+                  <span className="min-w-0"><span className="block text-secondary">{clientLabel(node.client, node.reachable)}</span><span className="text-muted font-mono">#{node.id} · {node.countryCode || 'Unknown'}</span></span>
+                  <span className="ml-auto font-mono text-muted tabular-nums">{node.degree ?? '—'}</span>
+                </button>)}
+                {!loading && !searchResults.length && <p className="text-caption text-muted py-4">No matching nodes in the visible categories.</p>}
               </div>
-            )}
-
-            {/* Search */}
-            <div className="absolute top-3 left-3 z-20 w-52">
-              <input
-                type="text"
-                value={query}
-                onChange={(e) => { setQuery(e.target.value); setSearchOpen(true); }}
-                onFocus={() => setSearchOpen(true)}
-                onBlur={() => setTimeout(() => setSearchOpen(false), 150)}
-                placeholder="Find a hub (client / country)…"
-                className="w-full rounded-md bg-cipher-card/90 border border-cipher-border px-2.5 py-1.5 text-caption font-mono text-primary placeholder:text-muted backdrop-blur-sm focus:outline-none focus:border-cipher-gold/50"
-              />
-              {searchOpen && searchResults.length > 0 && (
-                <div className="mt-1 rounded-md bg-cipher-card/95 border border-cipher-border backdrop-blur-sm overflow-hidden">
-                  {searchResults.map((n) => (
-                    <button
-                      key={n.id}
-                      onMouseDown={(e) => { e.preventDefault(); setPinned(n); setSearchOpen(false); }}
-                      className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-caption font-mono hover:bg-cipher-bg/60 transition-colors"
-                    >
-                      <span className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: nodeColor(n) }} />
-                      <span className="text-secondary">{clientLabel(n.client)}</span>
-                      <span className="text-muted">{n.countryCode ? `${countryFlag(n.countryCode)} ${n.countryCode}` : '—'}</span>
-                      <span className="ml-auto text-primary">{n.degree ?? 0}p</span>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Detail panel (fixed size, single source of truth) */}
-            {focus && (
-              <div className="absolute bottom-3 right-3 z-20 w-52 rounded-md bg-cipher-card/95 border border-cipher-border px-3 py-2.5 backdrop-blur-sm">
-                <div className="flex items-center gap-2">
-                  <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: nodeColor(focus) }} />
-                  <span className="text-xs font-mono text-primary">
-                    {clientLabel(focus.client, focus.reachable)}{focus.reachable && focus.isTor ? ' · Tor' : ''}
-                  </span>
-                  {pinned && (
-                    <button
-                      onClick={() => setPinned(null)}
-                      className="ml-auto text-muted hover:text-primary text-xs leading-none"
-                      aria-label="Unpin node"
-                    >
-                      ✕
-                    </button>
-                  )}
-                </div>
-                <dl className="mt-2 space-y-1 text-caption font-mono">
-                  <Row label="Status" value={focus.reachable ? 'Reachable' : 'Known / unreachable'} />
-                  <Row label="Country" value={focus.countryCode ? `${countryFlag(focus.countryCode)} ${focus.countryCode}` : 'Unknown'} />
-                  <Row label={focus.reachable ? 'Peers' : 'Gossiped by'} value={focus.degree != null ? String(focus.degree) : '—'} />
-                  <Row label="Betweenness" value={focus.betweenness != null ? focus.betweenness.toFixed(4) : '—'} />
-                  <Row label="Closeness" value={focus.closeness != null ? focus.closeness.toFixed(4) : '—'} />
-                </dl>
-                {!pinned && <div className="mt-2 text-caption text-muted">Click node to pin</div>}
-              </div>
-            )}
-          </>
-        )}
+            </div>}
+          </aside>
+        </div>
       </div>
 
       {/* Legend (clickable filters) */}
       <div className="flex flex-wrap items-center gap-3 mt-3 text-caption font-mono text-muted">
-        {Object.entries(CLIENT_COLORS).filter(([k]) => k !== 'Other' && k !== 'Unknown').map(([name, color]) => (
+        {Object.entries(CLIENT_COLORS).filter(([k]) => k !== 'Unknown').map(([name, color]) => (
           <button
             key={name}
+            aria-pressed={!hidden.has(name)}
             onClick={() => toggleCategory(name)}
             className={`flex items-center gap-1.5 transition-opacity ${hidden.has(name) ? 'opacity-30 line-through' : 'opacity-100 hover:opacity-80'}`}
           >
@@ -525,21 +477,24 @@ export function TopologyGraph() {
           </button>
         ))}
         <button
+          aria-pressed={!hidden.has('Tor')}
           onClick={() => toggleCategory('Tor')}
           className={`flex items-center gap-1.5 transition-opacity ${hidden.has('Tor') ? 'opacity-30 line-through' : 'opacity-100 hover:opacity-80'}`}
         >
-          <span className="w-2 h-2 rounded-full" style={{ backgroundColor: TOR_COLOR }} />
+          <span className="w-2 h-2 rounded-full" style={{ backgroundColor: palette.tor }} />
           Tor
         </button>
         <button
+          aria-pressed={!hidden.has('off')}
           onClick={() => toggleCategory('off')}
           className={`flex items-center gap-1.5 transition-opacity ${hidden.has('off') ? 'opacity-30 line-through' : 'opacity-100 hover:opacity-80'}`}
         >
-          <span className="w-2 h-2 rounded-full" style={{ backgroundColor: OFF_COLOR }} />
-          Known / unreachable
+          <span className="w-2 h-2 rounded-full" style={{ backgroundColor: palette.off }} />
+          Unverified
         </button>
-        <span className="ml-auto text-caption text-muted">click to filter · size ∝ peer count</span>
+
       </div>
+      <p className="text-caption text-muted mt-3">Drag to orbit · scroll to zoom · select a node to inspect. Node size encodes degree; unverified nodes are shown smaller.</p>
     </div>
   );
 }
