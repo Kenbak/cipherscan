@@ -182,7 +182,7 @@ export default function NetworkClient({ initialData }: { initialData: NetworkPag
             </span>
             <svg className="network-detail-chevron w-4 h-4 shrink-0 text-muted" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="m6 3 5 5-5 5" stroke="currentColor" strokeWidth="1.5" /></svg>
           </summary>
-          {technicalOpen && <div className="px-4 pb-4 sm:px-6 sm:pb-6 space-y-5">
+          {technicalOpen && <div className="p-4 sm:p-6 space-y-5">
             <Card><CardBody>
               <SectionHeader label="EXPLORER_NODE" />
               <p className="text-caption text-muted mb-4">This is one observation point, not a network-wide health verdict.</p>

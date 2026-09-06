@@ -2001,7 +2001,7 @@ main table td { font-variant-numeric: tabular-nums lining-nums; }
 .network-detail-toggle:focus-visible, .network-related-link:focus-visible { outline: 2px solid var(--color-cipher-gold); outline-offset: -3px; }
 .network-detail-disclosure[open] .network-detail-chevron { transform: rotate(90deg); }
 .network-related-links { display: grid; gap: 1rem; }
-.network-related-link { display: block; min-width: 0; padding: 1rem 0; border-top: 1px solid var(--color-border); }
+.network-related-link { display: block; min-width: 0; padding: 1rem; border-top: 1px solid var(--color-border); }
 @media (min-width: 768px) {
   .network-detail-toggle { padding: 1.25rem 1.5rem; }
   .network-related-links { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.5rem; }
