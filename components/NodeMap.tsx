@@ -472,7 +472,7 @@ export function NodeMap({ initialLocations, initialStats }: NodeMapProps) {
       {/* Trends */}
       {trends && (
         <div className="px-4 sm:px-6 py-3 border-t border-cipher-border">
-          <div className="flex items-center gap-4">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
             <span className="text-caption text-muted uppercase tracking-wider font-mono">Observed count change</span>
             {[
               { label: '24h', value: trends.change24h },

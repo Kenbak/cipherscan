@@ -37,7 +37,7 @@ export default async function NetworkPage() {
   const pageSchema = {
     '@context': 'https://schema.org', '@type': 'WebPage', '@id': `${pageUrl}#webpage`,
     url: pageUrl, name: 'Zcash Network',
-    description: 'Block production, transaction activity and observed Zcash nodes.',
+    description: 'Zcash protocol, issuance, block production and observed nodes.',
     isPartOf: { '@id': `${getBaseUrl()}/#website` },
     publisher: { '@id': 'https://zecblock.com/#organization' },
   };

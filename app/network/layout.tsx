@@ -2,7 +2,7 @@ import { buildPageMetadata } from '@/lib/seo';
 
 export const metadata = buildPageMetadata({
   title: 'Zcash Network Stats & Node Map | ZecBlock',
-  description: 'Explore observed Zcash nodes, recent block cadence, network hashrate and transaction fees, with clearly scoped chain and node statistics.',
+  description: 'Explore Zcash protocol parameters, issuance and the next halving, observed nodes, block cadence, hashrate and transaction fees.',
   keywords: ['zcash network stats', 'zcash node map', 'zcash hashrate', 'zcash peers', 'zcash nodes', 'ZEC network', 'zcash difficulty', 'zcash blockchain stats'],
   path: '/network',
   index: true,

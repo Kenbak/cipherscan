@@ -9,7 +9,7 @@ export function MiningIssuance() {
   const { data, loading, error } = useApiQuery<HalvingInfo & { success: boolean }>('/api/network/halving', undefined, { refreshInterval: 300_000 });
   const emission = useApiQuery<{ success: boolean; dailyEmissionEstimate: number | null }>('/api/network/emission');
   const halving = data?.success ? data : null;
-  return <section id="issuance" className="scroll-mt-36 mb-12">
+  return <section id="issuance" className="network-section mb-6">
     <SectionHeader label="ISSUANCE" />
     <div className="grid md:grid-cols-2 gap-5">
       <Card><CardBody>

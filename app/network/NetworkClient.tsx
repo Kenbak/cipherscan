@@ -10,6 +10,7 @@ import { MetricCard } from '@/components/ui/MetricCard';
 import { isCrosslink } from '@/lib/config';
 import { formatHashrate } from '@/lib/format-numbers';
 import { blockAgeLabel, observationStatus } from '@/lib/network-overview';
+import { MiningIssuance } from '@/components/network/MiningIssuance';
 import { NetworkSectionNav } from '@/components/network/NetworkSectionNav';
 import { BlockCadenceChart } from '@/components/network/BlockCadenceChart';
 import { FeeDistributionChart, type FeeDistributionResponse } from '@/components/network/FeeDistributionChart';
@@ -129,17 +130,29 @@ export default function NetworkClient({ initialData }: { initialData: NetworkPag
   return (
     <div className="network-page max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
       <PageHeader eyebrow="NETWORK_STATUS" title="Zcash Network"
-        subtitle="Block production, transaction activity and the nodes we observe." />
+        subtitle="Protocol, issuance, block production and the nodes we observe." />
       <NetworkSectionNav onTechnicalNavigate={() => setTechnicalOpen(true)} />
+      <section id="network-protocol" className="network-section mb-8">
+        <SectionHeader label="PROTOCOL_REFERENCE" />
+        <dl className="grid grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-5 border-y border-cipher-border py-5">
+          {[
+            ['Active upgrade', stats?.supply?.activeUpgrade ?? '—'],
+            ['Block subsidy', stats ? `${stats.mining.blockReward} ZEC` : '—'],
+            ['Maximum supply', '21,000,000 ZEC'],
+            ['Target spacing', '75 seconds'],
+          ].map(([label, value]) => <div key={label}><dt className="text-caption text-muted mb-1">{label}</dt><dd className="font-mono text-sm text-primary tabular-nums">{value}</dd></div>)}
+        </dl>
+
+      </section>
       <section id="network-overview" className="network-section mb-8" aria-label="Current chain activity">
         {statsQuery.error && <p role="status" className="text-caption text-warning mb-3">Network summary could not refresh. {stats ? 'Last received values are shown.' : 'Other observations remain available below.'}</p>}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="grid grid-cols-1 min-[380px]:grid-cols-2 lg:grid-cols-4 gap-3">
           <MetricCard label="Latest block" value={height != null ? <Link href={`/block/${height}`} className="hover:text-cipher-gold">{height.toLocaleString()}</Link> : '—'}
             hint={stats ? `Block timestamp · ${blockAgeLabel(stats.blockchain.latestBlockTime, now)}` : 'Awaiting chain data'} />
           <MetricCard label="Block interval" value={stats ? `${stats.mining.avgBlockTime.toFixed(1)}s` : '—'} hint="Rolling average · target 75s" />
           <MetricCard label="Transactions · 24h" value={txCount?.toLocaleString() ?? '—'}
             hint={stats?.blockchain.tx24hExclCoinbase != null ? 'Confirmed · coinbase excluded' : 'Confirmed · includes coinbase'} />
-          <MetricCard label="Network hashrate" value={stats ? formatHashrate(stats.mining.networkHashrateRaw) : '—'}
+          <MetricCard label="Network hashrate" value={<span className="whitespace-normal">{stats ? formatHashrate(stats.mining.networkHashrateRaw) : '—'}</span>}
             hint={<Link href="/mining#metrics" className="hover:text-primary underline underline-offset-4">Estimated mining power →</Link>} />
         </div>
       </section>
@@ -157,22 +170,14 @@ export default function NetworkClient({ initialData }: { initialData: NetworkPag
         </div>
       </section>
 
-      <section id="network-protocol" className="network-section mb-10">
-        <SectionHeader label="PROTOCOL_REFERENCE" />
-        <dl className="grid grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-5 border-y border-cipher-border py-5">
-          {[
-            ['Active upgrade', stats?.supply?.activeUpgrade ?? '—'],
-            ['Block subsidy', stats ? `${stats.mining.blockReward} ZEC` : '—'],
-            ['Maximum supply', '21,000,000 ZEC'],
-            ['Target spacing', '75 seconds'],
-          ].map(([label, value]) => <div key={label}><dt className="text-caption text-muted mb-1">{label}</dt><dd className="font-mono text-sm text-primary tabular-nums">{value}</dd></div>)}
-        </dl>
+      <MiningIssuance />
+      <div className="mb-10">
         <div className="flex flex-wrap gap-x-6 gap-y-3 mt-4 text-caption font-mono">
-          <Link href="/mining#issuance" className="text-secondary hover:text-cipher-gold">Rewards &amp; next halving →</Link>
+          <Link href="/mining#metrics" className="text-secondary hover:text-cipher-gold">Mining &amp; rewards →</Link>
           <Link href="/pools#supply" className="text-secondary hover:text-cipher-gold">Supply &amp; shielded pools →</Link>
           <Link href="/rich-list#transparent-breakdown" className="text-secondary hover:text-cipher-gold">Transparent balance groups →</Link>
         </div>
-      </section>
+      </div>
 
       <details id="network-technical" className="network-section border-y border-cipher-border py-5" open={technicalOpen} onToggle={event => setTechnicalOpen(event.currentTarget.open)}>
         <summary className="cursor-pointer font-mono text-sm text-primary focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-cipher-gold">Technical details <span className="block sm:inline sm:ml-3 text-caption font-sans text-muted">Storage, shielded protocol growth and this explorer’s node</span></summary>

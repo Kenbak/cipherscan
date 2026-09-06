@@ -14,7 +14,6 @@ import { Card, CardBody } from '@/components/ui/Card';
 import { PageHeader, SectionHeader, DataTable, SkeletonTable } from '@/components/ui';
 import { ChartCard } from '@/components/network/ChartCard';
 import { PageSectionNav } from '@/components/PageSectionNav';
-import { MiningIssuance } from '@/components/network/MiningIssuance';
 import { MiningMetricsChart } from '@/components/network/MiningMetricsChart';
 import { NetworkHashrateChart } from '@/components/network/NetworkHashrateChart';
 import { zatToZec, formatZecCompact } from '@/lib/format-numbers';
@@ -736,7 +735,9 @@ export default function MiningPage() {
         <MiningMetricsChart />
       </section>
 
-      <MiningIssuance />
+      <section id="issuance" className="scroll-mt-36 mb-12">
+        <Link href="/network#issuance" className="text-sm font-mono text-secondary hover:text-cipher-gold underline underline-offset-4">Block issuance &amp; next halving on Network →</Link>
+      </section>
       <DistributionSection />
       <RankingSection />
       <HashrateShareSection />
