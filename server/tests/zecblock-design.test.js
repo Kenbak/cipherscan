@@ -83,3 +83,32 @@ test('mempool composition separates fully shielded count from inclusive pool sha
   assert.equal(summarizeMempool([]).shieldedShare, null);
   assert.equal(summarizeMempool([{ type: 'transparent' }]).shieldedShare, 0);
 });
+
+test('network cadence preserves timestamp reversals and missing predecessors', () => {
+  const { blockIntervals } = load('lib/network-overview.ts');
+  const blocks = [{ height: 13, timestamp: 260 }, { height: 10, timestamp: 200 }, { height: 11, timestamp: 190 }];
+  const original = JSON.stringify(blocks);
+  assert.deepEqual(blockIntervals(blocks), [
+    { height: 11, timestamp: 190, seconds: -10 },
+    { height: 13, timestamp: 260, seconds: null },
+  ]);
+  assert.equal(JSON.stringify(blocks), original);
+  assert.deepEqual(blockIntervals([]), []);
+});
+
+test('fee band uses both actual percentiles and rejects invalid observations', () => {
+  const { feeBand } = load('lib/network-overview.ts');
+  assert.deepEqual(feeBand({ p10: 1000, median: 5000, p90: 12000 }), { range: [0.01, 0.12], median: 0.05 });
+  for (const row of [{p10:-1,median:1,p90:2}, {p10:3,median:2,p90:4}, {p10:1,median:5,p90:4}, {p10:NaN,median:2,p90:3}]) assert.equal(feeBand(row), null);
+});
+
+test('unknown node readiness is never displayed as healthy or synced', () => {
+  const { observationStatus, blockAgeLabel } = load('lib/network-overview.ts');
+  assert.equal(observationStatus(null), 'Unavailable');
+  assert.equal(observationStatus({ healthy: true }), 'Unavailable');
+  assert.equal(observationStatus({ healthy: true, ready: false }), 'Not ready');
+  assert.equal(observationStatus({ healthy: true, ready: true }), 'Ready');
+  assert.equal(observationStatus({ healthy: false, ready: true }), 'Degraded');
+  assert.equal(blockAgeLabel(0, 1000), 'unavailable');
+  assert.equal(blockAgeLabel(2, 1000), 'ahead of local clock');
+});

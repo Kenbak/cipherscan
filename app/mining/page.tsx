@@ -14,12 +14,14 @@ import { Card, CardBody } from '@/components/ui/Card';
 import { PageHeader, SectionHeader, DataTable, SkeletonTable } from '@/components/ui';
 import { ChartCard } from '@/components/network/ChartCard';
 import { PageSectionNav } from '@/components/PageSectionNav';
+import { MiningIssuance } from '@/components/network/MiningIssuance';
 import { MiningMetricsChart } from '@/components/network/MiningMetricsChart';
 import { NetworkHashrateChart } from '@/components/network/NetworkHashrateChart';
 import { zatToZec, formatZecCompact } from '@/lib/format-numbers';
 
 const SECTIONS = [
   { id: 'metrics', label: 'Network' },
+  { id: 'issuance', label: 'Issuance' },
   { id: 'distribution', label: 'Distribution' },
   { id: 'ranking', label: 'Ranking' },
   { id: 'hashrate', label: 'Hashrate Share' },
@@ -734,6 +736,7 @@ export default function MiningPage() {
         <MiningMetricsChart />
       </section>
 
+      <MiningIssuance />
       <DistributionSection />
       <RankingSection />
       <HashrateShareSection />

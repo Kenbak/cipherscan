@@ -1,69 +1,24 @@
 'use client';
 
-import { useEffect, useState, lazy, Suspense, type ReactNode } from 'react';
+import { useEffect, useState, lazy, Suspense } from 'react';
 import Link from 'next/link';
 import { useWebSocket } from '@/hooks/useWebSocket';
 import { useApiQuery } from '@/hooks/useApiQuery';
 import { Card, CardBody } from '@/components/ui/Card';
-import { Badge } from '@/components/ui/Badge';
-import { PageHeader } from '@/components/ui/SectionHeader';
+import { PageHeader, SectionHeader } from '@/components/ui/SectionHeader';
+import { MetricCard } from '@/components/ui/MetricCard';
 import { isCrosslink } from '@/lib/config';
-
 import { formatHashrate } from '@/lib/format-numbers';
+import { blockAgeLabel, observationStatus } from '@/lib/network-overview';
 import { NetworkSectionNav } from '@/components/network/NetworkSectionNav';
+import { BlockCadenceChart } from '@/components/network/BlockCadenceChart';
+import { FeeDistributionChart, type FeeDistributionResponse } from '@/components/network/FeeDistributionChart';
 import type { NodeLocationsResponse, NodeStatsResponse } from '@/components/NodeMap';
-import type { PoolHistoryResponse } from '@/components/network/PoolDistributionChart';
-import type { FeeDistributionResponse } from '@/components/network/FeeDistributionChart';
-import type { ProtocolStatsResponse } from '@/components/network/ProtocolStatsChart';
-import type { ChainSizeHistoryResponse } from '@/components/network/NetworkHistoryCharts';
 import type { RecentBlocksResponse } from '@/components/network/RecentBlocksTable';
 const NodeMap = lazy(() => import('@/components/NodeMap'));
-const BlockActivityChart = lazy(() =>
-  import('@/components/BlockActivityChart').then((m) => ({ default: m.BlockActivityChart }))
-);
-const HalvingPanel = lazy(() => import('@/components/network/HalvingPanel').then((m) => ({ default: m.HalvingPanel })));
-const SupplyEmissionPanel = lazy(() => import('@/components/network/HalvingPanel').then((m) => ({ default: m.SupplyEmissionPanel })));
-const PoolDistributionChart = lazy(() => import('@/components/network/PoolDistributionChart').then((m) => ({ default: m.PoolDistributionChart })));
-const NetworkHistoryCharts = lazy(() => import('@/components/network/NetworkHistoryCharts').then((m) => ({ default: m.NetworkHistoryCharts })));
-const FeeDistributionChart = lazy(() => import('@/components/network/FeeDistributionChart').then((m) => ({ default: m.FeeDistributionChart })));
-const ProtocolStatsChart = lazy(() => import('@/components/network/ProtocolStatsChart').then((m) => ({ default: m.ProtocolStatsChart })));
-const RecentBlocksTable = lazy(() => import('@/components/network/RecentBlocksTable').then((m) => ({ default: m.RecentBlocksTable })));
-
-const UPGRADE_URLS: Record<string, string> = {
-  'NU6': 'https://z.cash/upgrade/nu6/',
-  'NU6.1': 'https://z.cash/upgrade/nu6-1/',
-  'NU5': 'https://z.cash/upgrade/nu5/',
-  'Canopy': 'https://z.cash/upgrade/canopy/',
-  'Heartwood': 'https://z.cash/upgrade/heartwood/',
-  'Blossom': 'https://z.cash/upgrade/blossom/',
-  'Sapling': 'https://z.cash/upgrade/sapling/',
-};
-
-function getUpgradeUrl(name: string | null): string | undefined {
-  if (!name) return undefined;
-  return UPGRADE_URLS[name];
-}
-
-// Format hashrate with appropriate unit — see lib/format-numbers.ts
-
-export interface HalvingInfo {
-  halvingBlock: number | null;
-  blocksRemaining: number | null;
-  eraProgress?: number;
-  currentSubsidy: number;
-  nextSubsidy: number | null;
-  minerReward: number;
-  nextMinerReward: number | null;
-  estimatedDate: string | null;
-  estimatedSeconds: number | null;
-}
-
-export interface EmissionInfo {
-  circulating: number;
-  remaining: number;
-  circulatingPct: number;
-  dailyEmissionEstimate: number | null;
-}
+const BlockActivityChart = lazy(() => import('@/components/BlockActivityChart').then(m => ({ default: m.BlockActivityChart })));
+const NetworkHistoryCharts = lazy(() => import('@/components/network/NetworkHistoryCharts').then(m => ({ default: m.NetworkHistoryCharts })));
+const ProtocolStatsChart = lazy(() => import('@/components/network/ProtocolStatsChart').then(m => ({ default: m.ProtocolStatsChart })));
 
 export interface NetworkStats {
   success: boolean;
@@ -93,6 +48,7 @@ export interface NetworkStats {
     sizeBytes: number;
     sizeGB: number;
     tx24h: number;
+    tx24hExclCoinbase?: number;
   };
   supply?: {
     chainSupply: number;
@@ -120,652 +76,123 @@ export interface HealthStatus {
   };
 }
 
-export interface TransparentBreakdown {
-  success?: boolean;
-  categories: { category: string; addressCount: number; totalBalance: number; percentage: number }[];
-  addressTypes?: { type: string; description: string; addressCount: number; totalBalance: number; percentage: number }[];
-  transparentTotal: number;
-  labeledTotal: number;
-  labeledPercentage: number;
-}
 
 export interface NetworkPageInitialData {
   fetchedAt: number;
   stats: NetworkStats | null;
   health: HealthStatus | null;
-  price: { price?: number } | null;
-  breakdown: TransparentBreakdown | null;
-  halving: HalvingInfo | null;
-  emission: (EmissionInfo & { success?: boolean }) | null;
   nodeLocations: NodeLocationsResponse | null;
   nodeStats: NodeStatsResponse | null;
   recentBlocks: RecentBlocksResponse | null;
-  poolHistory: PoolHistoryResponse | null;
-  chainSizeHistory: ChainSizeHistoryResponse | null;
   feeDistribution: FeeDistributionResponse | null;
-  protocolStats: ProtocolStatsResponse | null;
 }
 
 export default function NetworkClient({ initialData }: { initialData: NetworkPageInitialData }) {
   const statsQuery = useApiQuery<NetworkStats>('/api/network/stats', undefined, {
-    refreshInterval: 60_000,
-    initialData: initialData.stats ?? undefined,
-    initialFetchedAt: initialData.fetchedAt,
+    refreshInterval: 60_000, initialData: initialData.stats ?? undefined, initialFetchedAt: initialData.fetchedAt,
   });
   const healthQuery = useApiQuery<HealthStatus>('/api/network/health', undefined, {
-    refreshInterval: 60_000,
-    initialData: initialData.health ?? undefined,
-    initialFetchedAt: initialData.fetchedAt,
+    refreshInterval: 60_000, initialData: initialData.health ?? undefined, initialFetchedAt: initialData.fetchedAt,
   });
-  const priceQuery = useApiQuery<{ price?: number }>('/api/price', undefined, {
-    refreshInterval: 60_000,
-    initialData: initialData.price ?? undefined,
-    initialFetchedAt: initialData.fetchedAt,
-  });
-  const breakdownQuery = useApiQuery<TransparentBreakdown>(
-    '/api/supply/transparent-breakdown',
-    undefined,
-    {
-      refreshInterval: 300_000,
-      initialData: initialData.breakdown ?? undefined,
-      initialFetchedAt: initialData.fetchedAt,
-    },
-  );
-  const halvingQuery = useApiQuery<HalvingInfo>('/api/network/halving', undefined, {
-    refreshInterval: 300_000,
-    initialData: initialData.halving ?? undefined,
-    initialFetchedAt: initialData.fetchedAt,
-  });
-  const emissionQuery = useApiQuery<EmissionInfo>('/api/network/emission', { period: '1y' }, {
-    refreshInterval: 300_000,
-    initialData: initialData.emission ?? undefined,
-    initialFetchedAt: initialData.fetchedAt,
-  });
-  const [webSocketStats, setWebSocketStats] = useState<NetworkStats | null>(null);
-  const stats = webSocketStats ?? statsQuery.data;
-  const health = healthQuery.data;
-  const zecPrice = priceQuery.data?.price ?? null;
-  const breakdown = breakdownQuery.data;
-  const halving = halvingQuery.data;
-  const emission = emissionQuery.data;
-  const loading = statsQuery.loading;
-  const error = statsQuery.error;
-  const [breakdownOpen, setBreakdownOpen] = useState(false);
-
-  // WebSocket for real-time updates
-  useWebSocket({
-    onMessage: (data) => {
-      if (data.type === 'network_stats') {
-        setWebSocketStats(data.data);
-      }
-    },
-  });
-
+  const [streamStats, setStreamStats] = useState<NetworkStats | null>(null);
+  const [now, setNow] = useState(initialData.fetchedAt);
+  const [technicalOpen, setTechnicalOpen] = useState(false);
+  const stats = streamStats ?? (statsQuery.data?.success ? statsQuery.data : null);
+  useWebSocket({ onMessage: message => {
+    if (message.type === 'network_stats' && message.data?.success && message.data?.blockchain) setStreamStats(message.data);
+  }});
+  useEffect(() => { setStreamStats(null); }, [statsQuery.data]);
   useEffect(() => {
-    if (statsQuery.data) setWebSocketStats(null);
-  }, [statsQuery.data]);
-
-  if (loading) {
-    // Real heading instead of skeleton bars so the server-rendered loading
-    // state still carries the page's H1 and intro (matters for SEO).
-    return (
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
-        <PageHeader
-          eyebrow="NETWORK_STATUS"
-          title="Network Overview"
-          subtitle="Live Zcash network statistics: block height, hashrate, difficulty, peer count, circulating supply, shielded pool balances, and mining pool distribution — indexed directly from a Zebra full node."
-        />
-        <div className="mb-6 h-24 bg-cipher-border-alpha/30 rounded-lg animate-pulse" />
-        <div className="mb-8 h-[300px] bg-cipher-border-alpha/30 rounded-lg animate-pulse" />
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {[...Array(4)].map((_, i) => (
-            <div key={i} className="card p-6 min-h-[200px]">
-              <div className="h-4 w-32 bg-cipher-border rounded animate-pulse mb-4" />
-              <div className="space-y-3">
-                {[...Array(4)].map((_, j) => (
-                  <div key={j} className="flex justify-between">
-                    <div className="h-3 w-24 bg-cipher-border rounded animate-pulse" />
-                    <div className="h-3 w-16 bg-cipher-border rounded animate-pulse" />
-                  </div>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  if (error || !stats) {
-    return (
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <Card className="text-center">
-          <CardBody className="py-16">
-            <div className="text-5xl mb-6">&#x26A0;&#xFE0F;</div>
-            <h2 className="text-xl font-semibold text-primary mb-3">Network Data Unavailable</h2>
-            <p className="text-secondary mb-6">{error || 'Failed to load network data'}</p>
-            <button
-              onClick={() => window.location.reload()}
-              className="btn btn-primary btn-md"
-            >
-              Retry
-            </button>
-          </CardBody>
-        </Card>
-      </div>
-    );
-  }
+    setNow(Date.now());
+    const timer = setInterval(() => setNow(Date.now()), 15_000);
+    return () => clearInterval(timer);
+  }, []);
+  useEffect(() => {
+    const reveal = () => {
+      if (['#network-technical', '#chain-size', '#protocol-growth'].includes(window.location.hash)) setTechnicalOpen(true);
+    };
+    reveal();
+    window.addEventListener('hashchange', reveal);
+    return () => window.removeEventListener('hashchange', reveal);
+  }, []);
+  useEffect(() => {
+    if (!technicalOpen) return;
+    const id = window.location.hash.slice(1);
+    if (['network-technical', 'chain-size', 'protocol-growth'].includes(id)) {
+      document.getElementById(id)?.scrollIntoView({ block: 'start' });
+    }
+  }, [technicalOpen]);
+  const height = stats?.blockchain.height ?? stats?.network.height;
+  const txCount = stats?.blockchain.tx24hExclCoinbase ?? stats?.blockchain.tx24h;
+  const nodeStatus = observationStatus(healthQuery.error ? null : healthQuery.data?.zebra);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
-      <PageHeader
-        eyebrow="NETWORK_STATUS"
-        title="Network Overview"
-        subtitle="Live Zcash network statistics: block height, hashrate, difficulty, peer count, circulating supply, shielded pool balances, and mining pool distribution — indexed directly from a Zebra full node."
-      />
-
-      <NetworkSectionNav />
-
-      {/* ── OVERVIEW ── */}
-      <section id="network-overview" className="scroll-mt-36 mb-16">
-        <OverviewHeroStrip
-          height={stats.network.height}
-          healthy={health?.zebra.healthy ?? null}
-          subversion={stats.network.subversion}
-          shieldedSupplyPct={
-            stats.supply && stats.supply.chainSupply > 0
-              ? (stats.supply.totalShielded / stats.supply.chainSupply) * 100
-              : null
-          }
-          tx24h={stats.blockchain.tx24h}
-          peers={stats.network.peers}
-          hashrate={formatHashrate(stats.mining.networkHashrateRaw)}
-        />
-
-        {/* On Crosslink: show the block activity chart (peer map has tiny sample size).
-            On mainnet/testnet: show the geographic node map. */}
-        <div className="mb-8 animate-fade-in-up stagger-3">
-          <Suspense fallback={
-            <div className="card p-8 flex items-center justify-center min-h-[300px]">
-              <div className="animate-spin rounded-full h-8 w-8 border-2 border-cipher-gold border-t-transparent" />
-            </div>
-          }>
-            {isCrosslink ? (
-              <BlockActivityChart limit={80} />
-            ) : (
-              <NodeMap
-                initialLocations={initialData.nodeLocations}
-                initialStats={initialData.nodeStats}
-              />
-            )}
-          </Suspense>
-        </div>
-
-        {stats.supply && (
-          <>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-6 animate-fade-in-up stagger-3">
-              <Suspense fallback={<div className="card h-48 animate-pulse" />}>
-                <SupplyEmissionPanel
-                  circulating={emission?.circulating ?? stats.supply.chainSupply}
-                  remaining={emission?.remaining ?? Math.max(0, 21_000_000 - stats.supply.chainSupply)}
-                  circulatingPct={emission?.circulatingPct ?? (stats.supply.chainSupply / 21_000_000) * 100}
-                  dailyEmission={emission?.dailyEmissionEstimate ?? stats.mining.dailyRevenue}
-                />
-              </Suspense>
-              <Suspense fallback={<div className="card h-48 animate-pulse" />}>
-                <HalvingPanel halving={halving} />
-              </Suspense>
-            </div>
-
-            <ChainInfoStrip stats={stats} zecPrice={zecPrice} getUpgradeUrl={getUpgradeUrl} />
-          </>
-        )}
-
-        <div className="animate-fade-in-up stagger-4">
-          <Suspense fallback={<div className="card h-64 animate-pulse" />}>
-            <RecentBlocksTable initialData={initialData.recentBlocks} />
-          </Suspense>
+    <div className="network-page max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+      <PageHeader eyebrow="NETWORK_STATUS" title="Zcash Network"
+        subtitle="Block production, transaction activity and the nodes we observe." />
+      <NetworkSectionNav onTechnicalNavigate={() => setTechnicalOpen(true)} />
+      <section id="network-overview" className="network-section mb-8" aria-label="Current chain activity">
+        {statsQuery.error && <p role="status" className="text-caption text-warning mb-3">Network summary could not refresh. {stats ? 'Last received values are shown.' : 'Other observations remain available below.'}</p>}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <MetricCard label="Latest block" value={height != null ? <Link href={`/block/${height}`} className="hover:text-cipher-gold">{height.toLocaleString()}</Link> : '—'}
+            hint={stats ? `Block timestamp · ${blockAgeLabel(stats.blockchain.latestBlockTime, now)}` : 'Awaiting chain data'} />
+          <MetricCard label="Block interval" value={stats ? `${stats.mining.avgBlockTime.toFixed(1)}s` : '—'} hint="Rolling average · target 75s" />
+          <MetricCard label="Transactions · 24h" value={txCount?.toLocaleString() ?? '—'}
+            hint={stats?.blockchain.tx24hExclCoinbase != null ? 'Confirmed · coinbase excluded' : 'Confirmed · includes coinbase'} />
+          <MetricCard label="Network hashrate" value={stats ? formatHashrate(stats.mining.networkHashrateRaw) : '—'}
+            hint={<Link href="/mining#metrics" className="hover:text-primary underline underline-offset-4">Estimated mining power →</Link>} />
         </div>
       </section>
 
-      {stats.supply && (
-        <>
-          {/* ── SUPPLY ── */}
-          <section id="network-supply" className="scroll-mt-36 mb-16 pt-2">
-            <SectionHeading title="Supply" subtitle="Pool distribution and chain supply history" />
+      <section id="network-nodes" className="network-section mb-10" aria-label="Observed node distribution">
+        <Suspense fallback={<div className="card h-80 flex items-center justify-center text-muted text-sm">Loading node observations…</div>}>
+          {isCrosslink ? <BlockActivityChart limit={80} /> : <NodeMap initialLocations={initialData.nodeLocations} initialStats={initialData.nodeStats} />}
+        </Suspense>
+      </section>
 
-            <Card className="mb-6 animate-fade-in-up">
-              <CardBody>
-                <div className="flex items-center gap-2 mb-5">
-                  <span className="text-xs text-muted font-mono uppercase tracking-widest opacity-50">{'>'}</span>
-                  <h2 className="text-sm font-semibold font-mono text-secondary lowercase tracking-tight">SUPPLY_DISTRIBUTION</h2>
-                </div>
-
-                <div className="flex justify-between text-sm mb-3">
-                  <span className="text-secondary">Shielded</span>
-                  <span className="text-primary font-mono font-semibold">{stats.supply!.shieldedPercentage.toFixed(1)}%</span>
-                </div>
-
-                <div className="h-4 bg-cipher-bg rounded-full overflow-hidden flex mb-4">
-                  {(stats.supply!.ironwood || 0) > 0 && (
-                    <div className="h-full bg-cipher-yellow" style={{ width: `${(stats.supply!.ironwood / stats.supply!.chainSupply) * 100}%` }} title="Ironwood" />
-                  )}
-                  <div className="h-full bg-cipher-purple" style={{ width: `${(stats.supply!.orchard / stats.supply!.chainSupply) * 100}%` }} title="Orchard" />
-                  <div className="h-full bg-cipher-teal" style={{ width: `${(stats.supply!.sapling / stats.supply!.chainSupply) * 100}%` }} title="Sapling" />
-                  <div className="h-full bg-cipher-border" style={{ width: `${(stats.supply!.sprout / stats.supply!.chainSupply) * 100}%` }} title="Sprout (legacy, deprecated)" />
-                  <div className="h-full bg-gray-600" style={{ width: `${(stats.supply!.transparent / stats.supply!.chainSupply) * 100}%` }} title="Transparent" />
-                </div>
-
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
-                  {(stats.supply!.ironwood || 0) > 0 && (
-                    <PoolCard name="Ironwood" amount={stats.supply!.ironwood} color="amber" zecPrice={zecPrice} />
-                  )}
-                  <PoolCard name="Orchard" amount={stats.supply!.orchard} color="purple" zecPrice={zecPrice} />
-                  <PoolCard name="Sapling" amount={stats.supply!.sapling} color="gold" zecPrice={zecPrice} />
-                  <PoolCard name="Sprout" amount={stats.supply!.sprout} color="muted" zecPrice={zecPrice} isSmall />
-                </div>
-
-                {breakdown && breakdown.categories.length > 0 && (
-                  <div className="border-t border-cipher-border-subtle pt-4 mt-4">
-                    <div className="flex items-center justify-between gap-3">
-                      <button
-                        type="button"
-                        onClick={() => setBreakdownOpen((o) => !o)}
-                        className="flex items-center gap-2 text-xs font-mono text-secondary hover:text-primary transition-colors"
-                        aria-expanded={breakdownOpen}
-                      >
-                        <span className="text-muted opacity-50">{breakdownOpen ? '▼' : '▶'}</span>
-                        Transparent breakdown
-                        <span className="text-muted">({breakdown.labeledPercentage.toFixed(1)}% labeled)</span>
-                      </button>
-                      <Link href="/rich-list" className="text-xs font-mono text-muted hover:text-primary transition-colors whitespace-nowrap">
-                        Rich List &rarr;
-                      </Link>
-                    </div>
-
-                    {breakdownOpen && (() => {
-                      const labeled = breakdown.categories.filter(c => c.category !== 'unlabeled');
-                      const unlabeled = breakdown.categories.find(c => c.category === 'unlabeled');
-                      const maxLabeled = Math.max(...labeled.map(c => c.totalBalance), 1);
-                      return (
-                        <div className="mt-4">
-                          <div className="flex items-center gap-3 mb-4">
-                            <div className="flex-1 h-2.5 bg-gray-700/50 rounded-full overflow-hidden flex">
-                              {labeled.map(c => (
-                                <div
-                                  key={c.category}
-                                  className={`h-full ${breakdownColor(c.category)}`}
-                                  style={{ width: `${c.percentage}%` }}
-                                />
-                              ))}
-                            </div>
-                          </div>
-                          <div className="space-y-2">
-                            {labeled.filter(c => c.percentage >= 0.1).map(c => (
-                              <div key={c.category} className="flex items-center gap-2">
-                                <span className={`w-2 h-2 rounded-full flex-shrink-0 ${breakdownColor(c.category)}`} />
-                                <span className="text-caption font-mono text-secondary capitalize w-20 truncate">{c.category}</span>
-                                <div className="flex-1 h-1.5 bg-gray-700/30 rounded-full overflow-hidden">
-                                  <div
-                                    className={`h-full rounded-full ${breakdownColor(c.category)}`}
-                                    style={{ width: `${(c.totalBalance / maxLabeled) * 100}%` }}
-                                  />
-                                </div>
-                                <span className="text-caption font-mono text-primary text-right w-24 tabular-nums">
-                                  {c.totalBalance >= 1000 ? `${(c.totalBalance / 1000).toFixed(1)}K` : c.totalBalance.toFixed(0)} ZEC
-                                </span>
-                                <span className="text-caption font-mono text-muted text-right w-12 tabular-nums">
-                                  {c.percentage.toFixed(1)}%
-                                </span>
-                              </div>
-                            ))}
-                            {unlabeled && (
-                              <div className="flex items-center gap-2 pt-1 border-t border-cipher-border-alpha/50">
-                                <span className="w-2 h-2 rounded-full flex-shrink-0 bg-gray-600" />
-                                <span className="text-caption font-mono text-muted w-20">Unlabeled</span>
-                                <div className="flex-1" />
-                                <span className="text-caption font-mono text-muted text-right w-24 tabular-nums">
-                                  {unlabeled.totalBalance >= 1000 ? `${(unlabeled.totalBalance / 1000).toFixed(1)}K` : unlabeled.totalBalance.toFixed(0)} ZEC
-                                </span>
-                                <span className="text-caption font-mono text-muted text-right w-12 tabular-nums">
-                                  {unlabeled.percentage.toFixed(1)}%
-                                </span>
-                              </div>
-                            )}
-                          </div>
-
-                          {breakdown.addressTypes && breakdown.addressTypes.length > 0 && (
-                            <div className="mt-5 pt-4 border-t border-cipher-border-alpha/50">
-                              <p className="text-caption font-mono text-muted uppercase tracking-wider mb-3">Script Types</p>
-                              <div className="flex items-center gap-3 mb-3">
-                                <div className="flex-1 h-2.5 bg-gray-700/50 rounded-full overflow-hidden flex">
-                                  {breakdown.addressTypes.map(t => (
-                                    <div
-                                      key={t.type}
-                                      className={`h-full ${t.type === 'P2PKH' ? 'bg-blue-500' : t.type === 'P2SH' ? 'bg-amber-500' : 'bg-gray-500'}`}
-                                      style={{ width: `${t.percentage}%` }}
-                                    />
-                                  ))}
-                                </div>
-                              </div>
-                              <div className="space-y-2">
-                                {breakdown.addressTypes.map(t => (
-                                  <div key={t.type} className="flex items-center gap-2">
-                                    <span className={`w-2 h-2 rounded-full flex-shrink-0 ${t.type === 'P2PKH' ? 'bg-blue-500' : t.type === 'P2SH' ? 'bg-amber-500' : 'bg-gray-500'}`} />
-                                    <span className="text-caption font-mono text-secondary w-12">{t.type}</span>
-                                    <span className="text-caption font-mono text-muted flex-1 truncate">{t.description}</span>
-                                    <span className="text-caption font-mono text-primary text-right w-20 tabular-nums">
-                                      {t.addressCount.toLocaleString()}
-                                    </span>
-                                    <span className="text-caption font-mono text-muted text-right w-12 tabular-nums">
-                                      {t.percentage.toFixed(1)}%
-                                    </span>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })()}
-                  </div>
-                )}
-              </CardBody>
-            </Card>
-
-            <div className="space-y-6 animate-fade-in-up">
-              <Suspense fallback={<div className="card h-80 animate-pulse" />}>
-                <PoolDistributionChart initialData={initialData.poolHistory} />
-              </Suspense>
-              <Suspense fallback={<div className="card h-64 animate-pulse" />}>
-                <NetworkHistoryCharts initialData={initialData.chainSizeHistory} />
-              </Suspense>
-              <Suspense fallback={<div className="card h-80 animate-pulse" />}>
-                <FeeDistributionChart initialData={initialData.feeDistribution} />
-              </Suspense>
-              <Suspense fallback={<div className="card h-80 animate-pulse" />}>
-                <ProtocolStatsChart initialData={initialData.protocolStats} />
-              </Suspense>
-            </div>
-
-            {/* Mining summary teaser */}
-            <div className="mt-8 animate-fade-in-up">
-              <Card>
-                <CardBody className="py-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="text-sm font-semibold font-mono text-secondary uppercase tracking-wider mb-1">Mining</h3>
-                      <div className="flex items-center gap-4 text-caption font-mono text-muted">
-                        <span>Hashrate: <span className="text-primary">{formatHashrate(stats.mining.networkHashrateRaw)}</span></span>
-                        <span>Difficulty: <span className="text-primary">{(stats.mining.difficulty / 1e6).toFixed(1)}M</span></span>
-                        <span>Block time: <span className="text-primary">~{stats.mining.avgBlockTime}s</span></span>
-                      </div>
-                    </div>
-                    <Link
-                      href="/mining"
-                      className="flex items-center gap-1.5 text-xs font-mono text-cipher-gold hover:text-primary transition-colors"
-                    >
-                      <span>Pool distribution & miner behavior</span>
-                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                      </svg>
-                    </Link>
-                  </div>
-                </CardBody>
-              </Card>
-            </div>
-          </section>
-
-        </>
-      )}
-    </div>
-  );
-}
-
-function breakdownColor(category: string): string {
-  const c = category.toLowerCase();
-  if (c === 'exchange') return 'bg-brand-gold';
-  if (c === 'mining' || c === 'mining_pool') return 'bg-cipher-yellow';
-  if (c === 'defi' || c === 'bridge') return 'bg-cipher-green';
-  if (c === 'custodian' || c === 'fund') return 'bg-cipher-purple';
-  return 'bg-gray-500';
-}
-
-// ==========================================================================
-// SUB-COMPONENTS
-// ==========================================================================
-
-function SectionHeading({ title, subtitle }: { title: string; subtitle?: string }) {
-  return (
-    <div className="mb-8 pt-6 border-t border-cipher-border-subtle">
-      <h2 className="text-lg sm:text-xl font-semibold font-mono text-primary lowercase tracking-tight">{title}</h2>
-      {subtitle && <p className="text-xs text-muted font-mono mt-1.5 normal-case tracking-normal">{subtitle}</p>}
-    </div>
-  );
-}
-
-function HoverTip({ tip, children, className = '' }: { tip?: string; children: ReactNode; className?: string }) {
-  if (!tip) return <>{children}</>;
-  return (
-    <div className={`group relative ${className}`} title={tip}>
-      {children}
-      <div
-        role="tooltip"
-        className="pointer-events-none absolute left-1/2 -translate-x-1/2 bottom-[calc(100%+8px)] z-20 w-52 px-2.5 py-2 text-caption leading-snug text-secondary rounded-md border bg-cipher-surface-solid border-cipher-border-subtle opacity-0 group-hover:opacity-100 transition-opacity duration-150 hidden sm:block"
-      >
-        {tip}
-      </div>
-    </div>
-  );
-}
-
-function formatNodeVersion(subversion: string | null | undefined): string {
-  if (!subversion) return '—';
-  return subversion.replace(/^\/Zebra:?/i, '').replace(/\/$/, '').trim() || subversion;
-}
-
-function OverviewHeroStrip({
-  height,
-  healthy,
-  subversion,
-  shieldedSupplyPct,
-  tx24h,
-  peers,
-  hashrate,
-}: {
-  height: number;
-  healthy: boolean | null;
-  subversion: string;
-  shieldedSupplyPct: number | null;
-  tx24h: number;
-  peers: number;
-  hashrate: string;
-}) {
-  const isHealthy = healthy !== false;
-  const version = formatNodeVersion(subversion);
-
-  const secondary = [
-    { label: 'TX (24h)', value: tx24h.toLocaleString(), tip: 'Transactions processed in the last 24 hours.' },
-    { label: 'Peers', value: peers.toString(), tip: 'Nodes connected to this explorer.' },
-    { label: 'Hashrate', value: hashrate, tip: 'Combined mining power securing the network.' },
-  ];
-
-  return (
-    <Card className="mb-6 animate-fade-in-up">
-      <CardBody className="py-4 sm:py-5">
-        <div className="grid grid-cols-2 gap-4 sm:gap-8 mb-4">
-          <div>
-            <p className="text-caption text-muted font-mono uppercase tracking-wider mb-1">Block height</p>
-            <p className="text-2xl sm:text-3xl font-semibold font-mono text-primary tabular-nums">
-              {height.toLocaleString()}
-            </p>
-          </div>
-
-          <div className="text-right">
-            <p className="text-caption text-muted font-mono uppercase tracking-wider mb-1">Shielded supply</p>
-            {shieldedSupplyPct != null ? (
-              <>
-                <p className="text-2xl sm:text-3xl font-semibold font-mono text-cipher-yellow tabular-nums">
-                  {shieldedSupplyPct.toFixed(1)}%
-                </p>
-                <p className="text-caption text-muted font-mono mt-0.5">of chain supply</p>
-              </>
-            ) : (
-              <p className="text-2xl font-semibold font-mono text-muted">—</p>
-            )}
-          </div>
+      <section id="network-activity" className="network-section mb-10" aria-label="Block cadence and observed fees">
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-5 items-stretch">
+          <BlockCadenceChart initialData={initialData.recentBlocks} initialFetchedAt={initialData.fetchedAt} chainHeight={height} now={now} />
+          <div id="network-fees" className="network-section h-full"><FeeDistributionChart initialData={initialData.feeDistribution} /></div>
         </div>
+      </section>
 
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-4 border-t border-cipher-border-subtle text-xs font-mono">
-          <div className="flex items-center gap-2 min-w-0">
-            <span className="relative flex h-2 w-2 flex-shrink-0">
-              {isHealthy && (
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cipher-green opacity-75" />
-              )}
-              <span className={`relative inline-flex rounded-full h-2 w-2 ${isHealthy ? 'bg-cipher-green' : 'bg-cipher-orange'}`} />
-            </span>
-            <span className="text-secondary truncate">
-              {healthy == null ? 'Checking node…' : isHealthy ? 'Synced' : 'Degraded'}
-            </span>
-            <span className="text-muted" aria-hidden>·</span>
-            <span className="text-muted truncate">Zebra {version}</span>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
-            {secondary.map((item, i) => (
-              <span key={item.label} className="inline-flex items-center gap-4">
-                {i > 0 && <span className="hidden sm:inline text-muted" aria-hidden>·</span>}
-                <HoverTip tip={item.tip} className="cursor-help">
-                  <span className="text-muted">{item.label}</span>
-                  <span className="text-primary font-semibold ml-1">{item.value}</span>
-                </HoverTip>
-              </span>
-            ))}
-          </div>
+      <section id="network-protocol" className="network-section mb-10">
+        <SectionHeader label="PROTOCOL_REFERENCE" />
+        <dl className="grid grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-5 border-y border-cipher-border py-5">
+          {[
+            ['Active upgrade', stats?.supply?.activeUpgrade ?? '—'],
+            ['Block subsidy', stats ? `${stats.mining.blockReward} ZEC` : '—'],
+            ['Maximum supply', '21,000,000 ZEC'],
+            ['Target spacing', '75 seconds'],
+          ].map(([label, value]) => <div key={label}><dt className="text-caption text-muted mb-1">{label}</dt><dd className="font-mono text-sm text-primary tabular-nums">{value}</dd></div>)}
+        </dl>
+        <div className="flex flex-wrap gap-x-6 gap-y-3 mt-4 text-caption font-mono">
+          <Link href="/mining#issuance" className="text-secondary hover:text-cipher-gold">Rewards &amp; next halving →</Link>
+          <Link href="/pools#supply" className="text-secondary hover:text-cipher-gold">Supply &amp; shielded pools →</Link>
+          <Link href="/rich-list#transparent-breakdown" className="text-secondary hover:text-cipher-gold">Transparent balance groups →</Link>
         </div>
-      </CardBody>
-    </Card>
-  );
-}
+      </section>
 
-function ChainInfoStrip({
-  stats,
-  zecPrice,
-  getUpgradeUrl,
-}: {
-  stats: NetworkStats;
-  zecPrice: number | null;
-  getUpgradeUrl: (name: string | null) => string | undefined;
-}) {
-  const supply = stats.supply!;
-  const upgradeUrl = getUpgradeUrl(supply.activeUpgrade);
-  const latestBlockAgo = `${Math.floor((Date.now() / 1000 - stats.blockchain.latestBlockTime) / 60)}m ago`;
-
-  return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-8 animate-fade-in-up stagger-4">
-      <ChainInfoChip
-        label="Lockbox"
-        value={`${supply.lockbox.toLocaleString(undefined, { maximumFractionDigits: 0 })} ZEC`}
-        subtitle={zecPrice ? `$${((supply.lockbox * zecPrice) / 1e6).toFixed(1)}M` : undefined}
-        tooltip="ZEC reserved in the protocol lockbox for future Zcash development funding."
-      />
-      <ChainInfoChip
-        label="Blockchain size"
-        value={`${stats.blockchain.sizeGB.toFixed(2)} GB`}
-        tooltip="Total disk space used by the full Zcash blockchain on this node."
-      />
-      <ChainInfoChip
-        label="Latest block"
-        value={latestBlockAgo}
-        subtitle={new Date(stats.blockchain.latestBlockTime * 1000).toLocaleTimeString()}
-        tooltip="Time since the most recent block was mined. Zcash targets a new block every 75 seconds."
-      />
-      <HoverTip tip="The currently active Zcash network upgrade.">
-        <div className="card p-3 h-full cursor-help">
-          <div className="text-caption text-muted font-mono uppercase tracking-wider mb-1">Network upgrade</div>
-          {upgradeUrl ? (
-            <a href={upgradeUrl} target="_blank" rel="noopener noreferrer" className="inline-block hover:opacity-80 transition-opacity">
-              <Badge color="green">{supply.activeUpgrade || 'Unknown'}</Badge>
-            </a>
-          ) : (
-            <Badge color="green">{supply.activeUpgrade || 'Unknown'}</Badge>
-          )}
-        </div>
-      </HoverTip>
-    </div>
-  );
-}
-
-function ChainInfoChip({ label, value, subtitle, tooltip }: {
-  label: string; value: string; subtitle?: string; tooltip?: string;
-}) {
-  return (
-    <HoverTip tip={tooltip}>
-      <Card variant="compact" className="h-full cursor-help">
-        <CardBody>
-          <div className="text-caption text-muted font-mono uppercase tracking-wider mb-1">{label}</div>
-          <div className="text-sm font-semibold font-mono text-primary">{value}</div>
-          {subtitle && <p className="text-caption mt-0.5 text-muted font-mono">{subtitle}</p>}
-        </CardBody>
-      </Card>
-    </HoverTip>
-  );
-}
-
-/** Small stat card for mining extras */
-function StatCard({ label, value, subtitle, tooltip }: {
-  label: string; value: string; subtitle?: string; tooltip?: string;
-}) {
-  return (
-    <HoverTip tip={tooltip}>
-      <Card variant="compact" className="h-full cursor-help">
-        <CardBody>
-          <div className="text-caption text-muted font-mono uppercase tracking-wider mb-2">{label}</div>
-          <div className="text-sm sm:text-lg font-semibold font-mono text-primary whitespace-nowrap truncate">{value}</div>
-          {subtitle && <p className="text-caption mt-1 text-muted">{subtitle}</p>}
-        </CardBody>
-      </Card>
-    </HoverTip>
-  );
-}
-function PoolCard({ name, amount, color, zecPrice, isSmall }: {
-  name: string; amount: number; color: string; zecPrice: number | null; isSmall?: boolean;
-}) {
-  const colorMap: Record<string, string> = {
-    green: 'text-cipher-green',
-    gold: 'text-cipher-gold',
-    amber: 'text-cipher-yellow',
-    purple: 'text-cipher-purple',
-    muted: 'text-muted',
-  };
-  const dotColor: Record<string, string> = {
-    green: 'bg-cipher-green',
-    gold: 'bg-brand-gold',
-    amber: 'bg-cipher-yellow',
-    purple: 'bg-cipher-purple',
-    muted: 'bg-cipher-border',
-  };
-
-  const display = isSmall ? `${(amount / 1000).toFixed(1)}K` : `${(amount / 1e6).toFixed(2)}M`;
-
-  return (
-    <div className="bg-cipher-bg/50 rounded-lg p-3 text-center">
-      <div className={`${colorMap[color]} text-base sm:text-lg font-semibold font-mono`}>{display}</div>
-      {zecPrice && (
-        <div className="text-caption text-muted font-mono">
-          ${isSmall
-            ? ((amount / 1000) * zecPrice).toFixed(0) + 'K'
-            : ((amount / 1e6) * zecPrice).toFixed(1) + 'M'}
-        </div>
-      )}
-      <div className="flex items-center justify-center gap-1.5 text-caption sm:text-xs text-secondary mt-1">
-        <span className={`w-1.5 h-1.5 rounded-full ${dotColor[color]}`}></span>
-        {name === 'Ironwood' ? (
-          <Link href="/ironwood" className="hover:text-cipher-yellow hover:underline">
-            {name}
-          </Link>
-        ) : name}
-      </div>
+      <details id="network-technical" className="network-section border-y border-cipher-border py-5" open={technicalOpen} onToggle={event => setTechnicalOpen(event.currentTarget.open)}>
+        <summary className="cursor-pointer font-mono text-sm text-primary focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-cipher-gold">Technical details <span className="block sm:inline sm:ml-3 text-caption font-sans text-muted">Storage, shielded protocol growth and this explorer’s node</span></summary>
+        {technicalOpen && <div className="pt-6 space-y-5">
+          <Card><CardBody>
+            <SectionHeader label="EXPLORER_NODE" />
+            <p className="text-caption text-muted mb-4">This is one observation point, not a network-wide health verdict.</p>
+            <dl className="grid grid-cols-2 lg:grid-cols-4 gap-4 text-sm font-mono">
+              <div><dt className="text-caption text-muted">Node readiness</dt><dd className={nodeStatus === 'Ready' ? 'text-cipher-green' : nodeStatus === 'Unavailable' ? 'text-muted' : 'text-warning'}>{nodeStatus}</dd></div>
+              <div><dt className="text-caption text-muted">Connected peers</dt><dd>{stats?.network.peers ?? '—'}</dd></div>
+              <div><dt className="text-caption text-muted">Reported software</dt><dd className="break-all">{stats?.network.subversion?.replace(/^\/|\/$/g, '') ?? '—'}</dd></div>
+              <div><dt className="text-caption text-muted">Node disk usage</dt><dd>{stats ? `${stats.blockchain.sizeGB.toFixed(2)} GiB` : '—'}</dd></div>
+            </dl>
+          </CardBody></Card>
+          <Suspense fallback={<p className="text-muted text-sm">Loading technical charts…</p>}>
+            <div id="chain-size" className="network-section"><NetworkHistoryCharts /></div>
+            <div id="protocol-growth" className="network-section"><ProtocolStatsChart /></div>
+          </Suspense>
+        </div>}
+      </details>
     </div>
   );
 }

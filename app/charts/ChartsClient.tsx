@@ -39,17 +39,17 @@ const CHART_DEFS: ChartEntry[] = [
   { id: 'miner-behavior', title: 'Miner Behavior', description: 'Block rewards: earned vs moved vs held', category: 'mining', href: '/mining' },
   { id: 'mining-metrics', title: 'Mining Metrics', description: 'Solrate, difficulty, block time (rolling avg)', category: 'mining', href: '/mining' },
   { id: 'network-hashrate', title: 'Network Hashrate', description: 'Total Zcash network hashrate (GSol/s) over time', category: 'mining', href: '/mining', isNew: true },
-  { id: 'supply-emission', title: 'Supply Emission', description: 'ZEC circulating supply toward 21M cap', category: 'network', href: '/network' },
-  { id: 'chain-size', title: 'Chain Size', description: 'Blockchain disk size growth (GB)', category: 'network', href: '/network' },
-  { id: 'protocol-stats', title: 'Protocol Stats', description: 'Monthly Sapling/Orchard commitments & nullifiers', category: 'network', href: '/network' },
-  { id: 'fee-dist', title: 'Fee Distribution', description: 'Daily fee percentile bands (p10–p90)', category: 'fees', href: '/network', isNew: true },
+  { id: 'supply-emission', title: 'Supply Emission', description: 'ZEC circulating supply toward 21M cap', category: 'network', href: '/pools#supply' },
+  { id: 'chain-size', title: 'Node Storage', description: 'Explorer node disk usage over time (GiB)', category: 'network', href: '/network#chain-size' },
+  { id: 'protocol-stats', title: 'Protocol Stats', description: 'Monthly Sapling/Orchard commitments & nullifiers', category: 'network', href: '/network#protocol-growth' },
+  { id: 'fee-dist', title: 'Fee Distribution', description: 'Daily fee percentile bands (p10–p90)', category: 'fees', href: '/network#network-fees', isNew: true },
   { id: 'price-vs-realized', title: 'Price vs Realized Price', description: 'Market price overlaid with on-chain cost basis', category: 'valuation', href: '/valuation', isNew: true },
   { id: 'mvrv-ratio', title: 'MVRV Ratio', description: 'Market value vs realized value — over/undervaluation', category: 'valuation', href: '/valuation', isNew: true },
   { id: 'sopr-nupl', title: 'SOPR & NUPL', description: 'Spent output profit ratio and net unrealized P/L', category: 'valuation', href: '/valuation', isNew: true },
 ];
 
 const LIVE_VIZ_DEFS = [
-  { id: 'node-map', title: 'Node Map', description: 'Geographic Zcash node distribution', href: '/network' },
+  { id: 'node-map', title: 'Node Map', description: 'Geographic Zcash node distribution', href: '/network#network-nodes' },
   { id: 'mempool', title: 'Mempool Bubbles', description: 'Live unconfirmed transactions', href: '/mempool' },
   { id: 'privacy-risks', title: 'Privacy Risk Scanner', description: 'Round-trip and batch pattern detection', href: '/privacy-risks' },
   { id: 'network-pulse', title: 'Network Pulse', description: 'Auto-detected statistical anomalies', href: '/pulse', isNew: true },

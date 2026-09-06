@@ -1961,3 +1961,13 @@ main table td { font-variant-numeric: tabular-nums lining-nums; }
   /* Prevent automatic iOS zoom when entering a command or identifier. */
   main input:not([type=checkbox]):not([type=radio]):not([type=range]), main select, main textarea { font-size: 1rem; }
 }
+
+/* Network landmarks clear the fixed explorer chrome on direct fragment links. */
+.network-section {
+  scroll-margin-top: calc(var(--app-nav-height, 4rem) + var(--app-stats-height, 2.75rem) + var(--app-ironwood-height, 0px) + 1.5rem);
+}
+.cadence-link:hover rect,
+.cadence-link:focus-visible rect {
+  stroke: var(--color-text-primary);
+  stroke-width: 2px;
+}

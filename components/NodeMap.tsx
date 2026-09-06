@@ -211,7 +211,7 @@ export function NodeMap({ initialLocations, initialStats }: NodeMapProps) {
             </div>
             <div>
               <h2 className="text-base sm:text-lg font-semibold text-primary">Network Node Map</h2>
-              <p className="text-caption sm:text-xs text-muted">Global distribution of Zcash network nodes</p>
+              <p className="text-caption sm:text-xs text-muted">Observed reachable nodes · discovery coverage can change</p>
             </div>
           </div>
 
@@ -220,15 +220,9 @@ export function NodeMap({ initialLocations, initialStats }: NodeMapProps) {
               <div className="text-center">
                 <div className="flex items-baseline justify-center gap-1">
                   <span className="font-semibold text-primary font-mono text-lg sm:text-xl">{stats.activeNodes}</span>
-                  {trends?.change24h !== null && trends?.change24h !== undefined && (
-                    <span className={`text-caption font-mono font-semibold ${
-                      trends.change24h > 0 ? 'text-cipher-green' : trends.change24h < 0 ? 'text-danger' : 'text-muted'
-                    }`}>
-                      {trends.change24h > 0 ? '+' : ''}{trends.change24h}%
-                    </span>
-                  )}
+
                 </div>
-                <div className="text-caption text-muted uppercase tracking-wider">Nodes</div>
+                <div className="text-caption text-muted uppercase tracking-wider">Reachable</div>
               </div>
               <div className="text-center">
                 <div className="font-semibold text-primary font-mono text-lg sm:text-xl">{stats.countries}</div>
@@ -479,7 +473,7 @@ export function NodeMap({ initialLocations, initialStats }: NodeMapProps) {
       {trends && (
         <div className="px-4 sm:px-6 py-3 border-t border-cipher-border">
           <div className="flex items-center gap-4">
-            <span className="text-caption text-muted uppercase tracking-wider font-mono">Trend</span>
+            <span className="text-caption text-muted uppercase tracking-wider font-mono">Observed count change</span>
             {[
               { label: '24h', value: trends.change24h },
               { label: '7d', value: trends.change7d },
@@ -488,9 +482,7 @@ export function NodeMap({ initialLocations, initialStats }: NodeMapProps) {
               value !== null && value !== undefined ? (
                 <div key={label} className="flex items-center gap-1">
                   <span className="text-caption text-muted font-mono">{label}</span>
-                  <span className={`text-xs font-mono font-semibold ${
-                    value > 0 ? 'text-cipher-green' : value < 0 ? 'text-danger' : 'text-muted'
-                  }`}>
+                  <span className="text-xs font-mono text-secondary">
                     {value > 0 ? '+' : ''}{value}%
                   </span>
                 </div>
@@ -503,11 +495,11 @@ export function NodeMap({ initialLocations, initialStats }: NodeMapProps) {
       {/* Top Countries */}
       {topCountries.length > 0 && (
         <div className="px-4 sm:px-6 py-4 border-t border-cipher-border">
-          <div className="flex items-center justify-between mb-3">
+          <div className="flex flex-wrap gap-2 items-center justify-between mb-3">
             <h3 className="text-sm font-semibold text-secondary">Top Countries</h3>
             {stats?.lastUpdated && (
-              <span className="text-caption text-muted font-mono hidden sm:inline">
-                Last sync: {new Date(stats.lastUpdated).toLocaleString()}
+              <span className="text-caption text-muted font-mono">
+                Last observed: {new Date(stats.lastUpdated).toLocaleString('en-GB', { timeZone: 'UTC' })} UTC
               </span>
             )}
           </div>

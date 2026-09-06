@@ -1,194 +1,50 @@
 'use client';
 
 import { useState } from 'react';
-import {
-  AreaChart, Area,
-  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
-} from 'recharts';
+import { ComposedChart, Area, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getChartColors } from '@/lib/chart-theme';
 import { useApiQuery } from '@/hooks/useApiQuery';
-import { ChartCard } from './ChartCard';
+import { feeBand } from '@/lib/network-overview';
+import { Card, CardBody } from '@/components/ui/Card';
+import { SectionHeader } from '@/components/ui/SectionHeader';
 
 const PERIODS = ['7d', '30d', '90d', '1y'] as const;
 type Period = typeof PERIODS[number];
-
-export interface DayFees {
-  date: string;
-  p10: number;
-  p25: number;
-  median: number;
-  p75: number;
-  p90: number;
-  avgFee: number;
-  txCount: number;
-}
-
-export interface FeeDistributionResponse {
-  daily: DayFees[];
-}
+export interface DayFees { date: string; p10: number; p25: number; median: number; p75: number; p90: number; avgFee: number; txCount: number }
+export interface FeeDistributionResponse { daily: DayFees[] }
 
 export function FeeDistributionChart({ initialData }: { initialData?: FeeDistributionResponse | null }) {
   const { theme } = useTheme();
   const colors = getChartColors(theme);
   const [period, setPeriod] = useState<Period>('30d');
-
-  const { data: res, loading } = useApiQuery<FeeDistributionResponse>(
-    '/api/network/fee-distribution',
-    { period },
-    { initialData: period === '30d' ? initialData ?? undefined : undefined },
-  );
-  const data = res?.daily ?? [];
-
-  const chartData = data.map(d => ({
-    date: new Date(d.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-    p10: d.p10 / 100000,
-    p25: d.p25 / 100000,
-    median: d.median / 100000,
-    p75: d.p75 / 100000,
-    p90: d.p90 / 100000,
-    txCount: d.txCount,
-  }));
-
-  const periodSelector = (
-    <div className="inline-flex gap-0 p-0.5 rounded-md bg-glass-3 flex-shrink-0">
-      {PERIODS.map(p => (
-        <button
-          key={p}
-          onClick={() => setPeriod(p)}
-          className={`px-1.5 py-0.5 text-caption font-mono rounded transition whitespace-nowrap ${
-            period === p
-              ? 'bg-brand-gold/15 text-cipher-gold font-semibold'
-              : 'text-muted hover:text-primary'
-          }`}
-        >
-          {p.toUpperCase()}
-        </button>
-      ))}
-    </div>
-  );
-
-  return (
-    <ChartCard
-      title="FEE_DISTRIBUTION"
-      height={340}
-      controls={periodSelector}
-    >
-      {loading ? (
-        <div className="flex items-center justify-center h-[340px]">
-          <div className="animate-spin rounded-full h-8 w-8 border-2 border-cipher-gold border-t-transparent" />
-        </div>
-      ) : (
-        <div>
-          <p className="text-xs text-muted mb-3 leading-relaxed">
-            Daily fee percentiles (in mZEC, 1 mZEC = 100,000 zatoshis). The band shows the
-            10th–90th percentile range; the line is the median. Narrow bands mean consensus on fee levels.
-          </p>
-          <ResponsiveContainer initialDimension={{ width: 500, height: 300 }} width="100%" height={300}>
-            <AreaChart data={chartData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
-              <defs>
-                <linearGradient id="feeBand" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor={colors.gold} stopOpacity={0.2} />
-                  <stop offset="95%" stopColor={colors.gold} stopOpacity={0.02} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="2 6" stroke={colors.grid} opacity={0.5} />
-              <XAxis
-                dataKey="date"
-                stroke={colors.axis}
-                tick={{ fill: colors.axis, fontSize: 12 }}
-                angle={-35}
-                textAnchor="end"
-                height={50}
-              />
-              <YAxis
-                stroke={colors.axis}
-                tick={{ fill: colors.axis, fontSize: 12 }}
-                tickFormatter={(v) => `${v.toFixed(2)}`}
-                label={{ value: 'mZEC', angle: -90, position: 'insideLeft', fill: colors.axis, style: { fontSize: 12 } }}
-              />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: colors.tooltipBg,
-                  border: `1px solid ${colors.tooltipBorder}`,
-                  borderRadius: '8px',
-                  color: colors.tooltipText,
-                }}
-                formatter={(value, name) => {
-                  const labels: Record<string, string> = {
-                    p90: '90th percentile',
-                    p75: '75th percentile',
-                    median: 'Median',
-                    p25: '25th percentile',
-                    p10: '10th percentile',
-                  };
-                  return [`${Number(value).toFixed(3)} mZEC`, labels[String(name)] || String(name)];
-                }}
-              />
-              <Legend
-                formatter={(value) => {
-                  const labels: Record<string, string> = {
-                    p90: 'P90',
-                    p75: 'P75',
-                    median: 'Median',
-                    p25: 'P25',
-                    p10: 'P10',
-                  };
-                  return (
-                    <span style={{ color: colors.tooltipText, fontSize: 12 }}>
-                      {labels[value] || value}
-                    </span>
-                  );
-                }}
-              />
-              <Area
-                type="monotone"
-                dataKey="p90"
-                stroke={colors.gold}
-                strokeWidth={1}
-                strokeDasharray="3 3"
-                fill="url(#feeBand)"
-                name="p90"
-              />
-              <Area
-                type="monotone"
-                dataKey="p75"
-                stroke={colors.gold}
-                strokeWidth={1}
-                strokeOpacity={0.6}
-                fill="none"
-                name="p75"
-              />
-              <Area
-                type="monotone"
-                dataKey="median"
-                stroke={colors.purple}
-                strokeWidth={2.5}
-                fill="none"
-                name="median"
-              />
-              <Area
-                type="monotone"
-                dataKey="p25"
-                stroke={colors.gold}
-                strokeWidth={1}
-                strokeOpacity={0.6}
-                fill="none"
-                name="p25"
-              />
-              <Area
-                type="monotone"
-                dataKey="p10"
-                stroke={colors.gold}
-                strokeWidth={1}
-                strokeDasharray="3 3"
-                fill="none"
-                name="p10"
-              />
-            </AreaChart>
-          </ResponsiveContainer>
-        </div>
-      )}
-    </ChartCard>
-  );
+  const { data, loading, error, isRefreshing } = useApiQuery<FeeDistributionResponse>('/api/network/fee-distribution', { period }, {
+    initialData: period === '30d' ? initialData ?? undefined : undefined, refreshInterval: 300_000,
+  });
+  const points = (data?.daily ?? []).map(day => ({ date: day.date, txCount: day.txCount, ...feeBand(day) }));
+  const usable = points.some(p => p.median != null);
+  const last = [...points].reverse().find(p => p.median != null);
+  const dateLabel = (date: string) => new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
+  return <Card className="h-full"><CardBody>
+    <SectionHeader label="OBSERVED_FEES" actions={<div className="flex gap-1" aria-label="Fee history range">{PERIODS.map(value => <button key={value} onClick={() => setPeriod(value)} aria-pressed={period === value} className={`filter-btn ${period === value ? 'filter-btn-active' : ''}`}>{value.toUpperCase()}</button>)}</div>} />
+    <p className="text-caption text-muted mb-4">Daily median and 10th–90th percentile range. Observed fees, not a fee quote.</p>
+    {!usable ? <p role="status" className="min-h-[240px] flex items-center justify-center text-sm text-muted">{loading || isRefreshing ? 'Loading observed fees…' : 'Fee history unavailable.'}</p> : <>
+      <ResponsiveContainer width="100%" height={228} initialDimension={{ width: 400, height: 228 }}>
+        <ComposedChart data={points} margin={{ top: 18, right: 8, left: 0, bottom: 0 }}>
+          <CartesianGrid vertical={false} stroke={colors.grid} />
+          <XAxis dataKey="date" tickFormatter={dateLabel} minTickGap={48} tick={{ fill: colors.axis, fontSize: 12 }} tickLine={false} axisLine={false} />
+          <YAxis width={56} tickCount={4} tickFormatter={v => Number(v).toLocaleString(undefined, { maximumFractionDigits: 2 })} tick={{ fill: colors.axis, fontSize: 12 }} tickLine={false} axisLine={false} domain={[0, 'auto']} />
+          <Tooltip labelFormatter={label => new Date(String(label)).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'UTC' })}
+            contentStyle={{ background: colors.tooltipBg, border: `1px solid ${colors.tooltipBorder}`, color: colors.tooltipText, fontSize: 12 }}
+            formatter={(value, name) => [Array.isArray(value) ? `${value.map(v => Number(v).toFixed(3)).join('–')} mZEC` : `${Number(value).toFixed(3)} mZEC`, name]} />
+          <Area type="linear" dataKey="range" name="P10–P90" stroke="none" fill={colors.transparent} fillOpacity={0.22} connectNulls={false} isAnimationActive={false} />
+          <Line type="linear" dataKey="median" name="Median" stroke={colors.gold} strokeWidth={2} dot={points.length === 1} connectNulls={false} isAnimationActive={false} />
+        </ComposedChart>
+      </ResponsiveContainer>
+      <div className="flex flex-wrap gap-x-4 gap-y-1 text-caption text-muted mt-2"><span><span aria-hidden="true" className="inline-block w-3 h-0.5 bg-cipher-gold align-middle mr-1.5" />Median</span><span><span aria-hidden="true" className="inline-block w-3 h-2 bg-muted/30 align-middle mr-1.5" />P10–P90</span></div>
+      <p className="text-caption text-muted mt-2">mZEC · 1 mZEC = 0.001 ZEC{last ? ` · latest day ${dateLabel(last.date)}` : ''}</p>
+    </>}
+    {isRefreshing && <p role="status" className="text-caption text-muted mt-3">Updating range; previous observations remain visible.</p>}
+    {error && <p role="status" className="text-caption text-warning mt-3">Fee history could not refresh. Last received observations are shown when available.</p>}
+  </CardBody></Card>;
 }

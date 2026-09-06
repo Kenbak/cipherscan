@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
+import { TransparentSupplyBreakdown } from '@/components/network/TransparentSupplyBreakdown';
 import { PageHeader, DataTable, HashLink, type DataTableColumn } from '@/components/ui';
 import { getApiUrl } from '@/lib/api-config';
 import { Card, CardBody } from '@/components/ui/Card';
@@ -291,6 +292,8 @@ export default function RichListClient({
           </Card>
         </div>
       )}
+
+      <TransparentSupplyBreakdown />
 
       {/* Table */}
       <DataTable

@@ -130,16 +130,16 @@ export function ProtocolStatsChart({ initialData }: { initialData?: ProtocolStat
               <>
                 <div className="text-caption font-mono">
                   <span className="text-muted">Sapling tree: </span>
-                  <span className="text-blue-400 font-semibold">{formatMillions(current.saplingCommitments)}</span>
+                  <span className="text-cipher-green font-semibold">{formatMillions(current.saplingCommitments)}</span>
                 </div>
                 <div className="text-caption font-mono">
                   <span className="text-muted">Orchard tree: </span>
-                  <span className="text-cipher-green font-semibold">{formatMillions(current.orchardCommitments)}</span>
+                  <span className="text-cipher-purple font-semibold">{formatMillions(current.orchardCommitments)}</span>
                 </div>
                 {(current.ironwoodCommitments || 0) > 0 && (
                   <div className="text-caption font-mono">
                     <span className="text-muted">Ironwood tree: </span>
-                    <span className="text-amber-400 font-semibold">{formatMillions(current.ironwoodCommitments)}</span>
+                    <span className="text-cipher-gold font-semibold">{formatMillions(current.ironwoodCommitments)}</span>
                   </div>
                 )}
               </>
@@ -147,16 +147,16 @@ export function ProtocolStatsChart({ initialData }: { initialData?: ProtocolStat
               <>
                 <div className="text-caption font-mono">
                   <span className="text-muted">Sapling nullifiers: </span>
-                  <span className="text-blue-400 font-semibold">{formatMillions(current.saplingNullifiers)}</span>
+                  <span className="text-cipher-green font-semibold">{formatMillions(current.saplingNullifiers)}</span>
                 </div>
                 <div className="text-caption font-mono">
                   <span className="text-muted">Orchard nullifiers: </span>
-                  <span className="text-cipher-green font-semibold">{formatMillions(current.orchardNullifiers)}</span>
+                  <span className="text-cipher-purple font-semibold">{formatMillions(current.orchardNullifiers)}</span>
                 </div>
                 {(current.ironwoodNullifiers || 0) > 0 && (
                   <div className="text-caption font-mono">
                     <span className="text-muted">Ironwood nullifiers: </span>
-                    <span className="text-amber-400 font-semibold">{formatMillions(current.ironwoodNullifiers)}</span>
+                    <span className="text-cipher-gold font-semibold">{formatMillions(current.ironwoodNullifiers)}</span>
                   </div>
                 )}
               </>
@@ -164,7 +164,7 @@ export function ProtocolStatsChart({ initialData }: { initialData?: ProtocolStat
           </div>
           <p className="text-caption font-mono text-muted mt-1.5">
             {view === 'commitments'
-              ? 'Note commitments added to each pool\u2019s Merkle tree. Each shielded output creates one commitment. Larger tree = more private transactions processed.'
+              ? 'Cumulative note commitments in each pool’s Merkle tree. These are protocol records, not transaction counts or a privacy score.'
               : 'Nullifiers revealed when notes are spent. Sapling counts real spends only. Orchard includes padding (each Action = 1 spend + 1 output for uniform privacy).'}
           </p>
         </div>
@@ -196,31 +196,31 @@ export function ProtocolStatsChart({ initialData }: { initialData?: ProtocolStat
           {view === 'commitments' ? (
             <>
               <Area
-                type="monotone"
+                type="linear"
                 dataKey="saplingCommitments"
                 name="Sapling notes"
-                stroke="#60a5fa"
-                fill="#60a5fa"
+                stroke={colors.sapling}
+                fill={colors.sapling}
                 fillOpacity={0.15}
                 strokeWidth={1.5}
                 dot={false}
               />
               <Area
-                type="monotone"
+                type="linear"
                 dataKey="orchardCommitments"
                 name="Orchard notes"
-                stroke="#65C79A"
-                fill="#65C79A"
+                stroke={colors.orchard}
+                fill={colors.orchard}
                 fillOpacity={0.15}
                 strokeWidth={1.5}
                 dot={false}
               />
               <Area
-                type="monotone"
+                type="linear"
                 dataKey="ironwoodCommitments"
                 name="Ironwood notes"
-                stroke="#f59e0b"
-                fill="#f59e0b"
+                stroke={colors.ironwood}
+                fill={colors.ironwood}
                 fillOpacity={0.15}
                 strokeWidth={1.5}
                 dot={false}
@@ -229,31 +229,31 @@ export function ProtocolStatsChart({ initialData }: { initialData?: ProtocolStat
           ) : (
             <>
               <Area
-                type="monotone"
+                type="linear"
                 dataKey="saplingNullifiers"
                 name="Sapling nullifiers"
-                stroke="#60a5fa"
-                fill="#60a5fa"
+                stroke={colors.sapling}
+                fill={colors.sapling}
                 fillOpacity={0.15}
                 strokeWidth={1.5}
                 dot={false}
               />
               <Area
-                type="monotone"
+                type="linear"
                 dataKey="orchardNullifiers"
                 name="Orchard nullifiers"
-                stroke="#65C79A"
-                fill="#65C79A"
+                stroke={colors.orchard}
+                fill={colors.orchard}
                 fillOpacity={0.15}
                 strokeWidth={1.5}
                 dot={false}
               />
               <Area
-                type="monotone"
+                type="linear"
                 dataKey="ironwoodNullifiers"
                 name="Ironwood nullifiers"
-                stroke="#f59e0b"
-                fill="#f59e0b"
+                stroke={colors.ironwood}
+                fill={colors.ironwood}
                 fillOpacity={0.15}
                 strokeWidth={1.5}
                 dot={false}
