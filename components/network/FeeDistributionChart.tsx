@@ -1,7 +1,9 @@
 'use client';
+import { ChartSkeleton } from '@/components/ui/Skeleton';
 
 import { useState } from 'react';
-import { ComposedChart, Area, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import {  ComposedChart, Area, Line, XAxis, YAxis, CartesianGrid,  ResponsiveContainer  } from 'recharts';
+import { ChartTooltip as Tooltip } from '@/components/charts/ChartTooltip';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getChartColors } from '@/lib/chart-theme';
 import { useApiQuery } from '@/hooks/useApiQuery';
@@ -28,7 +30,7 @@ export function FeeDistributionChart({ initialData }: { initialData?: FeeDistrib
   return <Card className="h-full"><CardBody>
     <SectionHeader label="OBSERVED_FEES" actions={<div className="flex gap-1" aria-label="Fee history range">{PERIODS.map(value => <button key={value} onClick={() => setPeriod(value)} aria-pressed={period === value} className={`filter-btn ${period === value ? 'filter-btn-active' : ''}`}>{value.toUpperCase()}</button>)}</div>} />
     <p className="text-caption text-muted mb-4">Daily median and 10th–90th percentile range. Observed fees, not a fee quote.</p>
-    {!usable ? <p role="status" className="min-h-[240px] flex items-center justify-center text-sm text-muted">{loading || isRefreshing ? 'Loading observed fees…' : 'Fee history unavailable.'}</p> : <>
+    {loading && !usable ? <ChartSkeleton height={228} /> : !usable ? <p role="status" className="min-h-[240px] flex items-center justify-center text-sm text-muted">{loading || isRefreshing ? 'Loading observed fees…' : 'Fee history unavailable.'}</p> : <>
       <ResponsiveContainer width="100%" height={228} initialDimension={{ width: 400, height: 228 }}>
         <ComposedChart data={points} margin={{ top: 18, right: 8, left: 0, bottom: 0 }}>
           <CartesianGrid vertical={false} stroke={colors.grid} />

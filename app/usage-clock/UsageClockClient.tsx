@@ -8,11 +8,12 @@ import {
   Bar,
   XAxis,
   YAxis,
-  Tooltip,
+
   ResponsiveContainer,
   Cell,
   ReferenceLine,
 } from 'recharts';
+import { ChartTooltip as Tooltip } from '@/components/charts/ChartTooltip';
 import { getApiUrl } from '@/lib/api-config';
 import {
   MAP_WIDTH,
@@ -321,16 +322,7 @@ function ResidualTooltip({ active, payload }: any) {
   const d = payload[0].payload;
   const up = d.residual >= 0;
   return (
-    <div
-      style={{
-        backgroundColor: 'var(--color-surface-solid)',
-        border: '1px solid var(--color-border)',
-        borderRadius: 8,
-        padding: '8px 10px',
-        fontFamily: 'var(--font-geist-mono), monospace',
-        fontSize: 12,
-      }}
-    >
+    <div className="chart-tooltip-surface">
       <div className="text-secondary mb-1">{d.label}:00 UTC</div>
       <div className="text-muted">actual {d.actual}% of the day</div>
       <div className="text-muted">expected {d.predicted}% (humans only)</div>

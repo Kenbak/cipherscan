@@ -1,4 +1,5 @@
 'use client';
+import { Skeleton as Sk, ChartSkeleton } from '@/components/ui/Skeleton';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
@@ -17,9 +18,7 @@ import { SwapSizeDistribution } from '@/components/crosschain/SwapSizeDistributi
 import { formatValue, formatAmount, formatRelativeTime, type DisplayUnit } from '@/components/crosschain/format';
 import { getApiUrl } from '@/lib/api-config';
 
-function Sk({ className = '', style }: { className?: string; style?: React.CSSProperties }) {
-  return <div className={`animate-pulse rounded bg-cipher-border/60 ${className}`} style={style} />;
-}
+
 
 function CrosschainSkeleton() {
   return (
@@ -49,11 +48,7 @@ function CrosschainSkeleton() {
       <div className="card">
         <div className="card-body">
           <Sk className="h-3 w-40 mb-4" />
-          <div className="flex items-end gap-1.5 h-[200px] pt-8">
-            {[40, 65, 50, 80, 70, 55, 90, 75, 60, 85, 45, 70, 55, 80, 65, 50, 75, 60, 85, 45].map((h, i) => (
-              <Sk key={i} className="flex-1 rounded-t" style={{ height: `${h}%` }} />
-            ))}
-          </div>
+          <ChartSkeleton height={260} />
         </div>
       </div>
 

@@ -1,4 +1,5 @@
 'use client';
+import { ChartSkeleton } from '@/components/ui/Skeleton';
 
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
@@ -36,7 +37,7 @@ export function BlockCadenceChart({ initialData, initialFetchedAt, chainHeight, 
     <SectionHeader label="BLOCK_CADENCE" actions={<Link href="/blocks" className="text-caption font-mono text-muted hover:text-primary">All blocks →</Link>} />
     <p className="text-caption text-muted mb-4">Recent block intervals, in seconds. The rule marks the 75s target.</p>
     <div ref={wrapper} className="min-h-[240px]">
-      {!points.length ? <p role="status" className="py-20 text-sm text-muted text-center">{loading ? 'Loading block timestamps…' : 'Block interval data unavailable.'}</p> : <>
+      {loading && !points.length ? <ChartSkeleton height={228} /> : !points.length ? <p role="status" className="py-20 text-sm text-muted text-center">{loading ? 'Loading block timestamps…' : 'Block interval data unavailable.'}</p> : <>
         <svg width="100%" height="228" viewBox={`0 0 ${width} 228`} role="group" aria-label="Recent block intervals; each bar links to its block" className="font-mono text-caption">
           {[0, Math.round(max), ...(min < 0 ? [min] : [])].map(tick => <g key={tick}>
             <line x1="46" x2={width - 8} y1={y(tick)} y2={y(tick)} className="stroke-cipher-border" />

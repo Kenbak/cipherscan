@@ -1,4 +1,5 @@
 'use client';
+import { ChartSkeleton } from '@/components/ui/Skeleton';
 
 import { useMemo, useState } from 'react';
 import {
@@ -8,13 +9,14 @@ import {
   XAxis,
   YAxis,
   CartesianGrid,
-  Tooltip,
+
   Legend,
   ResponsiveContainer,
   ReferenceLine,
 } from 'recharts';
+import { ChartTooltip as Tooltip } from '@/components/charts/ChartTooltip';
 import { useTheme } from '@/contexts/ThemeContext';
-import { getChartColors } from '@/lib/chart-theme';
+import { getChartColors, getChartTooltipStyle } from '@/lib/chart-theme';
 import { formatChartDate } from '@/lib/chart-dates';
 import { getFlowColors } from '@/lib/flow-colors';
 import { formatZecCompact } from '@/lib/format-numbers';
@@ -66,11 +68,7 @@ function FlowTooltip({
   return (
     <div
       className="rounded-lg border px-3 py-2 text-xs font-mono shadow-lg"
-      style={{
-        backgroundColor: colors.tooltipBg,
-        borderColor: colors.tooltipBorder,
-        color: colors.tooltipText,
-      }}
+      style={getChartTooltipStyle(colors)}
     >
       <p className="mb-2 text-caption uppercase tracking-wider text-muted">{formatChartDate(dateStr)}</p>
       {payload.map((entry) => {
@@ -133,12 +131,7 @@ export function FlowVolumeChart() {
   );
 
   const chartBody = loading ? (
-    <div className="flex items-center justify-center" style={{ height: CHART_HEIGHT }}>
-      <div className="w-full max-w-md space-y-3 px-6">
-        <div className="h-4 skeleton-bg animate-pulse rounded" />
-        <div className="h-48 skeleton-bg animate-pulse rounded" />
-      </div>
-    </div>
+    <ChartSkeleton height={CHART_HEIGHT} />
   ) : points.length === 0 ? (
     <div
       className="flex items-center justify-center text-xs font-mono text-muted"

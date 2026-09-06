@@ -849,9 +849,9 @@ export const MempoolBubbles = forwardRef<MempoolBubblesHandle, MempoolBubblesPro
           }}
         >
           <div
-            className="rounded-lg px-3 py-2 shadow-xl text-xs min-w-[210px] border"
+            className="rounded-lg px-4 py-3 text-xs min-w-[210px] border"
             style={{
-              background: 'var(--color-surface-solid)',
+              background: 'var(--color-surface)',
               borderColor: 'var(--color-border)',
             }}
           >

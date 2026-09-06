@@ -9,10 +9,11 @@ import {
   XAxis,
   YAxis,
   CartesianGrid,
-  Tooltip as RechartsTooltip,
+
   ResponsiveContainer,
   Legend,
 } from 'recharts';
+import { ChartTooltip as RechartsTooltip } from '@/components/charts/ChartTooltip';
 import { ShareableCard } from '@/components/ShareableCard';
 import { PeriodSelector, type Period } from '@/components/privacy/PeriodSelector';
 import { getChartColors } from '@/lib/chart-theme';

@@ -1183,17 +1183,29 @@
 
   .treemap-cell:hover { opacity: 1; }
 
+  .chart-tooltip-surface {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    padding: 12px 16px;
+    color: var(--color-text-primary);
+    font-family: var(--font-geist-mono), monospace;
+    font-size: 12px;
+    line-height: 1.5;
+    box-shadow: none;
+  }
+
   .treemap-tooltip {
     position: absolute;
     transform: translate(-50%, calc(-100% - 10px));
     pointer-events: none;
     z-index: 10;
-    padding: 8px 10px;
+    padding: 12px 16px;
     white-space: nowrap;
-    background: var(--popover-bg);
+    background: var(--color-surface);
     border: 1px solid var(--color-border);
-    border-radius: var(--radius-lg);
-    box-shadow: var(--dropdown-shadow);
+    border-radius: 8px;
+    box-shadow: none;
   }
 
 

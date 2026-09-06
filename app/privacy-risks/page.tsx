@@ -470,15 +470,15 @@ function PrivacyRisksContent() {
               loading ? (
                 <div className="space-y-3">
                   {[...Array(5)].map((_, i) => (
-                    <div key={i} className="card card-compact animate-pulse">
+                    <div key={i} className="card card-compact motion-safe:animate-pulse">
                       <div className="flex items-center justify-between mb-3">
-                        <div className="h-4 bg-cipher-surface rounded w-32" />
-                        <div className="h-3 bg-cipher-surface rounded w-16" />
+                        <div className="h-4 skeleton-bg rounded w-32" />
+                        <div className="h-3 skeleton-bg rounded w-16" />
                       </div>
                       <div className="space-y-2">
-                        <div className="h-4 bg-cipher-surface rounded w-full" />
-                        <div className="h-3 bg-cipher-surface rounded w-24" />
-                        <div className="h-4 bg-cipher-surface rounded w-full" />
+                        <div className="h-4 skeleton-bg rounded w-full" />
+                        <div className="h-3 skeleton-bg rounded w-24" />
+                        <div className="h-4 skeleton-bg rounded w-full" />
                       </div>
                     </div>
                   ))}

@@ -2,10 +2,11 @@
 
 import { useMemo, useState } from 'react';
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer,
 } from 'recharts';
+import { ChartTooltip as Tooltip } from '@/components/charts/ChartTooltip';
 import { useTheme } from '@/contexts/ThemeContext';
-import { getChartColors } from '@/lib/chart-theme';
+import { getChartColors, getChartTooltipStyle } from '@/lib/chart-theme';
 import { useApiQuery } from '@/hooks/useApiQuery';
 import { ChartCard } from '@/components/network/ChartCard';
 import { formatUSD, formatValue, type DisplayUnit } from '@/components/crosschain/format';
@@ -64,7 +65,7 @@ function SizeTooltip({ active, payload, colors, viewMode, unit, zecPrice }: {
   return (
     <div
       className="rounded-lg border px-3 py-2 text-xs font-mono shadow-lg"
-      style={{ backgroundColor: colors.tooltipBg, borderColor: colors.tooltipBorder, color: colors.tooltipText }}
+      style={getChartTooltipStyle(colors)}
     >
       <p className="mb-1 text-caption uppercase tracking-wider text-muted">{row.label}</p>
       <p className="tabular-nums text-secondary">{row.swapCount.toLocaleString()} swaps</p>

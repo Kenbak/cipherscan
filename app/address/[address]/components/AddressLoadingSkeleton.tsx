@@ -1,12 +1,10 @@
+import { SkeletonTable } from '@/components/ui/EmptyState';
+import { Skeleton } from '@/components/ui/Skeleton';
 import { Card, CardHeader, CardBody } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import type { AddressMeta } from '@/lib/seo';
 
-function Skeleton({ className = '' }: { className?: string }) {
-  return (
-    <div className={`animate-pulse rounded bg-cipher-border ${className}`} />
-  );
-}
+
 
 function typeLabel(type: AddressMeta['type']): string {
   if (type === 'shielded') return 'SHIELDED';
@@ -49,7 +47,7 @@ export function AddressLoadingSkeleton({
       {/* Hero card skeleton */}
       <Card className="mb-6" aria-hidden="true">
         <CardBody>
-          <div className="space-y-3">
+          <div className="flex flex-col items-center text-center space-y-3 py-2">
             <Skeleton className="h-8 w-64" />
             <Skeleton className="h-4 w-48" />
             <Skeleton className="h-4 w-full max-w-lg" />
@@ -69,17 +67,7 @@ export function AddressLoadingSkeleton({
           <Skeleton className="h-3 w-32" />
         </CardHeader>
         <CardBody>
-          <div className="space-y-3">
-            {[0, 1, 2, 3, 4].map((i) => (
-              <div key={i} className="p-3 rounded-lg border border-cipher-border">
-                <div className="flex items-center gap-4">
-                  <Skeleton className="h-5 w-10" />
-                  <Skeleton className="h-4 w-40" />
-                  <Skeleton className="h-4 w-16 ml-auto" />
-                </div>
-              </div>
-            ))}
-          </div>
+          <SkeletonTable rows={5} columns={5} label={null} />
         </CardBody>
       </Card>
     </div>
@@ -87,15 +75,5 @@ export function AddressLoadingSkeleton({
 }
 
 export function AddressPageSuspenseFallback({ initialMeta }: { initialMeta?: AddressMeta | null } = {}) {
-  return (
-    <div
-      className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8"
-      role="status"
-      aria-live="polite"
-      aria-label="Loading address activity"
-    >
-      <div className="h-48 rounded-xl border border-cipher-border bg-cipher-surface animate-pulse" aria-hidden="true" />
-      {initialMeta && <span className="sr-only">{typeLabel(initialMeta.type)} address, {initialMeta.txCount.toLocaleString()} transactions.</span>}
-    </div>
-  );
+  return <AddressLoadingSkeleton initialMeta={initialMeta} />;
 }

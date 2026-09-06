@@ -9,8 +9,9 @@ import {
   Area,
   XAxis,
   YAxis,
-  Tooltip,
+
 } from 'recharts';
+import { ChartTooltip as Tooltip } from '@/components/charts/ChartTooltip';
 import { ShareableCard } from '@/components/ShareableCard';
 import { fmtValue, type CurrencyMode } from '@/hooks/useCurrencyToggle';
 import { zatToZec } from '@/lib/format-numbers';

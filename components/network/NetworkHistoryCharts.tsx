@@ -1,9 +1,11 @@
 'use client';
+import { ChartSkeleton } from '@/components/ui/Skeleton';
 
 import { useMemo } from 'react';
 import {
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer,
 } from 'recharts';
+import { ChartTooltip as Tooltip } from '@/components/charts/ChartTooltip';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getChartColors } from '@/lib/chart-theme';
 import { useApiQuery } from '@/hooks/useApiQuery';
@@ -42,7 +44,7 @@ export function NetworkHistoryCharts({ initialData }: { initialData?: ChainSizeH
     <ChartCard title="NODE_STORAGE_HISTORY" height={260} watermarkSize="sm">
       <p className="text-caption text-muted mb-3">Explorer node disk snapshots · GiB (1,024³ bytes). Storage depends on the node implementation.</p>
       {loading ? (
-        <ChartEmptyState message="Loading chain size…" />
+        <ChartSkeleton height={260} />
       ) : sizePoints.length > 0 ? (
         <ResponsiveContainer initialDimension={{ width: 500, height: 300 }} width="100%" height={260}>
           <LineChart data={sizePoints}>

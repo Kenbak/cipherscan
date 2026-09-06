@@ -3,7 +3,7 @@
 import { Card, CardBody } from '@/components/ui/Card';
 
 function SkeletonLine({ className = '' }: { className?: string }) {
-  return <div className={`animate-pulse rounded bg-cipher-border-alpha/40 ${className}`} />;
+  return <div className={`motion-safe:animate-pulse rounded skeleton-bg ${className}`} />;
 }
 
 export default function ForkMonitorLoading() {
@@ -11,7 +11,7 @@ export default function ForkMonitorLoading() {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 animate-fade-in">
       <div className="mb-8">
         <span className="text-caption font-mono text-muted tracking-wider">&gt; FORK_MONITOR</span>
-        <h1 className="type-page font-mono text-primary mt-1">Crosslink Fork Monitor</h1>
+        <div className="type-page font-mono text-primary mt-1">Crosslink Fork Monitor</div>
         <SkeletonLine className="h-4 w-full max-w-2xl mt-2" />
       </div>
 

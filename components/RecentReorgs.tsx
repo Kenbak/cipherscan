@@ -73,8 +73,9 @@ export const RecentReorgs = memo(function RecentReorgs({ footer }: { footer?: Re
 
   if (loading) {
     return (
-      <div className="card p-4">
-        <SkeletonTable rows={5} rowHeight="h-12" />
+      <div className="card p-0 overflow-hidden">
+        <SkeletonTable rows={5} rowHeight="h-12" headers={["Height", "Depth", "Orphaned", "Age"]} />
+        {footer && <div className="px-4 py-3 border-t border-cipher-border text-center">{footer}</div>}
       </div>
     );
   }

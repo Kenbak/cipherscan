@@ -1,30 +1,33 @@
+import { SkeletonTable } from '@/components/ui/EmptyState';
+import { Skeleton } from '@/components/ui/Skeleton';
 import { Card, CardHeader, CardBody } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { formatRelativeTime } from '@/lib/utils';
 import { formatBytesCompact } from '@/lib/format-numbers';
 import type { BlockPageSummary } from './types';
 
-function Skeleton({ className = '' }: { className?: string }) {
-  return <div className={`animate-pulse rounded bg-cipher-border ${className}`} />;
-}
+
 
 export function BlockPageSkeleton({
   identifier,
   initialSummary,
+  titleAsHeading = true,
 }: {
+  titleAsHeading?: boolean;
   identifier: string;
   initialSummary: BlockPageSummary | null;
 }) {
+  const Title = titleAsHeading ? 'h1' : 'div';
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 animate-fade-in">
       <div className="mb-6">
         <span className="text-caption font-mono text-muted tracking-wider">&gt; BLOCK_DETAILS</span>
         <div className="flex flex-wrap items-center gap-3 mt-1">
-          <h1 className={`type-page font-mono ${initialSummary?.isOrphaned ? 'text-cipher-orange' : 'text-primary'}`}>
+          <Title className={`type-page font-mono ${initialSummary?.isOrphaned ? 'text-cipher-orange' : 'text-primary'}`}>
             {initialSummary
               ? `${initialSummary.isOrphaned ? 'Orphaned Zcash Block' : 'Zcash Block'} #${initialSummary.height.toLocaleString()}`
               : 'Zcash Block'}
-          </h1>
+          </Title>
           {initialSummary && (
             <Badge color={initialSummary.isOrphaned ? 'orange' : 'green'}>
               {initialSummary.isOrphaned ? 'ORPHAN' : 'CANONICAL'}
@@ -77,31 +80,15 @@ export function BlockPageSkeleton({
       </div>
       <Card className="mb-6" aria-hidden="true">
         <CardBody>
-          <div className="space-y-4">
-            {[0, 1, 2, 3, 4].map((i) => (
-              <div key={i} className="flex items-center gap-4">
-                <Skeleton className="h-4 w-32" />
-                <Skeleton className="h-4 w-48" />
-              </div>
-            ))}
-            <Skeleton className="h-12 w-full rounded-lg" />
-          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">{['Block hash', 'Timestamp', 'Block size', 'Transactions', 'Total fees'].map(label => <div key={label} className="rounded border border-cipher-border p-3"><p className="text-caption text-muted mb-2">{label}</p><Skeleton className="h-5 w-28" /></div>)}</div>
+          <div className="grid sm:grid-cols-2 gap-3 mt-3">{[0, 1].map(i => <div key={i} className="rounded border border-cipher-border p-4"><Skeleton className="h-4 w-32 mb-3" /><Skeleton className="h-4 w-3/4 mb-3" /><Skeleton className="h-4 w-1/2" /></div>)}</div>
+          <Skeleton className="h-10 w-40 mt-4" />
         </CardBody>
       </Card>
       <Card aria-hidden="true">
         <CardHeader><Skeleton className="h-4 w-32" /></CardHeader>
         <CardBody>
-          <div className="space-y-3">
-            {[0, 1, 2].map((i) => (
-              <div key={i} className="p-3 rounded-lg border border-cipher-border">
-                <div className="flex items-center gap-4">
-                  <Skeleton className="h-5 w-10" />
-                  <Skeleton className="h-4 w-40" />
-                  <Skeleton className="h-4 w-16 ml-auto" />
-                </div>
-              </div>
-            ))}
-          </div>
+          <SkeletonTable rows={5} columns={4} label={null} />
         </CardBody>
       </Card>
     </div>

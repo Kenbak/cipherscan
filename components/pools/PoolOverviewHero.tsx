@@ -1,4 +1,5 @@
 'use client';
+import { PageLoadingBody } from '@/components/ui/PageLoading';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -460,12 +461,5 @@ export function PoolOverviewHero({ data }: { data: PoolOverviewData }) {
 }
 
 export function PoolOverviewSkeleton() {
-  return (
-    <div className="rounded-2xl border border-cipher-border bg-cipher-surface p-5 sm:p-6">
-      <div className="mb-5 h-4 w-44 skeleton-bg rounded animate-pulse" />
-      <div className="h-[220px] sm:h-[280px] skeleton-bg rounded-xl animate-pulse" />
-      <div className="mt-3 h-4 w-1/2 skeleton-bg rounded animate-pulse" />
-      <div className="mt-4 h-10 skeleton-bg rounded-xl animate-pulse" />
-    </div>
-  );
+  return <PageLoadingBody layout="pools" />;
 }

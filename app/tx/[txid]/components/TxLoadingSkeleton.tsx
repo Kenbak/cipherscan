@@ -1,13 +1,12 @@
 'use client';
+import { Skeleton } from '@/components/ui/Skeleton';
 
 import { Card, CardBody } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { formatRelativeTime } from '@/lib/utils';
 import type { TxMeta } from '@/lib/seo';
 
-function Skeleton({ className = '' }: { className?: string }) {
-  return <div className={`animate-pulse rounded bg-cipher-border ${className}`} />;
-}
+
 
 function statusColor(status: TxMeta['status']): 'green' | 'amber' | 'orange' | 'muted' {
   if (status === 'confirmed') return 'green';

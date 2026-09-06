@@ -1,12 +1,14 @@
 'use client';
+import { ChartSkeleton } from '@/components/ui/Skeleton';
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import {
   PieChart, Pie, Cell, AreaChart, Area, BarChart, Bar,
   LineChart, Line,
-  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
+  XAxis, YAxis, CartesianGrid, ResponsiveContainer, Legend,
 } from 'recharts';
+import { ChartTooltip as Tooltip } from '@/components/charts/ChartTooltip';
 import { getApiUrl } from '@/lib/api-config';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getChartColors } from '@/lib/chart-theme';
@@ -149,9 +151,7 @@ function DistributionSection() {
         controls={<PeriodSelector value={period} onChange={setPeriod} />}
       >
         {loading ? (
-          <div className="flex items-center justify-center h-[360px]">
-            <div className="animate-pulse text-muted font-mono text-xs">Loading...</div>
-          </div>
+          <ChartSkeleton height={360} />
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-center">
             <ResponsiveContainer initialDimension={{ width: 500, height: 300 }} width="100%" height={320}>
@@ -242,7 +242,7 @@ function RankingSection() {
           <SectionHeader label="POOL_RANKING" actions={<PeriodSelector value={period} onChange={setPeriod} />} />
 
           {loading ? (
-            <SkeletonTable rows={5} rowHeight="h-10" />
+            <SkeletonTable rows={5} headers={["#", "Pool", "Blocks", "Share", "Avg interval", "Total fees"]} />
           ) : (
             <>
               <DataTable
@@ -426,9 +426,7 @@ function HashrateShareSection() {
         controls={chartControls}
       >
         {loading ? (
-          <div className="flex items-center justify-center h-[380px]">
-            <div className="animate-pulse text-muted font-mono text-xs">Loading...</div>
-          </div>
+          <ChartSkeleton height={380} />
         ) : chartMode === 'area' ? (
           <ResponsiveContainer initialDimension={{ width: 500, height: 300 }} width="100%" height={380}>
             <AreaChart data={chartData}>
@@ -658,9 +656,7 @@ function MinerBehaviorSection() {
         controls={<PeriodSelector value={period} onChange={setPeriod} />}
       >
         {loading ? (
-          <div className="flex items-center justify-center h-[320px]">
-            <div className="animate-pulse text-muted font-mono text-xs">Loading...</div>
-          </div>
+          <ChartSkeleton height={320} />
         ) : message ? (
           <div className="flex items-center justify-center h-[320px]">
             <div className="text-center">

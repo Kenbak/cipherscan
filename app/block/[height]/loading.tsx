@@ -8,5 +8,5 @@ import { BlockPageSkeleton } from './components';
  * loading state.
  */
 export default function BlockLoading() {
-  return <BlockPageSkeleton identifier="…" initialSummary={null} />;
+  return <BlockPageSkeleton identifier="…" initialSummary={null} titleAsHeading={false} />;
 }

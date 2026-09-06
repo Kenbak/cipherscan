@@ -2,10 +2,11 @@
 
 import { useMemo, useState } from 'react';
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Legend, ResponsiveContainer,
 } from 'recharts';
+import { ChartTooltip as Tooltip } from '@/components/charts/ChartTooltip';
 import { useTheme } from '@/contexts/ThemeContext';
-import { getChartColors } from '@/lib/chart-theme';
+import { getChartColors, getChartTooltipStyle } from '@/lib/chart-theme';
 import { ChartCard } from '@/components/network/ChartCard';
 import { formatMinutes } from '@/components/crosschain/format';
 
@@ -95,7 +96,7 @@ function LatencyTooltip({ active, payload, colors }: {
   return (
     <div
       className="rounded-lg border px-3 py-2 text-xs font-mono shadow-lg"
-      style={{ backgroundColor: colors.tooltipBg, borderColor: colors.tooltipBorder, color: colors.tooltipText }}
+      style={getChartTooltipStyle(colors)}
     >
       <p className="mb-2 text-caption uppercase tracking-wider text-muted">{row.chainName}</p>
       {row.inboundCount > 0 && (

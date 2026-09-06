@@ -2,11 +2,12 @@
 
 import { useMemo, useState } from 'react';
 import {
-  ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
+  ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Legend,
   ResponsiveContainer, ReferenceLine,
 } from 'recharts';
+import { ChartTooltip as Tooltip } from '@/components/charts/ChartTooltip';
 import { useTheme } from '@/contexts/ThemeContext';
-import { getChartColors } from '@/lib/chart-theme';
+import { getChartColors, getChartTooltipStyle } from '@/lib/chart-theme';
 import { useApiQuery } from '@/hooks/useApiQuery';
 import { ChartCard } from '@/components/network/ChartCard';
 import { PeriodPillTags } from '@/components/ui/PeriodPillTags';
@@ -49,7 +50,7 @@ function TrendTooltip({ active, payload, colors, unit, zecPrice }: {
   return (
     <div
       className="rounded-lg border px-3 py-2 text-xs font-mono shadow-lg"
-      style={{ backgroundColor: colors.tooltipBg, borderColor: colors.tooltipBorder, color: colors.tooltipText }}
+      style={getChartTooltipStyle(colors)}
     >
       <p className="mb-2 text-caption uppercase tracking-wider text-muted">{new Date(row.date).toLocaleDateString()}</p>
       <p className="tabular-nums text-secondary"><span className="text-cipher-green">Inflows</span>: {fv(row.inflowVolume)}</p>

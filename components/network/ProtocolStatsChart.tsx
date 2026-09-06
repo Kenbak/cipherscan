@@ -1,9 +1,11 @@
 'use client';
+import { ChartSkeleton } from '@/components/ui/Skeleton';
 
 import { useState, useMemo } from 'react';
 import {
-  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, Brush,
+  AreaChart, Area, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Legend, Brush,
 } from 'recharts';
+import { ChartTooltip as Tooltip } from '@/components/charts/ChartTooltip';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getChartColors } from '@/lib/chart-theme';
 import { useApiQuery } from '@/hooks/useApiQuery';
@@ -104,9 +106,7 @@ export function ProtocolStatsChart({ initialData }: { initialData?: ProtocolStat
   if (loading) {
     return (
       <ChartCard title="PROTOCOL_GROWTH" height={280} watermarkSize="sm" controls={controls}>
-        <div className="flex items-center justify-center h-[280px] text-xs text-muted">
-          Loading protocol stats...
-        </div>
+        <ChartSkeleton height={280} />
       </ChartCard>
     );
   }

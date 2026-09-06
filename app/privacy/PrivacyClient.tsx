@@ -1,4 +1,5 @@
 'use client';
+import { PageLoadingBody } from '@/components/ui/PageLoading';
 
 import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
@@ -119,7 +120,7 @@ export default function PrivacyClient() {
       <a href="#how-it-works" className="hover:text-primary">Methodology</a>
     </nav>
     {error && <p role="status" className="text-caption text-warning mb-6">{error} {stats ? 'Showing the last received snapshot. ' : ''}<button onClick={refresh} className="underline underline-offset-4">Retry</button></p>}
-    {loading && <p role="status" className="py-12 text-muted font-mono text-sm">Loading privacy observations…</p>}
+    {loading && !stats && <PageLoadingBody layout="privacy" />}
     {!loading && !stats && <Card><CardBody><p className="text-secondary text-sm">The score is unavailable until an indexed snapshot can be loaded.</p></CardBody></Card>}
     {stats && <>
       <section id="score" className="scroll-mt-36 mb-10">

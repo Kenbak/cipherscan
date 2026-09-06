@@ -1,4 +1,5 @@
 'use client';
+import { SkeletonTable } from '@/components/ui/EmptyState';
 
 import { useEffect, useState } from 'react';
 import { useApiQuery } from '@/hooks/useApiQuery';
@@ -35,7 +36,7 @@ export function TransparentSupplyBreakdown() {
     {open && <Card className="mt-4"><CardBody>
       <SectionHeader label="TRANSPARENT_BALANCES" />
       <p className="text-sm text-secondary mb-5">Positive indexed address balances grouped by known labels and script type. Labels describe addresses, not verified beneficial ownership. Shares use the node’s transparent pool balance; observations can differ in time.</p>
-      {rows.length ? <div className="grid xl:grid-cols-2 gap-8">
+      {loading && !rows.length ? <div className="grid xl:grid-cols-2 gap-8"><SkeletonTable rows={5} columns={3} /><SkeletonTable rows={4} columns={3} label={null} /></div> : rows.length ? <div className="grid xl:grid-cols-2 gap-8">
         {table(rows.map(row => ({ ...row, label: row.category })), 'Address categories')}
         {table((data?.addressTypes ?? []).map(row => ({ ...row, label: row.type })), 'Script types')}
       </div> : <p className="text-sm text-muted">{loading ? 'Loading transparent balance groups…' : 'Transparent balance groups are unavailable.'}</p>}

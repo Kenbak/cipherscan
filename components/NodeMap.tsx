@@ -1,4 +1,5 @@
 'use client';
+import { LoadingRegion, Skeleton } from '@/components/ui/Skeleton';
 
 import { useState, useMemo } from 'react';
 import Link from 'next/link';
@@ -174,14 +175,11 @@ export function NodeMap({ initialLocations, initialStats }: NodeMapProps) {
   // ==========================================================================
 
   if (loading && worldDots.length === 0) {
-    return (
-      <div className="bg-cipher-surface border border-cipher-border rounded-xl p-6">
-        <div className="flex items-center justify-center py-16">
-          <div className="animate-spin rounded-full h-8 w-8 border-2 border-cipher-gold border-t-transparent" />
-          <span className="ml-3 text-secondary font-mono">Loading node map...</span>
-        </div>
-      </div>
-    );
+    return <LoadingRegion label="Loading node map" className="card p-0 overflow-hidden">
+      <div className="px-4 sm:px-6 py-4 border-b border-cipher-border"><Skeleton className="h-6 w-48 mb-2" /><Skeleton className="h-4 w-80" /></div>
+      <div className="relative w-full" style={{ aspectRatio: `${MAP_WIDTH} / ${MAP_HEIGHT}`, maxHeight: 460 }}><Skeleton className="absolute left-1/2 top-1/2 -translate-x-1/2 w-32 h-4" /></div>
+      <div className="px-5 py-4 border-t border-cipher-border"><Skeleton className="h-4 w-64" /></div>
+    </LoadingRegion>;
   }
 
   if (error && locations.length === 0) {

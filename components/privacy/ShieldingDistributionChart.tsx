@@ -1,4 +1,5 @@
 'use client';
+import { ChartSkeleton } from '@/components/ui/Skeleton';
 
 import { useState } from 'react';
 import {
@@ -7,9 +8,10 @@ import {
   XAxis,
   YAxis,
   CartesianGrid,
-  Tooltip,
+
   ResponsiveContainer,
 } from 'recharts';
+import { ChartTooltip as Tooltip } from '@/components/charts/ChartTooltip';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getChartColors } from '@/lib/chart-theme';
 import { useApiQuery } from '@/hooks/useApiQuery';
@@ -95,9 +97,7 @@ export function ShieldingDistributionChart() {
               ? `Transaction count by amount range (${period === 'all' ? 'all time' : `last ${period}`}). Each flow belongs to one amount range.`
               : `ZEC volume by amount range (${period === 'all' ? 'all time' : `last ${period}`}). Shows where value concentrates across shielded flows.`}</>} controls={controls}>
       {loading ? (
-        <div className="flex h-[340px] items-center justify-center">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-cipher-gold/30 border-t-cipher-gold" />
-        </div>
+        <div><ChartSkeleton height={340} /><div className="mt-2 h-5" /></div>
       ) : error ? <p role="status" className="text-caption text-muted py-8">Public flow observations could not load.</p> : data.length === 0 ? <p className="text-caption text-muted py-8">No public flow observations for this period.</p> : (
         <div>
           <ResponsiveContainer initialDimension={{ width: 500, height: 300 }} width="100%" height={CHART_HEIGHT}>

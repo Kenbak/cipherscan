@@ -1,4 +1,5 @@
 'use client';
+import { ChartSkeleton } from '@/components/ui/Skeleton';
 
 import { useState, useEffect, useRef, useMemo } from 'react';
 import Link from 'next/link';
@@ -13,8 +14,9 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { getChartColors } from '@/lib/chart-theme';
 import { usePaginatedList, type BasePaginationState } from '@/hooks/usePaginatedList';
 import {
-  ComposedChart, Area, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
+  ComposedChart, Area, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Legend,
 } from 'recharts';
+import { ChartTooltip as Tooltip } from '@/components/charts/ChartTooltip';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -536,7 +538,7 @@ function TrendsChart() {
           </FilterGroup>
         </div>
         {loading ? (
-          <div className="h-[320px] flex items-center justify-center text-muted text-sm">Loading...</div>
+          <ChartSkeleton height={320} />
         ) : (
         <div className="h-[320px]">
           <ResponsiveContainer initialDimension={{ width: 500, height: 300 }} width="100%" height="100%">

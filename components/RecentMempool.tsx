@@ -145,8 +145,9 @@ export const RecentMempool = memo(function RecentMempool({ footer }: { footer?: 
 
   if (loading) {
     return (
-      <div className="card p-4">
-        <SkeletonTable rows={5} rowHeight="h-12" />
+      <div className="card p-0 overflow-hidden">
+        <SkeletonTable rows={5} rowHeight="h-12" headers={["Type", "TXID", "Amount", "Size", "Waiting"]} columnClasses={["", "", "", "hidden sm:table-cell", ""]} />
+        {footer && <div className="px-4 py-3 border-t border-cipher-border text-center">{footer}</div>}
       </div>
     );
   }

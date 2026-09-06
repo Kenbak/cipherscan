@@ -2,11 +2,12 @@
 
 import { useMemo, useState } from 'react';
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Legend,
   ResponsiveContainer, ReferenceLine,
 } from 'recharts';
+import { ChartTooltip as Tooltip } from '@/components/charts/ChartTooltip';
 import { useTheme } from '@/contexts/ThemeContext';
-import { getChartColors } from '@/lib/chart-theme';
+import { getChartColors, getChartTooltipStyle } from '@/lib/chart-theme';
 import { ChartCard } from '@/components/network/ChartCard';
 import { TokenChainIcon } from '@/components/TokenChainIcon';
 import { formatValue, type DisplayUnit } from '@/components/crosschain/format';
@@ -122,7 +123,7 @@ function FlowTooltip({ active, payload, colors, unit, zecPrice }: {
   return (
     <div
       className="rounded-lg border px-3 py-3 text-caption font-mono shadow-xl min-w-[200px] max-w-[260px]"
-      style={{ backgroundColor: colors.tooltipBg, borderColor: colors.tooltipBorder, color: colors.tooltipText }}
+      style={getChartTooltipStyle(colors)}
     >
       <div className="flex items-center gap-2 mb-2.5 pb-2 border-b border-glass-6">
         <TokenChainIcon token={row.chain} chain={row.chain} size={18} />

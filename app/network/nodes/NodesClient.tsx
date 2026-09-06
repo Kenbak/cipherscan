@@ -1,4 +1,6 @@
 'use client';
+import { SkeletonTable } from '@/components/ui/EmptyState';
+import { ChartCardSkeleton } from '@/components/ui/Skeleton';
 
 import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
@@ -236,7 +238,7 @@ export default function NodesClient() {
               <div className="flex h-3 gap-0.5 overflow-hidden mb-5" aria-hidden="true">
                 {clients.filter(item => item.count > 0).map(item => <span key={item.client} style={{ flex: item.count, backgroundColor: clientColor(item.client) }} />)}
               </div>
-              {clients.length === 0 ? <p className="text-caption text-muted">{loading ? 'Loading client observations…' : 'Client observations are unavailable.'}</p> : <table className="w-full text-caption">
+              {loading && clients.length === 0 ? <SkeletonTable rows={6} columns={3} /> : clients.length === 0 ? <p className="text-caption text-muted">{loading ? 'Loading client observations…' : 'Client observations are unavailable.'}</p> : <table className="w-full text-caption">
                 <thead><tr className="border-b border-cipher-border text-muted"><th scope="col" className="text-left py-3 font-normal">Client</th><th scope="col" className="text-right py-3 font-normal">Nodes</th><th scope="col" className="text-right py-3 font-normal">Share</th></tr></thead>
                 <tbody className="divide-y divide-cipher-border">
                   {clients.filter(item => item.count > 0).map(item => <tr key={item.client}>
@@ -261,7 +263,7 @@ export default function NodesClient() {
                 </select>
               </div>
               <div className="max-h-80 overflow-auto" tabIndex={0} role="region" aria-label="Reported version records">
-                {versions.length === 0 ? <p className="text-caption text-muted">{loading ? 'Loading version observations…' : 'Version observations are unavailable.'}</p> : <table className="w-full text-caption">
+                {loading && versions.length === 0 ? <SkeletonTable rows={6} columns={3} /> : versions.length === 0 ? <p className="text-caption text-muted">{loading ? 'Loading version observations…' : 'Version observations are unavailable.'}</p> : <table className="w-full text-caption">
                   <thead className="sticky top-0 bg-cipher-card"><tr className="border-b border-cipher-border text-muted"><th scope="col" className="text-left py-3 pr-3 font-normal">Client</th><th scope="col" className="text-left py-3 pr-3 font-normal">Version</th><th scope="col" className="text-right py-3 font-normal">Nodes</th></tr></thead>
                   <tbody className="divide-y divide-cipher-border">
                     {versions.filter(v => versionClient === 'all' || v.client === versionClient).map((v, i) => <tr key={`${v.client}-${v.version}-${i}`}>
@@ -307,7 +309,8 @@ export default function NodesClient() {
 
       <section id="node-observations" className="network-section mb-10">
         <SectionHeader label="RELIABILITY_HOSTING" />
-        {!reliability && !concentration && <p className="text-sm text-muted mb-5">{loading ? 'Loading crawler observations…' : 'Reliability and hosting observations are unavailable.'}</p>}
+        {loading && !reliability && !concentration && <div className="grid lg:grid-cols-2 gap-5"><ChartCardSkeleton height={260} title="Reachability & latency" /><ChartCardSkeleton height={260} title="Hosting concentration" /></div>}
+        {!loading && !reliability && !concentration && <p className="text-sm text-muted mb-5">{loading ? 'Loading crawler observations…' : 'Reliability and hosting observations are unavailable.'}</p>}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
           {reliability && (
             <Card className="card-static"><CardBody>
@@ -415,9 +418,7 @@ export default function NodesClient() {
           </div>
 
           {loading ? (
-            <div className="flex items-center justify-center py-12">
-              <div className="animate-pulse text-muted text-sm font-mono">Loading nodes...</div>
-            </div>
+            <SkeletonTable rows={PAGE_SIZE} rowHeight="h-[64px]" headers={["Client / version", "Location", "Peers", "Ping", "Last seen"]} />
           ) : nodes.length === 0 ? <p className="text-sm text-muted py-8">{fetchError ? 'Node records could not load. Use Retry above.' : 'No node records are available.'}</p> : (
             <div className="overflow-x-auto" tabIndex={0} role="region" aria-label="Node records, scroll horizontally on small screens">
               <table className="w-full text-caption">

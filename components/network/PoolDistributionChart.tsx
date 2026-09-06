@@ -1,4 +1,5 @@
 'use client';
+import { ChartSkeleton } from '@/components/ui/Skeleton';
 
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import {
@@ -9,12 +10,13 @@ import {
   XAxis,
   YAxis,
   CartesianGrid,
-  Tooltip,
+
   ResponsiveContainer,
   Legend,
 } from 'recharts';
+import { ChartTooltip as Tooltip } from '@/components/charts/ChartTooltip';
 import { useTheme } from '@/contexts/ThemeContext';
-import { getChartColors } from '@/lib/chart-theme';
+import { getChartColors, getChartTooltipStyle } from '@/lib/chart-theme';
 import { formatZecCompact } from '@/lib/format-numbers';
 import { useApiQuery } from '@/hooks/useApiQuery';
 import { ShareableCard } from '@/components/ShareableCard';
@@ -109,11 +111,7 @@ function RateTooltip({
   return (
     <div
       className="rounded-lg border px-3 py-2 text-xs font-mono shadow-lg"
-      style={{
-        backgroundColor: colors.tooltipBg,
-        borderColor: colors.tooltipBorder,
-        color: colors.tooltipText,
-      }}
+      style={getChartTooltipStyle(colors)}
     >
       <p className="mb-2 text-caption uppercase tracking-wider text-muted">{tooltipDate(payload, label)}</p>
       {rate != null ? (
@@ -149,11 +147,7 @@ function CompositionTooltip({
   return (
     <div
       className="rounded-lg border px-3 py-2 text-xs font-mono shadow-lg"
-      style={{
-        backgroundColor: colors.tooltipBg,
-        borderColor: colors.tooltipBorder,
-        color: colors.tooltipText,
-      }}
+      style={getChartTooltipStyle(colors)}
     >
       <p className="mb-2 text-caption uppercase tracking-wider text-muted">{tooltipDate(payload, label)}</p>
       {payload.map((entry) => (
@@ -183,11 +177,7 @@ function PoolsTooltip({
   return (
     <div
       className="rounded-lg border px-3 py-2 text-xs font-mono shadow-lg"
-      style={{
-        backgroundColor: colors.tooltipBg,
-        borderColor: colors.tooltipBorder,
-        color: colors.tooltipText,
-      }}
+      style={getChartTooltipStyle(colors)}
     >
       <p className="mb-2 text-caption uppercase tracking-wider text-muted">{tooltipDate(payload, label)}</p>
       {payload
@@ -297,9 +287,7 @@ export function PoolDistributionChart({ initialData }: { initialData?: PoolHisto
   );
 
   const chartBody = loading ? (
-    <div className="flex items-center justify-center" style={{ height: CHART_HEIGHT }}>
-      <div className="mx-6 h-48 w-full max-w-lg animate-pulse rounded skeleton-bg" />
-    </div>
+    <ChartSkeleton height={CHART_HEIGHT} />
   ) : chartData.length === 0 ? (
     <div
       className="flex items-center justify-center text-xs font-mono text-muted"

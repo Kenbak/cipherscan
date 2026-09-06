@@ -444,7 +444,7 @@ function ScatterTooltip({
       : 'Weak privacy';
 
   return (
-    <div className="rounded-lg border border-glass-8 bg-cipher-surface-solid px-3 py-2 text-xs font-mono pointer-events-none">
+    <div className="chart-tooltip-surface pointer-events-none">
       <div className="mb-1 text-muted">Block #{point.x.toLocaleString()}</div>
       <div className="font-semibold text-primary">{point.y.toFixed(8)} ZEC</div>
       {isDenom && point.matched != null && (

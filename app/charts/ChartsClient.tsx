@@ -2,12 +2,15 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
+import { useTheme } from '@/contexts/ThemeContext';
+import { getChartColors } from '@/lib/chart-theme';
 import { PageHeader } from '@/components/ui';
 import { getApiUrl } from '@/lib/api-config';
 import {
   LineChart, Line, AreaChart, Area, BarChart, Bar,
-  ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid,
+  ResponsiveContainer, XAxis, YAxis, CartesianGrid,
 } from 'recharts';
+import { ChartTooltip as Tooltip } from '@/components/charts/ChartTooltip';
 
 
 type Category = 'all' | 'privacy' | 'mining' | 'pools' | 'network' | 'fees' | 'valuation';
@@ -89,6 +92,8 @@ function MiniChart({ data, dataKey, color, type = 'line' }: {
   color: string;
   type?: 'line' | 'area' | 'bar';
 }) {
+  const { theme } = useTheme();
+  const colors = getChartColors(theme);
   if (!data || data.length === 0) {
     return (
       <div className="h-full w-full flex items-center justify-center text-caption text-muted font-mono">
@@ -101,37 +106,25 @@ function MiniChart({ data, dataKey, color, type = 'line' }: {
 
   const xAxisProps = {
     dataKey: 'label',
-    tick: { fontSize: 12, fill: '#64748b' },
+    tick: { fontSize: 12, fill: colors.axis },
     tickLine: false,
-    axisLine: { stroke: '#1e293b' },
+    axisLine: { stroke: colors.gridStroke },
     interval: ('preserveStartEnd' as const),
   };
 
   const yAxisProps = {
-    tick: { fontSize: 12, fill: '#64748b' },
+    tick: { fontSize: 12, fill: colors.axis },
     tickLine: false,
     axisLine: false,
     tickFormatter: formatCompact,
     width: 32,
   };
 
-  const tooltipProps = {
-    contentStyle: {
-      backgroundColor: '#0f1419',
-      border: '1px solid #1e293b',
-      borderRadius: 6,
-      fontSize: 12,
-      fontFamily: 'var(--font-geist-mono), monospace',
-      padding: '6px 10px',
-    },
-    labelStyle: { color: '#94a3b8', fontSize: 12, marginBottom: 2 },
-    itemStyle: { color: '#e2e8f0', padding: 0 },
-    cursor: { stroke: '#374151', strokeWidth: 1 },
-  };
+  const tooltipProps = { itemStyle: { color: colors.tooltipText, padding: 0 } };
 
   const gridProps = {
     strokeDasharray: '3 3',
-    stroke: '#1e293b',
+    stroke: colors.gridStroke,
     vertical: false,
   };
 

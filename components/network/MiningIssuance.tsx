@@ -1,4 +1,5 @@
 'use client';
+import { Skeleton } from '@/components/ui/Skeleton';
 
 import { useApiQuery } from '@/hooks/useApiQuery';
 import { Card, CardBody } from '@/components/ui/Card';
@@ -12,7 +13,7 @@ export function MiningIssuance() {
   return <section id="issuance" className="network-section mb-6">
     <SectionHeader label="ISSUANCE" />
     <div className="grid md:grid-cols-2 gap-5">
-      {halving ? <HalvingPanel halving={halving} /> : <Card><CardBody><p className="text-sm text-muted">{loading ? 'Loading halving observations…' : 'Halving observations are unavailable.'}</p></CardBody></Card>}
+      {halving ? <HalvingPanel halving={halving} /> : loading ? <Card><CardBody><p className="text-sm font-mono text-primary mb-5">Next halving</p><Skeleton className="h-10 w-48 mx-auto mb-3" /><Skeleton className="h-4 w-32 mx-auto mb-6" /><Skeleton className="h-2.5 w-full mb-6" /><div className="space-y-4">{[0,1,2,3,4].map(i => <div key={i} className="flex justify-between gap-4"><Skeleton className="h-4 w-36" /><Skeleton className="h-4 w-24" /></div>)}</div></CardBody></Card> : <Card><CardBody><p className="text-sm text-muted">{loading ? 'Loading halving observations…' : 'Halving observations are unavailable.'}</p></CardBody></Card>}
       <Card><CardBody>
         <h3 className="font-mono text-sm text-primary mb-3">Block subsidy &amp; miner allocation</h3>
         <p className="text-sm text-secondary mb-6">Newly issued ZEC is split between miners and the funding allocations active at the current height. Transaction fees are separate.</p>

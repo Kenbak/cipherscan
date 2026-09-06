@@ -1,18 +1,5 @@
-import { PageHeader, SkeletonTable } from '@/components/ui';
+import { PageLoading } from '@/components/ui/PageLoading';
 
-/**
- * Route-level Suspense fallback for client-side navigations into `/txs`
- * (a high-traffic list page). The server page itself SSRs the first page of
- * data, so this only shows during the brief window of a client-side route
- * transition before the new route's server payload streams in.
- */
-export default function TxsLoading() {
-  return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 animate-fade-in">
-      {/* titleAsHeading={false}: this fallback and the resolved page share
-          one streamed HTML response, so a second <h1> would ship with it. */}
-      <PageHeader eyebrow="ALL_TRANSACTIONS" title="Latest Zcash Transactions" titleAsHeading={false} />
-      <SkeletonTable rows={25} className="mt-4" label="Loading transactions…" />
-    </div>
-  );
+export default function Loading() {
+  return <PageLoading layout="transactions" title="Latest Zcash Transactions" eyebrow="ALL_TRANSACTIONS" />;
 }

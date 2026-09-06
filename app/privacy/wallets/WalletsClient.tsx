@@ -1,11 +1,13 @@
 'use client';
+import { PageLoadingBody } from '@/components/ui/PageLoading';
 
 import { useEffect, useState } from 'react';
 import {
   AreaChart, Area, PieChart, Pie, Cell,
-  XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip,
+  XAxis, YAxis, CartesianGrid,
   ResponsiveContainer, Legend,
 } from 'recharts';
+import { ChartTooltip as RechartsTooltip } from '@/components/charts/ChartTooltip';
 import { getApiUrl } from '@/lib/api-config';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getChartColors } from '@/lib/chart-theme';
@@ -102,16 +104,8 @@ export default function WalletsClient() {
   if (loading && !feeLanes) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <h1 className="type-page mb-2">Wallet Anonymity Analysis</h1>
-        <p className="text-secondary mb-8">
-          Analyzing on-chain wallet fingerprints...
-        </p>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-          {[1, 2, 3].map(i => (
-            <div key={i} className="h-24 rounded-lg animate-pulse bg-cipher-hover" />
-          ))}
-        </div>
-        <div className="h-64 rounded-lg animate-pulse bg-cipher-hover" />
+        <PageHeader eyebrow="WALLET_ANALYSIS" title="Wallet Anonymity Analysis" subtitle="How distinguishable is your wallet on-chain?" />
+        <PageLoadingBody layout="wallets" />
       </div>
     );
   }

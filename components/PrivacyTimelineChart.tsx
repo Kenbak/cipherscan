@@ -6,9 +6,10 @@ import {
   Scatter,
   XAxis,
   YAxis,
-  Tooltip,
+
   CartesianGrid,
 } from 'recharts';
+import { ChartTooltip as Tooltip } from '@/components/charts/ChartTooltip';
 
 export interface PrivacyTimelinePoint {
   id: string;
@@ -77,7 +78,7 @@ export function PrivacyTimelineChart({
                 if (!active || !payload || payload.length === 0) return null;
                 const point = payload[0].payload as PrivacyTimelinePoint;
                 return (
-                  <div className="rounded-lg border border-cipher-border bg-cipher-bg/95 px-3 py-2 text-xs shadow-xl">
+                  <div className="chart-tooltip-surface">
                     <p className="font-mono text-primary">{point.label}</p>
                     <p className="text-secondary">{formatTimestamp(point.timestamp)}</p>
                     <p className="text-secondary">

@@ -1,4 +1,5 @@
 'use client';
+import { LoadingRegion, Skeleton } from '@/components/ui/Skeleton';
 
 import { useEffect, useMemo, useState } from 'react';
 import { getApiUrl } from '@/lib/api-config';
@@ -105,11 +106,7 @@ export function NodeGeoLayerMap({ mode }: { mode: GeoLayerMode }) {
   }, [locations, mode, ispColorMap]);
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center py-16">
-        <div className="animate-spin rounded-full h-8 w-8 border-2 border-cipher-gold border-t-transparent" />
-      </div>
-    );
+    return <LoadingRegion label="Loading geographic observations"><div className="relative w-full" style={{ aspectRatio: `${MAP_WIDTH} / ${MAP_HEIGHT}`, maxHeight: 460 }}><Skeleton className="absolute left-1/2 top-1/2 -translate-x-1/2 h-4 w-32" /></div></LoadingRegion>;
   }
 
   if (error || locations.length === 0) {

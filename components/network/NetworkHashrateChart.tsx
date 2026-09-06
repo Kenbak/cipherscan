@@ -1,9 +1,11 @@
 'use client';
+import { ChartSkeleton } from '@/components/ui/Skeleton';
 
 import { useState } from 'react';
 import {
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer,
 } from 'recharts';
+import { ChartTooltip as Tooltip } from '@/components/charts/ChartTooltip';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getChartColors } from '@/lib/chart-theme';
 import { formatHashrate } from '@/lib/format-numbers';
@@ -76,9 +78,7 @@ export function NetworkHashrateChart() {
         </p>
       )}
       {loading && points.length === 0 ? (
-        <div className="flex items-center justify-center h-[260px]">
-          <div className="animate-pulse text-muted font-mono text-xs">Loading...</div>
-        </div>
+        <ChartSkeleton height={260} />
       ) : (
         <ResponsiveContainer initialDimension={{ width: 500, height: 300 }} width="100%" height={260}>
           <LineChart data={points} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>

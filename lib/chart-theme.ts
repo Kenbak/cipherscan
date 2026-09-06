@@ -6,7 +6,11 @@ export function getChartColors(theme: 'dark' | 'light') {
   const sage = dark ? '#91AC90' : '#14734B';
   const steel = dark ? '#A1A9AD' : '#687587';
   const stone = dark ? '#7F897A' : '#526073';
+  const hoverFill = dark ? 'rgba(156,164,176,0.07)' : 'rgba(89,97,109,0.06)';
+  const hoverStroke = dark ? '#565D68' : '#A3ADBA';
   return {
+    hoverFill,
+    hoverStroke,
     grid: dark ? '#2C3037' : '#CED3DB',
     axis: dark ? '#9CA4B0' : '#59616D',
     tooltipBg: dark ? '#111316' : '#FFFFFF',
@@ -37,7 +41,23 @@ export function getChartColors(theme: 'dark' | 'light') {
     referenceLine: dark ? '#565D68' : '#A3ADBA',
     cursor: dark ? '#9CA4B0' : '#59616D',
     gridStroke: dark ? '#20242A' : '#E4E7EC',
-    barCursor: dark ? 'rgba(248,188,33,0.08)' : 'rgba(219,158,0,0.08)',
-    barCursorGold: dark ? 'rgba(248,188,33,0.08)' : 'rgba(219,158,0,0.08)',
+    barCursor: hoverFill,
+    barCursorGold: hoverFill,
+  };
+}
+
+/** Default and custom chart tooltips use the same surface, spacing and type. */
+export function getChartTooltipStyle(colors: ReturnType<typeof getChartColors>) {
+  return {
+    background: colors.tooltipBg,
+    backgroundColor: colors.tooltipBg,
+    border: `1px solid ${colors.tooltipBorder}`,
+    borderRadius: 8,
+    padding: '12px 16px',
+    color: colors.tooltipText,
+    fontFamily: 'var(--font-geist-mono), monospace',
+    fontSize: 12,
+    lineHeight: 1.5,
+    boxShadow: 'none',
   };
 }

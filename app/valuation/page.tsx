@@ -1,4 +1,5 @@
 'use client';
+import { ChartSkeleton, MetricSkeletons } from '@/components/ui/Skeleton';
 
 import { useState, useMemo } from 'react';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -10,10 +11,11 @@ import {
   XAxis,
   YAxis,
   CartesianGrid,
-  Tooltip,
+
   Legend,
   ReferenceLine,
 } from 'recharts';
+import { ChartTooltip as Tooltip } from '@/components/charts/ChartTooltip';
 import { useApiQuery } from '@/hooks/useApiQuery';
 import { PageHeader, SectionHeader, MetricCard } from '@/components/ui';
 import { PageSectionNav } from '@/components/PageSectionNav';
@@ -108,7 +110,7 @@ export default function ValuationPage() {
 
   const [period, setPeriod] = useState<string>('1y');
 
-  const { data: snapshot } = useApiQuery<Snapshot>('/api/valuation/snapshot');
+  const { data: snapshot, loading: snapshotLoading } = useApiQuery<Snapshot>('/api/valuation/snapshot');
   const { data: histRes, loading: histLoading } = useApiQuery<{ points: HistoryPoint[] }>(
     '/api/valuation/history', { period },
   );
@@ -166,11 +168,7 @@ export default function ValuationPage() {
             />
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-6">
-            {[...Array(4)].map((_, i) => (
-              <div key={i} className="h-24 rounded-xl bg-cipher-surface animate-pulse" />
-            ))}
-          </div>
+          snapshotLoading ? <MetricSkeletons labels={['Market price', 'Realized price', 'MVRV', 'SOPR']} className="sm:grid-cols-4 mt-6" /> : <p className="text-sm text-muted mt-6">Valuation snapshot unavailable.</p>
         )}
 
         {snapshot && mvrvInfo && (
@@ -233,7 +231,7 @@ export default function ValuationPage() {
         <Card className="mt-6">
           <CardBody>
             {loading ? (
-              <div className="h-[380px] flex items-center justify-center text-cipher-text-muted">Loading...</div>
+              <ChartSkeleton height={380} />
             ) : (
               <ResponsiveContainer initialDimension={{ width: 500, height: 300 }} width="100%" height={CHART_HEIGHT}>
                 <ComposedChart data={history}>
@@ -300,7 +298,7 @@ export default function ValuationPage() {
         <Card className="mt-6">
           <CardBody>
             {loading ? (
-              <div className="h-[380px] flex items-center justify-center text-cipher-text-muted">Loading...</div>
+              <ChartSkeleton height={380} />
             ) : (
               <ResponsiveContainer initialDimension={{ width: 500, height: 300 }} width="100%" height={CHART_HEIGHT}>
                 <ComposedChart data={history}>
@@ -350,7 +348,7 @@ export default function ValuationPage() {
         <Card className="mt-6">
           <CardBody>
             {loading ? (
-              <div className="h-[380px] flex items-center justify-center text-cipher-text-muted">Loading...</div>
+              <ChartSkeleton height={380} />
             ) : (
               <ResponsiveContainer initialDimension={{ width: 500, height: 300 }} width="100%" height={CHART_HEIGHT}>
                 <ComposedChart data={history}>
@@ -400,7 +398,7 @@ export default function ValuationPage() {
         <Card className="mt-6">
           <CardBody>
             {loading ? (
-              <div className="h-[380px] flex items-center justify-center text-cipher-text-muted">Loading...</div>
+              <ChartSkeleton height={380} />
             ) : (
               <ResponsiveContainer initialDimension={{ width: 500, height: 300 }} width="100%" height={CHART_HEIGHT}>
                 <ComposedChart data={history}>

@@ -1,4 +1,5 @@
 'use client';
+import { PageLoadingBody } from '@/components/ui/PageLoading';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
@@ -151,10 +152,7 @@ export default function MempoolClient() {
           title="Zcash Mempool — Pending Transactions"
           subtitle="Transactions waiting to be mined into the next Zcash block, streamed in real time. Shielded, transparent, and mixed transactions are labeled as they enter the queue."
         />
-        <div className="flex items-center justify-center py-20">
-          <div className="animate-spin rounded-full h-10 w-10 border-2 border-cipher-gold border-t-transparent" />
-          <p className="text-secondary ml-4 font-mono">Loading mempool...</p>
-        </div>
+        <PageLoadingBody layout="mempool" />
       </div>
     );
   }

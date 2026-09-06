@@ -1,4 +1,6 @@
 'use client';
+import { LoadingRegion, MetricSkeletons, Skeleton } from '@/components/ui/Skeleton';
+import { SkeletonTable } from '@/components/ui/EmptyState';
 
 import { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'next/navigation';
@@ -251,15 +253,11 @@ export default function FinalizerPage() {
   if (loading) {
     return (
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
-        <div className="h-8 w-64 bg-cipher-border rounded animate-pulse mb-6" />
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="card p-4 animate-pulse">
-              <div className="h-3 w-16 bg-cipher-border rounded mb-2" />
-              <div className="h-6 w-20 bg-cipher-border rounded" />
-            </div>
-          ))}
-        </div>
+        <LoadingRegion label="Loading finalizer details"><Skeleton className="h-10 w-64 mb-6" /><Skeleton className="h-5 w-96 mb-8" />
+          <MetricSkeletons labels={['Voting power', 'Rank', 'Share', 'First seen']} className="sm:grid-cols-4 mb-4" />
+          <MetricSkeletons labels={['Last updated', 'Last seen', 'Unique delegators']} className="sm:grid-cols-3 mb-4" />
+          <div className="card p-0 overflow-hidden"><SkeletonTable rows={5} columns={4} label={null} /></div>
+        </LoadingRegion>
       </div>
     );
   }

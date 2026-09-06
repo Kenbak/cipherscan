@@ -280,9 +280,9 @@ export default function PulsePage() {
           <div className="divide-y divide-cipher-border-subtle">
             {[...Array(6)].map((_, i) => (
               <div key={i} className="flex items-center gap-4 px-5 py-4">
-                <div className="h-2 w-2 rounded-full bg-glass-6 animate-pulse" />
-                <div className="h-3 flex-1 max-w-sm rounded bg-glass-6 animate-pulse" />
-                <div className="h-1 w-24 rounded bg-glass-6 animate-pulse" />
+                <div className="h-2 w-2 rounded-full skeleton-bg motion-safe:animate-pulse" />
+                <div className="h-3 flex-1 max-w-sm rounded skeleton-bg motion-safe:animate-pulse" />
+                <div className="h-1 w-24 rounded skeleton-bg motion-safe:animate-pulse" />
               </div>
             ))}
           </div>

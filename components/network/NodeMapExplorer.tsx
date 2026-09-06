@@ -1,4 +1,5 @@
 'use client';
+import { VisualizationSkeleton } from '@/components/ui/Skeleton';
 
 import { lazy, Suspense, useRef, useState } from 'react';
 import { Tabs } from '@/components/ui/Tabs';
@@ -47,9 +48,7 @@ export function NodeMapExplorer() {
       {topologyMounted.current && (
         <div style={{ display: tab === 'topology' ? 'block' : 'none' }}>
           <Suspense fallback={
-            <div className="h-[400px] flex items-center justify-center">
-              <div className="animate-pulse text-muted text-sm font-mono">Loading topology...</div>
-            </div>
+            <VisualizationSkeleton className="h-[360px] sm:h-[500px]" />
           }>
             <TopologyGraph active={tab === 'topology'} />
           </Suspense>

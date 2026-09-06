@@ -82,10 +82,10 @@ export default function NamePage() {
   if (loading) {
     return (
       <div className="container mx-auto px-4 py-8 max-w-4xl">
-        <div className="animate-pulse space-y-4">
-          <div className="h-8 bg-cipher-border rounded w-48" />
-          <div className="h-24 bg-cipher-border rounded" />
-          <div className="h-24 bg-cipher-border rounded" />
+        <div className="motion-safe:animate-pulse space-y-4">
+          <div className="h-8 skeleton-bg rounded w-48" />
+          <div className="h-24 skeleton-bg rounded" />
+          <div className="h-24 skeleton-bg rounded" />
         </div>
       </div>
     );

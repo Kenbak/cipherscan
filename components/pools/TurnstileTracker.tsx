@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import {
-  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
+  AreaChart, Area, XAxis, YAxis, CartesianGrid, Legend, ResponsiveContainer,
 } from 'recharts';
+import { ChartTooltip as Tooltip } from '@/components/charts/ChartTooltip';
 import { getApiUrl } from '@/lib/api-config';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getChartColors } from '@/lib/chart-theme';
@@ -189,11 +190,11 @@ export function TurnstileTracker({ showCardHeader = false }: TurnstileTrackerPro
 
           {loading ? (
             <div className="space-y-6">
-              <div className="h-10 w-48 skeleton-bg rounded animate-pulse" />
-              <div className="h-3 skeleton-bg rounded-full animate-pulse" />
+              <div className="h-10 w-48 skeleton-bg rounded motion-safe:animate-pulse" />
+              <div className="h-3 skeleton-bg rounded-full motion-safe:animate-pulse" />
               <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
                 {[1, 2, 3, 4, 5].map(i => (
-                  <div key={i} className="h-24 skeleton-bg rounded-xl animate-pulse" />
+                  <div key={i} className="h-24 skeleton-bg rounded-xl motion-safe:animate-pulse" />
                 ))}
               </div>
             </div>

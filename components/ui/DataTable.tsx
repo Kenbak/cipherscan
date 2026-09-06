@@ -1,3 +1,4 @@
+import { Skeleton } from './Skeleton';
 import { ReactNode } from 'react';
 
 export interface DataTableColumn<T> {
@@ -67,7 +68,8 @@ export function DataTable<T>({
   const rowHeight = size === 'comfortable' ? 'h-[52px]' : 'h-[44px]';
 
   return (
-    <div className={bare ? className : `card p-0 overflow-hidden ${className}`}>
+    <div aria-busy={loading || undefined} className={bare ? className : `card p-0 overflow-hidden ${className}`}>
+      {loading && <span role="status" className="sr-only">Loading table data…</span>}
       <div className="overflow-x-auto">
         <table className="w-full">
           <thead className={stickyHeader ? 'sticky top-0 z-10 bg-cipher-surface-solid' : undefined}>
@@ -85,14 +87,14 @@ export function DataTable<T>({
           <tbody>
             {loading
               ? Array.from({ length: skeletonRows }).map((_, i) => (
-                  <tr key={i} className="animate-pulse">
+                  <tr key={i} aria-hidden="true">
                     {columns.map((col) => (
                       <td
                         key={col.id}
-                        className={`px-4 py-3.5 border-b border-cipher-border ${col.className ?? ''}`}
+                        className={`px-4 ${rowHeight} border-b border-cipher-border ${col.className ?? ''}`}
                       >
-                        <div
-                          className={`h-4 ${col.skeletonWidth ?? 'w-20'} bg-cipher-border rounded ${col.align === 'right' ? 'ml-auto' : ''}`}
+                        <Skeleton
+                          className={`h-4 ${col.skeletonWidth ?? 'w-20'} ${col.align === 'right' ? 'ml-auto' : col.align === 'center' ? 'mx-auto' : ''}`}
                         />
                       </td>
                     ))}
