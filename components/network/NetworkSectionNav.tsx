@@ -2,8 +2,8 @@ import Link from 'next/link';
 
 export function NetworkSectionNav({ onTechnicalNavigate }: { onTechnicalNavigate: () => void }) {
   return (
-    <nav aria-label="Network page sections" className="flex flex-wrap items-center gap-x-5 gap-y-3 text-caption font-mono text-muted mb-6 pb-4 border-b border-cipher-border">
-      <a href="#network-protocol" className="hover:text-primary">Protocol</a>
+    <nav aria-label="Network page sections" className="flex flex-wrap items-center gap-x-5 gap-y-3 text-caption font-mono text-muted mb-5">
+      <a href="#network-protocol" className="hover:text-primary">Overview</a>
       <a href="#network-nodes" className="hover:text-primary">Nodes</a>
       <a href="#network-activity" className="hover:text-primary">Activity</a>
       <a href="#issuance" className="hover:text-primary">Issuance &amp; halving</a>

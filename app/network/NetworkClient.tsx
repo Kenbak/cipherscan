@@ -6,7 +6,6 @@ import { useWebSocket } from '@/hooks/useWebSocket';
 import { useApiQuery } from '@/hooks/useApiQuery';
 import { Card, CardBody } from '@/components/ui/Card';
 import { PageHeader, SectionHeader } from '@/components/ui/SectionHeader';
-import { MetricCard } from '@/components/ui/MetricCard';
 import { isCrosslink } from '@/lib/config';
 import { formatHashrate } from '@/lib/format-numbers';
 import { blockAgeLabel, observationStatus } from '@/lib/network-overview';
@@ -132,29 +131,32 @@ export default function NetworkClient({ initialData }: { initialData: NetworkPag
       <PageHeader eyebrow="NETWORK_STATUS" title="Zcash Network"
         subtitle="Protocol, issuance, block production and the nodes we observe." />
       <NetworkSectionNav onTechnicalNavigate={() => setTechnicalOpen(true)} />
-      <section id="network-protocol" className="network-section mb-8">
-        <SectionHeader label="PROTOCOL_REFERENCE" />
-        <dl className="grid grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-5 border-y border-cipher-border py-5">
-          {[
-            ['Active upgrade', stats?.supply?.activeUpgrade ?? '—'],
-            ['Block subsidy', stats ? `${stats.mining.blockReward} ZEC` : '—'],
-            ['Maximum supply', '21,000,000 ZEC'],
-            ['Target spacing', '75 seconds'],
-          ].map(([label, value]) => <div key={label}><dt className="text-caption text-muted mb-1">{label}</dt><dd className="font-mono text-sm text-primary tabular-nums">{value}</dd></div>)}
-        </dl>
-
-      </section>
-      <section id="network-overview" className="network-section mb-8" aria-label="Current chain activity">
-        {statsQuery.error && <p role="status" className="text-caption text-warning mb-3">Network summary could not refresh. {stats ? 'Last received values are shown.' : 'Other observations remain available below.'}</p>}
-        <div className="grid grid-cols-1 min-[380px]:grid-cols-2 lg:grid-cols-4 gap-3">
-          <MetricCard label="Latest block" value={height != null ? <Link href={`/block/${height}`} className="hover:text-cipher-gold">{height.toLocaleString()}</Link> : '—'}
-            hint={stats ? `Block timestamp · ${blockAgeLabel(stats.blockchain.latestBlockTime, now)}` : 'Awaiting chain data'} />
-          <MetricCard label="Block interval" value={stats ? `${stats.mining.avgBlockTime.toFixed(1)}s` : '—'} hint="Rolling average · target 75s" />
-          <MetricCard label="Transactions · 24h" value={txCount?.toLocaleString() ?? '—'}
-            hint={stats?.blockchain.tx24hExclCoinbase != null ? 'Confirmed · coinbase excluded' : 'Confirmed · includes coinbase'} />
-          <MetricCard label="Network hashrate" value={<span className="whitespace-normal">{stats ? formatHashrate(stats.mining.networkHashrateRaw) : '—'}</span>}
-            hint={<Link href="/mining#metrics" className="hover:text-primary underline underline-offset-4">Estimated mining power →</Link>} />
-        </div>
+      <section className="network-section mb-10" aria-label="Network overview">
+        <Card className="network-summary-panel card-static">
+          <dl id="network-protocol" className="network-section network-summary-grid network-protocol-facts border-b border-cipher-border" aria-label="Protocol parameters">
+            {[
+              ['Active upgrade', stats?.supply?.activeUpgrade ?? '—'],
+              ['Block subsidy', stats ? `${stats.mining.blockReward} ZEC` : '—'],
+              ['Maximum supply', '21,000,000 ZEC'],
+              ['Target spacing', '75 seconds'],
+            ].map(([label, value]) => <div key={label}>
+              <dt className="type-label text-muted uppercase">{label}</dt>
+              <dd className="font-mono text-sm text-secondary tabular-nums">{value}</dd>
+            </div>)}
+          </dl>
+          <dl id="network-overview" className="network-section network-summary-grid network-live-facts" aria-label="Current chain activity">
+            {[
+              { label: 'Latest block', value: height != null ? <Link href={`/block/${height}`} className="hover:text-cipher-gold">{height.toLocaleString()}</Link> : '—', hint: stats ? `Block timestamp · ${blockAgeLabel(stats.blockchain.latestBlockTime, now)}` : 'Awaiting chain data' },
+              { label: 'Block interval', value: stats ? `${stats.mining.avgBlockTime.toFixed(1)}s` : '—', hint: 'Rolling average · target 75s' },
+              { label: 'Transactions · 24h', value: txCount?.toLocaleString() ?? '—', hint: stats?.blockchain.tx24hExclCoinbase != null ? 'Confirmed · coinbase excluded' : 'Confirmed · includes coinbase' },
+              { label: 'Network hashrate', value: stats ? formatHashrate(stats.mining.networkHashrateRaw) : '—', hint: <Link href="/mining#metrics" className="hover:text-primary underline underline-offset-4">Estimated mining power →</Link> },
+            ].map(({ label, value, hint }) => <div key={label}>
+              <dt className="type-label text-muted uppercase mb-2">{label}</dt>
+              <dd><div className="type-metric text-primary">{value}</div><p className="text-caption text-muted mt-2">{hint}</p></dd>
+            </div>)}
+          </dl>
+          {statsQuery.error && <p role="status" className="text-caption text-warning border-t border-cipher-border px-5 py-3">Network summary could not refresh. {stats ? 'Last received values are shown.' : 'Other observations remain available below.'}</p>}
+        </Card>
       </section>
 
       <section id="network-nodes" className="network-section mb-10" aria-label="Observed node distribution">
@@ -171,33 +173,46 @@ export default function NetworkClient({ initialData }: { initialData: NetworkPag
       </section>
 
       <MiningIssuance />
-      <div className="mb-10">
-        <div className="flex flex-wrap gap-x-6 gap-y-3 mt-4 text-caption font-mono">
-          <Link href="/mining#metrics" className="text-secondary hover:text-cipher-gold">Mining &amp; rewards →</Link>
-          <Link href="/pools#supply" className="text-secondary hover:text-cipher-gold">Supply &amp; shielded pools →</Link>
-          <Link href="/rich-list#transparent-breakdown" className="text-secondary hover:text-cipher-gold">Transparent balance groups →</Link>
+      <Card className="network-detail-panel card-static">
+        <details id="network-technical" className="network-section network-detail-disclosure" open={technicalOpen} onToggle={event => setTechnicalOpen(event.currentTarget.open)}>
+          <summary className="network-detail-toggle">
+            <span>
+              <span className="block font-mono text-sm font-semibold text-primary">technical_details</span>
+              <span className="block text-caption text-muted mt-1">Node software, storage and shielded protocol growth.</span>
+            </span>
+            <svg className="network-detail-chevron w-4 h-4 shrink-0 text-muted" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="m6 3 5 5-5 5" stroke="currentColor" strokeWidth="1.5" /></svg>
+          </summary>
+          {technicalOpen && <div className="px-4 pb-4 sm:px-6 sm:pb-6 space-y-5">
+            <Card><CardBody>
+              <SectionHeader label="EXPLORER_NODE" />
+              <p className="text-caption text-muted mb-4">This is one observation point, not a network-wide health verdict.</p>
+              <dl className="grid grid-cols-2 lg:grid-cols-4 gap-4 text-sm font-mono">
+                <div><dt className="text-caption text-muted">Node readiness</dt><dd className={nodeStatus === 'Ready' ? 'text-cipher-green' : nodeStatus === 'Unavailable' ? 'text-muted' : 'text-warning'}>{nodeStatus}</dd></div>
+                <div><dt className="text-caption text-muted">Connected peers</dt><dd>{stats?.network.peers ?? '—'}</dd></div>
+                <div><dt className="text-caption text-muted">Reported software</dt><dd className="break-all">{stats?.network.subversion?.replace(/^\/|\/$/g, '') ?? '—'}</dd></div>
+                <div><dt className="text-caption text-muted">Node disk usage</dt><dd>{stats ? `${stats.blockchain.sizeGB.toFixed(2)} GiB` : '—'}</dd></div>
+              </dl>
+            </CardBody></Card>
+            <Suspense fallback={<p className="text-muted text-sm">Loading technical charts…</p>}>
+              <div id="chain-size" className="network-section"><NetworkHistoryCharts /></div>
+              <div id="protocol-growth" className="network-section"><ProtocolStatsChart /></div>
+            </Suspense>
+          </div>}
+        </details>
+      </Card>
+      <nav aria-labelledby="network-related-heading" className="mt-8">
+        <h2 id="network-related-heading" className="type-label text-muted uppercase mb-3">Explore further</h2>
+        <div className="network-related-links">
+          {[
+            { href: '/mining#metrics', title: 'Mining', description: 'Hashrate, pools and miner rewards' },
+            { href: '/pools#supply', title: 'Shielded pools', description: 'Supply distribution and pool flows' },
+            { href: '/rich-list#transparent-breakdown', title: 'Transparent balances', description: 'Address categories and script types' },
+          ].map(({ href, title, description }) => <Link key={href} href={href} className="network-related-link">
+            <span className="flex items-baseline justify-between gap-3 font-mono text-sm text-secondary"><span>{title}</span><span aria-hidden="true" className="text-muted">→</span></span>
+            <span className="block text-caption text-muted mt-1">{description}</span>
+          </Link>)}
         </div>
-      </div>
-
-      <details id="network-technical" className="network-section border-y border-cipher-border py-5" open={technicalOpen} onToggle={event => setTechnicalOpen(event.currentTarget.open)}>
-        <summary className="cursor-pointer font-mono text-sm text-primary focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-cipher-gold">Technical details <span className="block sm:inline sm:ml-3 text-caption font-sans text-muted">Storage, shielded protocol growth and this explorer’s node</span></summary>
-        {technicalOpen && <div className="pt-6 space-y-5">
-          <Card><CardBody>
-            <SectionHeader label="EXPLORER_NODE" />
-            <p className="text-caption text-muted mb-4">This is one observation point, not a network-wide health verdict.</p>
-            <dl className="grid grid-cols-2 lg:grid-cols-4 gap-4 text-sm font-mono">
-              <div><dt className="text-caption text-muted">Node readiness</dt><dd className={nodeStatus === 'Ready' ? 'text-cipher-green' : nodeStatus === 'Unavailable' ? 'text-muted' : 'text-warning'}>{nodeStatus}</dd></div>
-              <div><dt className="text-caption text-muted">Connected peers</dt><dd>{stats?.network.peers ?? '—'}</dd></div>
-              <div><dt className="text-caption text-muted">Reported software</dt><dd className="break-all">{stats?.network.subversion?.replace(/^\/|\/$/g, '') ?? '—'}</dd></div>
-              <div><dt className="text-caption text-muted">Node disk usage</dt><dd>{stats ? `${stats.blockchain.sizeGB.toFixed(2)} GiB` : '—'}</dd></div>
-            </dl>
-          </CardBody></Card>
-          <Suspense fallback={<p className="text-muted text-sm">Loading technical charts…</p>}>
-            <div id="chain-size" className="network-section"><NetworkHistoryCharts /></div>
-            <div id="protocol-growth" className="network-section"><ProtocolStatsChart /></div>
-          </Suspense>
-        </div>}
-      </details>
+      </nav>
     </div>
   );
 }
