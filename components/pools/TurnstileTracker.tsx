@@ -1,5 +1,6 @@
 'use client';
 
+import { ChartWatermark } from '@/components/ChartWatermark';
 import { useEffect, useState } from 'react';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Legend, ResponsiveContainer,
@@ -168,7 +169,7 @@ export function TurnstileTracker({ showCardHeader = false }: TurnstileTrackerPro
               <p className="text-sm text-muted font-mono">Turnstile view is rebuilding — data will appear shortly</p>
               <p className="text-caption text-muted font-mono">Auto-retries in 60s</p>
             </div>
-          </CardBody>
+          <ChartWatermark /></CardBody>
         </Card>
       </div>
     );

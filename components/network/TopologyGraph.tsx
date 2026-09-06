@@ -1,5 +1,6 @@
 'use client';
 
+import { ChartWatermark } from '@/components/ChartWatermark';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls, Instances, Instance } from '@react-three/drei';
@@ -431,6 +432,7 @@ export function TopologyGraph({ active = true }: { active?: boolean }) {
                   <Scene palette={palette} rotating={rotating && active} resetKey={resetKey} nodes={nodes} edgePairs={edgePairs} focus={focus} pinned={pinned} hidden={hidden} onHover={setHovered} onPin={node => { if (node) selectNode(node); }} />
                   <OrbitControls makeDefault enablePan={false} enableDamping dampingFactor={0.08} rotateSpeed={0.6} minDistance={15} maxDistance={1200} />
                 </Canvas>}
+            <ChartWatermark size="map" />
           </div>
           <aside className="border-t lg:border-t-0 lg:border-l border-cipher-border p-4 min-w-0" aria-label="Node inspector">
             <label htmlFor="topology-search" className="block type-label text-muted mb-2">Find a node</label>

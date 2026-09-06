@@ -59,7 +59,7 @@ export function PageLoadingBody({ layout }: { layout: LoadingLayout }) {
     </div><Skeleton className="h-4 w-2/3 mt-3" />
   </div></div></LoadingRegion>;
   if (layout === 'wallets') return <LoadingRegion><ControlsSkeleton /><Skeleton className="h-6 w-48 mb-3" /><Skeleton className="h-4 w-2/3 mb-6" /><MetricSkeletons labels={['Standard fee', 'Priority fee (4x)', 'Custom fee']} columns={1} className="md:grid-cols-3 mb-6" /><ChartCardSkeleton /></LoadingRegion>;
-  return <LoadingRegion><ControlsSkeleton /><div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">{Array.from({ length: 9 }, (_, i) => <ChartCardSkeleton key={i} height={180} />)}</div></LoadingRegion>;
+  return <LoadingRegion><ControlsSkeleton /><div className="grid xl:grid-cols-2 gap-5">{Array.from({ length: 6 }, (_, i) => <ChartCardSkeleton key={i} height={240} />)}</div></LoadingRegion>;
 }
 
 export function PageLoading({ layout, title, eyebrow, subtitle }: { layout: LoadingLayout; title: string; eyebrow: string; subtitle?: string }) {

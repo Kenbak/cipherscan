@@ -1,5 +1,6 @@
 'use client';
 import { SkeletonTable } from '@/components/ui/EmptyState';
+import { ChartWatermark } from '@/components/ChartWatermark';
 import { ChartCardSkeleton } from '@/components/ui/Skeleton';
 
 import { useEffect, useState, useCallback } from 'react';
@@ -248,7 +249,7 @@ export default function NodesClient() {
                   </tr>)}
                 </tbody>
               </table>}
-            </CardBody>
+            <ChartWatermark /></CardBody>
           </Card>
 
           <Card className="h-full">
@@ -275,7 +276,7 @@ export default function NodesClient() {
                 </table>}
               </div>
               <p className="text-caption text-muted mt-4 pt-4 border-t border-cipher-border">Counts refer to reachable nodes. A version string is self-reported.</p>
-            </CardBody>
+            <ChartWatermark /></CardBody>
           </Card>
           {/* Upgrade Readiness */}
           {upgrade && (
@@ -300,7 +301,7 @@ export default function NodesClient() {
                     </div>
                   ))}
                 </div>
-              </CardBody>
+              <ChartWatermark /></CardBody>
             </Card>
           )}
 
@@ -342,7 +343,7 @@ export default function NodesClient() {
                 </div>
               </figure>
               <p className="border-t border-cipher-border pt-4 mt-6 text-caption text-muted leading-relaxed">Full-node share uses {reliability.services.known.toLocaleString()} nodes reporting service flags. Most-seen node: {reliability.maxSeen.toLocaleString()} successful crawls.</p>
-            </CardBody></Card>
+            <ChartWatermark /></CardBody></Card>
           )}
           {concentration && (
             <Card className="card-static"><CardBody>
@@ -369,7 +370,7 @@ export default function NodesClient() {
                   {concentration.subnets.slice(0, 6).map(subnet => <div key={subnet.subnet} className="flex justify-between gap-3"><dt className="text-muted">{subnet.subnet}</dt><dd className="text-primary tabular-nums">{subnet.nodeCount} nodes</dd></div>)}
                 </dl>
               </details>}
-            </CardBody></Card>
+            <ChartWatermark /></CardBody></Card>
           )}
         </div>
         {health && <details className="node-assessment network-detail-panel network-detail-disclosure mt-5 rounded-lg border border-cipher-border">

@@ -1,4 +1,5 @@
 'use client';
+import { ChartWatermark } from '@/components/ChartWatermark';
 import type { ReactNode } from 'react';
 import { ResponsiveContainer, ComposedChart, Line, Area, XAxis, YAxis, CartesianGrid, Legend, ReferenceLine } from 'recharts';
 import { ChartTooltip } from '@/components/charts/ChartTooltip';
@@ -19,7 +20,7 @@ export function ValuationChart({ title, description, data, series, format, loadi
     <p className="text-xs text-muted leading-relaxed min-h-12 mb-5">{description}</p>
     <div className="mt-auto" role="img" aria-label={`${title}. ${description}`}>
       {loading ? <ChartSkeleton height={300} /> : !hasData ? <div className="h-[300px] flex items-center justify-center text-xs text-muted" role="status">No observations available for this period.</div> :
-        <ResponsiveContainer width="100%" height={300} initialDimension={{width:500,height:300}}><ComposedChart data={data} margin={{top:24,right:12,left:0,bottom:4}}>
+        <><ResponsiveContainer width="100%" height={300} initialDimension={{width:500,height:300}}><ComposedChart data={data} margin={{top:24,right:12,left:0,bottom:4}}>
           <CartesianGrid vertical={false} stroke={c.gridStroke} />
           <XAxis dataKey="date" minTickGap={65} tickFormatter={d => new Date(String(d)).toLocaleDateString('en-US',{month:'short',day:'numeric',timeZone:'UTC'})} tick={{fill:c.axis,fontSize:12}} axisLine={false} tickLine={false} />
           <YAxis domain={domain} width={64} tickFormatter={format} tick={{fill:c.axis,fontSize:12}} axisLine={false} tickLine={false} />
@@ -27,7 +28,7 @@ export function ValuationChart({ title, description, data, series, format, loadi
           <Legend wrapperStyle={{fontSize:12,paddingTop:12}} formatter={label => <span className="text-muted">{label}</span>} />
           {reference && <ReferenceLine y={reference.value} stroke={c.referenceLine} strokeDasharray="4 4" label={{value:reference.label,fill:c.axis,fontSize:12,position:'insideTopRight'}} />}
           {series.map(s => s.area ? <Area key={s.key} dataKey={s.key} name={s.label} stackId={s.stack?'age':undefined} stroke={s.color} fill={s.color} fillOpacity={s.stack?0.65:0.12} type="linear" isAnimationActive={false} connectNulls={false} /> : <Line key={s.key} dataKey={s.key} name={s.label} stroke={s.color} strokeWidth={2} strokeDasharray={s.dashed?'5 4':undefined} dot={false} type="linear" isAnimationActive={false} connectNulls={false} />)}
-        </ComposedChart></ResponsiveContainer>}
+        </ComposedChart></ResponsiveContainer><ChartWatermark /></>}
     </div>
     {footer && <p className="mt-5 border-t border-cipher-border pt-4 text-caption text-muted leading-relaxed">{footer}</p>}
   </div></div>;

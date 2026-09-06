@@ -1,5 +1,6 @@
 'use client';
 
+import { ChartWatermark } from '@/components/ChartWatermark';
 import { SectionHeader } from '@/components/ui/SectionHeader';
 import { TokenChainIcon } from '@/components/TokenChainIcon';
 import { Tooltip } from '@/components/Tooltip';
@@ -90,6 +91,7 @@ export function WrappedZecTracker({
           );
         })}
       </div>
+      <ChartWatermark />
     </div>
   );
 }

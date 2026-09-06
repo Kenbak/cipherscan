@@ -2,7 +2,7 @@
 
 import { ReactNode } from 'react';
 import { Card, CardBody } from '@/components/ui/Card';
-import { ChartWatermark, WatermarkSize } from '@/components/ChartWatermark';
+import { ChartWatermark, type WatermarkSize } from '@/components/ChartWatermark';
 
 interface ChartCardProps {
   title: string;
@@ -22,7 +22,6 @@ export function ChartCard({
   className = '',
   height = 320,
   fill = false,
-  watermarkSize = 'md',
 }: ChartCardProps) {
   return (
     <Card className={`${fill ? 'h-full' : ''} ${className}`}>
@@ -35,12 +34,9 @@ export function ChartCard({
           {controls}
         </div>
         <div className={`relative rounded-lg ${fill ? 'flex-1 min-h-0' : ''}`} style={fill ? undefined : { minHeight: height }}>
-          <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-lg">
-            <ChartWatermark size={watermarkSize} />
-          </div>
           <div className={`relative z-[1] px-0.5 pb-1 ${fill ? 'h-full' : ''}`}>{children}</div>
         </div>
-        <div className="chart-signature" aria-hidden="true">zecblock.com</div>
+        <ChartWatermark />
       </CardBody>
     </Card>
   );

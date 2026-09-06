@@ -1,5 +1,6 @@
 'use client';
 
+import { ChartWatermark } from '@/components/ChartWatermark';
 import {
   ResponsiveContainer,
   ScatterChart,
@@ -97,6 +98,7 @@ export function PrivacyTimelineChart({
           </ScatterChart>
         </ResponsiveContainer>
       </div>
+      <ChartWatermark />
     </div>
   );
 }

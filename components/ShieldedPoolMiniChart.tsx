@@ -1,4 +1,5 @@
 'use client';
+import { ChartWatermark } from '@/components/ChartWatermark';
 import { ChartSkeleton, Skeleton } from '@/components/ui/Skeleton';
 
 import { memo, type ReactNode } from 'react';
@@ -158,6 +159,7 @@ export const ShieldedPoolMiniChart = memo(function ShieldedPoolMiniChart({ foote
             </AreaChart>
           </ResponsiveContainer>
         </div>
+        <ChartWatermark className="shrink-0" />
       </div>
       {footer && <div className="px-4 py-3 border-t border-cipher-border text-center shrink-0">{footer}</div>}
     </div>

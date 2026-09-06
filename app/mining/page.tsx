@@ -1,4 +1,5 @@
 'use client';
+import { ChartWatermark } from '@/components/ChartWatermark';
 import { ChartSkeleton } from '@/components/ui/Skeleton';
 
 import { useEffect, useState } from 'react';
@@ -156,7 +157,7 @@ function DistributionSection() {
             </div>)}</div>}
           </div>
         )}
-      </CardBody></Card>
+      <ChartWatermark /></CardBody></Card>
     </section>
   );
 }

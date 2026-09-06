@@ -9,6 +9,7 @@
  * - Play: auto-advance through boundaries as timelapse
  */
 
+import { ChartWatermark } from '@/components/ChartWatermark';
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import { toPng } from 'html-to-image';
@@ -559,7 +560,7 @@ export function TurnstileHero(props: TurnstileHeroProps) {
                 <span className="text-caption font-semibold font-mono text-cipher-gold-bright tracking-tight">
                   ZecBlock
                 </span>
-                <span className="text-caption font-mono text-muted">zecblock.com</span>
+                <ChartWatermark className="!p-0" />
               </div>
             </div>
           </div>

@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { ChartWatermark } from '@/components/ChartWatermark';
 import { Card, CardBody } from '@/components/ui/Card';
 
 /** Shared vertical geometry keeps adjacent public-flow plots aligned. */
@@ -10,6 +11,6 @@ export function PrivacyFlowCard({ title, description, controls, children }: {
     <div className="min-h-10 flex flex-wrap items-start gap-3 mb-4">{controls}</div>
     <p className="min-h-20 text-caption text-muted leading-relaxed mb-3">{description}</p>
     {children}
-    <div className="chart-signature mt-5" aria-hidden="true">zecblock.com</div>
+    <ChartWatermark className="mt-5" />
   </CardBody></Card>;
 }

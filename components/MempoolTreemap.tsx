@@ -1,5 +1,6 @@
 'use client';
 
+import { ChartWatermark } from '@/components/ChartWatermark';
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { squarify, type TreemapCell } from '@/lib/treemap';
@@ -124,6 +125,7 @@ export const MempoolTreemap = forwardRef<MempoolTreemapHandle, {
       data-immersive={immersive}
       className={`mempool-visualization flex flex-col ${immersive ? 'bg-cipher-bg-dark p-4 sm:p-6' : ''} ${className}`}
     >
+      <ChartWatermark className="!pt-0 pb-3" />
       <div ref={wrapRef} className="treemap-surface relative w-full flex-1 min-h-0">
         {box.w > 0 && box.h > 0 && cells.length > 0 && (
           <svg

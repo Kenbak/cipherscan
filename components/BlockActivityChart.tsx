@@ -1,5 +1,6 @@
 'use client';
 
+import { ChartWatermark } from '@/components/ChartWatermark';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { Card, CardBody } from '@/components/ui/Card';
@@ -253,7 +254,7 @@ export function BlockActivityChart({
             </div>
           </div>
         )}
-      </CardBody>
+      <ChartWatermark /></CardBody>
     </Card>
   );
 }

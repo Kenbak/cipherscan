@@ -1,4 +1,5 @@
 'use client';
+import { ChartWatermark } from '@/components/ChartWatermark';
 import { LoadingRegion, Skeleton } from '@/components/ui/Skeleton';
 
 import { useEffect, useMemo, useState } from 'react';
@@ -173,6 +174,7 @@ export function NodeGeoLayerMap({ mode }: { mode: GeoLayerMode }) {
           );
         })}
       </svg>
+      <ChartWatermark className="px-3 pb-3" />
 
       {hovered && (
         <div className="absolute top-3 left-3 backdrop-blur-sm border border-cipher-gold/20 rounded-lg px-4 py-3 shadow-2xl z-10 pointer-events-none bg-cipher-surface-solid">

@@ -2,7 +2,7 @@ import { buildPageMetadata } from '@/lib/seo';
 
 export const metadata = buildPageMetadata({
   title: 'Zcash Charts & On-Chain Analytics | ZecBlock',
-  description: 'Explore Zcash charts for shielded pool growth, privacy adoption, mining distribution, fees, and network activity.',
+  description: 'Explore and share Zcash charts for shielded supply, transaction activity, mining, fees, valuation and cross-chain swaps, with clear units and data sources.',
   keywords: ['zcash charts', 'zcash analytics', 'zcash metrics', 'ZEC price chart', 'zcash mining', 'zcash privacy stats', 'shielded pool chart'],
   path: '/charts',
   networks: ['mainnet'],

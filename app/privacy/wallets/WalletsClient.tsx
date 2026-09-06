@@ -1,4 +1,5 @@
 'use client';
+import { ChartWatermark } from '@/components/ChartWatermark';
 import { PageLoadingBody } from '@/components/ui/PageLoading';
 
 import { useState } from 'react';
@@ -201,7 +202,7 @@ export default function WalletsClient() {
                 <h3 className="text-sm font-medium text-secondary mb-4">
                   Fee Lane Evolution Over Time
                 </h3>
-                <ResponsiveContainer initialDimension={{ width: 500, height: 300 }} width="100%" height={300}>
+                <><ResponsiveContainer initialDimension={{ width: 500, height: 300 }} width="100%" height={300}>
                   <AreaChart data={feeLanes.history}>
                     <CartesianGrid strokeDasharray="2 6" stroke={colors.grid} opacity={0.5} />
                     <XAxis
@@ -254,7 +255,7 @@ export default function WalletsClient() {
                     />
                     <Legend />
                   </AreaChart>
-                </ResponsiveContainer>
+                </ResponsiveContainer><ChartWatermark /></>
               </CardBody>
             </Card>
 

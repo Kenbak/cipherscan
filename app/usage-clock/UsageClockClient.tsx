@@ -1,5 +1,6 @@
 'use client';
 
+import { ChartWatermark } from '@/components/ChartWatermark';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { feature } from 'topojson-client';
@@ -540,6 +541,7 @@ export function UsageClockClient({
               currentHour={currentHour}
               activityPct={activityPct}
             />
+            <ChartWatermark />
           </div>
 
           {/* controls */}
@@ -642,6 +644,7 @@ export function UsageClockClient({
             return <circle key={`n${i}`} cx={p.x} cy={p.y} r={r} fill="#F8BC21" opacity={lit ? 0.95 : 0.3} filter={lit ? 'url(#nodeGlow2)' : undefined} />;
           })}
         </svg>
+        <ChartWatermark className="px-4 pb-3" />
       </div>
 
       {/* ===================== ANALYSIS ROW ===================== */}
@@ -687,6 +690,7 @@ export function UsageClockClient({
               </BarChart>
             </ResponsiveContainer>
           </div>
+          <ChartWatermark />
         </div>
       </div>
 

@@ -1,5 +1,6 @@
 'use client';
 
+import { ChartWatermark } from '@/components/ChartWatermark';
 import '@xyflow/react/dist/style.css';
 import styles from './PrivacyLinkGraph.module.css';
 
@@ -285,6 +286,7 @@ export function PrivacyLinkGraph({
           <Controls showInteractive={false} className="!border-white/10 !bg-white/[0.03] !shadow-none [&>button]:!border-white/10 [&>button]:!bg-transparent [&>button]:!text-muted [&>button:hover]:!bg-white/5" />
         </ReactFlow>
       </div>
+      <ChartWatermark className="px-5 pb-3" />
     </div>
   );
 }

@@ -1,5 +1,6 @@
 'use client';
 
+import { ChartWatermark } from '@/components/ChartWatermark';
 import { useRef, useEffect, useCallback } from 'react';
 import { Delaunay } from 'd3-delaunay';
 
@@ -421,6 +422,7 @@ export function AddressBubbleMap({
 
   return (
     <div ref={containerRef} className="relative w-full" style={{ height }}>
+      <ChartWatermark size="map" />
       <canvas
         ref={canvasRef}
         className="block w-full"

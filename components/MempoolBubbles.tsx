@@ -1,5 +1,6 @@
 'use client';
 
+import { ChartWatermark } from '@/components/ChartWatermark';
 import { useRef, useEffect, useCallback, useState, forwardRef, useImperativeHandle } from 'react';
 import { useRouter } from 'next/navigation';
 
@@ -821,6 +822,7 @@ export const MempoolBubbles = forwardRef<MempoolBubblesHandle, MempoolBubblesPro
         className={`w-full h-full ${isFullscreen || ambient ? '' : 'rounded-xl'}`}
       />
 
+      <ChartWatermark size="map" className="z-10" />
       {/* HUD corner brackets */}
       <div className="absolute top-2 left-2 w-5 h-5 border-t border-l border-cipher-gold/20 rounded-tl pointer-events-none" />
       <div className="absolute top-2 right-2 w-5 h-5 border-t border-r border-cipher-gold/20 rounded-tr pointer-events-none" />

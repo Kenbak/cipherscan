@@ -1,4 +1,5 @@
 'use client';
+import { ChartWatermark } from '@/components/ChartWatermark';
 import { ChartSkeleton } from '@/components/ui/Skeleton';
 
 import { useState, useEffect, useRef, useMemo } from 'react';
@@ -629,6 +630,7 @@ function TrendsChart() {
           </ResponsiveContainer>
         </div>
         )}
+        <ChartWatermark />
       </div>
 
       <div className="grid grid-cols-3 gap-3 mt-4">

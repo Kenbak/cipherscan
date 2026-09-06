@@ -1,4 +1,5 @@
 'use client';
+import { ChartWatermark } from '@/components/ChartWatermark';
 import { ChartSkeleton } from '@/components/ui/Skeleton';
 
 import { useState } from 'react';
@@ -31,7 +32,7 @@ export function FeeDistributionChart({ initialData }: { initialData?: FeeDistrib
     <SectionHeader label="OBSERVED_FEES" actions={<div className="flex gap-1" aria-label="Fee history range">{PERIODS.map(value => <button key={value} onClick={() => setPeriod(value)} aria-pressed={period === value} className={`filter-btn ${period === value ? 'filter-btn-active' : ''}`}>{value.toUpperCase()}</button>)}</div>} />
     <p className="text-caption text-muted mb-4">Daily median and 10th–90th percentile range. Observed fees, not a fee quote.</p>
     {loading && !usable ? <ChartSkeleton height={228} /> : !usable ? <p role="status" className="min-h-[240px] flex items-center justify-center text-sm text-muted">{loading || isRefreshing ? 'Loading observed fees…' : 'Fee history unavailable.'}</p> : <>
-      <ResponsiveContainer width="100%" height={228} initialDimension={{ width: 400, height: 228 }}>
+      <><ResponsiveContainer width="100%" height={228} initialDimension={{ width: 400, height: 228 }}>
         <ComposedChart data={points} margin={{ top: 18, right: 8, left: 0, bottom: 0 }}>
           <CartesianGrid vertical={false} stroke={colors.grid} />
           <XAxis dataKey="date" tickFormatter={dateLabel} minTickGap={48} tick={{ fill: colors.axis, fontSize: 12 }} tickLine={false} axisLine={false} />
@@ -42,7 +43,7 @@ export function FeeDistributionChart({ initialData }: { initialData?: FeeDistrib
           <Area type="linear" dataKey="range" name="P10–P90" stroke="none" fill={colors.transparent} fillOpacity={0.22} connectNulls={false} isAnimationActive={false} />
           <Line type="linear" dataKey="median" name="Median" stroke={colors.gold} strokeWidth={2} dot={points.length === 1} connectNulls={false} isAnimationActive={false} />
         </ComposedChart>
-      </ResponsiveContainer>
+      </ResponsiveContainer><ChartWatermark /></>
       <div className="flex flex-wrap gap-x-4 gap-y-1 text-caption text-muted mt-2"><span><span aria-hidden="true" className="inline-block w-3 h-0.5 bg-cipher-gold align-middle mr-1.5" />Median</span><span><span aria-hidden="true" className="inline-block w-3 h-2 bg-muted/30 align-middle mr-1.5" />P10–P90</span></div>
       <p className="text-caption text-muted mt-2">mZEC · 1 mZEC = 0.001 ZEC{last ? ` · latest day ${dateLabel(last.date)}` : ''}</p>
     </>}
