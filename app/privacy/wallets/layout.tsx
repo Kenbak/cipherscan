@@ -1,9 +1,9 @@
-import { buildPageMetadata } from '@/lib/seo';
+import { buildPageMetadata, getBaseUrl } from '@/lib/seo';
 
 export const metadata = buildPageMetadata({
-  title: 'Wallet Anonymity Analysis | ZecBlock',
+  title: 'Zcash Wallet Signals | ZecBlock',
   description:
-    'Analyze Zcash wallet fingerprints, fee lane anonymity sets, and estimated wallet usage. See how transaction fees, expiry heights, and action padding reveal wallet identity.',
+    'Explore observed Zcash fee patterns and wallet implementation signals. Compare transaction matches with clear coverage and attribution limits.',
   path: '/privacy/wallets',
   networks: ['mainnet'],
   keywords: [
@@ -16,5 +16,7 @@ export const metadata = buildPageMetadata({
 });
 
 export default function WalletsLayout({ children }: { children: React.ReactNode }) {
-  return children;
+  const url = `${getBaseUrl()}/privacy/wallets`;
+  const schema = {'@context':'https://schema.org','@type':'WebPage','@id':`${url}#webpage`,url,name:metadata.title,description:metadata.description,isPartOf:{'@id':`${getBaseUrl()}/#website`}};
+  return <><script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify(schema).replace(/</g,'\\u003c')}} />{children}</>;
 }

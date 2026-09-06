@@ -15,9 +15,9 @@ export function PageLoadingBody({ layout }: { layout: LoadingLayout }) {
       <div className="mt-6"><ControlsSkeleton /></div>
     </LoadingRegion>;
   }
-  if (layout === 'mining' || layout === 'valuation' || layout === 'rich-list') return <LoadingRegion>
+  if (layout === 'valuation') return <LoadingRegion><ControlsSkeleton /><MetricSkeletons labels={['ZEC / USD','24h change','200-day average','365-day drawdown']} className="sm:grid-cols-2 lg:grid-cols-4 mb-4" /><MetricSkeletons labels={['Reported market cap','Reported volume · 24h','Volume / market cap']} className="sm:grid-cols-3 mb-5" /><div className="card card-static p-6 mb-12"><Skeleton className="h-6 w-64 mb-4" /><Skeleton className="h-16 w-full mb-6" /><Skeleton className="h-8 w-full" /></div><ChartCardSkeleton height={300} /><div className="grid xl:grid-cols-2 gap-5 mt-5"><ChartCardSkeleton height={300} /><ChartCardSkeleton height={300} /></div></LoadingRegion>;
+  if (layout === 'mining' || layout === 'rich-list') return <LoadingRegion>
     <ControlsSkeleton />
-    {layout === 'valuation' && <MetricSkeletons labels={['Market price', 'Realized price', 'MVRV', 'SOPR']} className="sm:grid-cols-4 mb-8" />}
     {layout === 'rich-list' ? <><MetricSkeletons compact labels={['Top 10 concentration', 'Top 100 concentration', 'Transparent supply']} className="sm:grid-cols-3 mb-6" /><div className="card p-0 overflow-hidden"><SkeletonTable rows={25} columns={5} label={null} /></div></> : <>
       <ChartCardSkeleton height={layout === 'mining' ? 280 : 380} />
       <div className="mt-10"><ChartCardSkeleton height={360} /></div>

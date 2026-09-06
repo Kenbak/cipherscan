@@ -4,13 +4,14 @@ import { ChartSkeleton } from '@/components/ui/Skeleton';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import {
-  PieChart, Pie, Cell, AreaChart, Area, BarChart, Bar,
+  AreaChart, Area, BarChart, Bar,
   LineChart, Line,
   XAxis, YAxis, CartesianGrid, ResponsiveContainer, Legend,
 } from 'recharts';
 import { ChartTooltip as Tooltip } from '@/components/charts/ChartTooltip';
 import { getApiUrl } from '@/lib/api-config';
 import { useTheme } from '@/contexts/ThemeContext';
+import { categoryColor } from '@/lib/category-colors';
 import { getChartColors } from '@/lib/chart-theme';
 import { Card, CardBody } from '@/components/ui/Card';
 import { PageHeader, SectionHeader, DataTable, SkeletonTable } from '@/components/ui';
@@ -18,25 +19,22 @@ import { ChartCard } from '@/components/network/ChartCard';
 import { PageSectionNav } from '@/components/PageSectionNav';
 import { MiningMetricsChart } from '@/components/network/MiningMetricsChart';
 import { NetworkHashrateChart } from '@/components/network/NetworkHashrateChart';
-import { zatToZec, formatZecCompact } from '@/lib/format-numbers';
+import { zatToZec } from '@/lib/format-numbers';
 
 const SECTIONS = [
   { id: 'metrics', label: 'Network' },
-  { id: 'issuance', label: 'Issuance' },
   { id: 'distribution', label: 'Distribution' },
   { id: 'ranking', label: 'Ranking' },
-  { id: 'hashrate', label: 'Hashrate Share' },
-  { id: 'behavior', label: 'Miner Behavior' },
+  { id: 'hashrate', label: 'Share history' },
+  { id: 'economics', label: 'Block economics' },
+  { id: 'behavior', label: 'Reward spending' },
+  { id: 'methodology', label: 'Methodology' },
 ] as const;
 
 const PERIODS = ['24h', '3d', '7d', '30d', '90d', '1y'] as const;
 type Period = typeof PERIODS[number];
 
-const POOL_COLORS = [
-  '#91AC90', '#E8C48D', '#22c55e', '#B6A0E0', '#f59e0b',
-  '#ef4444', '#6366f1', '#ec4899', '#91AC90', '#64748b',
-  '#84cc16', '#f97316',
-];
+
 
 interface PoolDist {
   address: string;
@@ -98,6 +96,7 @@ function PeriodSelector({ value, onChange }: { value: Period; onChange: (p: Peri
       {PERIODS.map(p => (
         <button
           key={p}
+          aria-pressed={value === p}
           onClick={() => onChange(p)}
           className={`px-1.5 py-0.5 text-caption font-mono rounded transition whitespace-nowrap ${
             value === p
@@ -114,7 +113,6 @@ function PeriodSelector({ value, onChange }: { value: Period; onChange: (p: Peri
 
 function DistributionSection() {
   const { theme } = useTheme();
-  const colors = getChartColors(theme);
   const [period, setPeriod] = useState<Period>('7d');
   const [data, setData] = useState<PoolDist[]>([]);
   const [total, setTotal] = useState(0);
@@ -134,88 +132,37 @@ function DistributionSection() {
       .catch(() => setLoading(false));
   }, [period]);
 
-  // For pie chart: group smaller pools into "Other"
+  // Group small shares into Other; the full ranking remains available below.
   const threshold = 0.02;
   const mainPools = data.filter(p => p.share >= threshold);
   const otherBlocks = data.filter(p => p.share < threshold).reduce((s, p) => s + p.blocks, 0);
-  const pieData = [
+  const distributionData = [
     ...mainPools.map(p => ({ name: p.name, value: p.blocks })),
     ...(otherBlocks > 0 ? [{ name: 'Other', value: otherBlocks }] : []),
   ];
 
   return (
     <section id="distribution" className="scroll-mt-36 mb-12 animate-fade-in-up stagger-2">
-      <ChartCard
-        title="MINING_POOL_DISTRIBUTION"
-        height={360}
-        controls={<PeriodSelector value={period} onChange={setPeriod} />}
-      >
+      <Card><CardBody>
+        <SectionHeader label="MINING_POOL_DISTRIBUTION" actions={<PeriodSelector value={period} onChange={setPeriod} />} />
         {loading ? (
           <ChartSkeleton height={360} />
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-center">
-            <ResponsiveContainer initialDimension={{ width: 500, height: 300 }} width="100%" height={320}>
-              <PieChart>
-                <Pie
-                  data={pieData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={70}
-                  outerRadius={130}
-                  paddingAngle={2}
-                  dataKey="value"
-                >
-                  {pieData.map((_, idx) => (
-                    <Cell key={idx} fill={POOL_COLORS[idx % POOL_COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: colors.tooltipBg,
-                    border: `1px solid ${colors.tooltipBorder}`,
-                    borderRadius: 8,
-                    fontSize: 12,
-                    fontFamily: 'var(--font-geist-mono), monospace',
-                    color: colors.tooltipText,
-                  }}
-                  itemStyle={{ color: colors.tooltipText }}
-                  labelStyle={{ color: colors.tooltipText }}
-                  formatter={(value, name) => [
-                    `${value} blocks (${total > 0 ? ((Number(value) / total) * 100).toFixed(1) : 0}%)`,
-                    String(name),
-                  ]}
-                />
-              </PieChart>
-            </ResponsiveContainer>
-
-            <div className="space-y-2">
-              <p className="text-xs text-muted font-mono mb-3">
-                {total.toLocaleString()} blocks mined in {period}
-              </p>
-              {pieData.map((p, idx) => (
-                <div key={p.name} className="flex items-center gap-2">
-                  <div
-                    className="w-3 h-3 rounded-sm flex-shrink-0"
-                    style={{ backgroundColor: POOL_COLORS[idx % POOL_COLORS.length] }}
-                  />
-                  <span className="text-xs font-mono text-primary flex-1 truncate">{p.name}</span>
-                  <span className="text-xs font-mono text-muted tabular-nums">
-                    {total > 0 ? ((p.value / total) * 100).toFixed(1) : 0}%
-                  </span>
-                  <span className="text-caption font-mono text-muted tabular-nums">
-                    {p.value.toLocaleString()}
-                  </span>
-                </div>
-              ))}
-            </div>
+          <div>
+            <p className="text-xs text-muted mb-6">Share of {total.toLocaleString()} observed blocks in {period}, attributed by coinbase payout. Small pools are grouped as Other.</p>
+            {distributionData.length === 0 ? <p className="py-12 text-xs text-muted">No pool observations available.</p> : <div className="space-y-5">{distributionData.map(p => <div key={p.name}>
+              <div className="flex items-baseline justify-between gap-4 mb-2"><span className="text-xs font-mono text-primary truncate">{p.name}</span><span className="text-xs font-mono text-secondary shrink-0">{total>0?(p.value/total*100).toFixed(1):0}% <span className="text-muted ml-3">{p.value.toLocaleString()} blocks</span></span></div>
+              <div className="h-2 rounded-full bg-cipher-hover overflow-hidden"><div className="h-full rounded-full" style={{width:`${total>0?p.value/total*100:0}%`,backgroundColor:categoryColor(p.name,theme)}} /></div>
+            </div>)}</div>}
           </div>
         )}
-      </ChartCard>
+      </CardBody></Card>
     </section>
   );
 }
 
 function RankingSection() {
+  const { theme } = useTheme();
   const [period, setPeriod] = useState<Period>('7d');
   const [ranking, setRanking] = useState<PoolRank[]>([]);
   const [total, setTotal] = useState(0);
@@ -260,7 +207,7 @@ function RankingSection() {
                       <div className="flex items-center gap-2">
                         <div
                           className="w-2 h-2 rounded-full flex-shrink-0"
-                          style={{ backgroundColor: POOL_COLORS[(pool.rank - 1) % POOL_COLORS.length] }}
+                          style={{ backgroundColor: categoryColor(pool.name, theme) }}
                         />
                         <span className="font-mono text-xs text-primary font-medium">{pool.name}</span>
                         {pool.region && (
@@ -288,7 +235,7 @@ function RankingSection() {
                             className="h-full rounded-full"
                             style={{
                               width: `${Math.min(pool.share * 100, 100)}%`,
-                              backgroundColor: POOL_COLORS[(pool.rank - 1) % POOL_COLORS.length],
+                              backgroundColor: categoryColor(pool.name, theme),
                             }}
                           />
                         </div>
@@ -461,15 +408,14 @@ function HashrateShareSection() {
                 labelFormatter={(label) => String(label)}
               />
               {visiblePools.map((pool) => {
-                const idx = poolOrder.indexOf(pool);
                 return (
                   <Area
                     key={pool}
                     type="monotone"
                     dataKey={pool}
                     stackId="1"
-                    fill={POOL_COLORS[idx % POOL_COLORS.length]}
-                    stroke={POOL_COLORS[idx % POOL_COLORS.length]}
+                    fill={categoryColor(pool, theme)}
+                    stroke={categoryColor(pool, theme)}
                     fillOpacity={0.7}
                   />
                 );
@@ -510,13 +456,12 @@ function HashrateShareSection() {
                 labelFormatter={(label) => String(label)}
               />
               {visiblePools.map((pool) => {
-                const idx = poolOrder.indexOf(pool);
                 return (
                   <Line
                     key={pool}
                     type="monotone"
                     dataKey={pool}
-                    stroke={POOL_COLORS[idx % POOL_COLORS.length]}
+                    stroke={categoryColor(pool, theme)}
                     strokeWidth={2}
                     dot={false}
                     activeDot={{ r: 3 }}
@@ -529,7 +474,7 @@ function HashrateShareSection() {
 
         {/* Clickable legend */}
         <div className="flex flex-wrap gap-x-3 gap-y-1.5 mt-4 px-1">
-          {poolOrder.map((pool, idx) => {
+          {poolOrder.map((pool) => {
             const isHidden = hiddenPools.has(pool);
             return (
               <button
@@ -542,7 +487,7 @@ function HashrateShareSection() {
                 <span
                   className="w-3 h-[3px] rounded-full inline-block"
                   style={{
-                    backgroundColor: POOL_COLORS[idx % POOL_COLORS.length],
+                    backgroundColor: categoryColor(pool, theme),
                     opacity: isHidden ? 0.3 : 1,
                   }}
                 />
@@ -728,19 +673,16 @@ export default function MiningPage() {
 
       <section id="metrics" className="scroll-mt-36 mb-12 animate-fade-in-up space-y-6">
         <NetworkHashrateChart />
-        <MiningMetricsChart />
       </section>
 
-      <section id="issuance" className="scroll-mt-36 mb-12">
-        <Link href="/network#issuance" className="text-sm font-mono text-secondary hover:text-cipher-gold underline underline-offset-4">Block issuance &amp; next halving on Network →</Link>
-      </section>
       <DistributionSection />
       <RankingSection />
       <HashrateShareSection />
+      <section id="economics" className="scroll-mt-36 mb-12"><MiningMetricsChart /></section>
       <MinerBehaviorSection />
 
-      <section className="max-w-3xl pb-12">
-        <div className="border-t border-cipher-border pt-8">
+      <section id="methodology" className="scroll-mt-36 mb-8">
+        <details className="group rounded-lg border border-cipher-border overflow-hidden"><summary className="list-none p-5 sm:p-6 cursor-pointer hover:bg-glass-3 text-sm font-mono flex justify-between">Mining data &amp; attribution<span aria-hidden="true" className="group-open:rotate-90">›</span></summary><div className="p-5 sm:p-6 border-t border-cipher-border">
           <h2 className="text-sm font-semibold font-mono text-secondary mb-3 lowercase tracking-tight">
             About Mining Pool Data
           </h2>
@@ -757,8 +699,9 @@ export default function MiningPage() {
               is required before describing a movement as shielding, exchange transfer, or sale.
             </p>
           </div>
-        </div>
+        </div></details>
       </section>
+      <nav aria-label="Related mining analysis" className="grid sm:grid-cols-3 gap-3">{[{href:'/network#issuance',title:'Issuance & halving',text:'Block subsidy and the remaining schedule.'},{href:'/zodl',title:'Miner reward destinations',text:'Observe the first move of mined rewards.'},{href:'/network/nodes',title:'Node explorer',text:'Reachability, clients and geographic coverage.'}].map(l=><Link key={l.href} href={l.href} className="border border-cipher-border rounded-lg p-4 hover:bg-glass-3"><span className="text-sm font-mono">{l.title} →</span><span className="block mt-2 text-xs text-muted">{l.text}</span></Link>)}</nav>
     </div>
   );
 }

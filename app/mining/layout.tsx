@@ -1,4 +1,4 @@
-import { buildPageMetadata } from '@/lib/seo';
+import { buildPageMetadata, getBaseUrl } from '@/lib/seo';
 
 export const metadata = buildPageMetadata({
   title: 'Zcash Mining Statistics & Pool Distribution | ZecBlock',
@@ -9,5 +9,7 @@ export const metadata = buildPageMetadata({
 });
 
 export default function MiningLayout({ children }: { children: React.ReactNode }) {
-  return children;
+  const url = `${getBaseUrl()}/mining`;
+  const schema = {'@context':'https://schema.org','@type':'WebPage','@id':`${url}#webpage`,url,name:metadata.title,description:metadata.description,isPartOf:{'@id':`${getBaseUrl()}/#website`}};
+  return <><script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify(schema).replace(/</g,'\\u003c')}} />{children}</>;
 }

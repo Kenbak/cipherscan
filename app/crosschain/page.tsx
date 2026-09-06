@@ -28,8 +28,8 @@ export default function CrosschainPage() {
           eyebrow="CROSSCHAIN"
           title="ZEC Cross-Chain Analytics"
           subtitle={
-            <span className="text-muted font-mono italic">
-              Real-time swap data across 15+ chains via{' '}
+            <span className="text-muted">
+              Observed ZEC swaps, routes, volume and execution times through{' '}
               <a href="https://near.org/intents" target="_blank" rel="noopener noreferrer" className="text-cipher-gold hover:underline">NEAR Intents</a>
             </span>
           }

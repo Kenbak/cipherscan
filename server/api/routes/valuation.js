@@ -10,6 +10,7 @@
 const express = require('express');
 const { logSafeError } = require('../lib/safe-log');
 const router = express.Router();
+const { nullableNumber, valuationRow } = require('../lib/valuation-values');
 
 let pool, redisClient;
 
@@ -41,16 +42,28 @@ function parsePeriod(raw) {
   return VALID_PERIODS[raw] || VALID_PERIODS['1y'];
 }
 
+// Public read only; importing runs on the server with database credentials.
+router.get('/api/valuation/search-interest', async (req, res) => {
+  try {
+    const { latestSearchInterest } = require('../lib/search-interest');
+    const snapshot = await cached('zcash:valuation:search-interest:v1', 300, () => latestSearchInterest(req.app.locals.pool));
+    res.json({ success: true, snapshot });
+  } catch (error) {
+    logSafeError('Search interest unavailable:', error);
+    res.status(503).json({ error: 'Search interest temporarily unavailable' });
+  }
+});
+
 // ─── Snapshot: latest row ─────────────────────────────────────────────────────
 
 router.get('/api/valuation/snapshot', async (req, res) => {
   try {
-    const data = await cached('zcash:valuation:snapshot', 600, async () => {
+    const data = await cached('zcash:valuation:v2:snapshot', 600, async () => {
       const { rows } = await pool.query(`
         SELECT m.date, m.market_cap_usd, m.realized_cap_usd,
                m.transparent_realized_cap_usd, m.shielded_realized_cap_usd,
                m.mvrv, m.realized_price,
-               COALESCE(m.sopr, m.shielded_sopr) AS sopr, m.nupl,
+               m.sopr, m.shielded_sopr, m.nupl,
                p.price_usd
         FROM mvrv_daily m
         LEFT JOIN zec_price_daily p ON p.date = m.date
@@ -58,18 +71,7 @@ router.get('/api/valuation/snapshot', async (req, res) => {
       `);
       if (!rows[0]) return null;
       const r = rows[0];
-      return {
-        date: r.date,
-        priceUsd: Number(r.price_usd),
-        realizedPrice: Number(r.realized_price),
-        mvrv: Number(r.mvrv),
-        sopr: Number(r.sopr),
-        nupl: Number(r.nupl),
-        marketCapUsd: Number(r.market_cap_usd),
-        realizedCapUsd: Number(r.realized_cap_usd),
-        transparentRealizedCapUsd: Number(r.transparent_realized_cap_usd),
-        shieldedRealizedCapUsd: Number(r.shielded_realized_cap_usd),
-      };
+      return valuationRow(r);
     });
 
     if (!data) return res.status(503).json({ error: 'Valuation data not available' });
@@ -85,7 +87,7 @@ router.get('/api/valuation/snapshot', async (req, res) => {
 router.get('/api/valuation/history', async (req, res) => {
   try {
     const days = parsePeriod(req.query.period);
-    const cacheKey = `zcash:valuation:history:${days}`;
+    const cacheKey = `zcash:valuation:v2:history:${days}`;
 
     const data = await cached(cacheKey, 600, async () => {
       const { rows } = await pool.query(`
@@ -93,7 +95,7 @@ router.get('/api/valuation/history', async (req, res) => {
                p.price_usd,
                m.realized_price,
                m.mvrv,
-               COALESCE(m.sopr, m.shielded_sopr) AS sopr,
+               m.sopr, m.shielded_sopr,
                m.nupl,
                m.market_cap_usd,
                m.realized_cap_usd,
@@ -105,18 +107,7 @@ router.get('/api/valuation/history', async (req, res) => {
         ORDER BY m.date ASC
       `, [days]);
 
-      return rows.map(r => ({
-        date: r.date,
-        priceUsd: r.price_usd ? Number(r.price_usd) : null,
-        realizedPrice: r.realized_price ? Number(r.realized_price) : null,
-        mvrv: r.mvrv ? Number(r.mvrv) : null,
-        sopr: r.sopr ? Number(r.sopr) : null,
-        nupl: r.nupl ? Number(r.nupl) : null,
-        marketCapUsd: r.market_cap_usd ? Number(r.market_cap_usd) : null,
-        realizedCapUsd: r.realized_cap_usd ? Number(r.realized_cap_usd) : null,
-        transparentRealizedCapUsd: r.transparent_realized_cap_usd ? Number(r.transparent_realized_cap_usd) : null,
-        shieldedRealizedCapUsd: r.shielded_realized_cap_usd ? Number(r.shielded_realized_cap_usd) : null,
-      }));
+      return rows.map(valuationRow);
     });
 
     res.json({ success: true, period: `${days}d`, points: data });
@@ -169,7 +160,7 @@ router.get('/api/valuation/hodl-waves', async (req, res) => {
 router.get('/api/valuation/dormancy', async (req, res) => {
   try {
     const days = parsePeriod(req.query.period);
-    const cacheKey = `zcash:valuation:dormancy:${days}`;
+    const cacheKey = `zcash:valuation:v2:dormancy:${days}`;
 
     const data = await cached(cacheKey, 600, async () => {
       const { rows } = await pool.query(`
@@ -181,9 +172,9 @@ router.get('/api/valuation/dormancy', async (req, res) => {
 
       return rows.map(r => ({
         date: r.date,
-        cdd: Number(r.cdd),
-        avgDormancy: Number(r.avg_dormancy_days),
-        spentCount: Number(r.spent_count),
+        cdd: nullableNumber(r.cdd),
+        avgDormancy: nullableNumber(r.avg_dormancy_days),
+        spentCount: nullableNumber(r.spent_count),
       }));
     });
 

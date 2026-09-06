@@ -127,7 +127,8 @@ const SWAPS_PER_PAGE = 15;
 const SECTIONS: readonly PageSection[] = [
   { id: 'overview', label: 'Overview' },
   { id: 'flows', label: 'Flows' },
-  { id: 'analytics', label: 'Analytics' },
+  { id: 'analytics', label: 'Size & execution' },
+  { id: 'swaps', label: 'Recent swaps' },
   { id: 'ecosystem', label: 'Ecosystem' },
 ] as const;
 
@@ -379,8 +380,8 @@ export function CrosschainDashboard() {
 
   const unitToggle = zecPrice ? (
     <div className="filter-group">
-      <button onClick={() => setUnit('usd')} className={`filter-btn ${unit === 'usd' ? 'filter-btn-active' : ''}`}>USD</button>
-      <button onClick={() => setUnit('zec')} className={`filter-btn ${unit === 'zec' ? 'filter-btn-active' : ''}`}>ZEC</button>
+      <button aria-pressed={unit === 'usd'} onClick={() => setUnit('usd')} className={`filter-btn ${unit === 'usd' ? 'filter-btn-active' : ''}`}>USD</button>
+      <button aria-pressed={unit === 'zec'} onClick={() => setUnit('zec')} className={`filter-btn ${unit === 'zec' ? 'filter-btn-active' : ''}`}>ZEC</button>
     </div>
   ) : null;
 
@@ -423,10 +424,22 @@ export function CrosschainDashboard() {
       <section id="flows" className="space-y-6 scroll-mt-40 pt-8">
         <ChainFlowTable inflows={stats.inflows} outflows={stats.outflows} unit={unit} zecPrice={zecPrice} />
 
+      </section>
+
+      {/* ── ANALYTICS ── */}
+      <section id="analytics" className="space-y-6 scroll-mt-40 pt-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <SwapSizeDistribution unit={unit} zecPrice={zecPrice} />
+          <TopPairsList pairs={popularPairs} />
+        </div>
+
+        <LatencyComparisonChart inbound={stats.latencyByChain} outbound={stats.latencyOutflows} />
+      </section>
+
+      <section id="swaps" className="scroll-mt-40 pt-8">
         <div>
           <SectionHeader
             label="SWAP_FEED"
-            live
             actions={
               <div className="filter-group">
                 {([
@@ -436,6 +449,7 @@ export function CrosschainDashboard() {
                 ]).map(f => (
                   <button
                     key={f.id}
+                    aria-pressed={swapFilter === f.id}
                     onClick={() => setSwapFilter(f.id)}
                     className={`filter-btn ${swapFilter === f.id ? 'filter-btn-active' : ''}`}
                   >
@@ -472,16 +486,6 @@ export function CrosschainDashboard() {
         </div>
       </section>
 
-      {/* ── ANALYTICS ── */}
-      <section id="analytics" className="space-y-6 scroll-mt-40 pt-8">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <SwapSizeDistribution unit={unit} zecPrice={zecPrice} />
-          <TopPairsList pairs={popularPairs} />
-        </div>
-
-        <LatencyComparisonChart inbound={stats.latencyByChain} outbound={stats.latencyOutflows} />
-      </section>
-
       {/* ── ECOSYSTEM ── */}
       <section id="ecosystem" className="scroll-mt-40 pt-8">
         {wrappedZec && wrappedZec.assets.length > 0 ? (
@@ -493,8 +497,7 @@ export function CrosschainDashboard() {
         )}
       </section>
 
-      {/* Footer */}
-      <div className="text-center pt-4">
+      <div className="rounded-lg border border-cipher-border p-5 sm:p-6 mt-8"><h2 className="text-sm font-semibold mb-3">Data coverage</h2><p className="text-xs text-muted leading-relaxed mb-3">This page covers indexed NEAR Intents swaps involving ZEC. It does not represent all Zcash trading or all bridge activity. Swap direction describes the ZEC leg of the observed route.</p>
         <p className="text-caption text-muted font-mono">
           Powered by{' '}
           <a href="https://near.org/intents" target="_blank" rel="noopener noreferrer" className="text-cipher-gold hover:underline">NEAR Intents</a>

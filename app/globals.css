@@ -1080,18 +1080,6 @@
     }
   }
 
-  .page-section-nav {
-    /* Same chrome treatment as .stats-bar/.ironwood-banner directly above it —
-       it previously used --color-border-subtle (rgba(255,255,255,0.04), almost
-       invisible) instead of --color-border, so even though it was already
-       full-width in the DOM, it had no visible edge and read as a floating
-       pill rather than a continuous bar. */
-    background-color: var(--navbar-bg);
-    border-color: var(--color-border);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-  }
-
   /* ===== NAVBAR ===== */
   .navbar-container {
     @apply transition-colors;

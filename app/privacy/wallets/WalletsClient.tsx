@@ -1,14 +1,16 @@
 'use client';
 import { PageLoadingBody } from '@/components/ui/PageLoading';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+import Link from 'next/link';
+import { useApiQuery } from '@/hooks/useApiQuery';
+import { categoryColor } from '@/lib/category-colors';
 import {
-  AreaChart, Area, PieChart, Pie, Cell,
+  AreaChart, Area,
   XAxis, YAxis, CartesianGrid,
   ResponsiveContainer, Legend,
 } from 'recharts';
 import { ChartTooltip as RechartsTooltip } from '@/components/charts/ChartTooltip';
-import { getApiUrl } from '@/lib/api-config';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getChartColors } from '@/lib/chart-theme';
 import { Card, CardBody } from '@/components/ui/Card';
@@ -17,14 +19,16 @@ import { PageSectionNav } from '@/components/PageSectionNav';
 
 const SECTIONS = [
   { id: 'fee-lanes', label: 'Fee Lanes' },
-  { id: 'fingerprints', label: 'Fingerprints' },
-  { id: 'usage', label: 'Usage' },
+  { id: 'usage', label: 'Pattern matches' },
+  { id: 'fingerprints', label: 'Wallet signals' },
+  { id: 'methodology', label: 'Methodology' },
 ] as const;
 
 const PERIODS = ['7d', '30d', '90d', '1y'] as const;
 type Period = (typeof PERIODS)[number];
 
 interface FeeLaneData {
+  period: string;
   totalShieldedTxs: number;
   buckets: {
     standard: { count: number; pct: number };
@@ -57,6 +61,7 @@ interface WalletFingerprint {
 }
 
 interface FingerprintData {
+  period: string;
   totalShielded: number;
   totalFullyShieldedOrchard: number;
   wallets: WalletFingerprint[];
@@ -73,38 +78,18 @@ export default function WalletsClient() {
   const { theme } = useTheme();
   const colors = getChartColors(theme as 'dark' | 'light');
   const [period, setPeriod] = useState<Period>('30d');
-  const [feeLanes, setFeeLanes] = useState<FeeLaneData | null>(null);
-  const [fingerprints, setFingerprints] = useState<FingerprintData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    setLoading(true);
-    setError(null);
-    const api = getApiUrl();
-
-    Promise.all([
-      fetch(`${api}/api/privacy/fee-lanes?period=${period}`).then(r => r.json()),
-      fetch(`${api}/api/privacy/wallet-fingerprints?period=${period}`).then(r => r.json()),
-    ])
-      .then(([feeData, fpData]) => {
-        if (feeData.success) setFeeLanes(feeData);
-        if (fpData.success) setFingerprints(fpData);
-        setLoading(false);
-      })
-      .catch(err => {
-        setError('Failed to load wallet analysis data');
-        setLoading(false);
-        console.error(err);
-      });
-  }, [period]);
-
+  const feeQuery = useApiQuery<FeeLaneData>('/api/privacy/fee-lanes', { period });
+  const fingerprintQuery = useApiQuery<FingerprintData>('/api/privacy/wallet-fingerprints', { period });
+  const feeLanes = feeQuery.data?.period===period && feeQuery.data.buckets ? feeQuery.data : null;
+  const fingerprints = fingerprintQuery.data?.period===period && Array.isArray(fingerprintQuery.data.wallets) ? fingerprintQuery.data : null;
+  const loading = feeQuery.loading || fingerprintQuery.loading || feeQuery.isRefreshing || fingerprintQuery.isRefreshing;
+  const error = feeQuery.error && fingerprintQuery.error ? 'Wallet analysis is temporarily unavailable.' : null;
   const usageData = buildUsageEstimates(fingerprints);
 
   if (loading && !feeLanes) {
     return (
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <PageHeader eyebrow="WALLET_ANALYSIS" title="Wallet Anonymity Analysis" subtitle="How distinguishable is your wallet on-chain?" />
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+        <PageHeader eyebrow="WALLET_ANALYSIS" title="Zcash Wallet Signals" subtitle="Fee patterns, observable wallet signals and their limits. Matches describe transaction behavior, not identified users." />
         <PageLoadingBody layout="wallets" />
       </div>
     );
@@ -112,8 +97,8 @@ export default function WalletsClient() {
 
   if (error) {
     return (
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <h1 className="type-page mb-4">Wallet Anonymity Analysis</h1>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+        <h1 className="type-page mb-4">Zcash Wallet Signals</h1>
         <Card variant="standard">
           <CardBody>
             <p className="text-danger">{error}</p>
@@ -124,16 +109,17 @@ export default function WalletsClient() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
       <PageHeader
         eyebrow="WALLET_ANALYSIS"
-        title="Wallet Anonymity Analysis"
-        subtitle="How distinguishable is your wallet on-chain?"
+        title="Zcash Wallet Signals"
+        subtitle="Fee patterns, observable wallet signals and their limits. Matches describe transaction behavior, not identified users."
         actions={
           <div className="filter-group">
             {PERIODS.map(p => (
               <button
                 key={p}
+                aria-pressed={period === p}
                 onClick={() => setPeriod(p)}
                 className={`filter-btn ${period === p ? 'filter-btn-active' : ''}`}
               >
@@ -149,11 +135,11 @@ export default function WalletsClient() {
       {/* ================================================================ */}
       {/* COMPONENT 1: FEE LANE ANONYMITY BUCKETS                         */}
       {/* ================================================================ */}
-      <section id="fee-lanes" className="mb-12 scroll-mt-20">
-        <h2 className="text-xl font-semibold mb-1">Do you blend in?</h2>
+      <section id="fee-lanes" className="mb-12 scroll-mt-36">
+        <h2 className="text-sm font-mono font-semibold mb-3">Fee patterns</h2>
         <p className="text-sm text-secondary mb-6">
           ZIP-317 defines a standard fee of 5,000 zat per logical action. Transactions paying this
-          rate share the largest anonymity set.
+          rate share a fee pattern. A shared fee is one observable property, not a measured anonymity set.
         </p>
 
         {feeLanes && (
@@ -192,9 +178,9 @@ export default function WalletsClient() {
                   </span>
                 </div>
                 <BatteryBar buckets={feeLanes.buckets} />
-                <div className="flex items-center gap-4 mt-3 text-xs text-secondary">
+                <div className="flex flex-wrap items-center gap-4 mt-3 text-xs text-secondary">
                   <span className="flex items-center gap-1">
-                    <span className="w-3 h-3 rounded-sm bg-cipher-teal" />
+                    <span className="w-3 h-3 rounded-sm bg-cipher-green" />
                     Standard (5000 zat)
                   </span>
                   <span className="flex items-center gap-1">
@@ -202,7 +188,7 @@ export default function WalletsClient() {
                     Priority (20000 zat)
                   </span>
                   <span className="flex items-center gap-1">
-                    <span className="w-3 h-3 rounded-sm bg-amber-500" />
+                    <span className="w-3 h-3 rounded-sm bg-cipher-orange" />
                     Non-Standard
                   </span>
                 </div>
@@ -243,8 +229,8 @@ export default function WalletsClient() {
                       type="monotone"
                       dataKey="standard"
                       stackId="1"
-                      stroke="#91AC90"
-                      fill="#91AC90"
+                      stroke={colors.shielding}
+                      fill={colors.shielding}
                       fillOpacity={0.6}
                       name="Standard"
                     />
@@ -252,8 +238,8 @@ export default function WalletsClient() {
                       type="monotone"
                       dataKey="priority"
                       stackId="1"
-                      stroke="#F8BC21"
-                      fill="#F8BC21"
+                      stroke={colors.gold}
+                      fill={colors.gold}
                       fillOpacity={0.6}
                       name="Priority"
                     />
@@ -261,8 +247,8 @@ export default function WalletsClient() {
                       type="monotone"
                       dataKey="non_standard"
                       stackId="1"
-                      stroke="#f59e0b"
-                      fill="#f59e0b"
+                      stroke={colors.deshielding}
+                      fill={colors.deshielding}
                       fillOpacity={0.6}
                       name="Non-Standard"
                     />
@@ -272,37 +258,7 @@ export default function WalletsClient() {
               </CardBody>
             </Card>
 
-            {/* Dynamic takeaway */}
-            <Card variant="glass" className="mb-6">
-              <CardBody>
-                <p className="text-sm leading-relaxed">
-                  {feeLanes.buckets.standard.pct >= 90 ? (
-                    <span>
-                      <strong className="text-cipher-teal">{feeLanes.buckets.standard.pct}%</strong>{' '}
-                      of shielded transactions pay the standard fee — you blend into a large crowd.
-                      Non-standard fees account for only{' '}
-                      <strong className="text-amber-500">{feeLanes.buckets.non_standard.pct}%</strong>{' '}
-                      of traffic, making them a fingerprinting risk for those users.
-                    </span>
-                  ) : feeLanes.buckets.standard.pct >= 70 ? (
-                    <span>
-                      <strong className="text-cipher-teal">{feeLanes.buckets.standard.pct}%</strong>{' '}
-                      of shielded transactions use the standard fee lane. While this is a decent
-                      anonymity set, the{' '}
-                      <strong className="text-amber-500">{feeLanes.buckets.non_standard.pct}%</strong>{' '}
-                      using non-standard fees could improve their privacy by switching to ZIP-317 compliant wallets.
-                    </span>
-                  ) : (
-                    <span>
-                      Only{' '}
-                      <strong className="text-amber-500">{feeLanes.buckets.standard.pct}%</strong>{' '}
-                      of shielded transactions use the standard fee, which means fee-based fingerprinting
-                      is currently a significant privacy risk on the network.
-                    </span>
-                  )}
-                </p>
-              </CardBody>
-            </Card>
+            <p className="text-xs text-muted leading-relaxed mb-6">{feeLanes.buckets.standard.pct}% of observed shielded transactions use the standard fee lane. Shared fee patterns describe this sample; they do not measure an anonymity set or identify a wallet on their own.</p>
           </>
         )}
       </section>
@@ -310,10 +266,92 @@ export default function WalletsClient() {
       {/* ================================================================ */}
       {/* COMPONENT 2: WALLET FINGERPRINTING MATRIX                       */}
       {/* ================================================================ */}
-      <section id="fingerprints" className="mb-12 scroll-mt-20">
-        <h2 className="text-xl font-semibold mb-1">What your wallet reveals</h2>
+
+
+      {/* ================================================================ */}
+      {/* COMPONENT 3: WALLET USAGE DISTRIBUTION                          */}
+      {/* ================================================================ */}
+      <section id="usage" className="mb-12 scroll-mt-36">
+        <h2 className="text-sm font-mono font-semibold mb-3">Observed pattern matches</h2>
         <p className="text-sm text-secondary mb-6">
-          Each wallet leaves a unique on-chain signature. Tap a wallet to see details.
+          Counts of transactions matching known implementation patterns. These are not counts of users or verified wallet market shares; patterns can overlap.
+        </p>
+
+        {usageData && (
+          <>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+              <Card variant="standard">
+                <CardBody>
+                  <h3 className="text-sm font-medium text-secondary mb-4">
+                    Matching patterns · {period}
+                  </h3>
+                  <div className="space-y-5">{usageData.map(entry => <div key={entry.name}>
+                    <div className="flex justify-between gap-4 mb-2"><span className="text-xs text-secondary">{entry.name}</span><span className="text-xs font-mono text-primary shrink-0">{formatNumber(entry.value)}</span></div>
+                    <div className="h-2 rounded-full bg-cipher-hover overflow-hidden"><div className="h-full rounded-full" style={{width:`${Math.min(100, fingerprints?.totalShielded ? entry.value / fingerprints.totalShielded * 100 : 0)}%`,backgroundColor:categoryColor(entry.name,theme)}} /></div>
+                    <p className="mt-1 text-caption text-muted">{entry.confidence} confidence · matches / observed shielded transactions</p>
+                  </div>)}</div>
+                </CardBody>
+              </Card>
+
+              <Card variant="standard">
+                <CardBody>
+                  <h3 className="text-sm font-medium text-secondary mb-4">
+                    Observation coverage
+                  </h3>
+                  {fingerprints && (
+                    <div className="space-y-4">
+                      <div className="flex items-baseline justify-between">
+                        <span className="text-secondary">
+                          Total shielded txs ({period})
+                        </span>
+                        <span className="text-2xl font-semibold font-mono">
+                          {formatNumber(fingerprints.totalShielded)}
+                        </span>
+                      </div>
+                      <div className="flex items-baseline justify-between">
+                        <span className="text-secondary">
+                          Fully-shielded Orchard
+                        </span>
+                        <span className="text-2xl font-semibold font-mono">
+                          {formatNumber(fingerprints.totalFullyShieldedOrchard)}
+                        </span>
+                      </div>
+                      <div className="flex items-baseline justify-between">
+                        <span className="text-secondary">
+                          Pattern matches (may overlap)
+                        </span>
+                        <span className="text-2xl font-semibold font-mono">
+                          {formatNumber(
+                            usageData.reduce((s, d) => s + d.value, 0)
+                          )}
+                        </span>
+                      </div>
+                      <div className="text-xs text-muted pt-3 border-t border-cipher-border space-y-1.5">
+                        <p className="font-medium text-secondary">Why matches cannot identify every wallet</p>
+                        <ul className="list-disc list-inside space-y-0.5 text-caption">
+                          <li>Sapling-only txs (no Orchard action count to fingerprint)</li>
+                          <li>SDK wallets (Edge, Unstoppable, YWallet) identical to ZODL on-chain</li>
+                          <li>Transactions with expiry=0 (disabled) or missing data</li>
+                          <li>Wallets we haven&apos;t fingerprinted yet</li>
+                        </ul>
+
+                      </div>
+                    </div>
+                  )}
+                </CardBody>
+              </Card>
+            </div>
+
+            {/* Methodology accordion */}
+
+          </>
+        )}
+      </section>
+
+      <section id="fingerprints" className="mb-12 scroll-mt-36">
+        <h2 className="text-sm font-mono font-semibold mb-3">Wallet implementation signals</h2>
+        <p className="text-sm text-secondary mb-6">
+          Some wallets share the same transaction patterns. Expand a wallet family to inspect evidence and confidence.
         </p>
 
         {fingerprints && (
@@ -344,121 +382,8 @@ export default function WalletsClient() {
           </div>
         )}
       </section>
-
-      {/* ================================================================ */}
-      {/* COMPONENT 3: WALLET USAGE DISTRIBUTION                          */}
-      {/* ================================================================ */}
-      <section id="usage" className="mb-12 scroll-mt-20">
-        <h2 className="text-xl font-semibold mb-1">Who uses what</h2>
-        <p className="text-sm text-secondary mb-6">
-          Estimated wallet usage based on on-chain fingerprint matching. Confidence varies — see
-          methodology below.
-        </p>
-
-        {usageData && (
-          <>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-              <Card variant="standard">
-                <CardBody>
-                  <h3 className="text-sm font-medium text-secondary mb-4">
-                    Estimated Distribution (last {period})
-                  </h3>
-                  <ResponsiveContainer initialDimension={{ width: 500, height: 300 }} width="100%" height={280}>
-                    <PieChart>
-                      <Pie
-                        data={usageData}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={60}
-                        outerRadius={100}
-                        paddingAngle={2}
-                        dataKey="value"
-                        nameKey="name"
-                      >
-                        {usageData.map((entry, idx) => (
-                          <Cell key={entry.name} fill={WALLET_COLORS[entry.name] || USAGE_COLORS_FALLBACK[idx % USAGE_COLORS_FALLBACK.length]} />
-                        ))}
-                      </Pie>
-                      <RechartsTooltip
-                        contentStyle={{
-                          backgroundColor: colors.tooltipBg,
-                          border: `1px solid ${colors.tooltipBorder}`,
-                          borderRadius: 8,
-                          color: colors.tooltipText,
-                          fontSize: 12,
-                        }}
-                        formatter={(value, name) => [
-                          `${formatNumber(Number(value))} txs`,
-                          String(name),
-                        ]}
-                      />
-                      <Legend
-                        verticalAlign="bottom"
-                        formatter={(value) => (
-                          <span className="text-xs">{String(value)}</span>
-                        )}
-                      />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </CardBody>
-              </Card>
-
-              <Card variant="standard">
-                <CardBody>
-                  <h3 className="text-sm font-medium text-secondary mb-4">
-                    On-Chain Ceiling
-                  </h3>
-                  {fingerprints && (
-                    <div className="space-y-4">
-                      <div className="flex items-baseline justify-between">
-                        <span className="text-secondary">
-                          Total shielded txs ({period})
-                        </span>
-                        <span className="text-2xl font-semibold font-mono">
-                          {formatNumber(fingerprints.totalShielded)}
-                        </span>
-                      </div>
-                      <div className="flex items-baseline justify-between">
-                        <span className="text-secondary">
-                          Fully-shielded Orchard
-                        </span>
-                        <span className="text-2xl font-semibold font-mono">
-                          {formatNumber(fingerprints.totalFullyShieldedOrchard)}
-                        </span>
-                      </div>
-                      <div className="flex items-baseline justify-between">
-                        <span className="text-secondary">
-                          Identified by fingerprint
-                        </span>
-                        <span className="text-2xl font-semibold font-mono">
-                          {formatNumber(
-                            usageData
-                              .filter(d => d.name !== 'Unknown / Other')
-                              .reduce((s, d) => s + d.value, 0)
-                          )}
-                        </span>
-                      </div>
-                      <div className="text-xs text-muted pt-3 border-t border-cipher-border space-y-1.5">
-                        <p className="font-medium text-secondary">Why is &quot;Unknown&quot; so large?</p>
-                        <ul className="list-disc list-inside space-y-0.5 text-caption">
-                          <li>Sapling-only txs (no Orchard action count to fingerprint)</li>
-                          <li>SDK wallets (Edge, Unstoppable, YWallet) identical to ZODL on-chain</li>
-                          <li>Transactions with expiry=0 (disabled) or missing data</li>
-                          <li>Wallets we haven&apos;t fingerprinted yet</li>
-                        </ul>
-                        <p className="text-caption italic">We prefer honesty over false precision.</p>
-                      </div>
-                    </div>
-                  )}
-                </CardBody>
-              </Card>
-            </div>
-
-            {/* Methodology accordion */}
-            <MethodologyAccordion />
-          </>
-        )}
-      </section>
+      <section id="methodology" className="scroll-mt-36 mb-8"><MethodologyAccordion /></section>
+      <nav aria-label="Related wallet analysis" className="grid sm:grid-cols-3 gap-3">{[{href:"/privacy",label:"Privacy participation"},{href:"/pools",label:"Shielded supply"},{href:"/tools/decode",label:"Decode a transaction"}].map(l=><Link key={l.href} href={l.href} className="border border-cipher-border rounded-lg p-4 text-xs font-mono text-secondary hover:bg-glass-3">{l.label} →</Link>)}</nav>
     </div>
   );
 }
@@ -466,20 +391,6 @@ export default function WalletsClient() {
 // ============================================================================
 // SUB-COMPONENTS
 // ============================================================================
-
-const WALLET_COLORS: Record<string, string> = {
-  'ZODL / Vizor (Ironwood sends)': '#91AC90',
-  'ZODL / Vizor (ZIP-318 migration)': '#6366f1',
-  'SDK wallets (cross-pool)': '#818cf8',
-  'SDK wallets (Orchard pool)': '#22c55e',
-  'SDK wallets (shielding/deshielding)': '#91AC90',
-  'Cake Wallet (probable)': '#ec4899',
-  'Brave': '#f59e0b',
-  'Nozy': '#a855f7',
-  'Zkool (historical)': '#F8BC21',
-  'Unknown / Other': '#64748b',
-};
-const USAGE_COLORS_FALLBACK = ['#22c55e', '#ec4899', '#6366f1', '#91AC90'];
 
 function StatCard({
   label,
@@ -492,17 +403,13 @@ function StatCard({
   subtext: string;
   accent: 'gold' | 'yellow' | 'amber';
 }) {
-  const accentColor = {
-    gold: '#91AC90',
-    yellow: '#F8BC21',
-    amber: '#f59e0b',
-  }[accent];
+  const accentClass = { gold: 'text-cipher-green', yellow: 'text-cipher-gold', amber: 'text-cipher-orange' }[accent];
 
   return (
     <Card variant="compact">
       <CardBody>
         <p className="text-xs text-secondary mb-1">{label}</p>
-        <p className="text-3xl font-semibold font-mono" style={{ color: accentColor }}>
+        <p className={`text-3xl font-semibold font-mono ${accentClass}`}>
           {value}
         </p>
         <p className="text-xs text-muted mt-1">{subtext}</p>
@@ -520,8 +427,8 @@ function BatteryBar({
     <div className="relative w-full h-8 rounded-lg overflow-hidden flex" role="img" aria-label={`Fee distribution: ${buckets.standard.pct}% standard, ${buckets.priority.pct}% priority, ${buckets.non_standard.pct}% non-standard`}>
       {buckets.standard.pct > 0 && (
         <div
-          className="h-full transition-[width] duration-500 flex items-center justify-center text-xs font-medium text-slate-900"
-          style={{ width: `${buckets.standard.pct}%`, background: '#91AC90' }}
+          className="h-full transition-[width] duration-500 flex items-center justify-center text-xs font-medium text-cipher-bg-dark light:text-white"
+          style={{ width: `${buckets.standard.pct}%`, background: 'var(--color-green)' }}
           title={`Standard: ${buckets.standard.pct}%`}
         >
           {buckets.standard.pct > 10 && `${buckets.standard.pct}%`}
@@ -529,8 +436,8 @@ function BatteryBar({
       )}
       {buckets.priority.pct > 0 && (
         <div
-          className="h-full transition-[width] duration-500 flex items-center justify-center text-xs font-medium text-slate-900"
-          style={{ width: `${Math.max(buckets.priority.pct, 1)}%`, background: '#F8BC21' }}
+          className="h-full transition-[width] duration-500 flex items-center justify-center text-xs font-medium text-cipher-bg-dark"
+          style={{ width: `${buckets.priority.pct}%`, background: 'var(--color-gold)' }}
           title={`Priority: ${buckets.priority.pct}%`}
         >
           {buckets.priority.pct > 5 && `${buckets.priority.pct}%`}
@@ -538,8 +445,8 @@ function BatteryBar({
       )}
       {buckets.non_standard.pct > 0 && (
         <div
-          className="h-full transition-[width] duration-500 flex items-center justify-center text-xs font-medium text-slate-900"
-          style={{ width: `${buckets.non_standard.pct}%`, background: '#f59e0b' }}
+          className="h-full transition-[width] duration-500 flex items-center justify-center text-xs font-medium text-cipher-bg-dark light:text-white"
+          style={{ width: `${buckets.non_standard.pct}%`, background: 'var(--color-orange)' }}
           title={`Non-Standard: ${buckets.non_standard.pct}%`}
         >
           {buckets.non_standard.pct > 5 && `${buckets.non_standard.pct}%`}
@@ -564,7 +471,8 @@ function WalletCard({ wallet }: { wallet: WalletFingerprint }) {
       <CardBody className="!p-0">
         <button
           onClick={() => setExpanded(!expanded)}
-          className="w-full text-left px-4 py-3 flex flex-col sm:flex-row sm:items-center gap-2 hover:bg-cipher-hover transition-colors"
+          aria-expanded={expanded}
+          className="w-full text-left px-5 py-5 flex flex-col sm:flex-row sm:items-center gap-2 hover:bg-cipher-hover transition-colors"
         >
           <div className="flex items-center gap-2 sm:min-w-[13rem] flex-shrink-0">
             <svg
@@ -585,7 +493,7 @@ function WalletCard({ wallet }: { wallet: WalletFingerprint }) {
         </button>
 
         {expanded && (
-          <div className="px-4 pb-3 pt-1 border-t border-cipher-border">
+          <div className="px-5 pb-5 pt-5 border-t border-cipher-border">
             {wallet.description && (
               <p className="text-xs text-secondary mb-3">{wallet.description}</p>
             )}
@@ -593,7 +501,7 @@ function WalletCard({ wallet }: { wallet: WalletFingerprint }) {
               <div className="flex flex-wrap items-center gap-1.5 mb-3">
                 <span className="text-caption uppercase tracking-wider text-muted">Includes:</span>
                 {wallet.familyMembers.map(m => (
-                  <span key={m} className="text-caption px-1.5 py-0.5 rounded bg-cipher-teal/10 text-cipher-teal border border-cipher-teal/20">
+                  <span key={m} className="text-caption px-1.5 py-0.5 rounded bg-cipher-green/10 text-cipher-teal border border-cipher-teal/20">
                     {m}
                   </span>
                 ))}
@@ -684,7 +592,8 @@ function MethodologyAccordion() {
       <CardBody>
         <button
           onClick={() => setOpen(!open)}
-          className="flex items-center justify-between w-full text-left"
+          aria-expanded={open}
+          className="flex items-center justify-between w-full text-left p-3 rounded-md hover:bg-glass-3"
         >
           <span className="text-sm font-medium">Methodology</span>
           <svg
@@ -697,7 +606,7 @@ function MethodologyAccordion() {
           </svg>
         </button>
         {open && (
-          <div className="mt-4 space-y-3 text-xs text-secondary leading-relaxed">
+          <div className="mt-5 px-3 pb-3 space-y-3 text-xs text-secondary leading-relaxed">
             <p>
               <strong>On-chain fingerprint matching:</strong> We count transactions matching each
               wallet&apos;s known signature. Signals used: Orchard action count (padding),
@@ -714,17 +623,7 @@ function MethodologyAccordion() {
               zcashd default expiry delta (+20 blocks) and sets nLockTime to the current chain tip.
               Both signals confirmed from brave-core source (PR #32580, #37407).
             </p>
-            <p>
-              <strong>Off-chain proxies (not shown in chart):</strong> App store reviews suggest
-              relative user base sizes — Brave (~190K iOS reviews, small Zcash fraction), ZODL
-              (~5K reviews, Zcash-only), Edge (~50K reviews, multi-coin). These inform plausibility
-              but are not used for the on-chain count.
-            </p>
-            <p>
-              <strong>Limitations:</strong> The &quot;Unknown / Other&quot; bucket includes SDK-based
-              wallets we cannot distinguish, Sapling-only transactions without Orchard, and any wallet
-              not yet fingerprinted. We prefer transparency over false precision.
-            </p>
+            <p><strong>Limitations:</strong> These matches are implementation clues, not verified wallet identities or user counts. Patterns can overlap and change between releases. Unmatched transactions are not assigned to a fabricated remainder category.</p>
           </div>
         )}
       </CardBody>
@@ -736,7 +635,6 @@ function buildUsageEstimates(fingerprints: FingerprintData | null) {
   if (!fingerprints) return null;
 
   const walletMap: { name: string; value: number; confidence: 'high' | 'medium' | 'low' }[] = [];
-  let identified = 0;
 
   const find = (name: string) => fingerprints.wallets.find(w => w.name === name);
 
@@ -757,14 +655,9 @@ function buildUsageEstimates(fingerprints: FingerprintData | null) {
     const count = wallet?.signals[entry.signal].matchCount || 0;
     if (count > 0) {
       walletMap.push({ name: entry.name, value: count, confidence: entry.confidence });
-      identified += count;
     }
   }
 
-  const unknown = Math.max(0, fingerprints.totalShielded - identified);
-  if (unknown > 0) {
-    walletMap.push({ name: 'Unknown / Other', value: unknown, confidence: 'low' });
-  }
 
   return walletMap;
 }

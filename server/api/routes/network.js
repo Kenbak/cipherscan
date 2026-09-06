@@ -944,7 +944,8 @@ router.get('/api/price', async (req, res) => {
     }
 
     const response = await fetch(
-      'https://api.coingecko.com/api/v3/simple/price?ids=zcash&vs_currencies=usd&include_24hr_change=true'
+      'https://api.coingecko.com/api/v3/simple/price?ids=zcash&vs_currencies=usd&include_24hr_change=true&include_market_cap=true&include_24hr_vol=true&include_last_updated_at=true',
+      { signal: AbortSignal.timeout(8000) }
     );
 
     if (!response.ok) {
@@ -956,6 +957,9 @@ router.get('/api/price', async (req, res) => {
     const data = {
       price: raw.zcash?.usd ?? null,
       change24h: raw.zcash?.usd_24h_change ?? null,
+      marketCapUsd: raw.zcash?.usd_market_cap ?? null,
+      volume24hUsd: raw.zcash?.usd_24h_vol ?? null,
+      sourceUpdatedAt: raw.zcash?.last_updated_at ? raw.zcash.last_updated_at * 1000 : null,
       timestamp: now,
     };
 
