@@ -218,9 +218,9 @@ export function FlowVolumeChart() {
 
   return (
     <ShareableCard
-      title="Flow Volume"
+      title="Public flows into and out of pools"
       sourceHeight={0}
-      isLive
+      isLive={false}
       shareText={shareText}
       fileName="cipherscan-flow-volume.png"
       watermark

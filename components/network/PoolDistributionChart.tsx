@@ -36,7 +36,7 @@ const VIEW_META: Record<View, { label: string; shortLabel: string; description: 
     label: 'Shielded %',
     shortLabel: 'Shielded %',
     description:
-      'Share of circulating supply held in shielded pools over time. For absolute balances use Public / private or Per pool.',
+      'Share of issued chain supply held in shielded pools over time. For absolute balances use Public / private or Per pool.',
   },
   composition: {
     label: 'Public / private',
@@ -388,7 +388,7 @@ export function PoolDistributionChart({ initialData }: { initialData?: PoolHisto
         <Line
           type="monotone"
           dataKey="shieldedPct"
-          stroke={colors.gold ?? colors.shielded}
+          stroke={colors.shielded}
           strokeWidth={2.5}
           dot={false}
           name="Shielding rate"
@@ -403,7 +403,7 @@ export function PoolDistributionChart({ initialData }: { initialData?: PoolHisto
     <ShareableCard
       title="Supply History"
       sourceHeight={0}
-      isLive
+      isLive={false}
       shareText={shareText}
       fileName="cipherscan-supply-history.png"
       watermark={true}

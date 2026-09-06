@@ -48,8 +48,9 @@ export function PageLoadingBody({ layout }: { layout: LoadingLayout }) {
   if (layout === 'pools') return <LoadingRegion><div className="card card-static"><div className="card-body">
     <Skeleton className="h-5 w-48 mb-6" /><Skeleton className="h-4 w-2/3 mb-5" />
     <Skeleton className="h-[132px] sm:h-[156px] w-full" />
-    <Skeleton className="h-5 w-1/2 mt-3" />
-    <Skeleton className="h-24 w-full mt-4" />
+    <div className="sm:hidden mt-4 space-y-2">{Array.from({ length: 3 }, (_, i) => <Skeleton key={i} className="h-4 w-full" />)}</div><Skeleton className="h-5 w-1/2 mt-3" />
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 border-t border-cipher-border mt-6 pt-5">{Array.from({ length: 4 }, (_, i) => <div key={i} className="p-3"><Skeleton className="h-4 w-20 mb-2" /><Skeleton className="h-5 w-28 mb-2" /><Skeleton className="h-4 w-24" /></div>)}</div>
+    <Skeleton className="h-32 w-full mt-5" /><Skeleton className="h-4 w-2/3 mt-3" />
   </div></div></LoadingRegion>;
   if (layout === 'wallets') return <LoadingRegion><ControlsSkeleton /><Skeleton className="h-6 w-48 mb-3" /><Skeleton className="h-4 w-2/3 mb-6" /><MetricSkeletons labels={['Standard fee', 'Priority fee (4x)', 'Custom fee']} columns={1} className="md:grid-cols-3 mb-6" /><ChartCardSkeleton /></LoadingRegion>;
   return <LoadingRegion><ControlsSkeleton /><div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">{Array.from({ length: 9 }, (_, i) => <ChartCardSkeleton key={i} height={180} />)}</div></LoadingRegion>;

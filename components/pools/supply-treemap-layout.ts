@@ -118,9 +118,9 @@ export function buildShieldedPoolSegments(input: {
   };
 }): SupplySegmentInput[] {
   const segments: SupplySegmentInput[] = [
+    { key: 'sprout', label: 'Sprout', zat: input.sprout, color: input.colors.sprout },
     { key: 'sapling', label: 'Sapling', zat: input.sapling, color: input.colors.sapling },
     { key: 'orchard', label: 'Orchard', zat: input.orchard, color: input.colors.orchard },
-    { key: 'sprout', label: 'Sprout', zat: input.sprout, color: input.colors.sprout },
     {
       key: 'ironwood',
       label: 'Ironwood',

@@ -63,8 +63,8 @@ function BandLabel({
 function segmentUsesLightLabel(segment: SupplySegmentInput, isDark: boolean): boolean {
   if (segment.hatch) return isDark;
   if (segment.key === 'transparent') return isDark;
-  // Collapsed shielded band uses gold in both themes.
-  return false;
+  // Iris uses a dark label in dark mode and a light label in light mode.
+  return !isDark;
 }
 
 function TopSegment({
@@ -161,15 +161,11 @@ function ShieldedPoolStack({
 
   return (
     <div
-      className={`relative flex h-full min-w-0 flex-col overflow-hidden rounded-md ring-1 ring-inset transition-opacity duration-150 ${
-        pinnedShielded ? 'ring-cipher-yellow/45' : 'ring-cipher-yellow/30'
-      } ${className ?? ''}`}
+      className={`relative flex h-full min-w-0 flex-col overflow-hidden rounded-md ring-1 ring-inset transition-opacity duration-150 ring-cipher-border ${className ?? ''}`}
       style={style}
       onMouseEnter={() => onHover('shielded')}
       onMouseLeave={() => onHover(null)}
-      onClick={() => {
-        if (!pinnedShielded) onTogglePinShielded();
-      }}
+      onClick={onTogglePinShielded}
       role="button"
       tabIndex={0}
       onKeyDown={(e) => {
@@ -179,7 +175,7 @@ function ShieldedPoolStack({
         }
       }}
       aria-pressed={pinnedShielded}
-      aria-label="Shielded pool composition. Click to pin open."
+      aria-label="Shielded pool composition. Press Enter or Space to hide the split."
     >
       {segments.map((child, index) => {
         const weight = flexWeight(child.zat);
@@ -196,9 +192,6 @@ function ShieldedPoolStack({
             }}
             onMouseLeave={() => {
               if (pinnedShielded) onHover('shielded');
-            }}
-            onClick={(e) => {
-              if (pinnedShielded) e.stopPropagation();
             }}
           >
             <div
@@ -222,7 +215,7 @@ export function SupplyTreemap({
 }: SupplyTreemapProps) {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
-  const shieldedExpanded = pinnedShielded || hoveredKey === 'shielded';
+  const shieldedExpanded = pinnedShielded;
 
   const handleMapLeave = () => {
     onHover(null);
@@ -231,7 +224,7 @@ export function SupplyTreemap({
   return (
     <div
       className="flex h-[132px] w-full gap-0.5 p-0.5 sm:h-[156px]"
-      role="img"
+      role="group"
       aria-label="Zcash supply map: transparent, shielded, and unmined portions of the 21 million cap"
       onMouseLeave={handleMapLeave}
     >

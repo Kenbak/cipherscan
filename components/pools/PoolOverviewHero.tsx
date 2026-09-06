@@ -1,7 +1,7 @@
 'use client';
-import { PageLoadingBody } from '@/components/ui/PageLoading';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
+import { PageLoadingBody } from '@/components/ui/PageLoading';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getChartColors } from '@/lib/chart-theme';
 import { formatZecCompact, zatToZec } from '@/lib/format-numbers';
@@ -9,15 +9,8 @@ import { useApiQuery } from '@/hooks/useApiQuery';
 import { ShareableCard } from '@/components/ShareableCard';
 import { SupplyTreemap } from './SupplyTreemap';
 import { SupplyTimelineScrubber } from './SupplyTimelineScrubber';
-import {
-  MAX_SUPPLY_ZAT,
-  buildShieldedPoolSegments,
-  buildTopLevelSegments,
-  isShieldedPoolKey,
-  SHIELDED_POOL_KEYS,
-  type ShieldedPoolKey,
-  type SupplyPoolKey,
-} from './supply-treemap-layout';
+import { completeSupplyHistory, type HistoryPoint } from './supply-history';
+import { buildShieldedPoolSegments, buildTopLevelSegments, MAX_SUPPLY_ZAT, SHIELDED_POOL_KEYS, type SupplyPoolKey } from './supply-treemap-layout';
 
 export interface PoolOverviewData {
   current: {
@@ -33,431 +26,78 @@ export interface PoolOverviewData {
   deltas: Record<string, Record<string, number | null>>;
 }
 
-const EMPTY_HISTORY: HistoryPoint[] = [];
 
-interface HistoryPoint {
-  date: string;
-  sprout: number;
-  sapling: number;
-  orchard: number;
-  ironwood: number;
-  transparent: number;
-  shielded: number;
-  chainSupply: number | null;
-  shieldedSupplyPct: number | null;
-}
 
-type ScrubMode = 'live' | 'scrub';
-
-const CAP_ZEC = zatToZec(MAX_SUPPLY_ZAT);
-
-function formatDeltaZec(deltas: PoolOverviewData['deltas'], pool: string, period: string) {
-  const d = deltas[pool]?.[period];
-  if (d == null) return null;
-  const zec = zatToZec(d);
-  const sign = zec >= 0 ? '+' : '';
-  return { text: `${sign}${formatZecCompact(zec)}`, zec };
-}
-
-function formatUpdated(iso: string) {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return null;
-  return d.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
-}
-
-function formatHistoryDate(dateStr: string) {
-  const d = new Date(dateStr);
-  return d.toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: d.getFullYear() !== new Date().getFullYear() ? 'numeric' : undefined,
-  });
-}
-
-function zatFromHistory(value: number) {
-  return Math.round(value * 1e8);
-}
-
-function SupplyLegendStat({
-  label,
-  color,
-  zec,
-  capPct,
-  active,
-  dimmed,
-  hatched,
-  footnote,
-  onMouseEnter,
-  onMouseLeave,
-}: {
-  label: string;
-  color: string;
-  zec: number;
-  capPct: number;
-  active?: boolean;
-  dimmed?: boolean;
-  hatched?: boolean;
-  footnote?: string;
-  onMouseEnter?: () => void;
-  onMouseLeave?: () => void;
-}) {
-  return (
-    <div
-      className={`rounded-xl border px-3 py-3 transition duration-150 sm:px-4 sm:py-3.5 ${
-        active
-          ? 'border-cipher-yellow/40 bg-glass-4 ring-1 ring-cipher-yellow/20'
-          : dimmed
-            ? 'border-cipher-border/15 bg-glass-2/15 opacity-40'
-            : 'border-cipher-border/25 bg-glass-2/30'
-      }`}
-      onMouseEnter={onMouseEnter}
-      onMouseLeave={onMouseLeave}
-    >
-      <div className="flex items-center gap-2">
-        {hatched ? (
-          <span
-            className="h-2.5 w-2.5 shrink-0 rounded-sm border border-white/10"
-            style={{
-              backgroundImage:
-                'repeating-linear-gradient(135deg, rgba(148,163,184,0.35) 0 1px, transparent 1px 4px)',
-              backgroundColor: 'rgba(148,163,184,0.12)',
-            }}
-          />
-        ) : (
-          <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: color }} />
-        )}
-        <span className="text-caption font-mono uppercase tracking-wider text-muted">{label}</span>
-      </div>
-      <p className="mt-2 text-xl font-semibold tabular-nums tracking-tight text-primary sm:text-2xl">
-        {formatZecCompact(zec)}
-        <span className="ml-1.5 text-sm font-normal text-muted">ZEC</span>
-      </p>
-      <p className="mt-1 text-sm font-mono tabular-nums text-secondary">{capPct.toFixed(1)}% of 21M</p>
-      {footnote ? <p className="mt-1 text-caption font-mono text-muted">{footnote}</p> : null}
-    </div>
-  );
+function snapshotDate(value: string, time = false) {
+  const date = new Date(value);
+  if (!Number.isFinite(date.getTime())) return 'Date unavailable';
+  return date.toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC', ...(time ? { hour: '2-digit', minute: '2-digit' } as const : {}) }) + (time ? ' UTC' : '');
 }
 
 export function PoolOverviewHero({ data }: { data: PoolOverviewData }) {
   const { theme } = useTheme();
   const colors = getChartColors(theme);
   const [hoveredKey, setHoveredKey] = useState<SupplyPoolKey | null>(null);
-  const [pinnedShielded, setPinnedShielded] = useState(false);
-  const [mode, setMode] = useState<ScrubMode>('live');
-  const [scrubIndex, setScrubIndex] = useState(0);
-
-  const { current, deltas } = data;
-
-  const { data: historyRes } = useApiQuery<{ points: HistoryPoint[]; coverageStart?: string }>(
-    '/api/network/pool-history',
-    { period: 'all' },
+  const [split, setSplit] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const { data: historyRes, loading, error } = useApiQuery<{ points: HistoryPoint[] }>(
+    '/api/network/pool-history', { period: 'all' },
   );
-  const history = historyRes?.points ?? EMPTY_HISTORY;
-  const coverageStart = historyRes?.coverageStart ?? null;
+  const history = useMemo(() => completeSupplyHistory(historyRes?.points ?? []), [historyRes]);
+  const point = history.find(item => item.date === selectedDate);
+  const snapshot = point ? {
+    sprout: Math.round(point.sprout * 1e8), sapling: Math.round(point.sapling * 1e8),
+    orchard: Math.round(point.orchard * 1e8), ironwood: Math.round(point.ironwood * 1e8),
+    transparent: Math.round(point.transparent * 1e8), shielded: Math.round(point.shielded * 1e8),
+    chainSupply: Math.round(point.chainSupply * 1e8), updatedAt: point.date,
+  } : data.current;
+  const topLevel = buildTopLevelSegments({ ...snapshot, colors: { transparent: colors.transparent, shielded: colors.shielded, unmined: colors.transparent } });
+  const poolColors = { sprout: colors.sprout, sapling: colors.sapling, orchard: colors.orchard, ironwood: colors.ironwood };
+  const children = buildShieldedPoolSegments({ ...snapshot, colors: poolColors });
+  const share = snapshot.chainSupply > 0 ? snapshot.shielded / snapshot.chainSupply * 100 : null;
+  const delta = !point ? data.deltas.shielded?.['7d'] : null;
+  const dateLabel = snapshotDate(snapshot.updatedAt, !point);
+  const toggleSplit = () => { setSplit(value => !value); setHoveredKey(null); };
 
-  useEffect(() => {
-    if (history.length) setScrubIndex(history.length - 1);
-  }, [history.length]);
-
-  const liveSnapshot = useMemo(
-    () => ({
-      sprout: current.sprout,
-      sapling: current.sapling,
-      orchard: current.orchard,
-      ironwood: current.ironwood,
-      transparent: current.transparent,
-      shielded: current.shielded,
-      chainSupply: current.chainSupply,
-      updatedAt: current.updatedAt,
-    }),
-    [current],
-  );
-
-  const snapshot = useMemo(() => {
-    if (mode === 'live' || history.length === 0) return liveSnapshot;
-    const point = history[Math.min(scrubIndex, history.length - 1)];
-    const chainSupply = point.chainSupply ? zatFromHistory(point.chainSupply) : liveSnapshot.chainSupply;
-    return {
-      sprout: zatFromHistory(point.sprout),
-      sapling: zatFromHistory(point.sapling),
-      orchard: zatFromHistory(point.orchard),
-      ironwood: zatFromHistory(point.ironwood ?? 0),
-      transparent: zatFromHistory(point.transparent),
-      shielded: zatFromHistory(point.shielded),
-      chainSupply,
-      updatedAt: String(point.date),
-    };
-  }, [history, liveSnapshot, mode, scrubIndex]);
-
-  const topLevel = useMemo(
-    () =>
-      buildTopLevelSegments({
-        transparent: snapshot.transparent,
-        shielded: snapshot.shielded,
-        chainSupply: snapshot.chainSupply,
-        colors: {
-          transparent: colors.transparent,
-          shielded: colors.yellow,
-          unmined: colors.transparent,
-        },
-      }),
-    [snapshot, colors],
-  );
-
-  const shieldedChildren = useMemo(
-    () =>
-      buildShieldedPoolSegments({
-        sprout: snapshot.sprout,
-        sapling: snapshot.sapling,
-        orchard: snapshot.orchard,
-        ironwood: snapshot.ironwood,
-        colors: {
-          sprout: colors.sprout,
-          sapling: colors.sapling,
-          orchard: colors.orchard,
-          ironwood: colors.ironwood,
-        },
-      }),
-    [snapshot, colors],
-  );
-
-  const minedZec = zatToZec(snapshot.chainSupply);
-  const shieldedZec = zatToZec(snapshot.shielded);
-  const transparentZec = zatToZec(snapshot.transparent);
-  const unminedZec = zatToZec(Math.max(0, MAX_SUPPLY_ZAT - snapshot.chainSupply));
-  const shieldedPctOfMined = minedZec > 0 ? (shieldedZec / minedZec) * 100 : 0;
-  const shieldedDelta7d = formatDeltaZec(deltas, 'shielded', '7d');
-  const updatedLabel = formatUpdated(mode === 'live' ? current.updatedAt : snapshot.updatedAt);
-
-  const poolMeta = useMemo(
-    () =>
-      ({
-        transparent: { label: 'Transparent', color: colors.transparent, zat: snapshot.transparent },
-        shielded: { label: 'Shielded', color: colors.yellow, zat: snapshot.shielded },
-        unmined: { label: 'Unmined', color: colors.transparent, zat: MAX_SUPPLY_ZAT - snapshot.chainSupply },
-        sprout: { label: 'Sprout', color: colors.sprout, zat: snapshot.sprout },
-        sapling: { label: 'Sapling', color: colors.sapling, zat: snapshot.sapling },
-        orchard: { label: 'Orchard', color: colors.orchard, zat: snapshot.orchard },
-        ironwood: { label: 'Ironwood', color: colors.ironwood, zat: snapshot.ironwood },
-      }) satisfies Record<SupplyPoolKey, { label: string; color: string; zat: number }>,
-    [snapshot, colors],
-  );
-
-  const handleTogglePinShielded = useCallback(() => {
-    setPinnedShielded((prev) => {
-      if (prev) setHoveredKey(null);
-      return !prev;
-    });
-  }, []);
-
-  const shieldedBreakdown = useMemo(() => {
-    return SHIELDED_POOL_KEYS.filter((key) => poolMeta[key].zat > 0).map((key) => {
-      const meta = poolMeta[key];
-      const zec = zatToZec(meta.zat);
-      return {
-        key,
-        label: meta.label,
-        color: meta.color,
-        zec,
-        shieldedShare: shieldedZec > 0 ? (zec / shieldedZec) * 100 : 0,
-        capPct: (zec / CAP_ZEC) * 100,
-        delta7d: mode === 'live' ? formatDeltaZec(deltas, key, '7d') : null,
-      };
-    });
-  }, [poolMeta, shieldedZec, mode, deltas]);
-
-  const focusedPoolKey =
-    pinnedShielded && isShieldedPoolKey(hoveredKey) ? hoveredKey : null;
-
-  const showShieldedReadout =
-    pinnedShielded || hoveredKey === 'shielded' || focusedPoolKey != null;
-
-  const readout = useMemo(() => {
-    const scrubDate = mode === 'scrub' && history.length ? formatHistoryDate(history[scrubIndex].date) : null;
-
-    if (showShieldedReadout) {
-      return {
-        kind: 'shielded' as const,
-        pools: shieldedBreakdown,
-        focusedPoolKey,
-      };
-    }
-
-    if (hoveredKey === 'transparent' || hoveredKey === 'unmined') {
-      const meta = poolMeta[hoveredKey];
-      const zec = zatToZec(meta.zat);
-      return {
-        kind: 'segment' as const,
-        label: meta.label,
-        color: meta.color,
-        zec,
-        minedPct: minedZec > 0 ? (zec / minedZec) * 100 : 0,
-        capPct: (zec / CAP_ZEC) * 100,
-      };
-    }
-
-    return {
-      kind: 'idle' as const,
-      shieldedPctOfMined,
-      shieldedZec,
-      transparentZec,
-      unminedZec,
-      shieldedDelta7d: mode === 'live' ? shieldedDelta7d : null,
-      scrubDate,
-    };
-  }, [
-    showShieldedReadout,
-    focusedPoolKey,
-    hoveredKey,
-    poolMeta,
-    shieldedBreakdown,
-    shieldedPctOfMined,
-    shieldedZec,
-    shieldedDelta7d,
-    transparentZec,
-    unminedZec,
-    minedZec,
-    mode,
-    history,
-    scrubIndex,
-  ]);
-
-  const maxIndex = Math.max(0, history.length - 1);
-  const scrubDate =
-    mode === 'scrub' && history.length ? formatHistoryDate(history[scrubIndex].date) : null;
-  const historyDates = useMemo(() => history.map((p) => p.date), [history]);
-
-  const handleScrub = useCallback((index: number) => {
-    setScrubIndex(index);
-    setMode('scrub');
-  }, []);
-
-  const handleLive = useCallback(() => {
-    setMode('live');
-    setScrubIndex(maxIndex);
-  }, [maxIndex]);
-
-  const handleLegendPoolHover = useCallback(
-    (key: ShieldedPoolKey | null) => {
-      if (!pinnedShielded) return;
-      setHoveredKey(key ?? 'shielded');
-    },
-    [pinnedShielded],
-  );
-
-  const shareText = `${shieldedPctOfMined.toFixed(1)}% of mined ZEC is shielded (${formatZecCompact(shieldedZec)}). See the live supply map on ZecBlock.\n\nhttps://zecblock.com/pools`;
-
-  return (
-    <ShareableCard
-      title="Where every ZEC lives"
-      sourceHeight={0}
-      isLive={mode === 'live'}
-      shareText={shareText}
-      fileName="cipherscan-pools.png"
-      watermark={false}
-      className=""
-      footerNote={
-        updatedLabel
-          ? `${mode === 'live' ? 'LIVE' : scrubDate ?? 'SNAPSHOT'} · updated ${updatedLabel}`
-          : undefined
-      }
-    >
-      <p className="mb-4 max-w-2xl text-xs leading-relaxed text-secondary font-sans">
-        Public, private, and still unmined — mapped against the 21M cap. Hover{' '}
-        <span className="text-cipher-yellow">shielded</span> for the pool split · click to pin · hover a pool to
-        isolate.
-      </p>
-
-      <div
-        className="turnstile-hero overflow-hidden rounded-xl border border-cipher-border/30"
-        style={{ background: 'var(--turnstile-bg)' }}
-      >
-        <SupplyTreemap
-          topLevel={topLevel}
-          shieldedChildren={shieldedChildren}
-          hoveredKey={hoveredKey}
-          pinnedShielded={pinnedShielded}
-          onHover={setHoveredKey}
-          onTogglePinShielded={handleTogglePinShielded}
-        />
+  return <ShareableCard title="Where every ZEC lives" sourceHeight={0} isLive={false}
+    shareText={`${share == null ? '—' : share.toFixed(1) + '%'} of issued ZEC is held in shielded pools. Snapshot: ${dateLabel}.\n\nhttps://zecblock.com/pools`}
+    fileName="zecblock-pools.png" className=""
+    footerNote={`${point ? 'Historical' : 'Latest available'} snapshot · ${dateLabel}`}>
+    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-5">
+      <p className="max-w-2xl text-xs leading-relaxed text-secondary">Transparent balances, shielded pools and remaining issuance. Map labels show each share of the 21 million ZEC cap.</p>
+      <button type="button" aria-pressed={split} onClick={toggleSplit} className="shrink-0 self-start rounded-md border border-cipher-border px-3 py-2 text-caption font-mono text-secondary hover:bg-glass-3 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cipher-gold">
+        {split ? 'Hide pool split' : 'Show pool split'}
+      </button>
+    </div>
+    <div className="overflow-hidden rounded-lg border border-cipher-border">
+      <SupplyTreemap topLevel={topLevel} shieldedChildren={children} hoveredKey={hoveredKey} pinnedShielded={split} onHover={setHoveredKey} onTogglePinShielded={toggleSplit} />
+    </div>
+    <dl className="sm:hidden mt-4 space-y-2 text-caption font-mono">{topLevel.map(segment => <div key={segment.key} className="flex justify-between gap-2"><dt className="text-muted">{segment.label}</dt><dd className="text-secondary">{formatZecCompact(zatToZec(segment.zat))} ZEC · {(segment.zat / MAX_SUPPLY_ZAT * 100).toFixed(1)}%</dd></div>)}</dl>
+    <div className="flex flex-wrap gap-x-5 gap-y-2 mt-4 text-caption font-mono text-secondary">
+      <span><span className="text-primary">{share == null ? '—' : `${share.toFixed(1)}%`}</span> of issued supply is shielded</span>
+      {delta != null && Number.isFinite(delta) && <span><span className={delta >= 0 ? 'text-cipher-green' : 'text-cipher-orange'}>{delta >= 0 ? '+' : ''}{formatZecCompact(zatToZec(delta))} ZEC</span> net pool change · 7 days</span>}
+    </div>
+    <div className="mt-6 border-t border-cipher-border pt-5">
+      <div className="flex flex-wrap justify-between gap-2 mb-3 text-caption font-mono text-muted"><span>INSIDE SHIELDED</span><span>ZEC · share of shielded supply</span></div>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
+        {SHIELDED_POOL_KEYS.map(key => <button key={key} type="button"
+          onClick={() => { setSplit(true); setHoveredKey(key); }}
+          onMouseEnter={() => setHoveredKey(split ? key : 'shielded')} onMouseLeave={() => setHoveredKey(null)}
+          onFocus={() => setHoveredKey(split ? key : 'shielded')} onBlur={() => setHoveredKey(null)}
+          aria-label={`${key}, ${formatZecCompact(zatToZec(snapshot[key]))} ZEC. Show in pool split.`}
+          className={`min-w-0 rounded-lg p-3 text-left transition-colors hover:bg-glass-3 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cipher-gold ${hoveredKey === key ? 'bg-glass-3' : ''}`}>
+          <span className="flex items-center gap-2 text-caption text-secondary"><span className="w-2 h-2 rounded-full" style={{ background: poolColors[key] }} /><span className="capitalize">{key}</span></span>
+          <span className="block mt-2 text-sm font-mono tabular-nums text-primary">{formatZecCompact(zatToZec(snapshot[key]))} <span className="text-muted text-caption">ZEC</span></span>
+          <span className="block mt-1 text-caption font-mono text-muted">{snapshot.shielded > 0 ? `${(snapshot[key] / snapshot.shielded * 100).toFixed(1)}%` : '—'} of shielded</span>
+        </button>)}
       </div>
-
-      <div className="mt-3 min-h-[1.25rem]">
-        {readout.kind === 'idle' ? (
-          mode === 'live' && shieldedDelta7d ? (
-            <p className="text-caption font-mono tabular-nums text-muted">
-              <span className={shieldedDelta7d.zec >= 0 ? 'text-cipher-green' : 'text-cipher-orange'}>
-                {shieldedDelta7d.text}
-              </span>
-              {' shielded over 7 days · '}
-              {shieldedPctOfMined.toFixed(1)}% of mined supply is private
-            </p>
-          ) : readout.scrubDate ? (
-            <p className="text-caption font-mono text-muted">Snapshot · {readout.scrubDate}</p>
-          ) : null
-        ) : null}
-
-        {readout.kind === 'segment' ? (
-          <p className="text-sm font-mono tabular-nums text-secondary">
-            <span style={{ color: readout.color }}>{readout.label}</span>
-            {' · '}
-            {readout.minedPct.toFixed(1)}% of mined supply
-            {readout.label === 'Unmined' ? ' · not yet issued' : readout.label === 'Transparent' ? ' · public addresses' : null}
-          </p>
-        ) : null}
-
-        {readout.kind === 'shielded' ? (
-          <>
-            <p className="mb-2 text-caption font-mono uppercase tracking-wider text-muted">
-              Inside shielded
-              {pinnedShielded ? (
-                <>
-                  {' · '}
-                  <button
-                    type="button"
-                    onClick={handleTogglePinShielded}
-                    className="text-cipher-yellow/80 underline-offset-2 hover:text-cipher-yellow hover:underline"
-                  >
-                    click to unpin
-                  </button>
-                </>
-              ) : null}
-            </p>
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3">
-              {readout.pools.map((pool) => (
-                <SupplyLegendStat
-                  key={pool.key}
-                  label={pool.label}
-                  color={pool.color}
-                  zec={pool.zec}
-                  capPct={pool.capPct}
-                  active={readout.focusedPoolKey === pool.key}
-                  dimmed={readout.focusedPoolKey != null && readout.focusedPoolKey !== pool.key}
-                  footnote={`${pool.shieldedShare.toFixed(1)}% of shielded`}
-                  onMouseEnter={
-                    pinnedShielded ? () => handleLegendPoolHover(pool.key) : undefined
-                  }
-                  onMouseLeave={
-                    pinnedShielded ? () => handleLegendPoolHover(null) : undefined
-                  }
-                />
-              ))}
-            </div>
-          </>
-        ) : null}
-      </div>
-
-      <SupplyTimelineScrubber
-        historyDates={historyDates}
-        scrubIndex={scrubIndex}
-        mode={mode}
-        scrubDateLabel={scrubDate}
-        coverageStart={coverageStart}
-        onScrub={handleScrub}
-        onLive={handleLive}
-      />
-    </ShareableCard>
-  );
+    </div>
+    <SupplyTimelineScrubber historyDates={history.map(item => item.date)} scrubIndex={point ? history.indexOf(point) : history.length - 1}
+      mode={point ? 'scrub' : 'live'} scrubDateLabel={point ? dateLabel : null}
+      onScrub={index => setSelectedDate(history[index].date)} onLive={() => setSelectedDate(null)} />
+    {history.length < 2 && <p className="mt-5 border-t border-cipher-border pt-4 text-caption text-muted" role="status">{loading ? 'Loading historical snapshots…' : error ? 'Historical snapshots are temporarily unavailable.' : 'Not enough complete historical snapshots to enable the timeline.'}</p>}
+    <p className="mt-3 text-caption leading-relaxed text-muted">Pool balances are public aggregates; they do not reveal individual shielded balances. <a href="#methodology" className="underline underline-offset-4 hover:text-primary">Data &amp; definitions</a></p>
+  </ShareableCard>;
 }
 
 export function PoolOverviewSkeleton() {
