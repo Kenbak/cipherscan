@@ -172,7 +172,7 @@ function TerminalHero() {
   const renderText = (text: string) => {
     return text.split(/(\[shielded\]|\[encrypted — use viewing key\]|"[a-z_]+"(?=:))/).map((part, i) => {
       if (part === '[shielded]' || part === '[encrypted — use viewing key]')
-        return <span key={i} className="text-cipher-purple">{part}</span>;
+        return <span key={i} className="text-cipher-shielded">{part}</span>;
       if (/^"[a-z_]+"$/.test(part))
         return <span key={i} className="text-gold-600">{part}</span>;
       return <span key={i}>{part}</span>;
@@ -202,10 +202,10 @@ function TerminalHero() {
 function NetworkToggle({ value, onChange, accentColor = 'gold' }: {
   value: 'mainnet' | 'testnet';
   onChange: (v: 'mainnet' | 'testnet') => void;
-  accentColor?: 'gold' | 'purple' | 'default';
+  accentColor?: 'gold' | 'green' | 'default';
 }) {
-  const activeClass = accentColor === 'purple'
-    ? 'filter-btn-active !bg-cipher-purple !text-white !shadow-none'
+  const activeClass = accentColor === 'green'
+    ? 'filter-btn-active !bg-cipher-green !text-cipher-bg-dark light:!text-white !shadow-none'
     : accentColor === 'gold'
       ? 'filter-btn-active !bg-brand-gold !text-cipher-bg-dark !shadow-none'
       : 'filter-btn-active';
@@ -333,9 +333,9 @@ export default function LearnPage() {
               </div>
               <h3 className="font-semibold text-primary mb-2">Shielded Pools</h3>
               <p className="text-sm text-secondary leading-relaxed">
-                <strong className="text-cipher-gold">Ironwood</strong> is the latest pool — formally verified
+                <strong className="text-cipher-ironwood">Ironwood</strong> is the latest pool — formally verified
                 cryptography with a quantum-recoverable design.
-                Older pools (<strong className="text-cipher-purple">Orchard</strong>, <strong className="text-cipher-purple">Sapling</strong>)
+                Older pools (<strong className="text-cipher-purple">Orchard</strong>, <strong className="text-cipher-green">Sapling</strong>)
                 remain active. The transparent pool works like Bitcoin. Always shield your ZEC.
               </p>
               <Link href="/ironwood" className="inline-flex items-center gap-1 text-sm text-cipher-gold hover:text-cipher-green mt-3 transition-colors">
@@ -408,16 +408,16 @@ export default function LearnPage() {
             <Card variant="compact">
               <CardBody>
                 <div className="flex items-center gap-2 mb-3">
-                  <Icons.Lock className="w-4 h-4 text-cipher-purple" />
-                  <h3 className="font-semibold text-cipher-purple font-mono text-sm">Sapling (zs...)</h3>
+                  <Icons.Lock className="w-4 h-4 text-cipher-green" />
+                  <h3 className="font-semibold text-cipher-green font-mono text-sm">Sapling (zs...)</h3>
                 </div>
                 <p className="text-sm text-secondary mb-4 leading-relaxed">
                   Legacy shielded address. Fully private with encrypted memos.
                   Still widely supported by exchanges and wallets.
                 </p>
-                <NetworkToggle value={saplingNetwork} onChange={setSaplingNetwork} accentColor="purple" />
+                <NetworkToggle value={saplingNetwork} onChange={setSaplingNetwork} accentColor="green" />
                 <div className="relative group mt-3">
-                  <code className="text-xs text-cipher-purple break-all font-mono block bg-cipher-bg/50 p-3 rounded-lg border border-cipher-border">
+                  <code className="text-xs text-cipher-green break-all font-mono block bg-cipher-bg/50 p-3 rounded-lg border border-cipher-border">
                     {addressExamples[saplingNetwork].sapling}
                   </code>
                   <CopyButton text={addressExamples[saplingNetwork].sapling} />

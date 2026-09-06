@@ -1,6 +1,9 @@
+import { getPrivacyColors } from './privacy-palette';
+
 /** Assay information palette. Match semantic roles in app/globals.css. */
 export function getChartColors(theme: 'dark' | 'light') {
   const dark = theme === 'dark';
+  const privacy = getPrivacyColors(theme);
   const gold = dark ? '#F8BC21' : '#DB9E00';
   const iris = dark ? '#B6A0E0' : '#7040B5';
   const sage = dark ? '#91AC90' : '#14734B';
@@ -16,12 +19,12 @@ export function getChartColors(theme: 'dark' | 'light') {
     tooltipBg: dark ? '#111316' : '#FFFFFF',
     tooltipBorder: dark ? '#2C3037' : '#CED3DB',
     tooltipText: dark ? '#F1F3F5' : '#171A20',
-    ironwood: gold,
+    ironwood: privacy.ironwood,
     orchard: iris,
     sapling: sage,
     sprout: stone,
     transparent: steel,
-    shielded: iris,
+    shielded: privacy.shielded,
     shielding: dark ? '#65C79A' : '#14734B',
     deshielding: dark ? '#E2A66E' : '#A34F12',
     coinbase: steel,
@@ -29,7 +32,7 @@ export function getChartColors(theme: 'dark' | 'light') {
     yellow: gold,
     purple: iris,
     orchardPool: iris,
-    ironwoodPool: gold,
+    ironwoodPool: privacy.ironwood,
     verifiedRing: dark ? '#65C79A' : '#14734B',
     denominated: gold,
     distinctive: dark ? '#D58D86' : '#B13D38',

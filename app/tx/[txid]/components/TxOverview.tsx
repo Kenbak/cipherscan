@@ -170,7 +170,7 @@ export function TxOverview({ data }: TxOverviewProps) {
 
             {data.bindingSigSapling && (
               <FactBox label="Sapling Binding Signature" tooltip="Cryptographic proof that the transaction is balanced" className="w-full">
-                <code className="text-xs text-cipher-purple/70 break-all block font-mono">{data.bindingSigSapling}</code>
+                <code className="text-xs text-cipher-green break-all block font-mono">{data.bindingSigSapling}</code>
               </FactBox>
             )}
           </div>

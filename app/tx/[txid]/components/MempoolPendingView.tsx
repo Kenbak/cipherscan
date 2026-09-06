@@ -31,7 +31,7 @@ export function MempoolPendingView({
   const txTypeLabel =
     mempoolTx.type === 'shielded' ? 'SHIELDED' : mempoolTx.type === 'mixed' ? 'MIXED' : 'TRANSPARENT';
   const txTypeColor =
-    mempoolTx.type === 'shielded' ? 'purple' : mempoolTx.type === 'mixed' ? 'yellow' : 'gold';
+    mempoolTx.type === 'shielded' ? 'shielded' : 'muted';
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-12 animate-fade-in">
@@ -39,7 +39,7 @@ export function MempoolPendingView({
         <span className="text-xs font-mono text-muted tracking-wider">&gt; TX_DETAILS</span>
         <div className="flex items-center gap-3 mt-2">
           <StatusBadge status="pending" />
-          <Badge color={txTypeColor as any}>{txTypeLabel}</Badge>
+          <Badge color={txTypeColor}>{txTypeLabel}</Badge>
         </div>
         <div className="flex items-center gap-2 mt-3">
           <p className="text-sm sm:text-base font-mono text-primary break-all">{txid}</p>
@@ -134,7 +134,7 @@ export function MempoolPendingView({
           <div className="space-y-3">
             <div className="flex items-center justify-between py-2 border-b border-cipher-border">
               <span className="text-xs font-mono text-muted">Type</span>
-              <Badge color={txTypeColor as any}>{txTypeLabel}</Badge>
+              <Badge color={txTypeColor}>{txTypeLabel}</Badge>
             </div>
             <div className="flex items-center justify-between py-2 border-b border-cipher-border">
               <span className="text-xs font-mono text-muted">Size</span>

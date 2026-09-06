@@ -104,7 +104,7 @@ export default function NotFound() {
         <div className="mt-10">
           <p className="text-xs text-muted font-mono">
             Meanwhile, the Zcash network continues to process{' '}
-            <span className="text-cipher-purple">private transactions</span> at this very moment...
+            <span className="text-cipher-shielded">private transactions</span> at this very moment...
           </p>
         </div>
       </div>

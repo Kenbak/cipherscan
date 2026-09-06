@@ -63,8 +63,8 @@ function BandLabel({
 function segmentUsesLightLabel(segment: SupplySegmentInput, isDark: boolean): boolean {
   if (segment.hatch) return isDark;
   if (segment.key === 'transparent') return isDark;
-  // Iris uses a dark label in dark mode and a light label in light mode.
-  return !isDark;
+  // Aggregate shielded uses gold fills with a dark label in either theme.
+  return false;
 }
 
 function TopSegment({

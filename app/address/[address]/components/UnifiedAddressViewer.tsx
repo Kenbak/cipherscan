@@ -111,7 +111,7 @@ export function UnifiedAddressViewer({
                     </div>
                     {uaComponents.sapling_address ? (
                       <div className="flex items-start gap-2">
-                        <code className="text-xs text-cipher-purple break-all font-mono flex-1 leading-relaxed">{uaComponents.sapling_address}</code>
+                        <code className="text-xs text-cipher-green break-all font-mono flex-1 leading-relaxed">{uaComponents.sapling_address}</code>
                         <CopyButton text={uaComponents.sapling_address} label="sapling" copiedText={copiedText} onCopy={onCopy} />
                       </div>
                     ) : (

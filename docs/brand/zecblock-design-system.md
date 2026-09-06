@@ -78,8 +78,8 @@ Dark / light pairs:
 - Primary type: #F1F3F5 / #20221D. Secondary: #C2C7CF / #4F5448. Muted: #9CA4B0 / #666D5D. Do not add opacity to essential labels.
 - Border: #2C3037 / #D7DBCF. Subtle rule: #20242A / #E7E9E1.
 - Logo gold: #F8BC21 in both themes (supplied identity). Interactive/data gold: #F8BC21 / #866008. Filled buttons use logo gold with graphite text in both themes.
-- Shielded / Orchard / privacy: iris #B6A0E0 / #75628E.
-- Sapling: sage #91AC90 / #587652. Sprout: stone #7F897A / #64705F. Ironwood: gold. Transparent: steel #A1A9AD / #667278.
+- Aggregate shielded: gold #F8BC21 / #DB9E00, with text/outline ink #F8BC21 / #876000. Orchard: iris #B6A0E0 / #7040B5.
+- Sapling: sage #91AC90 / #587652. Sprout: stone #7F897A / #64705F. Ironwood: honey gold #E8CF78 / #BA8A1A, with text/outline ink #E8CF78 / #805D10. Transparent: steel #A1A9AD / #667278.
 - Success / inward shielding: sage #65C79A / #506F43. Deshielding / warning: clay #E2A66E / #92603D. Error / negative: rose-clay #D58D86 / #A74640.
 - Current/primary: gold. Secondary: steel. Comparison: iris only for privacy, otherwise sage/stone. Historical: muted steel, with dashed stroke when shown against current. Selected: existing series color at full opacity plus a neutral crosshair or outline. Never recolor a series to gold merely because it is hovered.
 
@@ -151,3 +151,8 @@ Latest alignment correction (2026-09-05): the owner identified a staircase betwe
 Masthead correction (2026-09-05): navigation categories now align immediately after the logo, with a 24px extra gap on lg screens; utilities remain right-aligned. This removes the centered navigation cluster that conflicted with the left-anchored stats and hero. Homepage search is capped at 800px while retaining the shared left edge. The previous full-width search decision is superseded.
 
 **Current owner preference — 2026-09-05:** restore the centered composition. Navigation categories and the desktop stats group are centered again. Hero uses a centered 800px column with centered heading and description; search contents and examples retain their natural left alignment within that column. The gold heading marker, concise copy, compact logo, current palette, typography and shared table containers are retained. This supersedes the preceding left-anchored layout experiments.
+
+
+### Privacy identity follow-up — 2026-09-07
+
+Gold is the shared shielded identity. Ironwood keeps a softer honey-gold pool identity permanently; Orchard remains purple, Sapling green, Sprout slate and transparent steel. Aggregate shielded and its child pools must be shown at separate levels or in separate views, never as additive competing series. Labels, shield/arrow shapes, patterns and pool names carry meaning alongside color; the subtle difference between the two golds is not a category key by itself. Small light-mode privacy labels/outlines use darker role-specific ink; chart fills and brand/action gold retain their documented colors. Generic gold/purple tokens must not be reassigned globally. Use `lib/privacy-palette.ts`, chart/flow adapters and CSS `cipher-shielded`/`cipher-ironwood` roles. Badge, transaction-category, pool registry, canvas and Three.js consumers share these identities. Miner reward outcomes use neutral held balances so held and shielded do not become two gold series.

@@ -29,12 +29,14 @@ export function MetricCard({
   /** Optional tiny chart rendered at the bottom of the card */
   sparkline?: ReactNode;
   /** Value color accent */
-  accent?: 'default' | 'gold' | 'green' | 'purple' | 'yellow' | 'orange';
+  accent?: 'shielded' | 'ironwood' | 'default' | 'gold' | 'green' | 'purple' | 'yellow' | 'orange';
   /** Compact uses smaller text for list page summaries */
   size?: 'default' | 'compact';
   className?: string;
 }) {
   const valueColor = {
+    shielded: 'text-cipher-shielded',
+    ironwood: 'text-cipher-ironwood',
     default: 'text-primary',
     gold: 'text-cipher-gold',
     green: 'text-cipher-green',

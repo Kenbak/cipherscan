@@ -69,7 +69,7 @@ const CATEGORIES: { key: Category; label: string }[] = [
 ];
 
 const CATEGORY_ACCENT: Record<string, string> = {
-  privacy: '#B6A0E0',
+  privacy: 'var(--color-shielded-state)',
   pools: '#91AC90',
   mining: '#E8C48D',
   network: '#A1A9AD',
@@ -356,9 +356,9 @@ function MempoolMiniViz() {
   }, []);
 
   const colors: Record<string, string> = {
-    shielded: '#B6A0E0',
-    mixed: '#91AC90',
-    transparent: '#f97316',
+    shielded: 'var(--color-shielded-state)',
+    mixed: 'rgb(var(--tx-mixed-rgb))',
+    transparent: 'rgb(var(--tx-transparent-rgb))',
   };
 
   return (

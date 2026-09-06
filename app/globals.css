@@ -38,6 +38,8 @@
   --color-brand-gold: var(--color-gold-accent);
   --color-cipher-green: rgb(var(--color-green-rgb));
   --color-cipher-purple: rgb(var(--color-purple-rgb));
+  --color-cipher-shielded: rgb(var(--color-shielded-rgb));
+  --color-cipher-ironwood: rgb(var(--color-ironwood-rgb));
   --color-cipher-yellow: rgb(var(--color-yellow-rgb));
   --color-cipher-orange: rgb(var(--color-orange-rgb));
 
@@ -172,7 +174,7 @@
 }
 
 /** ZecBlock / Assay. Specification: docs/brand/zecblock-design-system.md.
- * Gold = identity/action; iris = privacy; sage = success; clay = warning.
+ * Gold = identity/action/shielded; honey = Ironwood; iris = Orchard; sage = success; clay = warning.
  * Flat surfaces, precise rules, monospace data. No ambient decoration. */
 
 /* ===== CSS CUSTOM PROPERTIES ===== */
@@ -201,13 +203,17 @@
 
   /* Brand — RGB channels for Tailwind opacity support */
   --color-gold-rgb: 248 188 33;
+  --color-shielded-rgb: 248 188 33;
+  --color-shielded-ink: #F8BC21;
+  --color-ironwood-rgb: 232 207 120;
+  --color-ironwood-ink: #E8CF78;
   --color-green-rgb: 101 199 154;
   --color-yellow-rgb: 248 188 33;
   --color-purple-rgb: 182 160 224;
-  /* Transaction composition: neutral public/mixed, violet fully shielded. */
+  /* Transaction composition: neutral public/mixed, gold fully shielded. */
   --tx-transparent-rgb: 161 169 173;
   --tx-mixed-rgb: 100 110 125;
-  --tx-shielded-rgb: var(--color-purple-rgb);
+  --tx-shielded-rgb: var(--color-shielded-rgb);
   --color-orange-rgb: 226 166 110;
 
   /* Brand — hex shortcuts for use in custom CSS */
@@ -224,7 +230,7 @@
   /* Semantic flow colors — shield/deshield (matches ShieldFlowBadge) */
   --color-shielding: var(--color-green);
   --color-deshielding: var(--color-orange);
-  --color-shielded-state: var(--color-purple);
+  --color-shielded-state: rgb(var(--color-shielded-rgb));
 
   /* Semantic status colors — use text-danger/text-warning etc. in markup,
      never physical palette colors (text-red-400) for themeable UI */
@@ -418,6 +424,10 @@
 
   /* Brand — RGB channels for Tailwind opacity support */
   --color-gold-rgb: 219 158 0;
+  --color-shielded-rgb: 219 158 0;
+  --color-shielded-ink: #876000;
+  --color-ironwood-rgb: 186 138 26;
+  --color-ironwood-ink: #805D10;
   --color-green-rgb: 20 115 75;
   --color-yellow-rgb: 219 158 0;
   --color-purple-rgb: 112 64 181;
@@ -440,7 +450,7 @@
   /* Semantic flow colors — shield/deshield (matches ShieldFlowBadge) */
   --color-shielding: var(--color-green);
   --color-deshielding: var(--color-orange);
-  --color-shielded-state: var(--color-purple);
+  --color-shielded-state: rgb(var(--color-shielded-rgb));
 
   /* Semantic status colors — darker for light-surface contrast */
   --danger: #B13D38;
@@ -700,6 +710,9 @@
     color: var(--color-gold);
   }
 
+  .badge-shielded { background: rgb(var(--color-shielded-rgb) / 0.12); color: var(--color-shielded-ink); }
+  .badge-ironwood { background: rgb(var(--color-ironwood-rgb) / 0.12); color: var(--color-ironwood-ink); }
+
   .badge-purple {
     background: var(--badge-purple-bg);
     color: var(--color-purple);
@@ -763,6 +776,9 @@
   .badge-subtle.badge-gold .badge-icon {
     color: var(--color-gold);
   }
+
+  .badge-subtle.badge-shielded .badge-icon { color: var(--color-shielded-ink); }
+  .badge-subtle.badge-ironwood .badge-icon { color: var(--color-ironwood-ink); }
 
   .badge-subtle.badge-purple .badge-icon {
     color: var(--color-purple);
@@ -1143,7 +1159,7 @@
   }
 
   .tx-category-label { color: var(--color-text-muted); }
-  .tx-category-label[data-type='shielded'] { color: rgb(var(--tx-shielded-rgb)); }
+  .tx-category-label[data-type='shielded'] { color: var(--color-shielded-ink); }
 
   .tx-category-swatch {
     display: inline-block;
@@ -1155,10 +1171,14 @@
 
   /* Ambient/fullscreen views deliberately retain their dark canvas. */
   .mempool-visualization[data-immersive='true'] {
+    --color-shielded-rgb: 248 188 33;
+    --color-shielded-ink: #F8BC21;
+    --color-ironwood-rgb: 232 207 120;
+    --color-ironwood-ink: #E8CF78;
     --tx-transparent-rgb: 161 169 173;
     --tx-mixed-rgb: 100 110 125;
     --color-purple-rgb: 182 160 224;
-    --tx-shielded-rgb: var(--color-purple-rgb);
+    --tx-shielded-rgb: var(--color-shielded-rgb);
     --color-text-primary: #F1F3F5;
     --color-text-secondary: #C2C7CF;
     --color-text-muted: #9CA4B0;
@@ -1779,6 +1799,8 @@
 }
 
 @layer utilities {
+  .text-cipher-shielded { color: var(--color-shielded-ink); }
+  .text-cipher-ironwood { color: var(--color-ironwood-ink); }
   /* Cypherpunk scan line animation */
   @keyframes scan {
     0% {

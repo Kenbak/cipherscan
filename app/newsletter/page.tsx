@@ -116,7 +116,7 @@ export default function NewsletterPage() {
                 <div className="text-xs text-muted">Shielded pool flows, node stats, mining trends</div>
               </div>
               <div className="bg-cipher-bg/50 rounded-lg p-4">
-                <div className="text-cipher-purple text-sm font-mono font-semibold mb-1">Privacy</div>
+                <div className="text-cipher-shielded text-sm font-mono font-semibold mb-1">Privacy</div>
                 <div className="text-xs text-muted">Privacy tips, risk analysis, ecosystem insights</div>
               </div>
             </div>

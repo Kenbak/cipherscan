@@ -434,10 +434,10 @@ export function TurnstileHero(props: TurnstileHeroProps) {
           {sceneReady && (
             <>
               <div className="pointer-events-none absolute top-3 left-0 right-0 z-[2] text-center sm:top-4">
-                <div className="text-base font-semibold font-mono text-cipher-yellow-bright sm:text-xl">
+                <div className="text-base font-semibold font-mono text-cipher-ironwood sm:text-xl">
                   {mode === 'live' ? (activated ? 'LIVE' : 'PENDING') : sceneState.date || `Block ${sceneState.blockHeight.toLocaleString()}`}
                 </div>
-                <div className="mt-0.5 text-caption font-mono text-cipher-yellow-bright/60 sm:text-xs">
+                <div className="mt-0.5 text-caption font-mono text-cipher-ironwood sm:text-xs">
                   {sceneState.migratedPct.toFixed(1)}% migrated
                 </div>
               </div>
@@ -447,8 +447,8 @@ export function TurnstileHero(props: TurnstileHeroProps) {
                   <div className="text-sm font-mono font-semibold text-cipher-purple-bright/90">{sceneState.orchardLabel}</div>
                 </div>
                 <div className="text-right">
-                  <div className="text-caption font-mono text-cipher-yellow-bright">Migrated to Ironwood</div>
-                  <div className="text-sm font-mono font-semibold text-cipher-yellow-bright/90">{sceneState.ironwoodLabel}</div>
+                  <div className="text-caption font-mono text-cipher-ironwood">Migrated to Ironwood</div>
+                  <div className="text-sm font-mono font-semibold text-cipher-ironwood">{sceneState.ironwoodLabel}</div>
                 </div>
               </div>
             </>
@@ -473,9 +473,9 @@ export function TurnstileHero(props: TurnstileHeroProps) {
               <div className="mt-0.5 text-xs font-mono font-semibold tabular-nums text-cipher-purple-bright">{sceneState.orchardLabel}</div>
             </div>
             <div className="text-right">
-              <div className="text-caption font-mono uppercase tracking-wide text-cipher-yellow-bright/80">Ironwood</div>
-              <div className="text-caption font-mono text-cipher-yellow-bright/70">migrated</div>
-              <div className="mt-0.5 text-xs font-mono font-semibold tabular-nums text-cipher-yellow-bright">{sceneState.ironwoodLabel}</div>
+              <div className="text-caption font-mono uppercase tracking-wide text-cipher-ironwood">Ironwood</div>
+              <div className="text-caption font-mono text-cipher-ironwood">migrated</div>
+              <div className="mt-0.5 text-xs font-mono font-semibold tabular-nums text-cipher-ironwood">{sceneState.ironwoodLabel}</div>
             </div>
           </div>
         )}
@@ -503,7 +503,7 @@ export function TurnstileHero(props: TurnstileHeroProps) {
                     className="absolute inset-y-0 left-0 rounded-full transition-[width] duration-100"
                     style={{
                       width: `${mode === 'live' ? 100 : scrubPct}%`,
-                      background: `linear-gradient(90deg, #B6A0E0, #F8BC21)`,
+                      background: `linear-gradient(90deg, var(--color-purple), rgb(var(--color-ironwood-rgb)))`,
                     }}
                   />
                 </div>

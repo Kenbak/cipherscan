@@ -290,13 +290,13 @@ export function BlockFactsCard({
 
               {data.finalSaplingRoot && (
                 <FactBox label="Sapling Root" tooltip="Root hash of the Sapling note commitment tree after this block">
-                  <CopyableHash value={data.finalSaplingRoot} colorClass="text-cipher-purple" />
+                  <CopyableHash value={data.finalSaplingRoot} colorClass="text-cipher-green" />
                 </FactBox>
               )}
 
               {data.finalIronwoodRoot && (
                 <FactBox label="Ironwood Root" tooltip="Root hash of the Ironwood note commitment tree after this block">
-                  <CopyableHash value={data.finalIronwoodRoot} colorClass="text-cipher-yellow" />
+                  <CopyableHash value={data.finalIronwoodRoot} colorClass="text-cipher-ironwood" />
                 </FactBox>
               )}
             </div>

@@ -183,7 +183,7 @@ export default async function AboutPage() {
             {[
               { label: 'Blocks Indexed', value: fmt(stats.blocksIndexed), color: 'text-cipher-gold' },
               { label: 'Transactions Tracked', value: fmt(stats.totalTransactions), color: 'text-cipher-yellow' },
-              { label: 'Shielded TXs Analyzed', value: fmt(stats.shieldedTxAnalyzed), color: 'text-cipher-purple' },
+              { label: 'Shielded TXs Analyzed', value: fmt(stats.shieldedTxAnalyzed), color: 'text-cipher-shielded' },
               { label: 'Chain Data Indexed', value: stats.chainSizeGB ? `${stats.chainSizeGB} GB` : '...', color: 'text-cipher-green' },
               { label: 'API Endpoints', value: String(stats.apiEndpoints), color: 'text-primary' },
               { label: 'Mining Pools Tracked', value: String(stats.miningPools), color: 'text-cipher-orange' },

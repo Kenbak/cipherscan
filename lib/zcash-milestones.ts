@@ -1,3 +1,5 @@
+import { PRIVACY_PALETTE } from './privacy-palette';
+
 /** Mainnet protocol milestones for supply timeline scrubbers. Dates are UTC calendar days. */
 
 export interface ZcashMilestone {
@@ -14,7 +16,7 @@ export const ZCASH_SUPPLY_MILESTONES: ZcashMilestone[] = [
   { id: 'sprout', label: 'Sprout', date: ZCASH_LAUNCH_DATE, color: '#64748b' },
   { id: 'sapling', label: 'Sapling', date: '2018-12-18', color: '#91AC90' },
   { id: 'orchard', label: 'Orchard', date: '2022-05-31', color: '#B6A0E0' },
-  { id: 'ironwood', label: 'Ironwood', date: '2026-07-28', color: '#F8BC21' },
+  { id: 'ironwood', label: 'Ironwood', date: '2026-07-28', color: PRIVACY_PALETTE.dark.ironwood },
 ];
 
 export function milestonePositionPct(

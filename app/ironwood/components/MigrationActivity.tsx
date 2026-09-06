@@ -147,13 +147,13 @@ export function MigrationActivity({
         {/* Stats row */}
         {view === 'cohorts' && activeCohorts > 0 ? (
           <div className={statsRowClass}>
-            <span>Total migrated <span className="text-cipher-yellow-bright">{totalVolumeZec.toLocaleString(undefined, { maximumFractionDigits: 0 })} ZEC</span></span>
+            <span>Total migrated <span className="text-cipher-ironwood">{totalVolumeZec.toLocaleString(undefined, { maximumFractionDigits: 0 })} ZEC</span></span>
             <span>Peak cohort <span className="text-primary">{cohortPeak.toLocaleString(undefined, { maximumFractionDigits: 0 })} ZEC</span></span>
             <span>Active cohorts <span className="text-primary">{activeCohorts}</span>{avgCohort > 0 ? <span className="text-muted sm:hidden"> · avg {avgCohort.toFixed(1)} txs</span> : null}</span>
           </div>
         ) : view !== 'cohorts' && timeTotalTxs > 0 ? (
           <div className={statsRowClass}>
-            <span>Total migrated <span className="text-cipher-yellow-bright">{fmtValue(Math.round(timeTotalVolume * 1e8), currencyMode, zecPrice)}</span></span>
+            <span>Total migrated <span className="text-cipher-ironwood">{fmtValue(Math.round(timeTotalVolume * 1e8), currencyMode, zecPrice)}</span></span>
             <span>Peak {periodLabel} <span className="text-primary">{fmtValue(Math.round((timePeak?.volume ?? 0) * 1e8), currencyMode, zecPrice)}</span></span>
             <span>Transactions <span className="text-primary">{timeTotalTxs.toLocaleString()}</span></span>
           </div>

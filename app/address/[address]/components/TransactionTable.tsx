@@ -108,7 +108,7 @@ export function TransactionTable({
                         <div className="flex items-center gap-1 text-xs text-secondary font-mono">
                           {tx.isDeshielding ? (
                             <>
-                              <span className="text-cipher-purple flex items-center gap-1">
+                              <span className="text-cipher-shielded flex items-center gap-1">
                                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                                 </svg>
@@ -121,7 +121,7 @@ export function TransactionTable({
                             <>
                               <AddressDisplay address={address} className="text-xs truncate" />
                               <span className="text-muted">→</span>
-                              <span className="text-cipher-purple flex items-center gap-1">
+                              <span className="text-cipher-shielded flex items-center gap-1">
                                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                                 </svg>
@@ -130,7 +130,7 @@ export function TransactionTable({
                             </>
                           ) : tx.isShielded ? (
                             <>
-                              <span className="px-1.5 py-0.5 bg-cipher-purple/10 text-cipher-purple text-caption rounded font-mono flex items-center gap-1">
+                              <span className="px-1.5 py-0.5 bg-cipher-shielded/10 text-cipher-shielded text-caption rounded font-mono flex items-center gap-1">
                                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                                 </svg>
@@ -147,7 +147,7 @@ export function TransactionTable({
                           ) : (
                             <>
                               {tx.from === 'shielded' ? (
-                                <span className="text-cipher-purple flex items-center gap-1">
+                                <span className="text-cipher-shielded flex items-center gap-1">
                                   <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                                   </svg>
@@ -162,7 +162,7 @@ export function TransactionTable({
                               <span className="text-muted">→</span>
 
                               {tx.to === 'shielded' ? (
-                                <span className="text-cipher-purple flex items-center gap-1">
+                                <span className="text-cipher-shielded flex items-center gap-1">
                                   <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                                   </svg>
@@ -181,7 +181,7 @@ export function TransactionTable({
                       {/* Amount Column */}
                       <div className="col-span-2 text-right">
                         {(tx.isShielded && !tx.isDeshielding && !tx.isShielding) || tx.amount === 0 ? (
-                          <span className="text-xs text-cipher-purple font-mono flex items-center justify-end gap-1">
+                          <span className="text-xs text-cipher-shielded font-mono flex items-center justify-end gap-1">
                             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                             </svg>

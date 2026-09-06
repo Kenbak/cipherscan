@@ -100,7 +100,7 @@ export function IronwoodBanner() {
 
   const activatedCopy = (
     <span className="text-xs font-mono text-muted group-hover:text-secondary transition-colors">
-      <span className="text-cipher-yellow font-medium">Ironwood is live</span>
+      <span className="text-cipher-ironwood font-medium">Ironwood is live</span>
       <span className="text-muted mx-1.5">·</span>
       <span className="hidden sm:inline">
         {state.ironwoodZec.toLocaleString(undefined, { maximumFractionDigits: 0 })} ZEC migrated
@@ -114,7 +114,7 @@ export function IronwoodBanner() {
 
   const preActivationCopy = (
     <span className="text-xs font-mono text-muted group-hover:text-secondary transition-colors">
-      <span className="text-cipher-yellow font-medium">Ironwood</span>
+      <span className="text-cipher-ironwood font-medium">Ironwood</span>
       <span className="text-muted mx-1.5">·</span>
       {days > 0 ? `${days}d ${hours}h` : `${hours}h ${minutes}m`} remaining
       <span className="hidden sm:inline text-muted ml-1.5">

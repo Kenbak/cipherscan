@@ -3,16 +3,16 @@ export type ShieldedPoolKey = 'ironwood' | 'orchard' | 'sapling' | 'sprout';
 export interface PoolConfig {
   key: ShieldedPoolKey;
   label: string;
-  badgeColor: 'amber' | 'purple' | 'gold' | 'orange' | 'green';
+  badgeColor: 'ironwood' | 'purple' | 'green' | 'muted';
   textClass: string;
   bgClass: string;
 }
 
 export const SHIELDED_POOLS: PoolConfig[] = [
-  { key: 'ironwood', label: 'Ironwood', badgeColor: 'amber', textClass: 'text-cipher-yellow', bgClass: 'bg-cipher-yellow' },
-  { key: 'orchard', label: 'Orchard', badgeColor: 'green', textClass: 'text-cipher-green', bgClass: 'bg-cipher-green' },
-  { key: 'sapling', label: 'Sapling', badgeColor: 'gold', textClass: 'text-cipher-gold', bgClass: 'bg-brand-gold' },
-  { key: 'sprout', label: 'Sprout', badgeColor: 'orange', textClass: 'text-cipher-purple', bgClass: 'bg-cipher-purple' },
+  { key: 'ironwood', label: 'Ironwood', badgeColor: 'ironwood', textClass: 'text-cipher-ironwood', bgClass: 'bg-cipher-ironwood' },
+  { key: 'orchard', label: 'Orchard', badgeColor: 'purple', textClass: 'text-cipher-purple', bgClass: 'bg-cipher-purple' },
+  { key: 'sapling', label: 'Sapling', badgeColor: 'green', textClass: 'text-cipher-green', bgClass: 'bg-cipher-green' },
+  { key: 'sprout', label: 'Sprout', badgeColor: 'muted', textClass: 'text-muted', bgClass: 'bg-muted' },
 ];
 
 export function getPoolConfig(key: string): PoolConfig | undefined {

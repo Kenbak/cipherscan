@@ -70,17 +70,17 @@ const palettes = {
     amount: 'var(--color-text-primary)',
   },
   address: {
-    border: 'border-cipher-yellow/40',
-    bg: 'bg-cipher-yellow/10',
-    title: 'text-cipher-yellow',
-    label: 'var(--color-yellow, #F8BC21)',
+    border: 'border-cipher-border',
+    bg: 'bg-cipher-surface',
+    title: 'text-secondary',
+    label: 'var(--color-text-secondary)',
     amount: 'var(--color-text-primary)',
   },
   pool: {
-    border: 'border-cipher-purple/30',
-    bg: 'bg-cipher-purple/5',
-    title: 'text-cipher-purple',
-    label: 'var(--color-purple, #B6A0E0)',
+    border: 'border-cipher-shielded/30',
+    bg: 'bg-cipher-shielded/5',
+    title: 'text-cipher-shielded',
+    label: 'var(--color-shielded-ink)',
     amount: 'var(--color-text-primary)',
   },
 };
@@ -99,7 +99,7 @@ function GraphCardNode({ data }: NodeProps) {
       <div className={`rounded-xl border border-dashed px-5 py-3.5 backdrop-blur-sm ${palette.border} ${palette.bg}`}>
         <Handle type="target" position={Position.Left} className="!h-2.5 !w-2.5 !border-0 !bg-white/20 !rounded-full" />
         <div className="flex items-center gap-2">
-          <svg className="w-3.5 h-3.5 text-cipher-purple/50 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg className="w-3.5 h-3.5 text-cipher-shielded shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
           </svg>
           <p className={`text-caption font-mono uppercase tracking-[0.12em] ${palette.title} opacity-80`}>
@@ -195,8 +195,8 @@ function buildLayout(nodes: PrivacyGraphNode[], edges: GraphEdge[], focusNodeId?
 function edgeStroke(type: string): string {
   switch (type) {
     case 'PAIR_LINK': return 'var(--color-gold, #91AC90)';
-    case 'transparent_output': return 'var(--color-yellow, #E8C48D)';
-    case 'pool_entry': return 'var(--color-purple, #B6A0E0)';
+    case 'transparent_output': return 'var(--color-text-muted)';
+    case 'pool_entry': return 'var(--color-shielded-state)';
     default: return 'var(--color-cipher-blue)';
   }
 }

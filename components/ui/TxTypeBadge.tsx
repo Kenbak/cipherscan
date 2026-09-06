@@ -52,16 +52,15 @@ export type TxCategory =
 export const TX_CATEGORY_CONFIG: Record<TxCategory, { label: string; color: BadgeColor; icon: ReactNode }> = {
   coinbase: { label: 'COINBASE', color: 'green', icon: <CoinbaseIcon /> },
   migration: { label: 'MIGRATION', color: 'amber', icon: <MigrationIcon size={ICON_SIZE} /> },
-  ironwood: { label: 'IRONWOOD', color: 'amber', icon: <ShieldedIcon size={ICON_SIZE} /> },
+  ironwood: { label: 'IRONWOOD', color: 'ironwood', icon: <ShieldedIcon size={ICON_SIZE} /> },
   orchard: { label: 'ORCHARD', color: 'purple', icon: <ShieldedIcon size={ICON_SIZE} /> },
   orchard_sapling: { label: 'ORCHARD+SAPLING', color: 'purple', icon: <ShieldedIcon size={ICON_SIZE} /> },
   sapling: { label: 'SAPLING', color: 'green', icon: <ShieldedIcon size={ICON_SIZE} /> },
   // Generic "fully shielded, pool unknown/unspecified" — used where per-pool
   // detail isn't available or isn't the point (e.g. a mempool row before
-  // it's clear which pool dominates). Purple is the app's long-standing
-  // "privacy" association; it's fine as a fallback as long as nothing in
-  // the same view also uses purple to mean "Orchard specifically".
-  shielded: { label: 'SHIELDED', color: 'purple', icon: <ShieldedIcon size={ICON_SIZE} /> },
+  // it's clear which pool dominates). Gold identifies the aggregate privacy
+  // state; individual pool badges retain their own labeled identities.
+  shielded: { label: 'SHIELDED', color: 'shielded', icon: <ShieldedIcon size={ICON_SIZE} /> },
   shielding: { label: 'SHIELDING', color: 'green', icon: <ShieldingIcon size={ICON_SIZE} /> },
   unshielding: { label: 'UNSHIELDING', color: 'orange', icon: <UnshieldingIcon size={ICON_SIZE} /> },
   // Neither gets a "meaningful" color — mixed has no single direction, and

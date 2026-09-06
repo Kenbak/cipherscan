@@ -42,7 +42,7 @@ export function HashLink({
   full?: boolean;
   /** Table mode: shorter truncation (8/-4) on mobile, lead/tail on sm+ */
   responsive?: boolean;
-  /** Hover accent for links (purple for shielded contexts) */
+  /** Legacy hover accent option; shared link styling controls the hover color */
   accent?: 'gold' | 'purple';
   /** Extra classes on the link/code element itself */
   linkClassName?: string;

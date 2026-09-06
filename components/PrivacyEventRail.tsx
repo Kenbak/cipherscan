@@ -35,9 +35,9 @@ function toneClasses(tone: PrivacyEventPoint['tone']) {
   switch (tone) {
     case 'shield':
       return {
-        ring: 'ring-cipher-purple/40',
-        fill: 'bg-cipher-purple',
-        text: 'text-cipher-purple',
+        ring: 'ring-cipher-shielded/40',
+        fill: 'bg-cipher-shielded',
+        text: 'text-cipher-shielded',
       };
     case 'deshield':
       return {
@@ -114,7 +114,7 @@ export function PrivacyEventRail({
     return (
       <div className={`rounded-2xl border border-cipher-border bg-cipher-surface/20 p-4 ${className}`}>
         <div className="relative">
-          <div className="absolute left-4 right-4 top-2 h-px bg-gradient-to-r from-cipher-purple/40 via-cipher-gold/30 to-cipher-orange/40" />
+          <div className="absolute left-4 right-4 top-2 h-px bg-gradient-to-r from-cipher-shielded/40 via-cipher-gold/30 to-cipher-orange/40" />
           <div className="grid grid-cols-2 gap-6 pt-0">
             {ordered.map((point, index) => {
               const classes = toneClasses(point.tone);
@@ -153,7 +153,7 @@ export function PrivacyEventRail({
   return (
     <div className={`rounded-2xl border border-cipher-border bg-cipher-surface/20 p-4 ${className}`}>
       <div className="relative min-h-[122px]">
-        <div className="absolute left-4 right-4 top-10 h-px bg-gradient-to-r from-cipher-purple/40 via-cipher-gold/30 to-cipher-orange/40" />
+        <div className="absolute left-4 right-4 top-10 h-px bg-gradient-to-r from-cipher-shielded/40 via-cipher-gold/30 to-cipher-orange/40" />
         {ordered.map((point, index) => {
           const left = ordered.length === 1
             ? 0.5

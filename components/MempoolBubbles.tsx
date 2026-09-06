@@ -59,7 +59,7 @@ function readThemeColors(element?: HTMLElement | null, immersive = false) {
     return {
       brandGold: '248 188 33',
       transparent: '161 169 173',
-      shielded: '182 160 224',
+      shielded: '248 188 33',
       mixed: '100 110 125',
       isLight: false,
       labelText: 'rgba(255, 255, 255, 0.95)',
@@ -71,7 +71,7 @@ function readThemeColors(element?: HTMLElement | null, immersive = false) {
   return {
     brandGold: root.getPropertyValue('--color-gold-rgb').trim() || '248 188 33',
     transparent: root.getPropertyValue('--tx-transparent-rgb').trim() || '161 169 173',
-    shielded: root.getPropertyValue('--tx-shielded-rgb').trim() || '182 160 224',
+    shielded: root.getPropertyValue('--tx-shielded-rgb').trim() || '248 188 33',
     mixed: root.getPropertyValue('--tx-mixed-rgb').trim() || '100 110 125',
     isLight,
     labelText: isLight ? 'rgb(23, 26, 32)' : 'rgba(255, 255, 255, 0.92)',
@@ -872,7 +872,7 @@ export const MempoolBubbles = forwardRef<MempoolBubblesHandle, MempoolBubblesPro
               {(hoveredTx as any).ironwoodActions ? (
                 <div className="flex items-center justify-between gap-4">
                   <span className="text-muted">Ironwood</span>
-                  <span className="text-cipher-yellow font-mono">{(hoveredTx as any).ironwoodActions} actions</span>
+                  <span className="text-cipher-ironwood font-mono">{(hoveredTx as any).ironwoodActions} actions</span>
                 </div>
               ) : hoveredTx.orchardActions ? (
                 <div className="flex items-center justify-between gap-4">

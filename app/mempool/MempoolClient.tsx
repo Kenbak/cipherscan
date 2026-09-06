@@ -186,9 +186,9 @@ export default function MempoolClient() {
       {/* Stats Row */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-8 animate-fade-in-up stagger-2">
         <MetricCard label="Total TXs" value={data?.count ?? 0} hint="Pending in the node’s mempool" />
-        <MetricCard label="Shielded" value={summary.shielded} accent="purple" hint="Excludes mixed transactions" />
+        <MetricCard label="Shielded" value={summary.shielded} accent="shielded" hint="Excludes mixed transactions" />
         <MetricCard label="Transparent" value={summary.transparent} hint="Public inputs and outputs" />
-        <MetricCard label="Shielded share" value={summary.shieldedShare === null ? '—' : `${summary.shieldedShare}%`} accent="purple" hint="Shown TXs · includes mixed" />
+        <MetricCard label="Shielded share" value={summary.shieldedShare === null ? '—' : `${summary.shieldedShare}%`} accent="shielded" hint="Shown TXs · includes mixed" />
       </div>
 
       {/* Bubble Visualization - always mounted to avoid layout shift */}
@@ -278,7 +278,7 @@ export default function MempoolClient() {
         </svg>
         {view === 'bubbles' ? (
           <p className="leading-relaxed">
-            Showing {summary.shown} of {data?.count ?? 0} pending transactions. Each bubble represents one transaction. <span className="text-secondary">Radius</span> uses a compressed byte-size scale; <span className="text-secondary">color &amp; letter</span> mark the privacy type — <span className="tx-category-label font-mono" data-type="transparent">T</span> transparent, <span className="tx-category-label font-mono" data-type="mixed">M</span> mixed, <span className="text-cipher-purple font-mono">S</span> shielded. Hover to inspect, click to open, drag to fling. When a block is mined, a shockwave clears the confirmed transactions.
+            Showing {summary.shown} of {data?.count ?? 0} pending transactions. Each bubble represents one transaction. <span className="text-secondary">Radius</span> uses a compressed byte-size scale; <span className="text-secondary">color &amp; letter</span> mark the privacy type — <span className="tx-category-label font-mono" data-type="transparent">T</span> transparent, <span className="tx-category-label font-mono" data-type="mixed">M</span> mixed, <span className="text-cipher-shielded font-mono">S</span> shielded. Hover to inspect, click to open, drag to fling. When a block is mined, a shockwave clears the confirmed transactions.
           </p>
         ) : (
           <p className="leading-relaxed">
@@ -362,22 +362,22 @@ export default function MempoolClient() {
                           </td>
                           <td className="px-4 h-[44px] border-b border-cipher-border text-right hidden md:table-cell">
                             {tx.ironwoodActions && tx.ironwoodActions > 0 ? (
-                              <span className="font-mono text-xs text-cipher-yellow">{tx.ironwoodActions}<span className="text-muted ml-1">ironwood</span></span>
+                              <span className="font-mono text-xs text-cipher-ironwood">{tx.ironwoodActions}<span className="text-muted ml-1">ironwood</span></span>
                             ) : tx.orchardActions && tx.orchardActions > 0 ? (
                               <span className="font-mono text-xs text-cipher-purple">{tx.orchardActions}<span className="text-muted ml-1">orchard</span></span>
                             ) : tx.vShieldedSpend > 0 ? (
-                              <span className="font-mono text-xs text-cipher-gold">{tx.vShieldedSpend}<span className="text-muted ml-1">sapling</span></span>
+                              <span className="font-mono text-xs text-cipher-green">{tx.vShieldedSpend}<span className="text-muted ml-1">sapling</span></span>
                             ) : (
                               <span className="font-mono text-xs text-muted">{tx.vin}</span>
                             )}
                           </td>
                           <td className="px-4 h-[44px] border-b border-cipher-border text-right hidden md:table-cell">
                             {tx.ironwoodActions && tx.ironwoodActions > 0 ? (
-                              <span className="font-mono text-xs text-cipher-yellow">{tx.ironwoodActions}<span className="text-muted ml-1">ironwood</span></span>
+                              <span className="font-mono text-xs text-cipher-ironwood">{tx.ironwoodActions}<span className="text-muted ml-1">ironwood</span></span>
                             ) : tx.orchardActions && tx.orchardActions > 0 ? (
                               <span className="font-mono text-xs text-cipher-purple">{tx.orchardActions}<span className="text-muted ml-1">orchard</span></span>
                             ) : tx.vShieldedOutput > 0 ? (
-                              <span className="font-mono text-xs text-cipher-gold">{tx.vShieldedOutput}<span className="text-muted ml-1">sapling</span></span>
+                              <span className="font-mono text-xs text-cipher-green">{tx.vShieldedOutput}<span className="text-muted ml-1">sapling</span></span>
                             ) : (
                               <span className="font-mono text-xs text-muted">{tx.vout}</span>
                             )}
@@ -409,7 +409,7 @@ export default function MempoolClient() {
               <p className="text-secondary">Memory Pool of unconfirmed transactions waiting to be included in the next block.</p>
             </div>
             <div className="space-y-1">
-              <p className="font-medium text-cipher-purple">Shielded Transactions</p>
+              <p className="font-medium text-cipher-shielded">Shielded Transactions</p>
               <p className="text-secondary">Use zero-knowledge proofs to hide sender, receiver, and amount.</p>
             </div>
             <div className="space-y-1">
@@ -417,7 +417,7 @@ export default function MempoolClient() {
               <p className="text-secondary">Contain both transparent inputs or outputs and shielded activity; the category alone does not specify a flow direction.</p>
             </div>
             <div className="space-y-1">
-              <p className="font-medium text-cipher-purple">Shielded Share</p>
+              <p className="font-medium text-cipher-shielded">Shielded Share</p>
               <p className="text-secondary">Percentage of shown transactions using shielded pools, including mixed. Measures pool participation, not privacy quality.</p>
             </div>
           </div>

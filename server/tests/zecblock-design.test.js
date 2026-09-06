@@ -15,7 +15,8 @@ function load(file, imports = {}) {
   return module.exports;
 }
 
-const { getChartColors } = load('lib/chart-theme.ts');
+const privacyPalette = load('lib/privacy-palette.ts');
+const { getChartColors } = load('lib/chart-theme.ts', { './privacy-palette': privacyPalette });
 const { SupplyVerification } = load('app/ironwood/components/SupplyVerification.tsx', {
   '@/components/ShareableCard': { ShareableCard: ({ children }) => React.createElement('section', null, children) },
   '@/hooks/useCurrencyToggle': { fmtValue: (v) => String(v) },
@@ -111,4 +112,35 @@ test('unknown node readiness is never displayed as healthy or synced', () => {
   assert.equal(observationStatus({ healthy: false, ready: true }), 'Degraded');
   assert.equal(blockAgeLabel(0, 1000), 'unavailable');
   assert.equal(blockAgeLabel(2, 1000), 'ahead of local clock');
+});
+
+
+test('privacy identities agree across chart, flow, CSS and pool registries', () => {
+  const { getFlowColors } = load('lib/flow-colors.ts', { './privacy-palette': privacyPalette });
+  const { SHIELDED_POOLS } = load('lib/shielded-pools.ts');
+  const { Badge, StatusBadge } = load('components/ui/Badge.tsx');
+  assert.ok(renderToStaticMarkup(React.createElement(StatusBadge, { status: 'shielded' })).includes('badge-shielded'));
+  for (const [key, color] of [['ironwood', 'ironwood'], ['orchard', 'purple'], ['sapling', 'green'], ['sprout', 'muted']]) {
+    const pool = SHIELDED_POOLS.find(p => p.key === key);
+    assert.equal(pool.badgeColor, color);
+    assert.ok(renderToStaticMarkup(React.createElement(Badge, { color: pool.badgeColor }, pool.label)).includes(`badge-${color}`));
+  }
+  const css = fs.readFileSync(path.join(root, 'app/globals.css'), 'utf8');
+  for (const theme of ['dark', 'light']) {
+    const p = privacyPalette.getPrivacyColors(theme);
+    const c = getChartColors(theme);
+    assert.equal(c.shielded, p.shielded);
+    assert.equal(getFlowColors(theme).shielded, p.shielded);
+    assert.equal(c.ironwoodPool, p.ironwood);
+    assert.notEqual(c.shielded, c.ironwoodPool);
+    assert.notEqual(c.shielded, c.orchardPool);
+    const selector = theme === 'dark' ? ':root {' : '/* Light Theme Overrides */\n.light {';
+    const start = css.indexOf(selector) + selector.length;
+    const block = css.slice(start, css.indexOf('}', start));
+    for (const role of ['shielded', 'ironwood']) {
+      const rgb = p[role].slice(1).match(/../g).map(v => parseInt(v, 16)).join(' ');
+      assert.ok(block.includes(`--color-${role}-rgb: ${rgb};`));
+      assert.ok(block.includes(`--color-${role}-ink: ${p[`${role}Ink`]};`));
+    }
+  }
 });

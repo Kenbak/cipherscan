@@ -11,7 +11,7 @@ export const SHIELD_FLOW_LABELS: Record<ShieldFlowType, string> = {
 };
 
 export const SHIELD_FLOW_COLORS: Record<ShieldFlowType, string> = {
-  shielded: 'text-cipher-purple',
+  shielded: 'text-cipher-shielded',
   shielding: 'text-cipher-green',
   unshielding: 'text-cipher-orange',
   mixed: 'text-muted',

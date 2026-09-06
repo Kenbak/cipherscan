@@ -21,8 +21,8 @@ const SORTS = [
 
 // Destination segment palette
 const SEG = {
-  held: { color: '#F8BC21', label: 'Held' },
-  shielded: { color: '#B6A0E0', label: 'Shielded' },
+  held: { color: 'var(--color-text-muted)', label: 'Held' },
+  shielded: { color: 'var(--color-shielded-state)', label: 'Shielded' },
   offramp: { color: '#E2A66E', label: 'Exchange / bridge' },
   other: { color: '#6B7280', label: 'Other transparent' },
 };
@@ -126,7 +126,7 @@ export function ZodlClient({
       {/* Header */}
       <h1 className="type-page text-primary">Miner ZODL Leaderboard</h1>
       <p className="text-sm text-secondary mt-2 max-w-3xl leading-relaxed">
-        Every block mints new ZEC for whoever mined it. We follow the <span className="text-primary font-semibold">first move</span> those rewards make: still <span className="text-primary font-semibold">held</span>, swept into the <span style={{ color: SEG.shielded.color }} className="font-semibold">shielded pool</span>, or sent straight to an <span style={{ color: SEG.offramp.color }} className="font-semibold">exchange or bridge</span>. Shielding isn&apos;t selling — and as it turns out, most miners shield rather than dump.
+        Every block mints new ZEC for whoever mined it. We follow the <span className="text-primary font-semibold">first move</span> those rewards make: still <span className="text-primary font-semibold">held</span>, swept into the <span className="text-cipher-shielded font-semibold">shielded pool</span>, or sent straight to an <span style={{ color: SEG.offramp.color }} className="font-semibold">exchange or bridge</span>. Shielding isn&apos;t selling — and as it turns out, most miners shield rather than dump.
       </p>
 
       {/* Controls */}
@@ -165,8 +165,8 @@ export function ZodlClient({
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
           {[
             { label: 'Rewards mined', value: `${fmtZec(summary.totalEarnedZat)} ZEC`, color: 'text-primary' },
-            { label: 'Held (unspent)', value: `${(summary.networkHoldRatio * 100).toFixed(1)}%`, color: 'text-cipher-yellow-bright' },
-            { label: 'Shielded', value: `${(summary.networkShieldedRatio * 100).toFixed(1)}%`, color: '' , style: { color: SEG.shielded.color } },
+            { label: 'Held (unspent)', value: `${(summary.networkHoldRatio * 100).toFixed(1)}%`, color: 'text-secondary' },
+            { label: 'Shielded', value: `${(summary.networkShieldedRatio * 100).toFixed(1)}%`, color: 'text-cipher-shielded' },
             { label: 'To exchange / bridge', value: `${(summary.networkOfframpRatio * 100).toFixed(1)}%`, color: '', style: { color: SEG.offramp.color } },
           ].map((s) => (
             <div key={s.label} className="rounded-xl border border-cipher-border bg-cipher-surface p-4 min-w-0">
@@ -243,7 +243,7 @@ export function ZodlClient({
         <h3 className="text-xs font-mono font-semibold text-secondary uppercase tracking-wider mb-2">How we read it</h3>
         <p className="text-xs text-muted leading-relaxed">
           We attribute each coinbase reward to a pool by its payout address, then trace where those coins go when spent.
-          <span className="text-secondary"> Held</span> = never spent. <span style={{ color: SEG.shielded.color }}>Shielded</span> = swept into the shielded pool — a privacy move, not a sale, and likely still the miner&apos;s. <span style={{ color: SEG.offramp.color }}>Exchange / bridge</span> = sent to a labeled off-ramp, the clearest &ldquo;sold&rdquo; signal. <span className="text-secondary">Other transparent</span> = moved to an unlabeled address (rotation, cold storage, payouts) or not yet classified. We track the <span className="text-secondary">first hop</span> only: a pool that shields and later deshields to sell shows up here as &ldquo;shielded&rdquo; — where that money goes next is tracked on the <Link href="/turnstile" className="text-cipher-gold hover:underline">turnstile</Link> page. It&apos;s a directional read from public coinbase spends and our address labels, not an exact treasury.
+          <span className="text-secondary"> Held</span> = never spent. <span className="text-cipher-shielded">Shielded</span> = swept into the shielded pool — a privacy move, not a sale, and likely still the miner&apos;s. <span style={{ color: SEG.offramp.color }}>Exchange / bridge</span> = sent to a labeled off-ramp, the clearest &ldquo;sold&rdquo; signal. <span className="text-secondary">Other transparent</span> = moved to an unlabeled address (rotation, cold storage, payouts) or not yet classified. We track the <span className="text-secondary">first hop</span> only: a pool that shields and later deshields to sell shows up here as &ldquo;shielded&rdquo; — where that money goes next is tracked on the <Link href="/turnstile" className="text-cipher-gold hover:underline">turnstile</Link> page. It&apos;s a directional read from public coinbase spends and our address labels, not an exact treasury.
         </p>
       </div>
     </div>

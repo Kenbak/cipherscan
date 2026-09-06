@@ -31,7 +31,7 @@ export function AddressLoadingSkeleton({
           // type/balance/tx-count facts instead of a shimmer while the full
           // paginated transaction history loads client-side.
           <div className="flex flex-wrap items-center gap-2 mb-3">
-            <Badge color={initialMeta.type === 'shielded' ? 'purple' : 'muted'}>{typeLabel(initialMeta.type)}</Badge>
+            <Badge color={initialMeta.type === 'shielded' ? 'shielded' : 'muted'}>{typeLabel(initialMeta.type)}</Badge>
             {!initialMeta.isShielded && (
               <span className="text-xs font-mono text-secondary">
                 {initialMeta.balance.toFixed(4)} ZEC · {initialMeta.txCount.toLocaleString()} tx{initialMeta.txCount === 1 ? '' : 's'}

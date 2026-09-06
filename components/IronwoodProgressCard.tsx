@@ -78,7 +78,7 @@ export const IronwoodProgressCard = memo(function IronwoodProgressCard({ footer 
       <div className="card p-0 overflow-hidden flex flex-col" style={{ height: CARD_HEIGHT_PX }}>
         <div className="flex-1 flex flex-col items-center justify-center px-5 text-center">
           <p className="text-sm text-secondary font-mono mb-1">Ironwood activates in</p>
-          <p className="text-2xl font-semibold font-mono text-cipher-yellow tabular-nums">
+          <p className="text-2xl font-semibold font-mono text-cipher-ironwood tabular-nums">
             {data.blocksUntilActivation.toLocaleString()} blocks
           </p>
         </div>
@@ -99,7 +99,7 @@ export const IronwoodProgressCard = memo(function IronwoodProgressCard({ footer 
       <div className="px-5 py-4 flex-1 min-h-0">
         <span className="text-caption font-mono text-muted uppercase tracking-widest">ZEC Migrated to Ironwood</span>
         <div className="mt-1 flex items-baseline gap-1.5">
-          <span className="text-2xl sm:text-3xl font-semibold font-mono text-cipher-yellow tabular-nums">
+          <span className="text-2xl sm:text-3xl font-semibold font-mono text-cipher-ironwood tabular-nums">
             {formatZecCompact(ironwoodZec)}
           </span>
           <span className="text-sm text-muted font-mono">ZEC</span>

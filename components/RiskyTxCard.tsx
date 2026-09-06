@@ -195,8 +195,8 @@ export function RiskyTxCard({ tx }: RiskyTxCardProps) {
 
       <div className="grid grid-cols-[auto_1fr_auto] gap-y-0.5 items-center">
         <div className="flex items-center gap-1.5">
-          <div className="w-1.5 h-1.5 rounded-full bg-cipher-purple/70" />
-          <span className="text-caption font-mono font-medium text-cipher-purple uppercase tracking-wider">Shield</span>
+          <div className="w-1.5 h-1.5 rounded-full bg-cipher-shielded/70" />
+          <span className="text-caption font-mono font-medium text-cipher-shielded uppercase tracking-wider">Shield</span>
         </div>
         <div />
         <div className="flex items-center gap-1.5 justify-end">

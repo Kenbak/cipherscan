@@ -139,7 +139,7 @@ export function ProtocolStatsChart({ initialData }: { initialData?: ProtocolStat
                 {(current.ironwoodCommitments || 0) > 0 && (
                   <div className="text-caption font-mono">
                     <span className="text-muted">Ironwood tree: </span>
-                    <span className="text-cipher-gold font-semibold">{formatMillions(current.ironwoodCommitments)}</span>
+                    <span className="text-cipher-ironwood font-semibold">{formatMillions(current.ironwoodCommitments)}</span>
                   </div>
                 )}
               </>
@@ -156,7 +156,7 @@ export function ProtocolStatsChart({ initialData }: { initialData?: ProtocolStat
                 {(current.ironwoodNullifiers || 0) > 0 && (
                   <div className="text-caption font-mono">
                     <span className="text-muted">Ironwood nullifiers: </span>
-                    <span className="text-cipher-gold font-semibold">{formatMillions(current.ironwoodNullifiers)}</span>
+                    <span className="text-cipher-ironwood font-semibold">{formatMillions(current.ironwoodNullifiers)}</span>
                   </div>
                 )}
               </>

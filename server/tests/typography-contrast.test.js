@@ -14,7 +14,7 @@ function luminance(hex) {
 for(const [theme,selector] of [['dark',':root {'],['light','/* Light Theme Overrides */\n.light {']]) {
  test(`${theme} body and semantic text meet 4.5:1 on standard interactive surfaces (brand gold excluded in light mode)`,()=>{
   const t=tokens(selector);
-  for(const fg of ['--color-text-primary','--color-text-secondary','--color-text-muted','--color-gold','--color-green','--color-purple','--color-orange','--danger','--warning']) {
+  for(const fg of ['--color-text-primary','--color-text-secondary','--color-text-muted','--color-gold','--color-green','--color-purple','--color-orange','--color-shielded-ink','--color-ironwood-ink','--danger','--warning']) {
    // The owner explicitly selected #DB9E00 for light brand text as well as fills.
    // It is a documented contrast exception, not part of the body-text guarantee.
    if(theme === 'light' && fg === '--color-gold') continue;

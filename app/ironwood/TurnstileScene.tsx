@@ -16,11 +16,12 @@
 import { useMemo, useRef } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
+import { PRIVACY_PALETTE } from '@/lib/privacy-palette';
 
 const ORCHARD_DARK = new THREE.Color('#B6A0E0');
-const IRONWOOD_DARK = new THREE.Color('#F8BC21');
+const IRONWOOD_DARK = new THREE.Color(PRIVACY_PALETTE.dark.ironwood);
 const ORCHARD_LIGHT = new THREE.Color('#7040B5');
-const IRONWOOD_LIGHT = new THREE.Color('#DB9E00');
+const IRONWOOD_LIGHT = new THREE.Color(PRIVACY_PALETTE.light.ironwood);
 
 const ORCHARD_X = -2.7;
 const IRONWOOD_X = 2.7;

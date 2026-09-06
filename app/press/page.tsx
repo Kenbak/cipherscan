@@ -18,7 +18,9 @@ const BOILERPLATE =
 const COLORS = [
   { name: 'ZecBlock Gold', hex: '#F4B728', role: 'Supplied logotype / terminal dot' },
   { name: 'Graphite', hex: '#0B0C0E', role: 'Dark canvas' },
-  { name: 'Iris', hex: '#B6A0E0', role: 'Privacy and shielded activity' },
+  { name: 'Shielded gold', hex: '#F8BC21', role: 'Aggregate shielded privacy' },
+  { name: 'Ironwood honey', hex: '#E8CF78', role: 'Ironwood pool identity' },
+  { name: 'Iris', hex: '#B6A0E0', role: 'Orchard pool identity' },
 ] as const;
 
 const DOWNLOADS = [

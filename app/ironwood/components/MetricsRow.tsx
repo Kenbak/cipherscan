@@ -74,7 +74,7 @@ export function MetricsRow({
           {/* Badge */}
           <div className="flex items-center justify-center mb-6">
             <div className="inline-flex items-center gap-2 rounded-full border border-cipher-border/50 bg-glass-3 px-4 py-1.5">
-              <span className="w-2 h-2 rounded-full animate-pulse bg-cipher-yellow-bright" />
+              <span className="w-2 h-2 rounded-full animate-pulse bg-cipher-ironwood" />
               <span className="text-caption font-mono text-muted uppercase tracking-widest">
                 NU6.3 Ironwood {networkLabel}
               </span>
@@ -92,7 +92,7 @@ export function MetricsRow({
 
           {/* Blocks remaining */}
           <div className="text-center mt-6">
-            <div className="text-3xl sm:text-4xl font-semibold font-mono tracking-tight text-cipher-yellow-bright">
+            <div className="text-3xl sm:text-4xl font-semibold font-mono tracking-tight text-cipher-ironwood">
               {blocksLeft.toLocaleString()}
             </div>
             <div className="text-xs font-mono text-muted mt-1">blocks remaining</div>
@@ -113,7 +113,7 @@ export function MetricsRow({
             </div>
             <div className="flex justify-between mt-1.5 text-caption font-mono text-muted">
               <span>block {tipHeight.toLocaleString()}</span>
-              <span className="text-cipher-yellow-bright">{activationHeight.toLocaleString()}</span>
+              <span className="text-cipher-ironwood">{activationHeight.toLocaleString()}</span>
             </div>
           </div>
 
@@ -161,8 +161,7 @@ export function MetricsRow({
         <a href="#supply" className="block border-b border-cipher-border-subtle px-4 py-4 transition-colors active:bg-cipher-hover">
           <div className="font-mono text-caption uppercase tracking-wider text-muted">Migrated today</div>
           <div
-            className="mt-1 text-2xl font-semibold font-mono tabular-nums tracking-tight"
-            style={{ color: colors.ironwoodPool }}
+            className="mt-1 text-2xl font-semibold font-mono tabular-nums tracking-tight text-cipher-ironwood"
           >
             {todayValue}
           </div>

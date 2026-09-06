@@ -681,10 +681,10 @@ export default function DecodeClient() {
                   </div>
 
                 {/* Privacy notice */}
-                <div className="flex items-start gap-3 p-3 rounded-lg border border-cipher-purple/20 bg-cipher-purple/5 mb-4">
-                  <span className="text-cipher-purple mt-0.5"><Icons.Shield /></span>
+                <div className="flex items-start gap-3 p-3 rounded-lg border border-cipher-shielded/20 bg-cipher-shielded/5 mb-4">
+                  <span className="text-cipher-shielded mt-0.5"><Icons.Shield /></span>
                   <div>
-                    <p className="text-sm font-semibold text-cipher-purple mb-0.5">Privacy Protection Active</p>
+                    <p className="text-sm font-semibold text-cipher-shielded mb-0.5">Privacy Protection Active</p>
                     <p className="text-xs text-secondary">
                       Addresses and amounts are encrypted using zero-knowledge proofs.
                     </p>
@@ -738,7 +738,7 @@ export default function DecodeClient() {
 
                     {/* Orchard Actions */}
                     {result.orchardActions > 0 && (
-                      <div className="shielded-input-row p-4 rounded-lg border border-cipher-purple/20">
+                      <div className="shielded-input-row p-4 rounded-lg border border-cipher-shielded/20">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <TxTypeBadge category="orchard" icon={<Icons.Shield />} label="ORCHARD ACTIONS" />
@@ -756,7 +756,7 @@ export default function DecodeClient() {
 
                     {/* Orchard Value Balance */}
                     {result.valueBalanceOrchard !== undefined && result.valueBalanceOrchard !== 0 && (
-                      <div className="shielded-input-row p-4 rounded-lg border border-cipher-purple/20">
+                      <div className="shielded-input-row p-4 rounded-lg border border-cipher-shielded/20">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <TxTypeBadge category="orchard" icon={<Icons.Currency />} label="ORCHARD VALUE BALANCE" />

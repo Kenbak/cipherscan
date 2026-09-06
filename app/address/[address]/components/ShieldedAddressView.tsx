@@ -84,25 +84,25 @@ export function ShieldedAddressView({
       {/* Privacy Status Card */}
       <Card className="mb-6 overflow-hidden relative animate-fade-in-up stagger-3">
         {/* Atmospheric overlays */}
-        <div className="absolute inset-0 bg-gradient-to-br from-cipher-purple/[0.06] via-transparent to-cipher-gold/[0.02] pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-br from-cipher-shielded/[0.06] via-transparent to-cipher-gold/[0.02] pointer-events-none" />
         <div className="absolute inset-0 bg-[repeating-linear-gradient(45deg,transparent,transparent_10px,rgb(var(--color-purple-rgb)_/_0.015)_10px,rgb(var(--color-purple-rgb)_/_0.015)_20px)] pointer-events-none" />
         {/* Scan line */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute w-full h-[2px] bg-gradient-to-r from-transparent via-cipher-purple/30 to-transparent animate-scan" />
+          <div className="absolute w-full h-[2px] bg-gradient-to-r from-transparent via-cipher-shielded/30 to-transparent animate-scan" />
         </div>
 
         <CardBody className="relative">
           <div className="flex items-center gap-2 mb-6">
             <span className="text-xs font-mono text-muted tracking-wider">&gt; PRIVACY_STATUS</span>
             <div className="flex items-center gap-1.5 ml-auto">
-              <div className="w-1.5 h-1.5 rounded-full bg-cipher-purple animate-pulse" />
-              <span className="text-caption font-mono text-cipher-purple uppercase tracking-wider">Protected</span>
+              <div className="w-1.5 h-1.5 rounded-full bg-cipher-shielded animate-pulse" />
+              <span className="text-caption font-mono text-cipher-shielded uppercase tracking-wider">Protected</span>
             </div>
           </div>
 
           <div className="flex items-start gap-4 mb-8">
-            <div className="w-12 h-12 rounded-xl bg-cipher-purple/10 border border-cipher-purple/20 flex items-center justify-center flex-shrink-0">
-              <svg className="w-6 h-6 text-cipher-purple" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="w-12 h-12 rounded-xl bg-cipher-shielded/10 border border-cipher-shielded/20 flex items-center justify-center flex-shrink-0">
+              <svg className="w-6 h-6 text-cipher-shielded" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
               </svg>
             </div>
@@ -111,7 +111,7 @@ export function ShieldedAddressView({
                 Privacy by Design
               </h2>
               <p className="text-sm text-secondary leading-relaxed">
-                This address uses <span className="text-cipher-purple font-medium">zero-knowledge proofs</span> to encrypt all transaction data.
+                This address uses <span className="text-cipher-shielded font-medium">zero-knowledge proofs</span> to encrypt all transaction data.
                 Balance and history are only visible to holders of the viewing key.
               </p>
             </div>
@@ -125,15 +125,15 @@ export function ShieldedAddressView({
               { label: 'LAST_ACTIVE', redacted: '████-██-██' },
               { label: 'MEMO_FIELD', redacted: '██████████████' },
             ].map((field) => (
-              <div key={field.label} className="flex items-center gap-3 p-3 rounded-lg bg-cipher-purple/[0.04] border border-cipher-purple/[0.08]">
-                <svg className="w-3.5 h-3.5 text-cipher-purple flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div key={field.label} className="flex items-center gap-3 p-3 rounded-lg bg-cipher-shielded/[0.04] border border-cipher-shielded/[0.08]">
+                <svg className="w-3.5 h-3.5 text-cipher-shielded flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                 </svg>
                 <div className="flex-1 min-w-0">
                   <span className="text-caption text-muted font-mono uppercase tracking-wider block">{field.label}</span>
-                  <span className="text-xs text-cipher-purple/40 font-mono tracking-tight">{field.redacted}</span>
+                  <span className="text-xs text-cipher-shielded font-mono tracking-tight">{field.redacted}</span>
                 </div>
-                <span className="text-caption text-cipher-purple/60 font-mono uppercase">encrypted</span>
+                <span className="text-caption text-cipher-shielded font-mono uppercase">encrypted</span>
               </div>
             ))}
           </div>
@@ -141,8 +141,8 @@ export function ShieldedAddressView({
           {/* Privacy feature badges */}
           <div className="flex flex-wrap gap-2">
             {['Zero-Knowledge Proofs', 'Encrypted Amounts', 'Hidden Parties', 'Private Memos'].map((feature) => (
-              <span key={feature} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-cipher-purple/[0.06] border border-cipher-purple/[0.08] text-caption text-cipher-purple-glow font-mono">
-                <svg className="w-3 h-3 text-cipher-purple" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <span key={feature} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-cipher-shielded/[0.06] border border-cipher-shielded/[0.08] text-caption text-cipher-shielded font-mono">
+                <svg className="w-3 h-3 text-cipher-shielded" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
                 {feature}

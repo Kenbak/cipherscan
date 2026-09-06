@@ -1,6 +1,8 @@
+import { getPrivacyColors } from './privacy-palette';
+
 /**
  * Semantic colors for shield/deshield flows and turnstile outcomes.
- * Matches ShieldFlowBadge: green = into privacy, orange = out of privacy, purple = shielded state.
+ * Matches ShieldFlowBadge: green = into privacy, orange = out of privacy, gold = shielded state.
  */
 
 export type FlowTheme = 'dark' | 'light';
@@ -23,7 +25,7 @@ export function getFlowColors(theme: FlowTheme): FlowColors {
   return {
     shielding: isDark ? '#65C79A' : '#14734B',
     deshielding: isDark ? '#E2A66E' : '#A34A16',
-    shielded: isDark ? '#B6A0E0' : '#7040B5',
+    shielded: getPrivacyColors(theme).shielded,
     netFlow: isDark ? '#B6A0E0' : '#7040B5',
     // Turnstile outcomes — held uses ZEC yellow to distinguish from transferred slate
     held: isDark ? '#F8BC21' : '#DB9E00',
