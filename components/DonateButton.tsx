@@ -1,6 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { containDialogFocus } from '@/lib/dialog-focus';
+import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
 import { createPortal } from 'react-dom';
 import { QRCodeSVG } from 'qrcode.react';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -16,6 +18,7 @@ interface DonateButtonProps {
 }
 
 export function DonateButton({ compact = false, variant = 'default' }: DonateButtonProps) {
+  const modalRef = useRef<HTMLDialogElement>(null);
   const [showModal, setShowModal] = useState(false);
   const [copied, setCopied] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -26,13 +29,13 @@ export function DonateButton({ compact = false, variant = 'default' }: DonateBut
     setMounted(true);
   }, []);
 
+  useBodyScrollLock(showModal);
+
   useEffect(() => {
-    if (showModal) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = '';
-    }
-    return () => { document.body.style.overflow = ''; };
+    const dialog = modalRef.current;
+    if (!showModal || !dialog) return;
+    dialog.showModal();
+    return () => dialog.close();
   }, [showModal]);
 
   const copyAddress = async () => {
@@ -59,14 +62,18 @@ export function DonateButton({ compact = false, variant = 'default' }: DonateBut
   const clearZone = Math.round(qrSize * 0.25);
 
   const modalContent = showModal ? (
-    <div
-      className="fixed inset-0 modal-backdrop backdrop-blur-sm flex items-center justify-center z-[9999] p-4"
+    <dialog
+      ref={modalRef}
+      aria-label="Support ZecBlock"
+      onKeyDown={containDialogFocus}
+      onCancel={event => { event.stopPropagation(); setShowModal(false); }}
+      className="fixed inset-0 m-0 w-full max-w-none h-dvh max-h-none border-0 modal-backdrop backdrop-blur-sm flex items-center justify-center p-4"
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) setShowModal(false);
       }}
     >
       <div
-        className="modal-content max-w-sm w-full animate-scale-in relative overflow-hidden"
+        className="modal-content max-w-sm w-full max-h-full overflow-y-auto animate-scale-in relative"
         onMouseDown={(e) => e.stopPropagation()}
       >
         {/* Scan line effect */}
@@ -89,6 +96,9 @@ export function DonateButton({ compact = false, variant = 'default' }: DonateBut
               </p>
             </div>
             <button
+              type="button"
+              autoFocus
+              aria-label="Close support dialog"
               onClick={() => setShowModal(false)}
               className="w-7 h-7 rounded flex items-center justify-center text-muted hover:text-primary transition-colors flex-shrink-0"
             >
@@ -174,7 +184,7 @@ export function DonateButton({ compact = false, variant = 'default' }: DonateBut
           </p>
         </div>
       </div>
-    </div>
+    </dialog>
   ) : null;
 
   return (
