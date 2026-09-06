@@ -50,7 +50,13 @@ export function PageLoadingBody({ layout }: { layout: LoadingLayout }) {
     <Skeleton className="h-[132px] sm:h-[156px] w-full" />
     <div className="sm:hidden mt-4 space-y-2">{Array.from({ length: 3 }, (_, i) => <Skeleton key={i} className="h-4 w-full" />)}</div><Skeleton className="h-5 w-1/2 mt-3" />
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 border-t border-cipher-border mt-6 pt-5">{Array.from({ length: 4 }, (_, i) => <div key={i} className="p-3"><Skeleton className="h-4 w-20 mb-2" /><Skeleton className="h-5 w-28 mb-2" /><Skeleton className="h-4 w-24" /></div>)}</div>
-    <Skeleton className="h-32 w-full mt-5" /><Skeleton className="h-4 w-2/3 mt-3" />
+    <div className="mt-5 border-t border-cipher-border pt-5">
+      <div className="mb-3 flex flex-wrap justify-between gap-3"><Skeleton className="h-5 w-44" /><Skeleton className="h-8 w-28" /></div>
+      <Skeleton className="h-6 w-full" />
+      <div className="mt-2 flex justify-between"><Skeleton className="h-4 w-24" /><Skeleton className="h-4 w-24" /></div>
+      <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-2">{Array.from({ length: 4 }, (_, i) => <div key={i} className="p-3"><Skeleton className="h-4 w-20" /><Skeleton className="mt-1 h-4 w-24" /></div>)}</div>
+      <Skeleton className="mt-3 h-4 w-2/3" /><Skeleton className="mt-2 h-4 w-3/4" />
+    </div><Skeleton className="h-4 w-2/3 mt-3" />
   </div></div></LoadingRegion>;
   if (layout === 'wallets') return <LoadingRegion><ControlsSkeleton /><Skeleton className="h-6 w-48 mb-3" /><Skeleton className="h-4 w-2/3 mb-6" /><MetricSkeletons labels={['Standard fee', 'Priority fee (4x)', 'Custom fee']} columns={1} className="md:grid-cols-3 mb-6" /><ChartCardSkeleton /></LoadingRegion>;
   return <LoadingRegion><ControlsSkeleton /><div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">{Array.from({ length: 9 }, (_, i) => <ChartCardSkeleton key={i} height={180} />)}</div></LoadingRegion>;

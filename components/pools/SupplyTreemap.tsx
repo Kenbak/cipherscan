@@ -2,7 +2,7 @@
 
 import { useRef } from 'react';
 import { useTheme } from '@/contexts/ThemeContext';
-import { formatZecCompact } from '@/lib/format-numbers';
+import { usePoolCurrency } from './PoolCurrency';
 import {
   MAX_SUPPLY_ZAT,
   isShieldedPoolKey,
@@ -39,6 +39,7 @@ function BandLabel({
   mode: SegmentLabelMode;
   onDarkFill: boolean;
 }) {
+  const { format } = usePoolCurrency();
   if (mode === 'none') return null;
 
   const titleClass = onDarkFill ? 'text-white' : 'text-cipher-bg-dark';
@@ -51,7 +52,7 @@ function BandLabel({
       {mode === 'full' ? (
         <>
           <span className={`mt-0.5 text-caption font-mono tabular-nums sm:text-caption ${valueClass}`}>
-            {zat === 0 ? '0 ZEC' : `${formatZecCompact(zat / 1e8)} ZEC`}
+            {format(zat / 1e8)}
           </span>
           <span className={`mt-0.5 text-caption font-mono tabular-nums ${pctClass}`}>{capPct.toFixed(1)}%</span>
         </>
@@ -86,6 +87,7 @@ function TopSegment({
   className?: string;
   style?: React.CSSProperties;
 }) {
+  const { format } = usePoolCurrency();
   const ref = useRef<HTMLButtonElement>(null);
   const capPct = (segment.zat / MAX_SUPPLY_ZAT) * 100;
   const labelMode = useSegmentLabelMode(ref, capPct);
@@ -104,7 +106,7 @@ function TopSegment({
       onFocus={() => onHover(segment.key)}
       onBlur={() => onHover(null)}
       onClick={onClick}
-      aria-label={`${segment.label}, ${formatZecCompact(segment.zat / 1e8)} ZEC, ${capPct.toFixed(1)} percent of cap`}
+      aria-label={`${segment.label}, ${format(segment.zat / 1e8)}, ${capPct.toFixed(1)} percent of cap`}
     >
       {segment.hatch ? (
         <div
