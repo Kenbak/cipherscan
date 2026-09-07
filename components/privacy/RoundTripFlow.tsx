@@ -52,6 +52,23 @@ function PublicAddresses({ addresses, side }: { addresses: string[]; side: 'From
   );
 }
 
+function PossibleLink({ tx }: { tx: RiskyTransaction }) {
+  const inputs = [...new Set(tx.shieldAddresses || [])];
+  const outputs = [...new Set(tx.deshieldAddresses || [])];
+  const address = (value: string) => <HashLink value={value} href={`/address/${value}`} lead={8} tail={6} copy={false} linkClassName="font-mono text-xs text-primary hover:underline" />;
+
+  return <div className={styles.caveat}>
+    <p className={styles.caveatLabel}>
+      {inputs.length === 1 && outputs.length === 1 ? <>
+        Possible link between {address(inputs[0])} and {address(outputs[0])}.
+      </> : inputs.length && outputs.length ? <>
+        Possible link between {inputs.length} public input {inputs.length === 1 ? 'address' : 'addresses'} and {outputs.length} public output {outputs.length === 1 ? 'address' : 'addresses'}.
+      </> : 'Possible link between these public events.'}
+    </p>
+    <p className={styles.caveatDetail}>Not proven. Matching observations do not establish a transfer or common ownership.</p>
+  </div>;
+}
+
 function Endpoint({
   direction,
   pool,
@@ -71,11 +88,10 @@ function Endpoint({
   const Icon = shielding ? ShieldingIcon : UnshieldingIcon;
   return (
     <div className={styles.stage}>
-      {/* Icon carries the direction colour; the label stays neutral. */}
+      <span className={`${styles.endpointMarker} ${shielding ? 'text-cipher-green' : 'text-cipher-orange'}`} aria-hidden="true">
+        <Icon size={18} />
+      </span>
       <p className={styles.stageKey}>
-        <span className={shielding ? 'text-cipher-green' : 'text-cipher-orange'} aria-hidden="true">
-          <Icon size={15} />
-        </span>
         {shielding ? 'Shielding' : 'Deshielding'}
         <span className="text-muted"> · {pool || (shielding ? 'into pool' : 'out of pool')}</span>
       </p>
@@ -150,10 +166,7 @@ export function RoundTripFlow({ tx }: { tx: RiskyTransaction }) {
       {/* Limitations sit below the flow rather than inside a step: they qualify
           the whole inference, and interleaving them with step data made every
           column read as an undifferentiated stack. */}
-      <p className={styles.caveat}>
-        <span className={styles.caveatLabel}>Possible link, not proven.</span>{' '}
-        These public events may belong to different owners.
-      </p>
+      <PossibleLink tx={tx} />
     </>
   );
 }

@@ -1,8 +1,8 @@
 /* Round-trip flow.
    Mobile: one column with a vertical rail down the left.
    Desktop: two endpoint panels either side of a centred rail.
-   Desktop endpoint blocks are centred in equal-width columns; their labels
-   and values remain left-aligned for scanning. */
+   Desktop markers and amounts share three equal columns. Label/value rows
+   retain their own left-aligned grid beneath each endpoint. */
 
 .flow {
   position: relative;
@@ -36,17 +36,18 @@
   letter-spacing: 0.035em;
   text-transform: uppercase;
   color: var(--color-text-primary);
-  margin-left: -26px;
 }
 
-/* The icon sits on the rail. */
-.stageKey > span:first-child {
+.endpointMarker {
+  position: absolute;
+  left: 0;
+  top: 0;
   display: flex;
   align-items: center;
   justify-content: center;
   width: 15px;
-  flex-shrink: 0;
-  background: var(--color-surface);
+  height: 20px;
+  background: var(--color-surface-solid);
 }
 
 .amount {
@@ -153,23 +154,29 @@
 }
 
 .caveatLabel {
-  color: var(--color-text-secondary);
+  color: var(--color-text-primary);
+}
+
+.caveatDetail {
+  margin-top: 4px;
 }
 
 @media (min-width: 900px) {
   .flow {
-    grid-template-columns: minmax(0, 1fr) minmax(180px, 0.55fr) minmax(0, 1fr);
-    gap: 32px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0;
     align-items: start;
-    padding: 2px 0;
+    padding: 2px 0 4px;
+    max-width: 1080px;
+    margin-inline: auto;
   }
 
   /* A long rail connects the two endpoint headings through the private interval. */
   .flow::before {
-    top: 9px;
+    top: 12px;
     bottom: auto;
-    left: 22%;
-    right: 22%;
+    left: 16.6667%;
+    right: 16.6667%;
     border-left: 0;
     border-top: 1px dashed var(--color-border);
   }
@@ -182,33 +189,51 @@
   .stage {
     width: min(100%, 18rem);
     justify-self: center;
+    padding-top: 28px;
   }
 
   .stageKey {
-    margin-left: 0;
-    width: fit-content;
-    padding-right: 8px;
-    background: var(--color-surface-solid);
+    justify-content: center;
   }
 
-  .stageKey > span:first-child {
-    background: none;
+  .amount {
+    text-align: center;
+  }
+
+  .rows {
+    width: fit-content;
+    max-width: 100%;
+    margin-inline: auto;
+  }
+
+  .row {
+    grid-template-columns: 38px minmax(0, 1fr);
+    gap: 8px;
+  }
+
+  .more {
+    margin-left: 46px;
+  }
+
+  .caveat {
+    text-align: center;
   }
 
   /* Centre column aligns to the rail; its text stays centred because it
      annotates the connection rather than listing values. */
   .link {
     text-align: center;
-    padding-top: 24px;
+    padding-top: 28px;
   }
 
-  .linkMarker {
+  .linkMarker,
+  .endpointMarker {
     position: absolute;
     left: 50%;
     top: 0;
     transform: translateX(-50%);
     width: 30px;
-    height: 18px;
+    height: 20px;
     background: var(--color-surface-solid);
   }
 }
