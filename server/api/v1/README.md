@@ -4,6 +4,47 @@ Status: **mounted, fail-closed preview**. `server/api/server.js` mounts the
 router at `/v1`; `API_V1_ENABLED=false` keeps it indistinguishable from an
 unmounted route until preview rollout is explicitly enabled.
 
+## Private local preview with server-held mainnet data
+
+Run `npm run dev:v1` from the repository root. The development entry point
+listens **only on `127.0.0.1:3002`** and runs the local v1 contract against the
+existing `https://api.mainnet.cipherscan.app` read endpoints. PostgreSQL, the
+indexer and blockchain data remain on the server. No database copy, public DNS,
+server deployment or production flag change is involved.
+
+In the ignored root `.env.local`, set:
+
+```dotenv
+NEXT_PUBLIC_NETWORK=mainnet
+NEXT_PUBLIC_API_URL=http://127.0.0.1:3002
+CIPHERSCAN_API_URL=http://127.0.0.1:3002
+NEXT_PUBLIC_WS_URL=wss://api.mainnet.cipherscan.app
+```
+
+Run the frontend with `npm run dev` on port 3000; reload after Next.js picks up
+the environment change. Keep both processes running. The API base omits `/v1`
+because consumers append their versioned paths. HTTP reads go through the local
+contract; live events still use the existing WebSocket feed.
+
+The preview rejects non-loopback Host values, foreign browser origins and all
+non-read methods. It never inherits a service key. It is read-only even for
+POST endpoints that perform analyses: broadcasting, registration and scanning
+must be tested separately. Stop the preview with Ctrl-C. Do not publish this
+entry point through a reverse proxy or a public tunnel.
+
+This validates the frontend and response adapters against deployed data, **not
+new SQL, unapplied migrations or new server handlers**. Those require an
+isolated backend process on the server, bound to loopback and reached through
+an SSH local forward. Use a separate checkout, service/port and least-privilege
+database access; leave the production process and public proxy unchanged.
+For an existing legacy API reached over an SSH forward, set
+`V1_PREVIEW_UPSTREAM=http://127.0.0.1:<forwarded-port>` before `npm run dev:v1`.
+Do not point that adapter upstream at another `/v1` service.
+
+The future public origin remains `https://api.zecblock.com`; running this
+preview does not create that hostname. Local URLs need no certificate or hosts
+file edit, and no shared preview credential is placed in a browser bundle.
+
 ## Architecture status: transitional dark-launch bridge — NOT the final design
 
 **Read this before treating anything below as a permanent architecture.**
