@@ -1,5 +1,6 @@
 'use client';
 
+import { readApiData } from '@/lib/api-client';
 import { useState, useEffect, useRef, memo, useCallback, type ReactNode } from 'react';
 import { RelativeTime } from '@/components/RelativeTime';
 import { formatZecPrecise } from '@/lib/format-numbers';
@@ -103,10 +104,10 @@ export const RecentShieldedTxs = memo(function RecentShieldedTxs({
 
   const fetchTxs = useCallback(async () => {
     try {
-      const apiUrl = `${getApiUrl()}/api/tx/shielded?limit=${limit}`;
+      const apiUrl = `${getApiUrl()}/v1/transactions/shielded-summary?limit=${limit}`;
 
       const response = await fetch(apiUrl);
-      const data = await response.json();
+      const data = await readApiData(response);
       if (data.transactions?.length) {
         const newTopTxid = data.transactions[0]?.txid;
         if (newTopTxid !== latestKey.current) {

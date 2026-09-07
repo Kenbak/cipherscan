@@ -1,5 +1,6 @@
 'use client';
 
+import { readApiData } from '@/lib/api-client';
 import { useState, useEffect, Suspense, useMemo, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { getApiUrl } from '@/lib/api-config';
@@ -141,13 +142,13 @@ function PrivacyRisksContent() {
     setError(null);
 
     try {
-      const apiUrl = `${getApiUrl()}/api/privacy/risks?limit=20&offset=${newOffset}&period=${periodFilter}&riskLevel=${riskFilter}&sort=${sortBy}`;
+      const apiUrl = `${getApiUrl()}/v1/privacy/risks?limit=20&offset=${newOffset}&period=${periodFilter}&riskLevel=${riskFilter}&sort=${sortBy}`;
 
       const response = await fetch(apiUrl);
       if (!response.ok) throw new Error('Failed to fetch');
 
-      const data = await response.json();
-      if (data.success) {
+      const data = await readApiData(response);
+      if (data) {
         if (append) {
           setTransactions(prev => [...prev, ...data.transactions]);
         } else {
@@ -170,12 +171,12 @@ function PrivacyRisksContent() {
 
   const fetchCommonAmounts = useCallback(async () => {
     try {
-      const apiUrl = `${getApiUrl()}/api/privacy/common-amounts?period=${periodFilter}&limit=8`;
+      const apiUrl = `${getApiUrl()}/v1/privacy/common-amounts?period=${periodFilter}&limit=8`;
 
       const response = await fetch(apiUrl);
         if (response.ok) {
-          const data = await response.json();
-          if (data.success) {
+          const data = await readApiData(response);
+          if (data) {
             // Filter out very low percentages (< 0.3%) but keep variety
             const meaningful = data.amounts.filter((a: CommonAmount) => parseFloat(a.percentage) >= 0.3);
             setCommonAmounts(meaningful.length > 0 ? meaningful : data.amounts.slice(0, 5));
@@ -200,7 +201,7 @@ function PrivacyRisksContent() {
 
     try {
       // Build URL with filters and cursor
-      const url = `${getApiUrl()}/api/privacy/batch-risks`;
+      const url = `${getApiUrl()}/v1/privacy/batch-risks`;
 
       const params = new URLSearchParams({
         period: periodFilter,
@@ -222,8 +223,8 @@ function PrivacyRisksContent() {
       const response = await fetch(`${url}?${params.toString()}`);
       if (!response.ok) throw new Error('Failed to fetch batch patterns');
 
-      const data = await response.json();
-      if (data.success) {
+      const data = await readApiData(response);
+      if (data) {
         if (append) {
           // Deduplicate by first txid to avoid duplicates on pagination edge
           setBatchPatterns(prev => {

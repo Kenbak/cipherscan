@@ -1,5 +1,6 @@
 'use client';
 
+import { readApiData } from '@/lib/api-client';
 import { useCallback, useEffect, useRef, useState, memo, type ReactNode } from 'react';
 import { getApiUrl } from '@/lib/api-config';
 import { SkeletonTable } from '@/components/ui';
@@ -14,7 +15,7 @@ interface PoolRankingEntry {
 
 /**
  * Homepage-sized "top miners" widget — same card/table/footer shape as the
- * other Customize options. /api/mining/pool-ranking has no server-side
+ * other Customize options. /v1/mining/pool-ranking has no server-side
  * `limit`, so the top 5 are sliced client-side (same as /mining itself would
  * need to for any "top N" view).
  */
@@ -25,10 +26,10 @@ export const TopMiners = memo(function TopMiners({ footer }: { footer?: ReactNod
 
   const fetchRanking = useCallback(async () => {
     try {
-      const apiUrl = `${getApiUrl()}/api/mining/pool-ranking?period=24h`;
+      const apiUrl = `${getApiUrl()}/v1/mining/pool-ranking?period=24h`;
 
       const response = await fetch(apiUrl);
-      const data = await response.json();
+      const data = await readApiData(response);
       if (Array.isArray(data.ranking)) {
         setPools(data.ranking.slice(0, 5));
       }

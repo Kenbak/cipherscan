@@ -1,3 +1,4 @@
+import { readApiData } from '@/lib/api-client';
 import { MigrationClient } from './MigrationClient';
 import { getApiUrl, getBaseUrl, getNetwork } from '@/lib/seo';
 import { fetchWithDeadline } from '@/lib/server-fetch';
@@ -16,8 +17,8 @@ async function fetchJson(
   try {
     const res = await fetchWithDeadline(`${apiBase}${path}`, { next: { revalidate } });
     if (!res.ok) return null;
-    const data = await res.json();
-    return data?.success === true && data.network === expectedNetwork ? data : null;
+    const data = await readApiData(res);
+    return !!(data) && data.network === expectedNetwork ? data : null;
   } catch {
     return null;
   }
@@ -37,10 +38,10 @@ export default async function MigrationPage() {
       : 0;
 
   const [overview, cohorts, activityHourly, activityDaily] = await Promise.all([
-    fetchJson(apiBase, '/api/migration/overview', network),
-    fetchJson(apiBase, '/api/migration/cohorts', network),
-    fetchJson(apiBase, '/api/migration/activity?granularity=hour', network, 30),
-    fetchJson(apiBase, '/api/migration/activity?granularity=day', network, 60),
+    fetchJson(apiBase, '/v1/migration/overview', network),
+    fetchJson(apiBase, '/v1/migration/cohorts', network),
+    fetchJson(apiBase, '/v1/migration/activity?granularity=hour', network, 30),
+    fetchJson(apiBase, '/v1/migration/activity?granularity=day', network, 60),
   ]);
 
   const dataset = {

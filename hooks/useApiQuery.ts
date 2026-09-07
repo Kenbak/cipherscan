@@ -1,5 +1,6 @@
 'use client';
 
+import { readApiData } from '@/lib/api-client';
 import { useEffect, useRef, useState } from 'react';
 import { getApiUrl } from '@/lib/api-config';
 
@@ -68,7 +69,7 @@ interface RegistryEntry {
 // Module-level so every `useApiQuery` instance across the app shares it.
 // This is what makes two components polling the exact same URL on the same
 // interval (e.g. IronwoodBanner + IronwoodProgressCard both hitting
-// `/api/migration/overview` every 30s) collapse into a single in-flight
+// `/v1/migration/overview` every 30s) collapse into a single in-flight
 // request and a single timer instead of firing independently.
 const registry = new Map<string, RegistryEntry>();
 
@@ -101,7 +102,7 @@ async function runFetch(entry: RegistryEntry) {
   try {
     const res = await fetch(entry.url, { signal: controller.signal });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const json = await res.json();
+    const json = await readApiData(res);
     entry.failureCount = 0;
     entry.state = { data: json, error: null, settled: true, fetching: false, fetchedAt: Date.now() };
     notify(entry);
@@ -268,7 +269,7 @@ function buildUrl(path: string, params?: Record<string, string | number | boolea
  * - Applies a request timeout and exponential backoff on repeated failures.
  * - Pauses polling while the tab is hidden and refreshes once on return.
  *
- * @param path  API path (e.g. "/api/network/stats")
+ * @param path  API path (e.g. "/v1/network/stats")
  * @param params  Optional query params — undefined values are omitted
  * @param options  enabled (default true), refreshInterval (optional polling),
  *   timeoutMs (default 15000), pauseWhenHidden (default true)

@@ -1,10 +1,11 @@
 'use client';
+import { readApiData } from '@/lib/api-client';
 import { ChartWatermark } from '@/components/ChartWatermark';
 import { ChartSkeleton } from '@/components/ui/Skeleton';
 
 import { useState, useEffect, useRef, useMemo } from 'react';
 import Link from 'next/link';
-import { formatRelativeTime } from '@/lib/utils';
+import { RelativeTime } from '@/components/RelativeTime';
 import { formatZecPrecise, zatToZec } from '@/lib/format-numbers';
 import { getApiUrl } from '@/lib/api-config';
 import { Pagination } from '@/components/Pagination';
@@ -198,7 +199,7 @@ const txColumns: DataTableColumn<Transaction>[] = [
     align: 'right',
     skeletonWidth: 'w-16',
     cell: (tx) => (
-      <span className="text-xs text-muted whitespace-nowrap">{formatRelativeTime(tx.block_time)}</span>
+      <RelativeTime timestamp={tx.block_time} className="text-xs text-muted whitespace-nowrap" />
     ),
   },
 ];
@@ -255,7 +256,7 @@ const shieldedColumns: DataTableColumn<ShieldedFlow>[] = [
     align: 'right',
     skeletonWidth: 'w-16',
     cell: (flow) => (
-      <span className="text-xs text-muted whitespace-nowrap">{formatRelativeTime(flow.blockTime)}</span>
+      <RelativeTime timestamp={flow.blockTime} className="text-xs text-muted whitespace-nowrap" />
     ),
   },
 ];
@@ -288,7 +289,7 @@ function useTransactionsList({
   initialTxs: Transaction[];
   initialPagination: Partial<TxPaginationState> | null;
   initialPage: number;
-  initialCursor: number | null;
+  initialCursor: string | null;
   initialCursorIdx: number | null;
   initialDirection: 'next' | 'prev';
   initialUnavailable: boolean;
@@ -307,30 +308,16 @@ function useTransactionsList({
     fetchPage,
     setPage,
   } = usePaginatedList<Transaction, TxPaginationState>({
-    endpoint: '/api/transactions/list',
+    endpoint: '/v1/transactions',
     pageSize: PAGE_SIZE,
     archiveBasePath: '/txs',
-    secondaryCursorParam: 'cursor_idx',
-    secondaryCursorFields: { next: 'nextCursorIdx', prev: 'prevCursorIdx' },
     buildParams: () => ({ type: typeFilter }),
-    getItemsFromResponse: (json) => (json.transactions as Transaction[]) || [],
     getLatestKey: (tx) => tx.txid,
-    buildCursors: (visibleItems) => {
-      const firstTx = visibleItems[0] ?? null;
-      const lastTx = visibleItems[visibleItems.length - 1] ?? null;
-      return {
-        nextCursor: lastTx ? Number(lastTx.block_height) : null,
-        nextCursorIdx: lastTx ? Number(lastTx.tx_index ?? 0) : null,
-        prevCursor: firstTx ? Number(firstTx.block_height) : null,
-        prevCursorIdx: firstTx ? Number(firstTx.tx_index ?? 0) : null,
-      };
-    },
     buildArchiveHref: (cursor, cursorIdx, direction, targetPage) => {
       const params = new URLSearchParams();
       if (typeFilter !== 'all') params.set('type', typeFilter);
       if (targetPage > 1 && cursor !== null) {
         params.set('cursor', String(cursor));
-        params.set('cursor_idx', String(cursorIdx ?? 0));
         params.set('direction', direction);
         params.set('page', String(targetPage));
       }
@@ -341,7 +328,6 @@ function useTransactionsList({
     initialPagination,
     initialPage,
     initialCursor,
-    initialSecondaryCursor: initialCursorIdx,
     initialDirection,
     initialUnavailable,
   });
@@ -377,7 +363,7 @@ function useShieldedFlowsList({
   initialFlows: ShieldedFlow[];
   initialPagination: Partial<ShieldedPaginationState> | null;
   initialPage: number;
-  initialCursor: number | null;
+  initialCursor: string | null;
   initialCursorId: number | null;
   initialDirection: 'next' | 'prev';
   initialUnavailable: boolean;
@@ -396,11 +382,9 @@ function useShieldedFlowsList({
     fetchPage,
     setPage,
   } = usePaginatedList<ShieldedFlow, ShieldedPaginationState>({
-    endpoint: '/api/shielded/list',
+    endpoint: '/v1/transactions/shielded',
     pageSize: PAGE_SIZE,
     archiveBasePath: '/txs',
-    secondaryCursorParam: 'cursor_id',
-    secondaryCursorFields: { next: 'nextCursorId', prev: 'prevCursorId' },
     buildParams: () => {
       const params: Record<string, string> = {
         type: 'shielded',
@@ -410,18 +394,7 @@ function useShieldedFlowsList({
       if (minZec > 0) params.min_zec = String(minZec);
       return params;
     },
-    getItemsFromResponse: (json) => (json.flows as ShieldedFlow[]) || [],
     getLatestKey: (flow) => `${flow.txid}:${flow.flowType}`,
-    buildCursors: (visibleItems) => {
-      const firstFlow = visibleItems[0] ?? null;
-      const lastFlow = visibleItems[visibleItems.length - 1] ?? null;
-      return {
-        nextCursor: lastFlow ? Number(lastFlow.blockTime) : null,
-        nextCursorId: lastFlow ? Number(lastFlow.id) : null,
-        prevCursor: firstFlow ? Number(firstFlow.blockTime) : null,
-        prevCursorId: firstFlow ? Number(firstFlow.id) : null,
-      };
-    },
     buildArchiveHref: (cursor, cursorId, direction, targetPage) => {
       const params = new URLSearchParams();
       params.set('type', 'shielded');
@@ -430,7 +403,6 @@ function useShieldedFlowsList({
       if (minZec > 0) params.set('min_zec', String(minZec));
       if (targetPage > 1 && cursor !== null) {
         params.set('cursor', String(cursor));
-        params.set('cursor_id', String(cursorId ?? 0));
         params.set('direction', direction);
         params.set('page', String(targetPage));
       }
@@ -441,7 +413,6 @@ function useShieldedFlowsList({
     initialPagination,
     initialPage,
     initialCursor,
-    initialSecondaryCursor: initialCursorId,
     initialDirection,
     initialUnavailable,
   });
@@ -496,8 +467,8 @@ function TrendsChart() {
     setLoading(true);
     const base = getApiUrl();
     const days = period === 'all' ? 1000 : Number(period);
-    fetch(`${base}/api/privacy-stats?days=${days}`)
-      .then(res => res.ok ? res.json() : null)
+    fetch(`${base}/v1/privacy/stats?days=${days}`)
+      .then(res => res.ok ? readApiData(res) : null)
       .then(json => {
         if (json?.trends?.daily) setData(json.trends.daily);
       })
@@ -693,7 +664,7 @@ export interface TxsClientProps {
   initialFlowFilter?: FlowFilter;
   initialPoolFilter?: PoolFilter;
   initialMinZec?: number;
-  initialCursor?: number | null;
+  initialCursor?: string | null;
   initialCursorIdx?: number | null;
   initialCursorId?: number | null;
   initialDirection?: 'next' | 'prev';
@@ -740,13 +711,13 @@ export default function TxsClient({
   useEffect(() => {
     const base = getApiUrl();
     Promise.allSettled([
-      fetch(`${base}/api/network/stats`),
-      fetch(`${base}/api/privacy-stats`),
+      fetch(`${base}/v1/network/stats`),
+      fetch(`${base}/v1/privacy/stats`),
     ]).then(async ([networkRes, privacyRes]) => {
       let txs24h: number | null = null;
       let txsPerBlock: number | null = null;
       if (networkRes.status === 'fulfilled' && networkRes.value.ok) {
-        const data = await networkRes.value.json();
+        const data = await readApiData(networkRes.value);
         txs24h = data.blockchain?.tx24h ? Number(data.blockchain.tx24h) : null;
         const blocks24h = data.mining?.blocks24h ? Number(data.mining.blocks24h) : null;
         txsPerBlock = txs24h && blocks24h ? Math.round((txs24h / blocks24h) * 10) / 10 : null;
@@ -755,7 +726,7 @@ export default function TxsClient({
       let avgPerDay: number | null = null;
       let poolSize: string | null = null;
       if (privacyRes.status === 'fulfilled' && privacyRes.value.ok) {
-        const data = await privacyRes.value.json();
+        const data = await readApiData(privacyRes.value);
         const dailyTrends = data.trends?.daily || [];
         if (dailyTrends.length > 0) {
           shieldedPct24h = dailyTrends[0].shieldedPercentage;

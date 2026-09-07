@@ -22,8 +22,8 @@ export function TransparentSupplyBreakdown() {
     window.addEventListener('hashchange', reveal);
     return () => window.removeEventListener('hashchange', reveal);
   }, []);
-  const { data, loading, error } = useApiQuery<Breakdown>('/api/supply/transparent-breakdown', undefined, { refreshInterval: 300_000, enabled: open });
-  const rows = data?.success ? data.categories : [];
+  const { data, loading, error } = useApiQuery<Breakdown>('/v1/network/supply/transparent-breakdown', undefined, { refreshInterval: 300_000, enabled: open });
+  const rows = data ? data.categories : [];
   const number = (value: number) => value.toLocaleString(undefined, { maximumFractionDigits: 2 });
   const table = (groups: (BalanceGroup & { label: string })[], caption: string) => <div className="overflow-x-auto"><table className="w-full text-sm text-left">
     <caption className="text-left font-mono text-secondary mb-3">{caption}</caption>

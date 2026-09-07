@@ -1,5 +1,6 @@
 'use client';
 
+import { readApiData } from '@/lib/api-client';
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { getApiUrl } from '@/lib/api-config';
@@ -88,8 +89,8 @@ export function ZodlClient({
     if (period === initialPeriod && initialData) return;
     let cancelled = false;
     setLoading(true);
-    fetch(`${getApiUrl()}/api/mining/zodl-leaderboard?period=${period}`)
-      .then((r) => r.json())
+    fetch(`${getApiUrl()}/v1/mining/zodl-leaderboard?period=${period}`)
+      .then((r) => readApiData(r))
       .then((d) => { if (!cancelled) setData(d); })
       .catch(() => {})
       .finally(() => { if (!cancelled) setLoading(false); });

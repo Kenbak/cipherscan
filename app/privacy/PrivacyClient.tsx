@@ -1,4 +1,5 @@
 'use client';
+import { readApiData } from '@/lib/api-client';
 import { PageLoadingBody } from '@/components/ui/PageLoading';
 
 import { useEffect, useState, useCallback } from 'react';
@@ -84,10 +85,10 @@ export default function PrivacyClient() {
 
   const refresh = useCallback(async () => {
     try {
-      const res = await fetch(`${getApiUrl()}/api/privacy-stats`, { signal: AbortSignal.timeout(15000) });
+      const res = await fetch(`${getApiUrl()}/v1/privacy/stats`, { signal: AbortSignal.timeout(15000) });
       if (!res.ok) throw new Error('Privacy statistics could not load.');
-      const response = await res.json();
-      const data = response.success ? response.data : response;
+      const response = await readApiData(res);
+      const data = response;
       if (!data?.metrics || data.error) throw new Error('Privacy statistics are unavailable.');
       setStats(data);
       setError(null);
@@ -98,10 +99,10 @@ export default function PrivacyClient() {
   useEffect(() => {
     void refresh();
     const controller = new AbortController();
-    fetch(`${getApiUrl()}/api/privacy-stats?days=1000`, { signal: controller.signal })
-      .then(res => res.ok ? res.json() : null)
+    fetch(`${getApiUrl()}/v1/privacy/stats?days=1000`, { signal: controller.signal })
+      .then(res => res.ok ? readApiData(res) : null)
       .then(response => {
-        const data = response?.success ? response.data : response;
+        const data = response;
         if (data?.trends?.daily) setTrendHistory(data.trends.daily);
       }).catch(() => {});
     return () => controller.abort();

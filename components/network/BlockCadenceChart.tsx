@@ -13,7 +13,7 @@ import type { RecentBlocksResponse } from './RecentBlocksTable';
 export function BlockCadenceChart({ initialData, initialFetchedAt, chainHeight, now }: {
   initialData: RecentBlocksResponse | null; initialFetchedAt: number; chainHeight?: number; now: number;
 }) {
-  const { data, loading, error } = useApiQuery<RecentBlocksResponse>('/api/network/blocks/recent', { limit: 30 }, {
+  const { data, loading, error } = useApiQuery<RecentBlocksResponse>('/v1/network/blocks/recent-summary', { limit: 30 }, {
     refreshInterval: 60_000, initialData: initialData ?? undefined, initialFetchedAt,
   });
   const wrapper = useRef<HTMLDivElement>(null);

@@ -60,20 +60,15 @@ function startMockLegacyServer() {
     }
 
     if (req.method === 'GET' && url.pathname === '/api/blocks/list') {
-      const cursor = url.searchParams.get('cursor');
-      if (!cursor) {
-        return send(200, {
-          success: true,
-          blocks: [{ height: 100, total_fees: '12345' }],
-          pagination: { limit: 50, hasNext: true, hasPrev: false, nextCursor: 99, prevCursor: null },
-        });
-      }
-      // second page — echoes back what it received so the test can assert forwarding worked
-      return send(200, {
-        success: true,
-        blocks: [{ height: Number(cursor), total_fees: '999', echoedDirection: url.searchParams.get('direction') }],
-        pagination: { limit: 50, hasNext: false, hasPrev: true, nextCursor: null, prevCursor: 1 },
-      });
+      const cursor = Number(url.searchParams.get('cursor'));
+      const direction = url.searchParams.get('direction') || 'next';
+      const limit = Math.min(Number(url.searchParams.get('limit')) || 50, 100);
+      let rows = Array.from({ length: 205 }, (_, i) => ({ height: 205 - i, timestamp: (205 - i) * 75, total_fees: '12345' }));
+      if (cursor) rows = rows.filter(row => direction === 'prev' ? row.height > cursor : row.height < cursor);
+      if (direction === 'prev') rows.reverse();
+      rows = rows.slice(0, limit);
+      if (direction === 'prev') rows.reverse();
+      return send(200, { success: true, blocks: rows, pagination: { total: 205, limit } });
     }
 
     if (req.method === 'GET' && url.pathname === '/api/block/missing') {
@@ -108,7 +103,7 @@ function startMockLegacyServer() {
     }
 
     if (req.method === 'GET' && url.pathname === '/api/migration/scatter') {
-      const minBytes = Number(url.searchParams.get('__test_min_bytes')) || 0;
+      const minBytes = 11 * 1024 * 1024;
       if (minBytes > 0) {
         return send(200, buildLargeScatterPayload(minBytes));
       }
@@ -265,11 +260,11 @@ test('passthrough adapter: /v1/network/info wraps the legacy body in {data, meta
 
 test('list adapter: /v1/blocks returns items as data + meta.page, and converts total_fees to a zatoshi string', async () => {
   await withServers({}, async (base) => {
-    const res = await fetch(`${base}/v1/blocks`);
+    const res = await fetch(`${base}/v1/blocks?limit=2`);
     assert.equal(res.status, 200);
     const body = await res.json();
     assert.equal(Array.isArray(body.data), true);
-    assert.equal(body.data[0].height, 100);
+    assert.equal(body.data[0].height, 205);
     assert.equal(body.data[0].total_fees, '12345');
     assert.equal(typeof body.data[0].total_fees, 'string');
     assert.equal(body.meta.page.hasNext, true);
@@ -278,22 +273,21 @@ test('list adapter: /v1/blocks returns items as data + meta.page, and converts t
     assert.equal(body.meta.page.prevCursor, null);
 
     const decoded = decodeCursor(body.meta.page.nextCursor);
-    assert.equal(decoded.cursor, 99);
+    assert.equal(decoded.cursor, 204);
     assert.equal(decoded.direction, 'next');
   });
 });
 
 test('list adapter: a returned cursor round-trips correctly to the next page', async () => {
   await withServers({}, async (base) => {
-    const first = await (await fetch(`${base}/v1/blocks`)).json();
+    const first = await (await fetch(`${base}/v1/blocks?limit=2`)).json();
     const cursor = first.meta.page.nextCursor;
 
-    const second = await fetch(`${base}/v1/blocks?cursor=${encodeURIComponent(cursor)}`);
+    const second = await fetch(`${base}/v1/blocks?limit=2&cursor=${encodeURIComponent(cursor)}`);
     assert.equal(second.status, 200);
     const body = await second.json();
-    assert.equal(body.data[0].height, 99); // mock echoes the forwarded cursor value as height
-    assert.equal(body.data[0].echoedDirection, 'next');
-    assert.equal(body.meta.page.hasNext, false);
+    assert.equal(body.data[0].height, 203);
+    assert.equal(body.meta.page.hasNext, true);
     assert.equal(body.meta.page.hasPrev, true);
   });
 });
@@ -425,7 +419,7 @@ test('scan/lightwalletd: a valid, in-range request is proxied to legacy and the 
 test('response cap: a real >10.4MB /v1/migration/scatter payload is NOT rejected under the default (50MB) cap', async () => {
   await withServers({}, async (base) => {
     const minBytes = 11 * 1024 * 1024; // safely above the measured ~10.4MB
-    const res = await fetch(`${base}/v1/migration/scatter?__test_min_bytes=${minBytes}`);
+    const res = await fetch(`${base}/v1/migration/scatter`);
     assert.equal(res.status, 200);
     const body = await res.json();
     assert.ok(body.data.rows.length > 0);
@@ -435,7 +429,7 @@ test('response cap: a real >10.4MB /v1/migration/scatter payload is NOT rejected
 
 test('response cap: a body larger than a configured (small, test-only) cap is rejected as a 502 upstream error', async () => {
   await withServers({ V1_INTERNAL_MAX_RESPONSE_BYTES: '1000' }, async (base) => {
-    const res = await fetch(`${base}/v1/migration/scatter?__test_min_bytes=${5000}`);
+    const res = await fetch(`${base}/v1/migration/scatter`);
     assert.equal(res.status, 502);
     const body = await res.json();
     assert.equal(body.title, 'Upstream Service Error');
@@ -518,5 +512,48 @@ test('unknown /v1 route (feature enabled) returns a distinct not-found problem, 
     assert.equal(res.status, 404);
     const body = await res.json();
     assert.equal(body.title, 'Resource Not Found');
+  });
+});
+
+for (const limit of [1, 25, 100]) {
+  test(`block pagination traverses all 205 records without gaps and reverses at limit ${limit}`, async () => {
+    await withServers({}, async base => {
+      let cursor = null; const heights = []; const pages = [];
+      do {
+        const response = await fetch(`${base}/v1/blocks?limit=${limit}${cursor ? `&cursor=${cursor}` : ''}`);
+        assert.equal(response.status, 200);
+        const body = await response.json();
+        heights.push(...body.data.map(row => row.height)); pages.push(body);
+        assert.equal(body.meta.page.hasNext, body.meta.page.nextCursor !== null);
+        cursor = body.meta.page.nextCursor;
+      } while (cursor);
+      assert.deepEqual(heights, Array.from({ length: 205 }, (_, i) => 205 - i));
+      for (let i = pages.length - 1; i > 0; i--) {
+        const response = await fetch(`${base}/v1/blocks?limit=${limit}&cursor=${pages[i].meta.page.prevCursor}`);
+        const body = await response.json();
+        assert.deepEqual(body.data.map(row => row.height), pages[i - 1].data.map(row => row.height));
+      }
+    });
+  });
+}
+
+test('collection cursors cannot be reused with different filters or on another collection', async () => {
+  await withServers({}, async base => {
+    const body = await (await fetch(`${base}/v1/blocks?limit=2`)).json();
+    for (const path of [`/v1/blocks?limit=2&type=coinbase`, `/v1/transactions?limit=2`]) {
+      const response = await fetch(`${base}${path}&cursor=${body.meta.page.nextCursor}`);
+      assert.equal(response.status, 400);
+    }
+  });
+});
+
+test('malformed JSON and repeated query parameters return non-cacheable validation problems', async () => {
+  await withServers({}, async base => {
+    const malformed = await fetch(`${base}/v1/transactions/broadcast`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{' });
+    assert.equal(malformed.status, 400);
+    assert.match(malformed.headers.get('content-type'), /application\/problem\+json/);
+    assert.equal(malformed.headers.get('cache-control'), 'no-store');
+    const repeated = await fetch(`${base}/v1/blocks?limit=1&limit=2`);
+    assert.equal(repeated.status, 400);
   });
 });

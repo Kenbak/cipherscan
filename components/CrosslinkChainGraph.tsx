@@ -1,5 +1,6 @@
 'use client';
 
+import { readApiData } from '@/lib/api-client';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import {
@@ -363,16 +364,16 @@ export function CrosslinkChainGraph({
         const api = getApiUrl();
         const [blocksRes, bftChainRes, crossRes, bftTipRes] = await Promise.all(
           [
-            fetch(`${api}/api/blocks?limit=${effectiveLimit}`),
-            fetch(`${api}/api/crosslink/bft-chain?limit=${effectiveLimit}`),
-            fetch(`${api}/api/crosslink`),
-            fetch(`${api}/api/crosslink/bft-tip`),
+            fetch(`${api}/v1/blocks?limit=${effectiveLimit}`),
+            fetch(`${api}/v1/crosslink/bft-chain?limit=${effectiveLimit}`),
+            fetch(`${api}/v1/crosslink`),
+            fetch(`${api}/v1/crosslink/bft-tip`),
           ],
         );
 
         if (blocksRes.ok) {
-          const d = await blocksRes.json();
-          const parsed: PowBlock[] = (d.blocks || []).map(
+          const d = await readApiData(blocksRes);
+          const parsed: PowBlock[] = (d || []).map(
             (b: Record<string, unknown>) => ({
               height:
                 typeof b.height === 'string'
@@ -391,12 +392,12 @@ export function CrosslinkChainGraph({
           setBlocks(parsed);
         }
         if (bftChainRes.ok) {
-          const d = await bftChainRes.json();
-          if (d.success) setDecisions(d.decisions || []);
+          const d = await readApiData(bftChainRes);
+          if (d) setDecisions(d.decisions || []);
         }
         if (crossRes.ok) {
-          const d = await crossRes.json();
-          if (d.success) {
+          const d = await readApiData(crossRes);
+          if (d) {
             setStats({
               tipHeight: d.tipHeight,
               finalizedHeight: d.finalizedHeight,
@@ -407,8 +408,8 @@ export function CrosslinkChainGraph({
           }
         }
         if (bftTipRes.ok) {
-          const d = await bftTipRes.json();
-          if (d.success) {
+          const d = await readApiData(bftTipRes);
+          if (d) {
             setBftTip({
               votedBlockHash: d.votedBlockHash,
               signatureCount: d.signatureCount,

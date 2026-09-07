@@ -1,3 +1,4 @@
+import { readApiCollection, parseApiCursor } from '@/lib/api-client';
 import { getApiUrl } from '@/lib/api-config';
 import { retainLastGoodOrBuildFallback } from '@/lib/isr-fallback';
 import { buildPageMetadata, getBaseUrl } from '@/lib/seo';
@@ -14,7 +15,7 @@ export type SearchParams = Record<string, string | string[] | undefined>;
 export type UnavailablePolicy = 'shell' | 'throw';
 
 export interface TransactionsRequest {
-  cursor: number | null;
+  cursor: string | null;
   cursorIdx: number | null;
   cursorId: number | null;
   direction: 'next' | 'prev';
@@ -64,7 +65,7 @@ function parseMinZec(value: string | undefined): number {
 
 export function parseTransactionsRequest(searchParams: SearchParams): TransactionsRequest {
   const type = parseTxType(firstValue(searchParams.type));
-  const cursor = parsePositiveInteger(firstValue(searchParams.cursor));
+  const cursor = parseApiCursor(firstValue(searchParams.cursor));
   const cursorIdx = parseNonNegativeInteger(firstValue(searchParams.cursor_idx));
   const cursorId = parseNonNegativeInteger(firstValue(searchParams.cursor_id));
   const rawPage = firstValue(searchParams.page);
@@ -81,8 +82,8 @@ export function parseTransactionsRequest(searchParams: SearchParams): Transactio
     flow: type === 'shielded' ? parseFlow(firstValue(searchParams.flow_type)) : 'all',
     pool: type === 'shielded' ? parsePool(firstValue(searchParams.pool)) : 'all',
     minZec: type === 'shielded' ? parseMinZec(firstValue(searchParams.min_zec)) : 0,
-    pageParamConsistent: rawPage === undefined
-      || (cursor !== null ? requestedPage !== null && requestedPage >= 2 : requestedPage === 1),
+    pageParamConsistent: (firstValue(searchParams.cursor) === undefined || cursor !== null)
+      && (rawPage === undefined || (cursor !== null ? requestedPage !== null && requestedPage >= 2 : requestedPage === 1)),
   };
 }
 
@@ -96,11 +97,6 @@ export function getArchiveCanonicalPath(request: TransactionsRequest): string {
   }
   if (request.cursor !== null) {
     params.set('cursor', String(request.cursor));
-    if (request.type === 'shielded') {
-      params.set('cursor_id', String(request.cursorId ?? 0));
-    } else {
-      params.set('cursor_idx', String(request.cursorIdx ?? 0));
-    }
     params.set('direction', request.direction);
   }
   const query = params.toString();
@@ -118,157 +114,26 @@ function unavailableData(policy: UnavailablePolicy, error: unknown, label: strin
     : fallback;
 }
 
-async function getInitialTxs(
-  request: TransactionsRequest,
-  unavailablePolicy: UnavailablePolicy,
-) {
-  let res: Response;
+async function getInitialCollection(request: TransactionsRequest, unavailablePolicy: UnavailablePolicy, shielded: boolean) {
   try {
-    const params = new URLSearchParams({
-      limit: String(PAGE_SIZE + 1),
-      type: request.type,
-    });
-    if (request.cursor !== null) {
-      params.set('cursor', String(request.cursor));
-      params.set('cursor_idx', String(request.cursorIdx ?? 0));
-      params.set('direction', request.direction);
-    }
-
-    res = await fetchWithDeadline(`${API_URL}/api/transactions/list?${params.toString()}`, {
+    const params = new URLSearchParams({ limit: String(PAGE_SIZE) });
+    if (shielded) {
+      params.set('flow_type', request.flow);
+      params.set('pool', request.pool);
+      if (request.minZec > 0) params.set('min_zec', String(request.minZec));
+    } else params.set('type', request.type);
+    if (request.cursor) params.set('cursor', request.cursor);
+    const response = await fetchWithDeadline(`${API_URL}/v1/transactions${shielded ? '/shielded' : ''}?${params}`, {
       next: { revalidate: 30, tags: ['chain-tip'] },
     });
+    const { items, page } = await readApiCollection<unknown>(response);
+    return { items, pagination: { ...page, total: page.total ?? 0, totalPages: Math.ceil((page.total ?? 0) / PAGE_SIZE) }, available: true };
   } catch (error) {
-    if (!isServerRenderDeadlineError(error)) {
-      console.error('Error fetching initial transactions:', error);
-    }
-    return unavailableData(unavailablePolicy, error, 'latest transactions');
-  }
-
-  if (!res.ok) {
-    return unavailableData(unavailablePolicy, new Error(`API returned HTTP ${res.status}`), 'latest transactions');
-  }
-
-  let json: unknown;
-  try { json = await res.json(); } catch (error) {
-    return unavailableData(unavailablePolicy, error, 'latest transactions');
-  }
-
-  if (!json || typeof json !== 'object' || !('success' in json) || json.success !== true) {
-    return unavailableData(unavailablePolicy, new Error('API reported failure'), 'latest transactions');
-  }
-  if (!('transactions' in json) || !Array.isArray(json.transactions)) {
-    return unavailableData(unavailablePolicy, new Error('Malformed response'), 'latest transactions');
-  }
-
-  try {
-    const all = json.transactions;
-    const reverseOffset = request.direction === 'prev' && all.length > PAGE_SIZE ? 1 : 0;
-    const txs = all.slice(reverseOffset, reverseOffset + PAGE_SIZE);
-    const firstTx = txs[0] ?? null;
-    const lastTx = txs[txs.length - 1] ?? null;
-    const apiPagination: Record<string, unknown> = 'pagination' in json
-      && json.pagination !== null && typeof json.pagination === 'object'
-      ? json.pagination as Record<string, unknown> : {};
-    const total = Number(apiPagination.total) || 0;
-
-    return {
-      items: txs,
-      pagination: {
-        ...apiPagination,
-        total,
-        totalPages: Math.ceil(total / PAGE_SIZE),
-        hasNext: request.direction === 'prev'
-          ? request.cursor !== null && txs.length > 0
-          : all.length > PAGE_SIZE,
-        hasPrev: request.page > 1,
-        nextCursor: lastTx ? Number(lastTx.block_height) : null,
-        nextCursorIdx: lastTx ? Number(lastTx.tx_index ?? 0) : null,
-        prevCursor: firstTx ? Number(firstTx.block_height) : null,
-        prevCursorIdx: firstTx ? Number(firstTx.tx_index ?? 0) : null,
-      },
-      available: true,
-    };
-  } catch (error) {
-    return unavailableData(unavailablePolicy, error, 'latest transactions');
+    return unavailableData(unavailablePolicy, error, shielded ? 'latest shielded transactions' : 'latest transactions');
   }
 }
-
-async function getInitialFlows(
-  request: TransactionsRequest,
-  unavailablePolicy: UnavailablePolicy,
-) {
-  let res: Response;
-  try {
-    const params = new URLSearchParams({
-      limit: String(PAGE_SIZE + 1),
-      flow_type: request.flow,
-      pool: request.pool,
-    });
-    if (request.minZec > 0) params.set('min_zec', String(request.minZec));
-    if (request.cursor !== null) {
-      params.set('cursor', String(request.cursor));
-      params.set('cursor_id', String(request.cursorId ?? 0));
-      params.set('direction', request.direction);
-    }
-
-    res = await fetchWithDeadline(`${API_URL}/api/shielded/list?${params.toString()}`, {
-      next: { revalidate: 30, tags: ['chain-tip'] },
-    }, 5_000);
-  } catch (error) {
-    if (!isServerRenderDeadlineError(error)) {
-      console.error('Error fetching initial shielded flows:', error);
-    }
-    return unavailableData(unavailablePolicy, error, 'latest shielded transactions');
-  }
-
-  if (!res.ok) {
-    return unavailableData(unavailablePolicy, new Error(`API returned HTTP ${res.status}`), 'latest shielded transactions');
-  }
-
-  let json: unknown;
-  try { json = await res.json(); } catch (error) {
-    return unavailableData(unavailablePolicy, error, 'latest shielded transactions');
-  }
-
-  if (!json || typeof json !== 'object' || !('success' in json) || json.success !== true) {
-    return unavailableData(unavailablePolicy, new Error('API reported failure'), 'latest shielded transactions');
-  }
-  if (!('flows' in json) || !Array.isArray(json.flows)) {
-    return unavailableData(unavailablePolicy, new Error('Malformed response'), 'latest shielded transactions');
-  }
-
-  try {
-    const all = json.flows;
-    const reverseOffset = request.direction === 'prev' && all.length > PAGE_SIZE ? 1 : 0;
-    const flows = all.slice(reverseOffset, reverseOffset + PAGE_SIZE);
-    const firstFlow = flows[0] ?? null;
-    const lastFlow = flows[flows.length - 1] ?? null;
-    const apiPagination: Record<string, unknown> = 'pagination' in json
-      && json.pagination !== null && typeof json.pagination === 'object'
-      ? json.pagination as Record<string, unknown> : {};
-    const total = Number(apiPagination.total) || 0;
-
-    return {
-      items: flows,
-      pagination: {
-        ...apiPagination,
-        total,
-        totalPages: Math.ceil(total / PAGE_SIZE),
-        hasNext: request.direction === 'prev'
-          ? request.cursor !== null && flows.length > 0
-          : all.length > PAGE_SIZE,
-        hasPrev: request.page > 1,
-        nextCursor: lastFlow ? Number(lastFlow.blockTime) : null,
-        nextCursorId: lastFlow ? Number(lastFlow.id) : null,
-        prevCursor: firstFlow ? Number(firstFlow.blockTime) : null,
-        prevCursorId: firstFlow ? Number(firstFlow.id) : null,
-      },
-      available: true,
-    };
-  } catch (error) {
-    return unavailableData(unavailablePolicy, error, 'latest shielded transactions');
-  }
-}
+const getInitialTxs = (request: TransactionsRequest, policy: UnavailablePolicy) => getInitialCollection(request, policy, false);
+const getInitialFlows = (request: TransactionsRequest, policy: UnavailablePolicy) => getInitialCollection(request, policy, true);
 
 export async function renderTransactionsPage(
   searchParams: Promise<SearchParams>,

@@ -34,7 +34,7 @@ export function MiningMetricsChart() {
   const [window, setWindow] = useState(20);
 
   const { data } = useApiQuery<MiningMetricsData>(
-    '/api/network/mining-metrics',
+    '/v1/mining/metrics',
     { window, limit: 120 },
   );
   const points = data?.points ?? [];

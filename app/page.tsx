@@ -1,3 +1,4 @@
+import { readApiData } from '@/lib/api-client';
 import Link from 'next/link';
 import { SearchBar } from '@/components/SearchBar';
 import { SectionHeader } from '@/components/ui/SectionHeader';
@@ -50,15 +51,15 @@ function upstreamError(context: string, status: number): Error {
 
 async function getRecentBlocks(): Promise<Block[]> {
   try {
-    const response = await fetchWithDeadline(`${API_URL}/api/blocks?limit=5`, {
+    const response = await fetchWithDeadline(`${API_URL}/v1/blocks?limit=5`, {
       next: { revalidate: 30, tags: ['chain-tip'] },
     });
 
     if (!response.ok) throw upstreamError('Recent blocks', response.status);
 
-    const data = await response.json();
-    if (!Array.isArray(data.blocks)) throw new Error('Recent blocks payload is malformed');
-    return data.blocks.map((b: any) => ({
+    const data = await readApiData(response);
+    if (!Array.isArray(data)) throw new Error('Recent blocks payload is malformed');
+    return data.map((b: any) => ({
       height: parseInt(b.height),
       hash: b.hash,
       timestamp: parseInt(b.timestamp),
@@ -73,13 +74,13 @@ async function getRecentBlocks(): Promise<Block[]> {
 
 async function getRecentShieldedTxs(): Promise<ShieldedTx[]> {
   try {
-    const response = await fetchWithDeadline(`${API_URL}/api/tx/shielded?limit=5`, {
+    const response = await fetchWithDeadline(`${API_URL}/v1/transactions/shielded-summary?limit=5`, {
       next: { revalidate: 30, tags: ['chain-tip'] },
     });
 
     if (!response.ok) throw upstreamError('Recent shielded transactions', response.status);
 
-    const data = await response.json();
+    const data = await readApiData(response);
     if (!Array.isArray(data.transactions)) {
       throw new Error('Recent shielded transactions payload is malformed');
     }

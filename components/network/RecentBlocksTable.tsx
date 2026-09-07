@@ -68,7 +68,7 @@ const columns: DataTableColumn<RecentBlock>[] = [
 
 export function RecentBlocksTable({ initialData }: { initialData?: RecentBlocksResponse | null }) {
   const { data, loading } = useApiQuery<RecentBlocksResponse>(
-    '/api/network/blocks/recent',
+    '/v1/network/blocks/recent-summary',
     { limit: 15 },
     { refreshInterval: 60_000, initialData: initialData ?? undefined },
   );

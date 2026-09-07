@@ -1,5 +1,6 @@
 'use client';
 
+import { readApiData } from '@/lib/api-client';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { getApiUrl } from '@/lib/api-config';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -44,13 +45,13 @@ function fmtZec(zat: number): string {
 }
 
 /**
- * Compact initial-activity payload from `/api/migration/activity` — small,
+ * Compact initial-activity payload from `/v1/migration/activity` — small,
  * pre-aggregated hourly/daily buckets (exact zatoshi integers, never a lossy
  * ZEC float) rather than the full per-tx `/scatter` payload. Feature-detected
  * (network/parse failure → simply not shown) so this stays resilient if the
  * endpoint is ever rolled back or rate-limited independently of the frontend.
  */
-// How close to the viewport the scatter section (the ~10MB /api/migration/scatter
+// How close to the viewport the scatter section (the ~10MB /v1/migration/scatter
 // payload) needs to be before we fetch it. Generous lookahead so the chart is
 // already loaded by the time a scrolling user actually reaches it.
 const SCATTER_VIEWPORT_MARGIN = '800px';
@@ -89,7 +90,7 @@ export function MigrationClient({
   const { mode: currencyMode, toggle: toggleCurrency, price: zecPrice } = useCurrencyToggle();
 
   // Sentinel placed just above the scatter-consuming sections (Migration
-  // Activity + Amount Privacy) — the ~10MB /api/migration/scatter payload is
+  // Activity + Amount Privacy) — the ~10MB /v1/migration/scatter payload is
   // only fetched once this nears the viewport, instead of unconditionally
   // on mount. Every point is still preserved once it does load (no sampling).
   const [scatterSectionRef, scatterNearViewport] = useInViewport<HTMLDivElement>({
@@ -101,13 +102,13 @@ export function MigrationClient({
     const base = getApiUrl();
     const fetchJson = (path: string) =>
       fetch(`${base}${path}`, { cache: 'no-store' })
-        .then((r) => (r.ok ? r.json() : null))
+        .then((r) => (r.ok ? readApiData(r) : null))
         .catch(() => null);
 
     const loadOverview = () => {
-      fetchJson('/api/migration/overview').then((result) => {
+      fetchJson('/v1/migration/overview').then((result) => {
         if (cancelled) return;
-        if (result?.success && result.network === deploymentNetwork) setOverview(result);
+        if (result && result.network === deploymentNetwork) setOverview(result);
         setLoaded(true);
       });
     };
@@ -119,14 +120,14 @@ export function MigrationClient({
     // failure just means "no summary available" rather than an error state.
     const loadActivity = () => {
       Promise.all([
-        fetchJson('/api/migration/activity?granularity=hour'),
-        fetchJson('/api/migration/activity?granularity=day'),
+        fetchJson('/v1/migration/activity?granularity=hour'),
+        fetchJson('/v1/migration/activity?granularity=day'),
       ]).then(([hourly, daily]: [MigrationActivityData | null, MigrationActivityData | null]) => {
         if (cancelled) return;
-        if (hourly?.success && (!hourly.network || hourly.network === deploymentNetwork)) {
+        if (hourly && (!hourly.network || hourly.network === deploymentNetwork)) {
           setActivityHourly(hourly);
         }
-        if (daily?.success && (!daily.network || daily.network === deploymentNetwork)) {
+        if (daily && (!daily.network || daily.network === deploymentNetwork)) {
           setActivityDaily(daily);
         }
         setActivityAttempted(true);
@@ -134,9 +135,9 @@ export function MigrationClient({
     };
 
     const loadCohorts = () => {
-      fetchJson('/api/migration/cohorts').then((c) => {
+      fetchJson('/v1/migration/cohorts').then((c) => {
         if (cancelled) return;
-        if (c?.success && c.network === deploymentNetwork) setCohorts(c);
+        if (c && c.network === deploymentNetwork) setCohorts(c);
       });
     };
 
@@ -180,12 +181,12 @@ export function MigrationClient({
           scatterCursor.current = loaded.cursor;
         } else {
           const response = await fetch(
-            `${base}/api/migration/scatter/compact?range=${scatterRequestRange}`,
+            `${base}/v1/migration/scatter/compact?range=${scatterRequestRange}`,
             { signal: controller.signal },
           );
           if (!response.ok) throw new Error(`Scatter request failed with HTTP ${response.status}`);
-          const body = await response.json() as CompactScatterResponse;
-          if (!body.success || body.network !== deploymentNetwork) {
+          const body = await readApiData(response) as CompactScatterResponse;
+          if (!body || body.network !== deploymentNetwork) {
             throw new Error('Scatter response network mismatch');
           }
           if (cancelled) return;
@@ -204,13 +205,13 @@ export function MigrationClient({
       if (!cursor || !cursor.hash || document.visibilityState === 'hidden') return;
       try {
         const response = await fetch(
-          `${base}/api/migration/scatter/compact?afterHeight=${cursor.height}`
+          `${base}/v1/migration/scatter/compact?afterHeight=${cursor.height}`
             + `&afterHash=${encodeURIComponent(cursor.hash)}`,
           { signal: controller.signal },
         );
         if (!response.ok) throw new Error(`Scatter tail failed with HTTP ${response.status}`);
-        const body = await response.json() as CompactScatterResponse;
-        if (!body.success || body.network !== deploymentNetwork) return;
+        const body = await readApiData(response) as CompactScatterResponse;
+        if (!body || body.network !== deploymentNetwork) return;
         if (body.resetRequired) {
           await loadInitial();
           return;

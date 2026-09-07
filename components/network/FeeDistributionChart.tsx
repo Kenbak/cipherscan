@@ -21,7 +21,7 @@ export function FeeDistributionChart({ initialData }: { initialData?: FeeDistrib
   const { theme } = useTheme();
   const colors = getChartColors(theme);
   const [period, setPeriod] = useState<Period>('30d');
-  const { data, loading, error, isRefreshing } = useApiQuery<FeeDistributionResponse>('/api/network/fee-distribution', { period }, {
+  const { data, loading, error, isRefreshing } = useApiQuery<FeeDistributionResponse>('/v1/network/fee-distribution', { period }, {
     initialData: period === '30d' ? initialData ?? undefined : undefined, refreshInterval: 300_000,
   });
   const points = (data?.daily ?? []).map(day => ({ date: day.date, txCount: day.txCount, ...feeBand(day) }));

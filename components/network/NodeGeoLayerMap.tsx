@@ -1,4 +1,5 @@
 'use client';
+import { readApiData } from '@/lib/api-client';
 import { ChartWatermark } from '@/components/ChartWatermark';
 import { LoadingRegion, Skeleton } from '@/components/ui/Skeleton';
 
@@ -60,10 +61,10 @@ export function NodeGeoLayerMap({ mode }: { mode: GeoLayerMode }) {
 
   useEffect(() => {
     const apiUrl = getApiUrl();
-    fetch(`${apiUrl}/api/network/nodes`)
+    fetch(`${apiUrl}/v1/network/nodes`)
       .then((res) => {
         if (!res.ok) throw new Error('Failed to fetch node locations');
-        return res.json();
+        return readApiData(res);
       })
       .then((data) => {
         setLocations(data.locations || []);

@@ -599,8 +599,11 @@ router.get('/api/address/:address', validate('addressById'), async (req, res) =>
     res.json({
       address: summary.address,
       balance: parseFloat(summary.balance),
+      balanceZat: String(summary.balance),
       totalReceived: parseFloat(summary.total_received),
+      totalReceivedZat: String(summary.total_received),
       totalSent: parseFloat(summary.total_sent),
+      totalSentZat: String(summary.total_sent),
       txCount: totalTxCount,
       firstSeen: summary.first_seen,
       lastSeen: summary.last_seen,

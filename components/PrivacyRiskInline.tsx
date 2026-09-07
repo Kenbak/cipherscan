@@ -1,5 +1,6 @@
 'use client';
 
+import { readApiData } from '@/lib/api-client';
 import { useState, useEffect } from 'react';
 import { getApiUrl } from '@/lib/api-config';
 import { CURRENCY } from '@/lib/config';
@@ -109,20 +110,20 @@ export function PrivacyRiskInline({ txid, variant = 'full', embedded = false }: 
       try {
         const baseUrl = getApiUrl();
         const [linkabilityResponse, graphResponse] = await Promise.all([
-          fetch(`${baseUrl}/api/tx/${txid}/linkability`),
-          fetch(`${baseUrl}/api/privacy/graph/${txid}`),
+          fetch(`${baseUrl}/v1/transactions/${txid}/linkability`),
+          fetch(`${baseUrl}/v1/privacy/graph/${txid}`),
         ]);
 
         if (linkabilityResponse.ok) {
-          const result = await linkabilityResponse.json();
-          if (result.success) {
+          const result = await readApiData(linkabilityResponse);
+          if (result) {
             setData(result);
           }
         }
 
         if (graphResponse.ok) {
-          const graphResult = await graphResponse.json();
-          if (graphResult.success) {
+          const graphResult = await readApiData(graphResponse);
+          if (graphResult) {
             setGraph(graphResult);
           }
         }

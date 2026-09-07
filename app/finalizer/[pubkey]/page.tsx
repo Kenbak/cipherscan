@@ -1,4 +1,5 @@
 'use client';
+import { readApiData } from '@/lib/api-client';
 import { LoadingRegion, MetricSkeletons, Skeleton } from '@/components/ui/Skeleton';
 import { SkeletonTable } from '@/components/ui/EmptyState';
 
@@ -190,23 +191,23 @@ export default function FinalizerPage() {
   const fetchData = useCallback(async () => {
     try {
       const [finRes, crossRes, bftRes, partRes] = await Promise.all([
-        fetch(`${getApiUrl()}/api/finalizer/${pubkey}`),
-        fetch(`${getApiUrl()}/api/crosslink`),
-        fetch(`${getApiUrl()}/api/crosslink/bft-tip`),
-        fetch(`${getApiUrl()}/api/finalizer/${pubkey}/participation?window=500`),
+        fetch(`${getApiUrl()}/v1/crosslink/finalizers/${pubkey}`),
+        fetch(`${getApiUrl()}/v1/crosslink`),
+        fetch(`${getApiUrl()}/v1/crosslink/bft-tip`),
+        fetch(`${getApiUrl()}/v1/crosslink/finalizers/${pubkey}/participation?window=500`),
       ]);
       if (!finRes.ok) {
         if (finRes.status === 404) throw new Error('Finalizer not found');
         throw new Error(`API error: ${finRes.status}`);
       }
-      const json: ApiResponse = await finRes.json();
-      if (!json.success) throw new Error('API returned failure');
+      const json: ApiResponse = await readApiData(finRes);
+      if (!json) throw new Error('API returned failure');
       setData(json.finalizer);
       setActions(json.stakeActions);
 
       if (crossRes.ok) {
-        const j = await crossRes.json();
-        if (j.success)
+        const j = await readApiData(crossRes);
+        if (j)
           setStats({
             tipHeight: j.tipHeight,
             finalizedHeight: j.finalizedHeight,
@@ -215,8 +216,8 @@ export default function FinalizerPage() {
           });
       }
       if (bftRes.ok) {
-        const j = await bftRes.json();
-        if (j.success)
+        const j = await readApiData(bftRes);
+        if (j)
           setBftTip({
             votedBlockHash: j.votedBlockHash,
             signatureCount: j.signatureCount,
@@ -224,8 +225,8 @@ export default function FinalizerPage() {
           });
       }
       if (partRes.ok) {
-        const j = await partRes.json();
-        if (j.success) {
+        const j = await readApiData(partRes);
+        if (j) {
           setParticipation({
             window_start: j.window_start,
             window_end: j.window_end,

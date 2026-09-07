@@ -11,7 +11,7 @@ const formatDate = (date: string) => new Date(date).toLocaleDateString('en-US', 
 
 export function SearchInterest() {
   const { theme } = useTheme(); const c = getChartColors(theme);
-  const {data,loading,error}=useApiQuery<{snapshot:SearchSnapshot|null}>('/api/valuation/search-interest',undefined,{refreshInterval:300_000});
+  const {data,loading,error}=useApiQuery<{snapshot:SearchSnapshot|null}>('/v1/valuation/search-interest',undefined,{refreshInterval:300_000});
   const trends=data?.snapshot;
   const complete = (trends?.points??[]).filter(p => !p.partial);
   const latest = complete.at(-1);

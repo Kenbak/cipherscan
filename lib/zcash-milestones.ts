@@ -1,4 +1,4 @@
-/** Mainnet activation block timestamps, verified through /api/block/:height.
+/** Mainnet activation block timestamps, verified through /v1/blocks/:height.
  * Dates are UTC calendar days, not projected upgrade dates. */
 
 export interface ZcashMilestone {

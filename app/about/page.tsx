@@ -1,3 +1,4 @@
+import { readApiData } from '@/lib/api-client';
 import Link from 'next/link';
 import { getApiUrl } from '@/lib/api-config';
 import { NETWORK_LABEL } from '@/lib/config';
@@ -26,17 +27,17 @@ async function getLiveStats(): Promise<LiveStats> {
   const STATIC = { miningPools: 12 };
   try {
     const [networkRes, privacyRes] = await Promise.allSettled([
-      fetch(`${API_URL}/api/network/stats`, { next: { revalidate: 60 } }),
-      fetch(`${API_URL}/api/privacy-stats`, { next: { revalidate: 60 } }),
+      fetch(`${API_URL}/v1/network/stats`, { next: { revalidate: 60 } }),
+      fetch(`${API_URL}/v1/privacy/stats`, { next: { revalidate: 60 } }),
     ]);
 
     const network =
       networkRes.status === 'fulfilled' && networkRes.value.ok
-        ? await networkRes.value.json()
+        ? await readApiData(networkRes.value)
         : null;
     const privacy =
       privacyRes.status === 'fulfilled' && privacyRes.value.ok
-        ? await privacyRes.value.json()
+        ? await readApiData(privacyRes.value)
         : null;
 
     return {

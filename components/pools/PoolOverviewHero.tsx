@@ -43,7 +43,7 @@ export function PoolOverviewHero({ data }: { data: PoolOverviewData }) {
   const [split, setSplit] = useState(false);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const { data: historyRes, loading, error } = useApiQuery<{ points: HistoryPoint[] }>(
-    '/api/network/pool-history', { period: 'all' },
+    '/v1/shielded-pools/history', { period: 'all' },
   );
   const history = useMemo(() => completeSupplyHistory(historyRes?.points ?? []), [historyRes]);
   const point = history.find(item => item.date === selectedDate);

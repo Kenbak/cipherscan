@@ -43,7 +43,7 @@ function detectNetwork(): Network {
 export const NETWORK = detectNetwork();
 
 const DEFAULT_API_URLS: Record<Network, string> = {
-  'mainnet': 'https://api.mainnet.cipherscan.app',
+  'mainnet': 'https://api.zecblock.com',
   'testnet': 'https://api.testnet.cipherscan.app',
   'crosslink-testnet': normalizeApiBaseUrl(
     process.env.NEXT_PUBLIC_CROSSLINK_API_URL || 'https://api.crosslink.cipherscan.app',

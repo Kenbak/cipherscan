@@ -1,5 +1,6 @@
 'use client';
 
+import { readApiData } from '@/lib/api-client';
 import { ChartWatermark } from '@/components/ChartWatermark';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
@@ -329,9 +330,9 @@ export function TopologyGraph({ active = true }: { active?: boolean }) {
 
     async function run() {
       try {
-        const res = await fetch(`${apiUrl}/api/network/topology`);
+        const res = await fetch(`${apiUrl}/v1/network/topology`);
         if (!res.ok) { if (!cancelled) setLoading(false); return; }
-        const data = await res.json();
+        const data = await readApiData(res);
         if (!data.nodes?.length) { if (!cancelled) setLoading(false); return; }
 
         const simNodes: SimNode[] = (data.nodes as ApiNode[]).map((n) => ({

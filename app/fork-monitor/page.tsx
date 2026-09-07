@@ -1,5 +1,6 @@
 'use client';
 
+import { readApiData } from '@/lib/api-client';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Card, CardBody } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -46,9 +47,9 @@ export default function ForkMonitorPage() {
 
   const fetchData = useCallback(async () => {
     try {
-      const resp = await fetch(`${getApiUrl()}/api/crosslink/fork-monitor`);
+      const resp = await fetch(`${getApiUrl()}/v1/crosslink/fork-monitor`);
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-      const json = await resp.json();
+      const json = await readApiData(resp);
       setData(json);
       setError(null);
     } catch (e: unknown) {
@@ -72,13 +73,13 @@ export default function ForkMonitorPage() {
     if (heights.length === 0) return;
     setChecking(true);
     try {
-      const resp = await fetch(`${getApiUrl()}/api/crosslink/fork-monitor/check`, {
+      const resp = await fetch(`${getApiUrl()}/v1/crosslink/fork-monitor/checks`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ heights }),
       });
-      const json = await resp.json();
-      if (json.success) setCheckResults(json.results);
+      const json = await readApiData(resp);
+      if (json) setCheckResults(json.results);
     } catch {
       /* ignore */
     } finally {
@@ -129,7 +130,7 @@ export default function ForkMonitorPage() {
       if (sample_hashes.length > 0) body.sample_hashes = sample_hashes;
       const tokenKey = `fork-monitor-owner:${reportName.trim()}`;
       const existingToken = localStorage.getItem(tokenKey);
-      const resp = await fetch(`${getApiUrl()}/api/crosslink/fork-monitor/report`, {
+      const resp = await fetch(`${getApiUrl()}/v1/crosslink/fork-monitor/nodes`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -137,8 +138,8 @@ export default function ForkMonitorPage() {
         },
         body: JSON.stringify(body),
       });
-      const json = await resp.json();
-      if (json.success) {
+      const json = await readApiData(resp);
+      if (json) {
         if (typeof json.ownershipToken === 'string') {
           localStorage.setItem(tokenKey, json.ownershipToken);
         }
@@ -170,7 +171,7 @@ export default function ForkMonitorPage() {
     if (!confirm(`Remove "${name}" from the registry?`)) return;
     try {
       const resp = await fetch(
-        `${getApiUrl()}/api/crosslink/fork-monitor/report/${encodeURIComponent(name)}`,
+        `${getApiUrl()}/v1/crosslink/fork-monitor/nodes/${encodeURIComponent(name)}`,
         { method: 'DELETE', headers: { 'X-Node-Token': ownershipToken } },
       );
       if (resp.ok) {

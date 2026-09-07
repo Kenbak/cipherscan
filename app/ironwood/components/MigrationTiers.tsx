@@ -1,5 +1,6 @@
 'use client';
 
+import { readApiData } from '@/lib/api-client';
 import { useEffect, useMemo, useState } from 'react';
 import { ShareableCard } from '@/components/ShareableCard';
 import { getApiUrl } from '@/lib/api-config';
@@ -42,9 +43,9 @@ export function MigrationTiers({
   const [scrubIdx, setScrubIdx] = useState(1000);
   useEffect(() => {
     if (!activated) return;
-    const url = `${getApiUrl()}/api/migration/tiers`;
-    fetch(url).then(r => r.json()).then(d => {
-      if (d.success && d.txs) setAllTxs(d.txs);
+    const url = `${getApiUrl()}/v1/migration/tiers`;
+    fetch(url).then(r => readApiData(r)).then(d => {
+      if (d && d.txs) setAllTxs(d.txs);
     }).catch(() => {});
   }, [activated]);
 

@@ -1,5 +1,6 @@
 'use client';
 
+import { readApiData } from '@/lib/api-client';
 import { useState, useEffect, useCallback, memo, type ReactNode } from 'react';
 import { formatRelativeTime } from '@/lib/utils';
 import { formatZecPrecise, formatBytesCompact } from '@/lib/format-numbers';
@@ -102,13 +103,13 @@ export const RecentMempool = memo(function RecentMempool({ footer }: { footer?: 
 
   const fetchMempool = async () => {
     try {
-      const apiUrl = `${getApiUrl()}/api/mempool`;
+      const apiUrl = `${getApiUrl()}/v1/mempool`;
 
       const response = await fetch(apiUrl);
       if (!response.ok) return;
 
-      const result = await response.json();
-      if (result.success) {
+      const result = await readApiData(response);
+      if (result) {
         // REST rows carry per-pool activity as counts — normalize to the same
         // boolean flags the WebSocket path uses.
         const allTxs = (result.transactions || []).map((tx: any) => ({

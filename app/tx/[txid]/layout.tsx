@@ -40,7 +40,7 @@ type AlternateHashResolution = 'block' | 'finalizer' | 'absent' | 'unavailable';
 
 const resolveAlternateHash = cache(async (hash: string): Promise<AlternateHashResolution> => {
   try {
-    const blockResponse = await fetchWithDeadline(`${getApiUrl()}/api/block/${hash}?summary=1`, {
+    const blockResponse = await fetchWithDeadline(`${getApiUrl()}/v1/blocks/${hash}?summary=1`, {
       next: { revalidate: 300 },
     });
     if (blockResponse.ok) return 'block';
@@ -48,7 +48,7 @@ const resolveAlternateHash = cache(async (hash: string): Promise<AlternateHashRe
 
     if (getNetwork() !== 'crosslink-testnet') return 'absent';
 
-    const finalizerResponse = await fetchWithDeadline(`${getApiUrl()}/api/finalizer/${hash}`, {
+    const finalizerResponse = await fetchWithDeadline(`${getApiUrl()}/v1/crosslink/finalizers/${hash}`, {
       next: { revalidate: 300 },
     });
     if (finalizerResponse.ok) return 'finalizer';

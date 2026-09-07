@@ -1,3 +1,4 @@
+import { readApiData } from '@/lib/api-client';
 import NetworkClient, { type NetworkPageInitialData } from './NetworkClient';
 import { getApiUrl, getNetwork, getBaseUrl } from '@/lib/seo';
 import { fetchWithDeadline } from '@/lib/server-fetch';
@@ -13,7 +14,7 @@ async function fetchJson<T>(
       next: { revalidate },
     });
     if (!response.ok) return null;
-    const data = await response.json();
+    const data = await readApiData(response);
     if (data?.network && data.network !== expectedNetwork) return null;
     return data as T;
   } catch {
@@ -26,12 +27,12 @@ export default async function NetworkPage() {
   const network = getNetwork();
   const fetchedAt = Date.now();
   const [stats, health, nodeLocations, nodeStats, recentBlocks, feeDistribution] = await Promise.all([
-    fetchJson<NetworkPageInitialData['stats']>(apiBase, '/api/network/stats', 30, network),
-    fetchJson<NetworkPageInitialData['health']>(apiBase, '/api/network/health', 60, network),
-    fetchJson<NetworkPageInitialData['nodeLocations']>(apiBase, '/api/network/nodes', 300, network),
-    fetchJson<NetworkPageInitialData['nodeStats']>(apiBase, '/api/network/nodes/stats', 300, network),
-    fetchJson<NetworkPageInitialData['recentBlocks']>(apiBase, '/api/network/blocks/recent?limit=30', 30, network),
-    fetchJson<NetworkPageInitialData['feeDistribution']>(apiBase, '/api/network/fee-distribution?period=30d', 300, network),
+    fetchJson<NetworkPageInitialData['stats']>(apiBase, '/v1/network/stats', 30, network),
+    fetchJson<NetworkPageInitialData['health']>(apiBase, '/v1/network/health', 60, network),
+    fetchJson<NetworkPageInitialData['nodeLocations']>(apiBase, '/v1/network/nodes', 300, network),
+    fetchJson<NetworkPageInitialData['nodeStats']>(apiBase, '/v1/network/nodes/stats', 300, network),
+    fetchJson<NetworkPageInitialData['recentBlocks']>(apiBase, '/v1/network/blocks/recent-summary?limit=30', 30, network),
+    fetchJson<NetworkPageInitialData['feeDistribution']>(apiBase, '/v1/network/fee-distribution?period=30d', 300, network),
   ]);
   const pageUrl = `${getBaseUrl()}/network`;
   const pageSchema = {

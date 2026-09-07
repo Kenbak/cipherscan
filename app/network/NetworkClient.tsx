@@ -88,16 +88,16 @@ export interface NetworkPageInitialData {
 }
 
 export default function NetworkClient({ initialData }: { initialData: NetworkPageInitialData }) {
-  const statsQuery = useApiQuery<NetworkStats>('/api/network/stats', undefined, {
+  const statsQuery = useApiQuery<NetworkStats>('/v1/network/stats', undefined, {
     refreshInterval: 60_000, initialData: initialData.stats ?? undefined, initialFetchedAt: initialData.fetchedAt,
   });
-  const healthQuery = useApiQuery<HealthStatus>('/api/network/health', undefined, {
+  const healthQuery = useApiQuery<HealthStatus>('/v1/network/health', undefined, {
     refreshInterval: 60_000, initialData: initialData.health ?? undefined, initialFetchedAt: initialData.fetchedAt,
   });
   const [streamStats, setStreamStats] = useState<NetworkStats | null>(null);
   const [now, setNow] = useState(initialData.fetchedAt);
   const [technicalOpen, setTechnicalOpen] = useState(false);
-  const stats = streamStats ?? (statsQuery.data?.success ? statsQuery.data : null);
+  const stats = streamStats ?? (statsQuery.data ? statsQuery.data : null);
   useWebSocket({ onMessage: message => {
     if (message.type === 'network_stats' && message.data?.success && message.data?.blockchain) setStreamStats(message.data);
   }});

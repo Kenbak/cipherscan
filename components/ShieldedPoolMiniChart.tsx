@@ -82,7 +82,7 @@ function MiniTooltip({
 export const ShieldedPoolMiniChart = memo(function ShieldedPoolMiniChart({ footer }: { footer?: ReactNode } = {}) {
   const { theme } = useTheme();
   const colors = getChartColors(theme);
-  const { data: apiRes, loading } = useApiQuery<{ points: PoolPoint[] }>('/api/network/pool-history', { period: '30d' });
+  const { data: apiRes, loading } = useApiQuery<{ points: PoolPoint[] }>('/v1/shielded-pools/history', { period: '30d' });
   const points = apiRes?.points ?? [];
   const latest = points[points.length - 1];
 

@@ -1,5 +1,6 @@
 'use client';
 
+import { readApiData } from '@/lib/api-client';
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { StakingDayBanner } from '@/components/StakingDayBanner';
@@ -53,10 +54,10 @@ export default function ValidatorsPage() {
 
   const fetchData = useCallback(async () => {
     try {
-      const res = await fetch(`${getApiUrl()}/api/crosslink`);
+      const res = await fetch(`${getApiUrl()}/v1/crosslink`);
       if (!res.ok) throw new Error('Failed to fetch');
-      const json = await res.json();
-      if (!json.success) throw new Error(json.error || 'Unknown error');
+      const json = await readApiData(res);
+      if (!json) throw new Error(json.error || 'Unknown error');
 
       setData({
         roster: json.roster || [],
@@ -72,14 +73,14 @@ export default function ValidatorsPage() {
       const apiBase = getApiUrl();
       const results = await Promise.allSettled(
         roster.map((m: RosterMember) =>
-          fetch(`${apiBase}/api/finalizer/${m.identity}/participation?window=500`).then((r) =>
-            r.ok ? r.json() : null
+          fetch(`${apiBase}/v1/crosslink/finalizers/${m.identity}/participation?window=500`).then((r) =>
+            r.ok ? readApiData(r) : null
           )
         )
       );
       const next: Record<string, number> = {};
       results.forEach((r, i) => {
-        if (r.status === 'fulfilled' && r.value?.success) {
+        if (r.status === 'fulfilled' && r.value) {
           next[roster[i].identity.toLowerCase()] = r.value.participation_pct || 0;
         }
       });

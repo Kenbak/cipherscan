@@ -1,3 +1,4 @@
+import { readApiData } from '@/lib/api-client';
 import type { Metadata } from 'next';
 import {
   buildPageMetadata,
@@ -29,10 +30,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (resolution.state === 'absent') {
     // Check if this is a future block (valid height above tip)
     if (/^\d+$/.test(height)) {
-      const res = await fetchWithDeadline(`${getApiUrl()}/api/info`, { next: { revalidate: 30 } });
+      const res = await fetchWithDeadline(`${getApiUrl()}/v1/network/info`, { next: { revalidate: 30 } });
       if (!res.ok) throw new Error(`Chain tip returned HTTP ${res.status}`);
 
-      const data = await res.json();
+      const data = await readApiData(res);
       const rawHeight = data.height ?? data.blocks;
       const tipHeight = rawHeight === null || rawHeight === undefined || rawHeight === ''
         ? Number.NaN

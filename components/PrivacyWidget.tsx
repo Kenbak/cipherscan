@@ -1,5 +1,6 @@
 'use client';
 
+import { readApiData } from '@/lib/api-client';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Tooltip } from '@/components/Tooltip';
@@ -99,11 +100,11 @@ export function PrivacyWidget({ initialStats = null, initialRiskStats = null }: 
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const apiUrl = `${getApiUrl()}/api/privacy-stats`;
+        const apiUrl = `${getApiUrl()}/v1/privacy/stats`;
 
         const response = await fetch(apiUrl);
-        const result = await response.json();
-        const statsData = result.success ? result.data : result;
+        const result = await readApiData(response);
+        const statsData = result;
         setStats(statsData);
       } catch (error) {
         console.error('Error fetching privacy stats:', error);
@@ -112,12 +113,12 @@ export function PrivacyWidget({ initialStats = null, initialRiskStats = null }: 
 
     const fetchRiskStats = async () => {
       try {
-        const apiUrl = `${getApiUrl()}/api/privacy/risks?limit=1&period=7d`;
+        const apiUrl = `${getApiUrl()}/v1/privacy/risks?limit=1&period=7d`;
 
         const response = await fetch(apiUrl);
         if (response.ok) {
-          const data = await response.json();
-          if (data.success && data.stats) {
+          const data = await readApiData(response);
+          if (data && data.stats) {
             setRiskStats({
               total: data.stats.total,
               highRisk: data.stats.highRisk,

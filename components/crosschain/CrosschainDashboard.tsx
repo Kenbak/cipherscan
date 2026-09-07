@@ -1,4 +1,5 @@
 'use client';
+import { readApiData } from '@/lib/api-client';
 import { Skeleton as Sk, ChartSkeleton } from '@/components/ui/Skeleton';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
@@ -165,10 +166,10 @@ export function CrosschainDashboard() {
       try {
         if (!hasFetchedOnce.current) setLoading(true);
         setError(null);
-        const apiUrl = `${getApiUrl()}/api/crosschain/db-stats`;
+        const apiUrl = `${getApiUrl()}/v1/crosschain/db-stats`;
         const response = await fetch(apiUrl);
-        const data = await response.json();
-        if (!data.success) { setError(data.error || 'Failed to fetch data'); return; }
+        const data = await readApiData(response);
+        if (!data) { setError(data.error || 'Failed to fetch data'); return; }
 
         const buildGroups = (list: any[]): ChainGroup[] => (list || []).map((c: any) => ({
           chain: c.chain,
@@ -210,9 +211,9 @@ export function CrosschainDashboard() {
   useEffect(() => {
     const fetchPrice = async () => {
       try {
-        const apiUrl = `${getApiUrl()}/api/price`;
+        const apiUrl = `${getApiUrl()}/v1/network/price`;
         const res = await fetch(apiUrl);
-        const data = await res.json();
+        const data = await readApiData(res);
         if (data.price && data.price > 0) setZecPrice(data.price);
       } catch { /* Price toggle hidden on failure */ }
     };
@@ -222,10 +223,10 @@ export function CrosschainDashboard() {
   useEffect(() => {
     const fetchPairs = async () => {
       try {
-        const url = `${getApiUrl()}/api/crosschain/popular-pairs`;
+        const url = `${getApiUrl()}/v1/crosschain/popular-pairs`;
         const res = await fetch(url);
-        const json = await res.json();
-        if (json.success && json.pairs) setPopularPairs(json.pairs.slice(0, 8));
+        const json = await readApiData(res);
+        if (json && json.pairs) setPopularPairs(json.pairs.slice(0, 8));
       } catch { /* Not critical */ }
     };
     fetchPairs();
@@ -234,10 +235,10 @@ export function CrosschainDashboard() {
   useEffect(() => {
     const fetchWrappedZec = async () => {
       try {
-        const url = `${getApiUrl()}/api/wrapped-zec/supply`;
+        const url = `${getApiUrl()}/v1/crosschain/wrapped-zec/supply`;
         const res = await fetch(url);
-        const json = await res.json();
-        if (json.success) setWrappedZec({ assets: json.assets, totalWrapped: json.totalWrapped });
+        const json = await readApiData(res);
+        if (json) setWrappedZec({ assets: json.assets, totalWrapped: json.totalWrapped });
       } catch { /* Not critical */ }
     };
     fetchWrappedZec();
@@ -248,10 +249,10 @@ export function CrosschainDashboard() {
     try {
       const dirMap: Record<SwapFilter, string> = { all: '', in: 'inflow', out: 'outflow' };
       const dirParam = direction !== 'all' ? `&direction=${dirMap[direction]}` : '';
-      const url = `${getApiUrl()}/api/crosschain/history?limit=${SWAPS_PER_PAGE}&page=${page}${dirParam}`;
+      const url = `${getApiUrl()}/v1/crosschain/history?limit=${SWAPS_PER_PAGE}&page=${page}${dirParam}`;
       const res = await fetch(url);
-      const json = await res.json();
-      if (json.success && json.swaps) {
+      const json = await readApiData(res);
+      if (json && json.swaps) {
         const mapped: RecentSwap[] = json.swaps.map((s: any) => {
           const dir = s.direction === 'inflow' ? 'in' : 'out';
           const isIn = dir === 'in';

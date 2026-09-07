@@ -1,5 +1,6 @@
 'use client';
 
+import { readApiData } from '@/lib/api-client';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { PageHeader, MetricCard, DataTable, HashLink, type DataTableColumn } from '@/components/ui';
@@ -12,6 +13,7 @@ import { usePaginatedList, type BasePaginationState } from '@/hooks/usePaginated
 import { CURRENCY } from '@/lib/config';
 
 interface Block {
+  intervalSeconds?: number | null;
   height: number;
   hash: string;
   timestamp: number;
@@ -155,7 +157,7 @@ function blockColumns(blocks: Block[], trailingBlock: Block | null): DataTableCo
       skeletonWidth: 'w-12',
       cell: (block, idx) => {
         const nextBlock = blocks[idx + 1] ?? (idx === blocks.length - 1 ? trailingBlock : null);
-        const gap = nextBlock ? block.timestamp - nextBlock.timestamp : null;
+        const gap = block.intervalSeconds ?? (nextBlock ? block.timestamp - nextBlock.timestamp : null);
         const interval = gap !== null && gap >= 0 ? formatBlockInterval(gap) : null;
         const barPct = gap !== null ? Math.min(100, (gap / 300) * 100) : 0;
         if (!interval || !nextBlock) {
@@ -201,7 +203,7 @@ interface BlocksClientProps {
   initialBlocks?: Block[];
   initialTrailingBlock?: Block | null;
   initialPagination?: Partial<BasePaginationState> | null;
-  initialCursor?: number | null;
+  initialCursor?: string | null;
   initialDirection?: 'next' | 'prev';
   initialPage?: number;
   initialUnavailable?: boolean;
@@ -227,21 +229,10 @@ export default function BlocksClient({
     prevHref,
     nextHref,
   } = usePaginatedList<Block, BasePaginationState, Block | null>({
-    endpoint: '/api/blocks/list',
+    endpoint: '/v1/blocks',
     pageSize: PAGE_SIZE,
     archiveBasePath: '/blocks',
-    getItemsFromResponse: (json) => (json.blocks as Block[]) || [],
     getLatestKey: (block) => Number(block.height),
-    buildCursors: (visibleItems) => ({
-      nextCursor: visibleItems.length > 0
-        ? Number(visibleItems[visibleItems.length - 1].height)
-        : null,
-      prevCursor: visibleItems.length > 0 ? Number(visibleItems[0].height) : null,
-    }),
-    processExtra: (all, _visible, direction) => {
-      if (direction === 'prev') return null;
-      return all.length > PAGE_SIZE ? all[PAGE_SIZE] : null;
-    },
     shouldWsRefresh: (msg, latestKey) => {
       const data = msg.data as { height?: number } | undefined;
       const height = data?.height ?? 0;
@@ -273,8 +264,8 @@ export default function BlocksClient({
 
   useEffect(() => {
     const base = getApiUrl();
-    fetch(`${base}/api/network/stats`)
-      .then(res => res.ok ? res.json() : null)
+    fetch(`${base}/v1/network/stats`)
+      .then(res => res.ok ? readApiData(res) : null)
       .then(data => {
         if (!data) return;
         const blocks24h = data.mining?.blocks24h ?? null;
@@ -291,13 +282,13 @@ export default function BlocksClient({
         });
       })
       .catch(() => {});
-    fetch(`${base}/api/price`)
-      .then(res => res.ok ? res.json() : null)
+    fetch(`${base}/v1/network/price`)
+      .then(res => res.ok ? readApiData(res) : null)
       .then(data => setZecPriceUsd(data?.price ?? null))
       .catch(() => {});
   }, []);
 
-  // /api/network/stats is cached up to 2 minutes server-side, while the
+  // /v1/network/stats is cached up to 2 minutes server-side, while the
   // block list itself refreshes live over the websocket (~15s cache) — right
   // after a new block, the list already shows it but this fetch hasn't
   // caught up yet, so the "Block Height" card would read one block behind

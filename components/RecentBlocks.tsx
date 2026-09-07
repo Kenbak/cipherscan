@@ -1,5 +1,6 @@
 'use client';
 
+import { readApiData } from '@/lib/api-client';
 import { useState, useEffect, useRef, memo, useCallback, type ReactNode } from 'react';
 import Link from 'next/link';
 import { formatBytesCompact } from '@/lib/format-numbers';
@@ -42,15 +43,15 @@ export const RecentBlocks = memo(function RecentBlocks({ initialBlocks = [], foo
 
   const fetchLatest = useCallback(async () => {
     try {
-      const apiUrl = `${getApiUrl()}/api/blocks?limit=5`;
+      const apiUrl = `${getApiUrl()}/v1/blocks?limit=5`;
 
       const response = await fetch(apiUrl);
-      const data = await response.json();
-      if (data.blocks?.length) {
-        const newTopHeight = parseInt(data.blocks[0]?.height ?? data.blocks[0]?.block_height);
+      const data = await readApiData(response);
+      if (data?.length) {
+        const newTopHeight = parseInt(data[0]?.height ?? data[0]?.block_height);
         if (newTopHeight !== latestKey.current) {
           latestKey.current = newTopHeight;
-          setBlocks(data.blocks.map(parseBlock));
+          setBlocks(data.map(parseBlock));
         }
       }
     } catch (error) {

@@ -134,7 +134,7 @@ function TerminalHero() {
 
   useEffect(() => {
     const lines = [
-      '$ curl api.mainnet.cipherscan.app/api/tx/a3f7c1...',
+      '$ curl api.mainnet.cipherscan.app/v1/transactions/a3f7c1...',
       '',
       '{',
       '  "txid": "a3f7c1...9e2b",',
@@ -846,9 +846,9 @@ export default function LearnPage() {
                 <div className="space-y-3">
                   {[
                     { label: 'Mainnet Lightwalletd gRPC', value: 'lightwalletd.mainnet.cipherscan.app:443' },
-                    { label: 'Mainnet REST API', value: 'https://api.mainnet.cipherscan.app/api/*' },
+                    { label: 'Mainnet REST API', value: 'https://api.zecblock.com/v1/*' },
                     { label: 'Testnet Lightwalletd gRPC', value: 'lightwalletd.testnet.cipherscan.app:443' },
-                    { label: 'Testnet REST API', value: 'https://api.testnet.cipherscan.app/api/*' },
+                    { label: 'Testnet REST API', value: 'https://api.testnet.cipherscan.app/v1/*' },
                   ].map(ep => (
                     <div key={ep.label}>
                       <div className="text-xs text-muted font-mono mb-1 uppercase tracking-wide">{ep.label}</div>

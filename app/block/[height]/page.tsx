@@ -1,3 +1,4 @@
+import { readApiData } from '@/lib/api-client';
 import { notFound } from 'next/navigation';
 import {
   getBaseUrl,
@@ -25,12 +26,12 @@ function blockDescription(block: BlockRecord, height: number, hash: string): str
 }
 
 async function getCurrentTipHeight(): Promise<number> {
-  const res = await fetchWithDeadline(`${getApiUrl()}/api/info`, {
+  const res = await fetchWithDeadline(`${getApiUrl()}/v1/network/info`, {
     next: { revalidate: 30 },
   });
   if (!res.ok) throw new Error(`Chain tip returned HTTP ${res.status}`);
 
-  const data = await res.json();
+  const data = await readApiData(res);
   const rawHeight = data.height ?? data.blocks;
   const tipHeight = rawHeight === null || rawHeight === undefined || rawHeight === ''
     ? Number.NaN

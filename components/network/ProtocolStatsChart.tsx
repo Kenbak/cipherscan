@@ -46,7 +46,7 @@ export function ProtocolStatsChart({ initialData }: { initialData?: ProtocolStat
   const [period, setPeriod] = useState<Period>('4y');
 
   const { data: apiData, loading } = useApiQuery<ProtocolStatsResponse>(
-    '/api/network/protocol-stats',
+    '/v1/network/protocol-stats',
     undefined,
     { initialData: initialData ?? undefined },
   );

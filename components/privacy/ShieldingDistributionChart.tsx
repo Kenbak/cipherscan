@@ -54,7 +54,7 @@ export function ShieldingDistributionChart() {
   const yLabel = mode === 'count' ? 'Transactions' : 'ZEC volume';
 
   const { data: res, loading, error } = useApiQuery<{ buckets: Bucket[] }>(
-    '/api/analytics/shielding-distribution',
+    '/v1/privacy/shielding-distribution',
     { period },
   );
   const data = res?.buckets ?? [];

@@ -1,5 +1,6 @@
 'use client';
 
+import { readApiData } from '@/lib/api-client';
 import { useState, useEffect, useRef, memo, useCallback, type ReactNode } from 'react';
 import { formatRelativeTime } from '@/lib/utils';
 import { formatZecPrecise, zatToZec } from '@/lib/format-numbers';
@@ -125,15 +126,15 @@ export const RecentTransactions = memo(function RecentTransactions({
 
   const fetchLatest = useCallback(async () => {
     try {
-      const apiUrl = `${getApiUrl()}/api/transactions/list?limit=${limit}`;
+      const apiUrl = `${getApiUrl()}/v1/transactions?limit=${limit}`;
 
       const response = await fetch(apiUrl);
-      const data = await response.json();
-      if (data.transactions?.length) {
-        const newTop = data.transactions[0]?.txid;
+      const data = await readApiData(response);
+      if (data?.length) {
+        const newTop = data[0]?.txid;
         if (newTop !== latestKey.current) {
           latestKey.current = newTop;
-          setTxs(data.transactions);
+          setTxs(data);
         }
       }
     } catch (error) {

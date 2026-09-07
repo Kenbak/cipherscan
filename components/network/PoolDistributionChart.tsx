@@ -201,7 +201,7 @@ export function PoolDistributionChart({ initialData }: { initialData?: PoolHisto
   const [hiddenSeries, setHiddenSeries] = useState<Set<string>>(new Set());
 
   const { data: apiRes, loading } = useApiQuery<PoolHistoryResponse>(
-    '/api/network/pool-history',
+    '/v1/shielded-pools/history',
     { period },
     { initialData: period === 'all' ? initialData ?? undefined : undefined },
   );

@@ -1,18 +1,60 @@
-# CipherScan API v1 — contract foundation
+# ZecBlock API v1
 
-Status: **mounted, fail-closed preview**. `server/api/server.js` mounts the
-router at `/v1`; `API_V1_ENABLED=false` keeps it indistinguishable from an
-unmounted route until preview rollout is explicitly enabled.
+The frontend now uses `/v1` for explorer HTTP data, with one checked `{data, meta}`
+parser for browser and server consumers. The manifest has 142 entries: 137 adapters,
+4 native name routes, and one superseded legacy blocks alias. No implemented
+capability is represented by a v1 stub. Production activation is a separate release.
 
-## Private local preview with server-held mainnet data
+## Contract and coverage
 
-Run `npm run dev:v1` from the repository root. The development entry point
-listens **only on `127.0.0.1:3002`** and runs the local v1 contract against the
-existing `https://api.mainnet.cipherscan.app` read endpoints. PostgreSQL, the
-indexer and blockchain data remain on the server. No database copy, public DNS,
-server deployment or production flag change is involved.
+- `inventory/manifest.js` is the route/method/authority registry. Routes with literal
+  names register before parameter routes, so `/uncles/stats` is not a hash lookup.
+- `inventory/query-parameters.json` includes direct query reads and the shared
+  limit/offset and limit/page helpers. Unknown, repeated or structured parameters
+  receive HTTP 400. Source handlers retain their domain-specific value validation.
+- Successful responses use `{data, meta}`. Top-level legacy `success` is removed;
+  nested fields, arrays, zero and null retain their meaning. Errors use RFC 9457
+  `application/problem+json`, preserve HTTP status and are never cached.
+- `meta.generatedAt` is response generation time. Unknown source observation time
+  and source height stay null. A current indexer tip is not a historical snapshot
+  height. Missing age is `freshness.status=unknown`, not an invented fresh reading.
+- Declared authoritative zatoshi fields are decimal strings. Address totals use
+  exact source `*Zat` fields before legacy numeric fields; unsafe numeric amounts
+  fail closed. Existing formatted ZEC/USD/percentage fields remain field-defined.
+  Do not multiply a formatted float to manufacture an authoritative zatoshi value.
+- Blocks, transactions, shielded flows and names expose `meta.page` with opaque
+  cursors. Chain cursors bind the route and filters. Lists probe beyond the source's
+  100-row ceiling and use complete tie-break keys, including transaction hashes
+  when fully shielded transactions share a timestamp. Other domain-specific
+  paginated payloads retain their documented bounded page/offset semantics.
+- Name routes use the configured ZNS JSON-RPC service, normalize keys and expose
+  bounded pagination. Voting-chain RPC and WebSockets remain separate protocols.
+- Fork-monitor writes forward the caller's ownership token. Paid signal routes
+  forward only their existing authorization/payment headers and never receive
+  the adapter's internal service key. Payment challenge/receipt headers survive;
+  HTTP 402 includes the original challenge in `problem.paymentRequired`.
+  Authenticated responses use `private, no-store`. No payment is made by v1 itself.
+- Scans have bounded block windows and rate limits. The wallet UI divides its
+  supported 50,000-block window into 10,000-block requests and honors Retry-After
+  and cancellation. Viewing keys remain in the browser.
 
-In the ignored root `.env.local`, set:
+Generate the API reference and OpenAPI from their source registries:
+
+```sh
+node server/api/v1/tools/query-inventory.js
+node server/api/v1/tools/write-reference.js
+node server/api/v1/tools/write-openapi.js
+```
+
+`server/api/openapi/v1.yaml` and `lib/generated/api-reference.json` are checked
+artifacts. Core envelope, errors, queries and units are specified; domain payloads
+retain their established fields. Generic domain schemas are not evidence that
+all possible payload states have been validated.
+
+## Private local testing
+
+Run `npm run dev:v1` and `npm run dev` in separate terminals. The preview binds
+only `127.0.0.1:3002`, fetching deployed mainnet data. Keep the ignored `.env.local`:
 
 ```dotenv
 NEXT_PUBLIC_NETWORK=mainnet
@@ -21,308 +63,69 @@ CIPHERSCAN_API_URL=http://127.0.0.1:3002
 NEXT_PUBLIC_WS_URL=wss://api.mainnet.cipherscan.app
 ```
 
-Run the frontend with `npm run dev` on port 3000; reload after Next.js picks up
-the environment change. Keep both processes running. The API base omits `/v1`
-because consumers append their versioned paths. HTTP reads go through the local
-contract; live events still use the existing WebSocket feed.
+Consumers append `/v1/...`, so base URLs omit that suffix. The preview rejects
+foreign browser origins, non-loopback Host headers and writes. No shared preview
+secret enters a browser bundle. Restart the Node preview after backend edits;
+Next.js normally picks up frontend edits automatically.
 
-The preview rejects non-loopback Host values, foreign browser origins and all
-non-read methods. It never inherits a service key. It is read-only even for
-POST endpoints that perform analyses: broadcasting, registration and scanning
-must be tested separately. Stop the preview with Ctrl-C. Do not publish this
-entry point through a reverse proxy or a public tunnel.
+For new source-handler validation against server-held data, the optional
+`dev-mainnet-source.js` runs in a separate temporary checkout on the server.
+It requires `V1_PRIVATE_SOURCE=true`, an explicit `V1_SOURCE_ENV_FILE`, and binds
+only `127.0.0.1:3003`. It mounts the changed transaction-list/address handlers and the new search-interest read,
+with a two-connection PostgreSQL pool enforcing read-only transactions and
+8-second statement deadlines. It starts no indexer, Redis worker or production
+service. Remaining reads use the existing local legacy API. Reach it through an
+SSH local forward, then start `dev:v1` with
+`V1_PREVIEW_UPSTREAM=http://127.0.0.1:<forwarded-port>`.
+Never expose either development entry point publicly. Stop both with Ctrl-C.
+No schema changes are applied by these helpers.
 
-This validates the frontend and response adapters against deployed data, **not
-new SQL, unapplied migrations or new server handlers**. Those require an
-isolated backend process on the server, bound to loopback and reached through
-an SSH local forward. Use a separate checkout, service/port and least-privilege
-database access; leave the production process and public proxy unchanged.
-For an existing legacy API reached over an SSH forward, set
-`V1_PREVIEW_UPSTREAM=http://127.0.0.1:<forwarded-port>` before `npm run dev:v1`.
-Do not point that adapter upstream at another `/v1` service.
+## Deployment and compatibility
 
-The future public origin remains `https://api.zecblock.com`; running this
-preview does not create that hostname. Local URLs need no certificate or hosts
-file edit, and no shared preview credential is placed in a browser bundle.
+`server/api/server.js` mounts the router under `/v1`, behind the existing CORS,
+security and request limiter. V1 owns its 1 MB JSON parser and problem errors.
+The feature gate defaults closed. `API_V1_ENABLED=true` requires
+`X-API-Preview-Key` until `API_V1_LAUNCHED=true`; an absent preview key fails closed.
+A publicly reachable preview gate can reveal its existence through a 401, so
+use loopback/SSH access when the hostname must remain undiscoverable.
 
-## Architecture status: transitional dark-launch bridge — NOT the final design
+The intended mainnet base is `https://api.zecblock.com`. This code does not create
+DNS/TLS or change production flags. Configure the host, allowed web origins,
+WebSocket origin, and backend before shipping a frontend that depends on them.
+Testnet and Crosslink retain explicit network configuration and indexation policy.
 
-**Read this before treating anything below as a permanent architecture.**
-`/v1` is currently implemented as a **loopback reverse proxy** in front of
-the legacy Express API: every adapter forwards the request over an internal
-HTTP call (`lib/internal-client.js`) to the already-running legacy handler,
-then reshapes the JSON response into the v1 contract. This is a deliberate,
-temporary bridge chosen because it lets a stable public contract ship
-*today*, without editing `server/api/server.js` or any legacy route file,
-and without duplicating a single line of business SQL.
+Adapters still call the existing handlers over bounded internal HTTP. They reuse
+business logic but add a hop and JSON serialization; inspect `Server-Timing` and
+measure release latency. Native shared service extraction can remove that hop
+later. **Do not delete the legacy handlers while adapters depend on them.** Keep
+external legacy compatibility until its consumers have migrated; no sunset date
+has been selected. Do not redirect old URLs to incompatible payload shapes.
 
-It is **not** presented as top-class or final. Concretely, it costs:
+Relevant settings are documented in `config.js`: internal origin, timeout
+(default 8 seconds), response limit (50 MiB), network, and scan limits.
+`V1_INTERNAL_SERVICE_KEY` can bypass the legacy read limiter in a trusted deployment;
+it must not bypass ownership or payments. Dedicated deployments need their own
+CORS and global request limiting; the private development server is not a public
+hosting configuration. Writes preserve source behavior and are not automatically
+retried after an ambiguous timeout.
 
-- **An extra network hop + JSON re-serialization per request.** This is
-  measured, not hand-waved: every adapter response carries a
-  `Server-Timing: internal;dur=<ms>` entry for exactly this hop (see
-  `lib/headers.js`), so the cost is visible in production, not buried.
-- **A second place a contract can drift.** If a legacy response shape
-  changes, a v1 adapter's assumptions can silently break. Mitigated (not
-  eliminated) by the contract tests in `server/api/test/v1/`.
-- **No ability to make a slow legacy query fast.** v1 inherits whatever
-  performance and caching the legacy handler already has.
+## Verification
 
-**Intended migration path**, once `/v1` traffic and the contract shape are
-validated in dark launch: migrate individual adapters, one at a time, off
-the loopback proxy and onto a real data-access layer (shared query modules
-callable directly from `/v1`, or a proper internal gateway/service) —
-deleting `lib/internal-client.js`'s role for each migrated route as it
-goes, rather than proxying indefinitely. Do not build new, permanent
-product surface on top of the proxy pattern; treat every route currently
-marked `status: 'adapter'` in the manifest as "correct today, due for a
-native implementation later."
-
-## What this is
-
-A versioned, contract-stable API layer that sits in front of the legacy
-Express routes in `server/api/routes/**`. It does not duplicate any business
-SQL. Every `/v1` route either:
-
-1. **adapts** — proxies to the equivalent legacy endpoint over the internal
-   HTTP bridge described above and reshapes the response into the standard
-   envelope (optionally after v1-layer request validation and/or rate
-   limiting — see "Scan endpoints" below), or
-2. **stubs** — is inventoried as a NON-public endpoint that isn't safe to
-   expose under `/v1` yet, and returns `501` (RFC 9457 problem+json). As of
-   this revision, **every `public`-classified manifest entry is an
-   adapter** — there are no public stubs; see "Scan endpoints" below for
-   why the two scan endpoints, in particular, are adapters-with-guardrails
-   rather than stubs, and `server/api/test/v1/manifest.test.js` for the
-   test that enforces this invariant going forward, or
-3. is simply **excluded** — internal/ops/private/deprecated legacy endpoints
-   that are out of the v1 public-contract scope, or superseded by another
-   entry that IS adapted.
-
-The full classification lives in [`inventory/manifest.js`](./inventory/manifest.js)
-and is the single source of truth for both the mounted routes
-(`routes/index.js` builds the router straight from it) and the generated
-OpenAPI 3.1 spec at [`server/api/openapi/v1.yaml`](../openapi/v1.yaml).
-
-## Directory map
-
-```
-server/api/v1/
-  index.js                  factory: createV1Router(envOverrides?) -> express.Router
-  config.js                 env var parsing (API_V1_ENABLED, preview key, ...)
-  openapi.js                builds the OpenAPI document from the manifest
-  tools/write-openapi.js    regenerates server/api/openapi/v1.yaml
-  inventory/manifest.js     the endpoint inventory + v1 route mapping (source of truth)
-  middleware/
-    feature-gate.js         API_V1_ENABLED / preview-key gate
-    request-context.js      requestId, network, lazy indexedHeight resolution
-  lib/
-    internal-client.js      loopback HTTP dispatcher to the legacy API (no SQL, no imports of route files) — TRANSITIONAL, see above
-    build-route.js          generic adapter/stub handler factory driven by manifest entries
-    envelope.js              {data, meta} success envelope
-    problem.js               RFC 9457 error envelope
-    cursor.js                opaque cursor encode/decode + page meta builder
-    zatoshi.js                decimal-string zatoshi serialization helpers
-    headers.js                relays the allowlisted legacy response headers + adds Server-Timing for the internal hop
-    rate-limit.js             dependency-free per-IP sliding-window limiter (currently: scan endpoints)
-    scan-validation.js        v1-layer cost/range validation for the two scan endpoints
-  routes/index.js            assembles the Express Router from the manifest
-server/api/openapi/v1.yaml   generated OpenAPI 3.1 spec (do not hand-edit)
-server/api/test/v1/          node:test suites (manifest, envelope/zatoshi/cursor, routing, internal-client, OpenAPI drift)
+```sh
+npm run test:v1 --prefix server/api
+npm run test:frontend
+npm run test:server-regressions
+npm run lint
+npx tsc --noEmit
+npm run build
+npm run test:route-cache-build
+# Optional local PostgreSQL integration; only temporary tables are created:
+npm run test:v1-postgres
 ```
 
-## Mounting
-
-`server/api/server.js` already mounts the router after the shared
-body-parser/CORS/helmet middleware:
-
-```js
-const createV1Router = require('./v1');
-app.use('/v1', createV1Router());
-```
-
-That's the entire integration surface. `createV1Router()`:
-
-- reads its own env vars (see `config.js`) — it does not need anything
-  from `app.locals`,
-- brings its own body parser (`express.json()`) scoped to the `/v1`
-  sub-router,
-- proxies to the legacy endpoints via internal HTTP calls to
-  `V1_INTERNAL_API_BASE_URL` (defaults to `http://127.0.0.1:3001`, i.e. the
-  same process/port `server.js` already listens on) — so mounting it
-  in-process on the existing server, exactly as shown above, works with
-  zero additional infrastructure.
-
-### Required/relevant env vars
-
-| Var | Default | Purpose |
-|---|---|---|
-| `API_V1_ENABLED` | `false` | Master switch. `false` → every `/v1/*` request gets a generic 404 (indistinguishable from an unmounted route). |
-| `API_V1_LAUNCHED` | `false` | Once `true`, the preview-key requirement is dropped (general availability). |
-| `API_V1_PREVIEW_KEY` | *(unset)* | Shared secret preview testers send as `X-API-Preview-Key`. If `API_V1_ENABLED=true` and this is unset, the gate **fails closed** (401 on every request) rather than failing open. |
-| `V1_INTERNAL_API_BASE_URL` | `http://127.0.0.1:3001` | Where adapters proxy to. Only needs to change if `/v1` is later split onto a genuinely separate host/process from the legacy monolith (see "Dedicated API hosts" below). |
-| `V1_INTERNAL_SERVICE_KEY` | *(unset)* | If set, sent as `X-Service-Key` on internal proxy calls so they bypass the legacy rate limiter, matching how Vercel ISR/CipherPay already bypass it (`SERVICE_API_KEYS` in `server.js`). Recommended for production. |
-| `V1_INTERNAL_TIMEOUT_MS` | `8000` | Per-request timeout for the internal proxy hop. |
-| `V1_INTERNAL_MAX_RESPONSE_BYTES` | `52428800` (50MB) | Max buffered size of one internal-dispatch response. Matches the existing upstream Zebra RPC cap (`MAX_RPC_RESPONSE_BYTES` in `server/lib/zebra-rpc.js`) — chosen specifically so v1 does not reject a legacy payload the rest of the stack already treats as valid (e.g. the measured **~10.4MB** `/api/migration/scatter` response, or a large block). A transport safety net against a truly runaway response, not a product-level size limit. |
-| `NEXT_PUBLIC_NETWORK` | `testnet` | Reused as-is; surfaced in every response's `meta.network`. |
-| `V1_SCAN_ORCHARD_MAX_RANGE` | `50000` | Max block-height range per `/v1/scan/orchard` request (legacy allows up to 1,000,000; v1 tightens this — see "Scan endpoints" below). |
-| `V1_SCAN_ORCHARD_RATE_LIMIT_MAX` / `_WINDOW_MS` | `5` / `60000` | Per-IP rate limit for `/v1/scan/orchard`. |
-| `V1_SCAN_LIGHTWALLETD_MAX_RANGE` | `10000` | Max block-height range per `/v1/scan/lightwalletd` request (legacy allows up to 50,000). |
-| `V1_SCAN_LIGHTWALLETD_RATE_LIMIT_MAX` / `_WINDOW_MS` | `3` / `60000` | Per-IP rate limit for `/v1/scan/lightwalletd`. |
-
-### Recommended rollout sequence
-
-1. Deploy with `API_V1_ENABLED=false` (no-op; safe to ship immediately).
-2. Set `API_V1_ENABLED=true`, `API_V1_PREVIEW_KEY=<secret>`, and
-   `V1_INTERNAL_SERVICE_KEY=<one of SERVICE_API_KEYS>`. Share the preview
-   key with invited testers only — this stage intentionally reveals that
-   `/v1` exists (401, not 404) to anyone who probes it, which is fine for a
-   named preview but is why step 1's default must stay `false` until you're
-   ready for that.
-3. Once the contract is stable, set `API_V1_LAUNCHED=true` to drop the
-   preview-key requirement for general availability.
-
-### "Dedicated API hosts" — what this does and doesn't set up
-
-The task called for a router "intended for mounting at `/v1` on dedicated
-API hosts." This implementation supports that without requiring it on day
-one:
-
-- **Today**: mount it in the existing `server.js` process, as shown above.
-  `V1_INTERNAL_API_BASE_URL` defaults to the same loopback address, so this
-  works with zero extra infrastructure.
-- **Later, if desired**: run `createV1Router()` in a *separate* Node
-  process/container (its own tiny `app.use('/v1', createV1Router())` on a
-  new Express app, or behind Caddy on a new subdomain) and point
-  `V1_INTERNAL_API_BASE_URL` at the legacy monolith's internal address. No
-  code changes are required to move from one topology to the other — the
-  adapter layer only ever talks to the legacy API over HTTP, never via
-  direct imports, in-process function calls, or its own DB/Redis
-  connections. This is also why `server/api/server.js` didn't need editing
-  beyond the one `app.use('/v1', ...)` line: the two layers are decoupled
-  by an HTTP boundary, not a module boundary.
-
-## Contract conventions
-
-- **Success envelope**: `{ "data": ..., "meta": {...} }`. See
-  `lib/envelope.js` / `openapi.js` (`Meta` schema) for the exact fields
-  (`requestId`, `network`, `generatedAt`, `indexedHeight`, `source`, `cache`,
-  `freshness`, `units`, and optional `dataAgeSeconds`/`warnings`/`page`).
-- **Errors**: RFC 9457 `application/problem+json`. See `lib/problem.js`
-  for the registry of `type` slugs (`validation-error`, `not-found`,
-  `not-migrated`, `upstream-error`, etc.).
-- **Cursors**: opaque, base64url-encoded, versioned envelopes
-  (`lib/cursor.js`). Clients must treat `meta.page.nextCursor` /
-  `prevCursor` as opaque — internally they carry exactly the legacy
-  endpoint's own pagination params, re-encoded, so the proxy never needs
-  per-route cursor-field logic beyond the small `cursorMap` declared in the
-  manifest entry.
-- **Zatoshi values**: represented as decimal strings (never floats), via
-  `lib/zatoshi.js`. **Important caveat**: this can only be done losslessly
-  where the legacy handler still returns the raw integer column. Several
-  legacy fields still use formatted ZEC numbers for compatibility. Monetary
-  fields explicitly listed in the manifest are sourced from integer database
-  values and serialized as decimal zatoshi strings. Clients must use those
-  exact fields for accounting and treat legacy ZEC numbers as display-only.
-  `meta.units.authoritativeMonetary` and `authoritativeEncoding` describe
-  those explicitly named authoritative fields; they do not relabel every
-  legacy numeric field in a passthrough payload.
-- **Response headers**: only an explicit allowlist of legacy response
-  headers is relayed onto the v1 response — `Cache-Control`, `ETag`,
-  `Retry-After`, the `RateLimit-*`/`X-RateLimit-*` quota families, and any
-  `X-CipherScan-*` header (see `ALLOWED_RESPONSE_HEADERS` in
-  `lib/internal-client.js`). This is deliberate: caching and rate-limit
-  semantics must survive the proxy hop (so v1 doesn't silently disable
-  CDN/browser caching or quota signaling that already works today), but
-  arbitrary legacy headers — `Set-Cookie`, `Server`, `X-Powered-By`, etc. —
-  must never leak through. v1 also strips its own host framework's
-  `X-Powered-By` and adds its own `Server-Timing: internal;dur=<ms>` entry
-  for the internal-hop cost (kept distinct from any legacy timing so it's
-  unambiguous which hop a given number measures). See
-  `server/api/test/v1/routes.test.js` ("header relay: ...") and
-  `server/api/test/v1/internal-client.test.js` for the allowlist tests.
-
-## Scan endpoints: public coverage with v1-only guardrails
-
-`/v1/scan/orchard` and `/v1/scan/lightwalletd` are `public` in the
-manifest, so per the "complete public coverage" requirement they are
-**adapters**, not stubs. Their legacy handlers already bound worst-case
-cost (max 1,000,000 / 50,000 block ranges respectively — see
-`server/api/routes/scan.js`), but that's a bigger cost knob than is prudent
-to hand out on a newly-discoverable `/v1` surface with no other write
-history. Rather than reclassify them non-public without concrete product
-evidence to justify it, v1 adds two independent layers in front of the
-existing legacy protections (`lib/scan-validation.js`, `lib/rate-limit.js`,
-wired in per-entry via the manifest's `validateKey`/`rateLimitKey`):
-
-1. **Stricter range validation, evaluated before any legacy dispatch:**
-   - `/v1/scan/orchard`: range capped at `V1_SCAN_ORCHARD_MAX_RANGE`
-     (default 50,000 blocks vs. legacy's 1,000,000).
-   - `/v1/scan/lightwalletd`: range capped at `V1_SCAN_LIGHTWALLETD_MAX_RANGE`
-     (default 10,000 — tighter than orchard, because lightwalletd scanning
-     is far more expensive per block: gRPC + parallel streaming + optional
-     disk cache writes). **v1 also requires an explicit `endHeight`** —
-     unlike legacy, which defaults a missing `endHeight` to the current
-     chain tip (an open-ended-until-resolved request shape v1 does not
-     accept from a public, unauthenticated caller).
-2. **Per-IP rate limiting**, independent of the legacy API's own global
-   limiter: 5/minute (orchard) and 3/minute (lightwalletd) by default.
-   In-memory, per-process — see `lib/rate-limit.js`'s docblock for why
-   `express-rate-limit` was deliberately not used, and the same
-   multi-instance caveat the existing WebSocket fallback limiter in
-   `server.js` already carries.
-
-If product data later shows these should be non-public instead (e.g. abuse
-patterns, negligible legitimate public usage), that's a valid outcome too —
-but it needs to be a decision backed by that evidence, not a default taken
-to avoid building the guardrails.
-
-## Known caveats / follow-ups (read before relying on this in production)
-
-1. **Query-parameter forwarding is verbatim, not allowlisted.** Adapters
-   forward the client's full query string to the legacy endpoint as-is.
-   Safety currently relies entirely on each legacy handler already
-   validating/clamping its own inputs (true today for every adapted route,
-   per repo convention). A follow-up should add explicit per-route query
-   schemas at the v1 layer itself instead of depending solely on the
-   legacy side.
-2. **Write-route retry semantics are not idempotent at the v1 layer.**
-   `/v1/transactions/broadcast`, `/v1/uncles/reports`, and
-   `/v1/crosslink/fork-monitor/nodes` proxy straight through to legacy
-   handlers that already have their own safeguards (mempool-level
-   idempotency, IP/name rate limiting), but the v1 proxy itself adds no
-   idempotency key. A client retry after an internal-hop timeout could
-   theoretically double-submit; for `/v1/transactions/broadcast` this is
-   low-risk (re-broadcasting an unchanged signed tx is harmless), but it's
-   worth a dedicated idempotency-key design before GA.
-3. **One endpoint is excluded for a reason worth escalating, not just
-   engineering convenience:** `DELETE /api/crosslink/fork-monitor/report/:name`
-   has **no authentication upstream** — anyone who knows/guesses a node
-   name can delete its report today. This was not introduced by this
-   change; it's flagged here because v1 deliberately does *not* extend
-   that unauthenticated destructive mutation onto a new, more discoverable
-   surface. Recommend adding an ownership token or service-key requirement
-   to the legacy endpoint, then revisiting inclusion. (The two scan
-   endpoints are no longer excluded/stubbed — see "Scan endpoints" above.)
-4. **Paid/gated `signals` endpoints are out of scope.** `/api/signals/*`
-   uses an x402/CipherPay payment flow (`Authorization: Bearer`/`Payment`
-   headers). Proxying a payment-gated endpoint correctly needs its own
-   design (header forwarding, replay considerations) and was deliberately
-   left out of this first contract pass — see the manifest entries
-   (`classification: 'private'`) for the exact endpoints.
-5. **`indexedHeight` is best-effort.** Every successful adapter response
-   resolves it from `/api/info`, using a five-second process cache. It is
-   `null` on failure rather than fabricated; `meta.freshness.status` then
-   reports `unavailable`.
-6. **This inventory only covers files under `server/api/routes/**` and
-   `server/signals/api.js`.** `/api/grpc-status`, registered directly in
-   `server/api/server.js` rather than a route file, is out of scope per the
-   task's own boundary ("inventory... from route files") — flagging it
-   explicitly rather than silently omitting it.
-7. **CORS/rate-limiting**: this router does not apply its own CORS or rate
-   limiting. Mounted in-process (per the default instructions above), it
-   inherits `server.js`'s `helmet()`, CORS, and `express-rate-limit`
-   middleware, which run before `app.use('/v1', ...)` in the middleware
-   chain. If `/v1` is later split onto a genuinely separate host, that host
-   needs its own equivalent CORS/rate-limit configuration — nothing here
-   provides it standalone.
+The route suite exercises every adapter with controlled source fixtures, payment
+and ownership boundaries, name pagination, cursor traversal and malformed/error
+responses. Browser checks and private mainnet reads complement these tests;
+neither mock tests nor HTTP 200 alone establish production readiness. Database
+migrations, new data feeds, write flows and each deployed network still require
+release acceptance. See the private wiki's ZecBlock launch checklist.

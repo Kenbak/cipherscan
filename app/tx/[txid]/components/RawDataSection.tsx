@@ -1,5 +1,6 @@
 'use client';
 
+import { readApiData } from '@/lib/api-client';
 import { useEffect, useState } from 'react';
 import { getApiUrl } from '@/lib/api-config';
 import { Card, CardBody } from '@/components/ui/Card';
@@ -29,8 +30,8 @@ export function RawDataSection({
   useEffect(() => {
     if (rawData) return;
     setRawLoading(true);
-    fetch(`${getApiUrl()}/api/tx/${txid}/verbose`)
-      .then((res) => res.json())
+    fetch(`${getApiUrl()}/v1/transactions/${txid}/verbose`)
+      .then((res) => readApiData(res))
       .then((data) => {
         if (data.hex && data.decoded) {
           setRawData({ hex: data.hex, decoded: data.decoded });

@@ -1,5 +1,6 @@
 'use client';
 
+import { readApiData } from '@/lib/api-client';
 import { useEffect, useState } from 'react';
 import { Card, CardBody } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
@@ -85,8 +86,8 @@ export default function BootstrapPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch(`${getApiUrl()}/api/crosslink/bootstrap-info`)
-      .then((r) => r.json())
+    fetch(`${getApiUrl()}/v1/crosslink/bootstrap-info`)
+      .then((r) => readApiData(r))
       .then((data) => setInfo(data))
       .catch(() => setInfo({ success: false, available: false }))
       .finally(() => setLoading(false));

@@ -10,6 +10,7 @@
  */
 
 const { MANIFEST } = require('./inventory/manifest');
+const queryParameters = require('./inventory/query-parameters.json');
 
 const PROBLEM_SCHEMA = {
   type: 'object',
@@ -50,7 +51,7 @@ const META_SCHEMA = {
       required: ['indexedHeight', 'observedAt'],
       properties: {
         indexedHeight: { type: ['integer', 'null'] },
-        observedAt: { type: 'string', format: 'date-time' },
+        observedAt: { type: ['string', 'null'], format: 'date-time' },
       },
     },
     cache: {
@@ -135,6 +136,11 @@ function operationId(method, v1Path) {
 }
 
 const ERROR_RESPONSES = {
+  '402': { description: 'Payment required. Protocol challenges remain in Payment-Required / WWW-Authenticate; the original challenge is also in problem.paymentRequired.', content: { 'application/problem+json': { schema: { $ref: '#/components/schemas/Problem' } } } },
+  '401': { description: 'Preview or endpoint authentication required.', content: { 'application/problem+json': { schema: { $ref: '#/components/schemas/Problem' } } } },
+  '403': { description: 'Origin or ownership authorization denied.', content: { 'application/problem+json': { schema: { $ref: '#/components/schemas/Problem' } } } },
+  '413': { description: 'JSON body exceeds 1 MB.', content: { 'application/problem+json': { schema: { $ref: '#/components/schemas/Problem' } } } },
+  '503': { description: 'Source temporarily unavailable or still building.', content: { 'application/problem+json': { schema: { $ref: '#/components/schemas/Problem' } } } },
   '400': { description: 'Validation error.', content: { 'application/problem+json': { schema: { $ref: '#/components/schemas/Problem' } } } },
   '404': { description: 'Resource not found.', content: { 'application/problem+json': { schema: { $ref: '#/components/schemas/Problem' } } } },
   '429': { description: 'Rate limited (enforced by the legacy endpoint this proxies to).', content: { 'application/problem+json': { schema: { $ref: '#/components/schemas/Problem' } } } },
@@ -143,15 +149,43 @@ const ERROR_RESPONSES = {
   '504': { description: 'Upstream (legacy API) timeout.', content: { 'application/problem+json': { schema: { $ref: '#/components/schemas/Problem' } } } },
 };
 
+const HASH = { type: 'string', pattern: '^[a-fA-F0-9]{64}$' };
+const HEIGHT = { type: 'integer', minimum: 0, maximum: 100_000_000 };
+function requestSchema(entry) {
+  if (entry.v1.validateKey) return { type: 'object', required: ['startHeight', 'endHeight'], properties: {
+    startHeight: { type: 'integer', minimum: entry.v1.validateKey === 'scanLightwalletd' ? 1 : 0 },
+    endHeight: { type: 'integer', minimum: 0 },
+  }, description: 'Inclusive block range. Maximum 10,000 blocks for lightwalletd or 50,000 for Orchard by default; configured server limits may differ.' };
+  const schemas = {
+    '/v1/transactions/broadcast': { required: ['rawTx'], properties: { rawTx: { type: 'string', pattern: '^[a-fA-F0-9]+$', description: 'Already signed serialized transaction. No private key is accepted.' } } },
+    '/v1/transactions/raw/batch': { required: ['txids'], properties: { txids: { type: 'array', minItems: 1, maxItems: 100, items: HASH } } },
+    '/v1/crosslink/fork-monitor/checks': { required: ['heights'], properties: { heights: { type: 'array', minItems: 1, maxItems: 10, items: HEIGHT } } },
+    '/v1/crosslink/fork-monitor/nodes': { required: ['name', 'tip'], properties: {
+      name: { type: 'string', minLength: 1, maxLength: 32 }, tip: HEIGHT, tip_hash: HASH,
+      peers: { type: 'integer', minimum: 0, maximum: 10000 }, mining: { type: 'boolean' },
+      ttl: { type: 'string', enum: ['1h', '24h'] },
+      sample_hashes: { type: 'array', maxItems: 12, items: { type: 'object', required: ['height', 'hash'], properties: { height: HEIGHT, hash: HASH } } },
+    } },
+    '/v1/uncles/reports': { required: ['height', 'hash'], properties: { height: HEIGHT, hash: HASH, node_id: { type: 'string' } } },
+  };
+  if (!schemas[entry.v1.path]) throw new Error(`Missing POST request schema: ${entry.v1.path}`);
+  return { type: 'object', ...schemas[entry.v1.path] };
+}
+
 function buildOperation(entry) {
   const isList = entry.v1.shape === 'list';
   const isStub = entry.v1.status === 'stub';
 
-  const dataSchema = isList
+  const dataSchema = isList || entry.v1.nativeKey === 'names'
     ? { type: 'array', items: {} }
     : { oneOf: [{ type: 'object' }, { type: 'array', items: {} }] };
 
   const parameters = [...pathParams(entry.v1.path)];
+  const keys = queryParameters[`${entry.method} ${entry.v1.path}`] || [];
+  for (const name of keys) {
+    if (isList && ['cursor', 'limit'].includes(name)) continue;
+    parameters.push({ name, in: 'query', required: false, schema: { type: 'string' }, description: name === 'format' && entry.legacyPath === '/api/circulating-supply' ? 'Compatibility parameter; v1 always returns JSON.' : 'Field-specific filter or range. Values retain the source endpoint semantics.' });
+  }
   if (isList) {
     parameters.push(
       { name: 'limit', in: 'query', required: false, schema: { type: 'integer', minimum: 1, maximum: 100 } },
@@ -183,6 +217,9 @@ function buildOperation(entry) {
     summary: entry.description,
     tags: [entry.domain],
     ...(parameters.length ? { parameters } : {}),
+    ...(entry.method === 'POST' ? { requestBody: { required: true, content: { 'application/json': { schema: requestSchema(entry) } } } } : {}),
+    ...(entry.v1.forwardPaymentAuth ? { parameters: [...parameters, ...['Authorization', 'Payment-Signature', 'X-Payment', 'X-Service-Key'].map(name => ({ name, in: 'header', required: false, schema: { type: 'string' }, description: 'Existing signals-service credential. Never logged or replaced by the adapter internal key.' }))] } : {}),
+    ...(entry.v1.forwardNodeToken ? { parameters: [...parameters, { name: 'X-Node-Token', in: 'header', required: entry.method === 'DELETE', schema: { type: 'string' }, description: 'Ownership token returned when registering the node. Required to modify or remove an existing registration.' }] } : {}),
     'x-cipherscan-legacy-path': entry.legacyPath,
     'x-cipherscan-legacy-method': entry.method,
     'x-cipherscan-classification': entry.classification,
@@ -208,7 +245,7 @@ function buildOpenApiDocument() {
   return {
     openapi: '3.1.0',
     info: {
-      title: 'CipherScan API v1',
+      title: 'ZecBlock API v1',
       version: '1.0.0-preview',
       summary: 'Versioned, contract-stable read/write API for the Zcash blockchain data and privacy-intelligence features exposed by CipherScan.',
       description: [
@@ -218,14 +255,14 @@ function buildOpenApiDocument() {
         'mount instructions and current caveats. Every success response uses',
         'the {data, meta} envelope; every error response is an RFC 9457',
         'problem+json document. Every public inventory entry is adapted;',
-        'private, internal, operational, and deprecated surfaces are excluded.',
+        'The manifest explicitly identifies retained operational routes and payment-protected services.',
       ].join(' '),
       contact: { name: 'CipherScan / Atmosphere Labs' },
     },
     servers: [
-      { url: 'https://api.mainnet.cipherscan.app', description: 'Mainnet API host.' },
+      { url: 'https://api.zecblock.com', description: 'Mainnet API host.' },
       { url: 'https://api.testnet.cipherscan.app', description: 'Testnet API host.' },
-      { url: 'http://127.0.0.1:3001', description: 'Local development API host.' },
+      { url: 'http://127.0.0.1:3002', description: 'Private read-only development preview.' },
     ],
     tags: [...tagSet].sort().map((name) => ({ name })),
     security: [{ previewKey: [] }],

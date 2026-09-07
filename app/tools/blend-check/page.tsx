@@ -1,5 +1,6 @@
 'use client';
 
+import { readApiData } from '@/lib/api-client';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { getApiUrl } from '@/lib/api-config';
 import { Card, CardHeader, CardBody } from '@/components/ui/Card';
@@ -132,21 +133,21 @@ export default function BlendCheckPage() {
     try {
       const [blendRes, splitRes] = await Promise.all([
         fetch(
-          `${getApiUrl()}/api/blend-check?amount=${parsed}`,
+          `${getApiUrl()}/v1/privacy/blend-check?amount=${parsed}`,
           { signal: controller.signal }
         ),
         fetch(
-          `${getApiUrl()}/api/blend-check/split?amount=${parsed}`,
+          `${getApiUrl()}/v1/privacy/blend-check/split?amount=${parsed}`,
           { signal: controller.signal }
         ),
       ]);
 
       if (!blendRes.ok) throw new Error(`API error: ${blendRes.status}`);
-      const blendData = await blendRes.json();
+      const blendData = await readApiData(blendRes);
       setResult(blendData);
 
       if (splitRes.ok) {
-        const splitData = await splitRes.json();
+        const splitData = await readApiData(splitRes);
         setSplitResult(splitData);
         setSelectedPlanIdx(0);
       }

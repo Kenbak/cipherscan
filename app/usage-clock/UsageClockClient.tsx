@@ -1,5 +1,6 @@
 'use client';
 
+import { readApiData } from '@/lib/api-client';
 import { ChartWatermark } from '@/components/ChartWatermark';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
@@ -378,8 +379,8 @@ export function UsageClockClient({
     if (period === initialPeriod && initialData) return;
     let cancelled = false;
     setLoading(true);
-    fetch(`${getApiUrl()}/api/analytics/usage-clock?period=${period}`)
-      .then((r) => r.json())
+    fetch(`${getApiUrl()}/v1/analytics/usage-clock?period=${period}`)
+      .then((r) => readApiData(r))
       .then((d) => { if (!cancelled) setData(d); })
       .catch(() => {})
       .finally(() => { if (!cancelled) setLoading(false); });

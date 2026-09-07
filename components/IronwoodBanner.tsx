@@ -12,7 +12,7 @@ const ACTIVATION_HEIGHT = isMainnet ? 3428143 : 4134000;
 // components sharing this exact (path, params, refreshInterval) tuple is
 // what lets useApiQuery's shared-poll registry collapse them into a single
 // request/timer — see hooks/useApiQuery.ts — instead of two independent
-// 30s pollers hitting /api/migration/overview when both are on screen.
+// 30s pollers hitting /v1/migration/overview when both are on screen.
 const OVERVIEW_REFRESH_MS = 30000;
 
 interface BannerState {
@@ -36,13 +36,13 @@ export function IronwoodBanner() {
   // Only fetch at all once we know the banner isn't dismissed for this
   // session — preserves the original "don't even poll if dismissed" behavior.
   const { data } = useApiQuery<MigrationOverviewResponse>(
-    '/api/migration/overview',
+    '/v1/migration/overview',
     undefined,
     { enabled: !isCrosslink && !dismissed, refreshInterval: OVERVIEW_REFRESH_MS },
   );
 
   const state: BannerState | null = useMemo(() => {
-    if (!data?.success) return null;
+    if (!data) return null;
     const tip = data.tipHeight || 0;
     const activated = tip >= ACTIVATION_HEIGHT;
     return {

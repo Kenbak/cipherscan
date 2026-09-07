@@ -1,5 +1,7 @@
 'use client';
 
+import { fetchCompactScan } from '@/lib/scan-api';
+import { readApiData } from '@/lib/api-client';
 import { useState, useRef } from 'react';
 import Link from 'next/link';
 import { useWasmWorkerPool } from '@/hooks/useWasmWorkerPool';
@@ -142,16 +144,16 @@ export function ScanMyTransactions() {
 
       // Get current block height
       setScanPhase('fetching');
-      const infoRes = await fetch(`${apiUrl}/api/info`, {
+      const infoRes = await fetch(`${apiUrl}/v1/network/info`, {
         signal: abortControllerRef.current.signal
       });
       if (!infoRes.ok) {
         throw new Error(`Failed to fetch blockchain info: ${infoRes.status}`);
       }
-      const infoData = await infoRes.json();
+      const infoData = await readApiData(infoRes);
       const currentHeight = parseInt(infoData.blocks || infoData.height || 0);
 
-      const totalBlocks = currentHeight - birthdayHeight;
+      const totalBlocks = currentHeight - Math.max(1, birthdayHeight) + 1;
       setTotalBlocks(totalBlocks);
 
       // Check for cancellation
@@ -162,21 +164,10 @@ export function ScanMyTransactions() {
 
       // Step 1: Fetch compact blocks from Lightwalletd
       setScanProgress(10);
-      const compactRes = await fetch(`${apiUrl}/api/lightwalletd/scan`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json'},
-        body: JSON.stringify({
-          startHeight: birthdayHeight,
-          endHeight: currentHeight,
-        }),
-        signal: abortControllerRef.current.signal
-      });
-
-      if (!compactRes.ok) {
-        throw new Error(`Failed to fetch compact blocks: ${compactRes.status}`);
-      }
-
-      const compactData = await compactRes.json();
+      const compactData = await fetchCompactScan<any>(
+        apiUrl, birthdayHeight, currentHeight, abortControllerRef.current.signal,
+        fraction => setScanProgress(10 + fraction * 20),
+      );
       setScanProgress(30);
 
       // Check for cancellation
@@ -236,7 +227,7 @@ export function ScanMyTransactions() {
         }
 
         const batch = txids.slice(i, i + batchSize);
-        const batchRes = await fetch(`${apiUrl}/api/tx/raw/batch`, {
+        const batchRes = await fetch(`${apiUrl}/v1/transactions/raw/batch`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ txids: batch }),
@@ -246,7 +237,7 @@ export function ScanMyTransactions() {
           throw new Error(`Failed to fetch raw transactions: ${batchRes.status}`);
         }
 
-        const batchData = await batchRes.json();
+        const batchData = await readApiData(batchRes);
         batchData.transactions.forEach((tx: any) => {
           allRawTxs.set(tx.txid, tx.hex);
         });
@@ -354,11 +345,11 @@ export function ScanMyTransactions() {
     // filtering, then full-decrypt only matches).
     try {
       const apiUrl = getApiUrl();
-      const infoRes = await fetch(`${apiUrl}/api/info`);
+      const infoRes = await fetch(`${apiUrl}/v1/network/info`);
       if (!infoRes.ok) {
         throw new Error(`Failed to fetch blockchain info: ${infoRes.status}`);
       }
-      const infoData = await infoRes.json();
+      const infoData = await readApiData(infoRes);
       const currentHeight = parseInt(infoData.blocks || infoData.height || 0);
 
       const periodToBlocks: Record<string, number> = {

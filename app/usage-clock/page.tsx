@@ -1,3 +1,4 @@
+import { readApiData } from '@/lib/api-client';
 import { UsageClockClient } from './UsageClockClient';
 import { getApiUrl } from '@/lib/api-config';
 
@@ -5,11 +6,11 @@ const API_BASE = getApiUrl();
 
 async function fetchClock(period: string) {
   try {
-    const res = await fetch(`${API_BASE}/api/analytics/usage-clock?period=${period}`, {
+    const res = await fetch(`${API_BASE}/v1/analytics/usage-clock?period=${period}`, {
       next: { revalidate: 1800 },
     });
     if (!res.ok) return null;
-    return await res.json();
+    return await readApiData(res);
   } catch {
     return null;
   }
@@ -17,9 +18,9 @@ async function fetchClock(period: string) {
 
 async function fetchNodes() {
   try {
-    const res = await fetch(`${API_BASE}/api/network/nodes`, { next: { revalidate: 1800 } });
+    const res = await fetch(`${API_BASE}/v1/network/nodes`, { next: { revalidate: 1800 } });
     if (!res.ok) return null;
-    return await res.json();
+    return await readApiData(res);
   } catch {
     return null;
   }

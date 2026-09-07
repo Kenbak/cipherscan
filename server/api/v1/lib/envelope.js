@@ -30,12 +30,10 @@ function newRequestId() {
  * Build the base meta block. `overrides` merges in last so adapters can
  * supply cache/indexedHeight/etc without repeating boilerplate.
  */
-function buildMeta({ requestId, network, indexedHeight = null, cache = null, dataAgeSeconds = null, warnings = undefined, page = undefined } = {}) {
+function buildMeta({ requestId, network, indexedHeight = null, cache = null, dataAgeSeconds = null, observedAt = null, sourceHeight = null, warnings = undefined, page = undefined } = {}) {
   const generatedAt = new Date().toISOString();
   const cacheMeta = cache || { status: 'unknown', ageSeconds: null };
-  const freshnessStatus = indexedHeight === null
-    ? 'unavailable'
-    : cacheMeta.status === 'stale'
+  const freshnessStatus = cacheMeta.status === 'stale'
       ? 'stale'
       : dataAgeSeconds === null
         ? 'unknown'
@@ -45,7 +43,7 @@ function buildMeta({ requestId, network, indexedHeight = null, cache = null, dat
     network,
     generatedAt,
     indexedHeight,
-    source: { indexedHeight, observedAt: generatedAt },
+    source: { indexedHeight: sourceHeight, observedAt },
     cache: cacheMeta,
     freshness: { status: freshnessStatus, ageSeconds: dataAgeSeconds },
     units: {

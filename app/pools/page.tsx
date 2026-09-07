@@ -58,7 +58,7 @@ function RelatedPoolPages() {
 }
 
 function RecentLargeFlows() {
-  const { data, loading } = useApiQuery<{ flows: RecentFlow[] }>('/api/shielded/list', { limit: 10, min_zec: 10 });
+  const { data, loading } = useApiQuery<{ flows: RecentFlow[] }>('/v1/transactions/shielded', { limit: 10, min_zec: 10 });
   const flows = Array.isArray(data?.flows) ? data.flows : [];
   const status = loading ? 'loading' : Array.isArray(data?.flows) ? 'ready' : 'unavailable';
 
@@ -124,7 +124,7 @@ function RecentLargeFlows() {
 }
 
 export default function PoolsPage() {
-  const { data: overview, loading } = useApiQuery<PoolOverviewData>('/api/pools/overview');
+  const { data: overview, loading } = useApiQuery<PoolOverviewData>('/v1/shielded-pools/overview');
   const overviewStatus = loading ? 'loading' : overview?.current ? 'ready' : 'unavailable';
 
   return (

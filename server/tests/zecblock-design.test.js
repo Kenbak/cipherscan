@@ -61,6 +61,7 @@ test('metadata uses the new mainnet identity and preserves network indexation bo
       '@/lib/network': { getConfiguredNetwork: () => network },
       '@/lib/api-config': { getApiUrlForNetwork: () => '' },
       '@/lib/server-fetch': {},
+      '@/lib/api-client': load('lib/api-client.ts'),
     });
     const meta = seo.buildPageMetadata({ title: 'Zcash Shielded Pools | ZecBlock', description: 'Pool balances', path: '/pools' });
     assert.equal(meta.robots.index, network === 'mainnet');

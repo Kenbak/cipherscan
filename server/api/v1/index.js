@@ -61,10 +61,9 @@ function createV1Router(envOverrides = {}) {
 
   // Body parsing for write routes. Mirrors the legacy app's express.json()
   // — safe to apply unconditionally since GET/DELETE requests have no body.
-  router.use(express.json({ limit: '1mb' }));
-
   router.use(createFeatureGate(config));
   router.use(createRequestContext(config, internalClient));
+  router.use(express.json({ limit: '1mb' }));
 
   // Machine-readable contract served by the same feature gate as the preview.
   router.get('/openapi.json', (req, res) => {
@@ -89,6 +88,9 @@ function createV1Router(envOverrides = {}) {
   // problem+json body, never an Express HTML error page or a stack trace.
   // eslint-disable-next-line no-unused-vars
   router.use((err, req, res, next) => {
+    if (err.type === 'entity.parse.failed' || err.type === 'entity.too.large') {
+      return sendProblem(res, 'validation-error', { status: err.type === 'entity.too.large' ? 413 : 400, detail: err.type === 'entity.too.large' ? 'Request body exceeds 1 MB.' : 'Request body must be valid JSON.' });
+    }
     logSafeError('[v1] unhandled router error:', err);
     sendProblem(res, 'internal-error', { instance: req.originalUrl, detail: 'Unexpected server error.' });
   });

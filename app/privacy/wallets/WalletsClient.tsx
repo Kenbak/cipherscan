@@ -79,8 +79,8 @@ export default function WalletsClient() {
   const { theme } = useTheme();
   const colors = getChartColors(theme as 'dark' | 'light');
   const [period, setPeriod] = useState<Period>('30d');
-  const feeQuery = useApiQuery<FeeLaneData>('/api/privacy/fee-lanes', { period });
-  const fingerprintQuery = useApiQuery<FingerprintData>('/api/privacy/wallet-fingerprints', { period });
+  const feeQuery = useApiQuery<FeeLaneData>('/v1/privacy/fee-lanes', { period });
+  const fingerprintQuery = useApiQuery<FingerprintData>('/v1/privacy/wallet-fingerprints', { period });
   const feeLanes = feeQuery.data?.period===period && feeQuery.data.buckets ? feeQuery.data : null;
   const fingerprints = fingerprintQuery.data?.period===period && Array.isArray(fingerprintQuery.data.wallets) ? fingerprintQuery.data : null;
   const loading = feeQuery.loading || fingerprintQuery.loading || feeQuery.isRefreshing || fingerprintQuery.isRefreshing;

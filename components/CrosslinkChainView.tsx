@@ -1,5 +1,6 @@
 'use client';
 
+import { readApiData } from '@/lib/api-client';
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Tooltip } from '@/components/Tooltip';
@@ -104,22 +105,22 @@ export function CrosslinkChainView({
     try {
       const api = getApiUrl();
       const [blocksRes, crosslinkRes, bftRes, bftChainRes, divRes] = await Promise.all([
-        fetch(`${api}/api/blocks?limit=${blocksToShow}`),
-        fetch(`${api}/api/crosslink`),
-        fetch(`${api}/api/crosslink/bft-tip`),
-        fetch(`${api}/api/crosslink/bft-chain?limit=${blocksToShow}`),
+        fetch(`${api}/v1/blocks?limit=${blocksToShow}`),
+        fetch(`${api}/v1/crosslink`),
+        fetch(`${api}/v1/crosslink/bft-tip`),
+        fetch(`${api}/v1/crosslink/bft-chain?limit=${blocksToShow}`),
         variant === 'full'
-          ? fetch(`${api}/api/crosslink/divergence-history?limit=10`)
+          ? fetch(`${api}/v1/crosslink/divergence-history?limit=10`)
           : Promise.resolve(null),
       ]);
 
       if (blocksRes.ok) {
-        const data = await blocksRes.json();
-        setBlocks(data.blocks || []);
+        const data = await readApiData(blocksRes);
+        setBlocks(data || []);
       }
       if (crosslinkRes.ok) {
-        const data = await crosslinkRes.json();
-        if (data.success) {
+        const data = await readApiData(crosslinkRes);
+        if (data) {
           setStats({
             tipHeight: data.tipHeight,
             finalizedHeight: data.finalizedHeight,
@@ -130,8 +131,8 @@ export function CrosslinkChainView({
         }
       }
       if (bftRes.ok) {
-        const data = await bftRes.json();
-        if (data.success) {
+        const data = await readApiData(bftRes);
+        if (data) {
           setBftTip({
             votedBlockHash: data.votedBlockHash,
             signatureCount: data.signatureCount,
@@ -139,12 +140,12 @@ export function CrosslinkChainView({
         }
       }
       if (bftChainRes.ok) {
-        const data = await bftChainRes.json();
-        if (data.success) setDecisions(data.decisions || []);
+        const data = await readApiData(bftChainRes);
+        if (data) setDecisions(data.decisions || []);
       }
       if (divRes && divRes.ok) {
-        const data = await divRes.json();
-        if (data.success) setDivergenceEvents(data.events || []);
+        const data = await readApiData(divRes);
+        if (data) setDivergenceEvents(data.events || []);
       }
     } catch (err) {
       console.error('Chain view fetch error:', err);

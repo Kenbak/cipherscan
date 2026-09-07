@@ -1,5 +1,6 @@
 'use client';
 
+import { readApiData } from '@/lib/api-client';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Card, CardBody } from '@/components/ui/Card';
@@ -48,10 +49,10 @@ export function FutureBlockView({
   useEffect(() => {
     const poll = async () => {
       try {
-        const apiUrl = `${getApiUrl()}/api/info`;
+        const apiUrl = `${getApiUrl()}/v1/network/info`;
         const res = await fetch(apiUrl);
         if (res.ok) {
-          const data = await res.json();
+          const data = await readApiData(res);
           const h = Number(data.height ?? data.blocks);
           if (Number.isFinite(h) && h > currentHeight) {
             setCurrentHeight(h);

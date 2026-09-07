@@ -1,4 +1,5 @@
 'use client';
+import { readApiData } from '@/lib/api-client';
 import { PageLoadingBody } from '@/components/ui/PageLoading';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
@@ -63,13 +64,13 @@ export default function MempoolClient() {
 
   const fetchMempool = async () => {
     try {
-      const apiUrl = `${getApiUrl()}/api/mempool`;
+      const apiUrl = `${getApiUrl()}/v1/mempool`;
 
       const response = await fetch(apiUrl);
       if (!response.ok) throw new Error('Failed to fetch mempool');
 
-      const result = await response.json();
-      if (result.success) {
+      const result = await readApiData(response);
+      if (result) {
         setData(result);
         setError(null);
       } else {

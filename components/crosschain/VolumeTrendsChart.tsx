@@ -65,7 +65,7 @@ export function VolumeTrendsChart({ unit = 'usd', zecPrice = null }: { unit?: Di
   const [period, setPeriod] = useState<Period>('30d');
   const [hiddenSeries, setHiddenSeries] = useState<Set<string>>(new Set());
 
-  const { data, loading } = useApiQuery<TrendsResponse>('/api/crosschain/trends', { period, granularity: 'daily' });
+  const { data, loading } = useApiQuery<TrendsResponse>('/v1/crosschain/trends', { period, granularity: 'daily' });
 
   const points = useMemo(
     () => (data?.data ?? []).map((p) => {

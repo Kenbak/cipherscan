@@ -58,7 +58,7 @@ export function NetworkHashrateChart() {
   const [period, setPeriod] = useState<Period>('1y');
 
   const { data, loading } = useApiQuery<HashrateHistoryResponse>(
-    '/api/network/hashrate-history',
+    '/v1/mining/hashrate-history',
     { period },
   );
   const points = data?.points ?? [];

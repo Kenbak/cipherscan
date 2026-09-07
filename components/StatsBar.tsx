@@ -127,8 +127,8 @@ export function StatsBar() {
     ironwoodPct: null,
   });
 
-  const blocksQuery = useApiQuery<{ blocks?: Array<{ height: number | string }> }>(
-    '/api/blocks',
+  const blocksQuery = useApiQuery<Array<{ height: number | string }>>(
+    '/v1/blocks',
     { limit: 1 },
     { refreshInterval: 30_000 },
   );
@@ -136,9 +136,9 @@ export function StatsBar() {
     success?: boolean;
     count?: number;
     transactions?: unknown[];
-  }>('/api/mempool', undefined, { refreshInterval: 30_000 });
+  }>('/v1/mempool', undefined, { refreshInterval: 30_000 });
   const priceQuery = useApiQuery<{ price?: number; change24h?: number }>(
-    '/api/price',
+    '/v1/network/price',
     undefined,
     { refreshInterval: 30_000 },
   );
@@ -146,7 +146,7 @@ export function StatsBar() {
     mining?: { networkHashrate?: string; avgBlockTime?: number };
     network?: { height?: number };
     supply?: { ironwood?: number; totalShielded?: number };
-  }>('/api/network/stats', undefined, {
+  }>('/v1/network/stats', undefined, {
     enabled: !isCrosslink,
     refreshInterval: 30_000,
   });
@@ -160,7 +160,7 @@ export function StatsBar() {
     metrics?: { privacyScore?: number; shieldedPercentage?: number };
     shieldedPool?: { currentSize?: number };
     totals?: { totalTx?: number };
-  }>('/api/privacy-stats', undefined, {
+  }>('/v1/privacy/stats', undefined, {
     enabled: !isCrosslink,
     refreshInterval: 30_000,
   });
@@ -271,9 +271,9 @@ export function StatsBar() {
   useEffect(() => {
     setStats((current) => {
       const next = { ...current };
-      const latestBlock = blocksQuery.data?.blocks?.[0];
+      const latestBlock = blocksQuery.data?.[0];
       if (latestBlock) next.blockHeight = Number(latestBlock.height);
-      if (mempoolQuery.data?.success) {
+      if (mempoolQuery.data) {
         next.mempoolCount = mempoolQuery.data.count
           ?? mempoolQuery.data.transactions?.length
           ?? 0;
@@ -290,7 +290,7 @@ export function StatsBar() {
         next.ironwoodPct = (network.supply.ironwood / network.supply.totalShielded) * 100;
       }
 
-      const privacy = privacyQuery.data?.success ? privacyQuery.data.data : privacyQuery.data;
+      const privacy = privacyQuery.data;
       if (privacy?.metrics?.privacyScore != null) next.privacyScore = privacy.metrics.privacyScore;
       if (privacy?.metrics?.shieldedPercentage != null) {
         next.shieldedPct = privacy.metrics.shieldedPercentage;

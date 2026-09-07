@@ -7,9 +7,9 @@ import { SectionHeader } from '@/components/ui/SectionHeader';
 import { HalvingPanel, type HalvingInfo } from './HalvingPanel';
 
 export function MiningIssuance() {
-  const { data, loading, error } = useApiQuery<HalvingInfo & { success: boolean }>('/api/network/halving', undefined, { refreshInterval: 300_000 });
-  const emission = useApiQuery<{ success: boolean; dailyEmissionEstimate: number | null }>('/api/network/emission');
-  const halving = data?.success ? data : null;
+  const { data, loading, error } = useApiQuery<HalvingInfo & { success: boolean }>('/v1/network/halving', undefined, { refreshInterval: 300_000 });
+  const emission = useApiQuery<{ success: boolean; dailyEmissionEstimate: number | null }>('/v1/network/emission');
+  const halving = data ? data : null;
   return <section id="issuance" className="network-section mb-6">
     <SectionHeader label="ISSUANCE" />
     <div className="grid md:grid-cols-2 gap-5">
@@ -22,7 +22,7 @@ export function MiningIssuance() {
             ['Total block subsidy', halving?.currentSubsidy],
             ['Current miner allocation', halving?.minerReward],
             ['Miner allocation after halving', halving?.nextMinerReward],
-            ['Estimated daily issuance', emission.data?.success ? emission.data.dailyEmissionEstimate : null],
+            ['Estimated daily issuance', emission.data ? emission.data.dailyEmissionEstimate : null],
           ].map(([label, value]) => <div key={label} className="flex flex-wrap justify-between gap-2 border-b border-cipher-border pb-3"><dt className="text-muted">{label}</dt><dd className="font-mono text-primary tabular-nums">{value != null ? `${value} ZEC` : '—'}</dd></div>)}
         </dl>
         <p className="text-caption text-muted mt-5">Daily issuance assumes 1,152 blocks at the current subsidy. Halving dates are estimates based on recent block intervals. The activation height determines the subsidy change.</p>

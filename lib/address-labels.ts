@@ -1,3 +1,4 @@
+import { readApiData } from '@/lib/api-client';
 /**
  * Address Labels System
  *
@@ -32,7 +33,7 @@ export async function fetchOfficialLabels(): Promise<Record<string, { label: str
   officialLabelsRequest = (async () => {
     const apiUrl = getApiUrl();
     try {
-      const response = await fetch(`${apiUrl}/api/labels`, {
+      const response = await fetch(`${apiUrl}/v1/labels`, {
         signal: AbortSignal.timeout(REQUEST_TIMEOUT),
       });
 
@@ -42,7 +43,7 @@ export async function fetchOfficialLabels(): Promise<Record<string, { label: str
         return officialLabelsCache;
       }
 
-      const data = await response.json();
+      const data = await readApiData(response);
 
       // Convert array to Record
       officialLabelsCache = {};

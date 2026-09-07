@@ -40,7 +40,7 @@ export function AnonymitySetChart() {
   const [period, setPeriod] = useState<Period>('30d');
 
   const { data: res, loading, error } = useApiQuery<{ thresholds: Threshold[] }>(
-    '/api/analytics/anonymity-set',
+    '/v1/privacy/anonymity-set',
     { period },
   );
   const data = res?.thresholds ?? [];

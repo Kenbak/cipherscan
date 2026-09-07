@@ -1,3 +1,6 @@
+import { NETWORK } from '@/lib/api-config';
+import reference from '@/lib/generated/api-reference.json';
+
 /**
  * API Endpoints configuration
  * Grouped by category for better organization
@@ -8,7 +11,7 @@
  */
 
 export interface ApiEndpoint {
-  method: 'GET' | 'POST';
+  method: 'GET' | 'POST' | 'DELETE';
   path: string;
   description: string;
   params: Array<{
@@ -24,7 +27,7 @@ export interface ApiEndpoint {
   id: string;
 }
 
-export const getEndpoints = (baseUrl: string): ApiEndpoint[] => [
+const getExampleEndpoints = (baseUrl: string): ApiEndpoint[] => [
   // ============================================================================
   // BLOCKS
   // ============================================================================
@@ -32,12 +35,12 @@ export const getEndpoints = (baseUrl: string): ApiEndpoint[] => [
     id: 'block-by-height',
     category: 'Blocks',
     method: 'GET',
-    path: '/api/block/:heightOrHash',
+    path: '/v1/blocks/:heightOrHash',
     description: 'Get detailed information about a specific block by height or hash, including all transactions with fee, total_input, and total_output in zatoshis.',
     params: [
       { name: 'heightOrHash', type: 'number | string', description: 'Block height (e.g., 2500000) or 64-character block hash', required: true }
     ],
-    example: `curl ${baseUrl}/api/block/2500000`,
+    example: `curl ${baseUrl}/v1/blocks/2500000`,
     response: {
       height: 2500000,
       hash: '0000000002c4a65a...',
@@ -78,13 +81,13 @@ export const getEndpoints = (baseUrl: string): ApiEndpoint[] => [
     id: 'blocks-list',
     category: 'Blocks',
     method: 'GET',
-    path: '/api/blocks',
+    path: '/v1/blocks',
     description: 'Get a paginated list of recent blocks.',
     params: [
       { name: 'limit', type: 'number', description: 'Number of blocks to return (1–100, default: 10)' },
       { name: 'offset', type: 'number', description: 'Number of blocks to skip (default: 0)' }
     ],
-    example: `curl '${baseUrl}/api/blocks?limit=10&offset=0'`,
+    example: `curl '${baseUrl}/v1/blocks?limit=10&offset=0'`,
     response: {
       blocks: [
         {
@@ -110,12 +113,12 @@ export const getEndpoints = (baseUrl: string): ApiEndpoint[] => [
     id: 'blocks-recent',
     category: 'Blocks',
     method: 'GET',
-    path: '/api/network/blocks/recent',
+    path: '/v1/network/blocks/recent-summary',
     description: 'Get recent blocks with miner reward details.',
     params: [
       { name: 'limit', type: 'number', description: 'Number of blocks to return (1–50, default: 15)' }
     ],
-    example: `curl '${baseUrl}/api/network/blocks/recent?limit=5'`,
+    example: `curl '${baseUrl}/v1/network/blocks/recent-summary?limit=5'`,
     response: {
       success: true,
       blocks: [
@@ -140,12 +143,12 @@ export const getEndpoints = (baseUrl: string): ApiEndpoint[] => [
     id: 'tx-by-txid',
     category: 'Transactions',
     method: 'GET',
-    path: '/api/tx/:txid',
+    path: '/v1/transactions/:txid',
     description: 'Get detailed information about a specific transaction, including transparent inputs/outputs, shielded activity, and cross-chain bridge data if applicable.',
     params: [
       { name: 'txid', type: 'string', description: 'Transaction ID (64-character hex hash)', required: true }
     ],
-    example: `curl ${baseUrl}/api/tx/abc123...`,
+    example: `curl ${baseUrl}/v1/transactions/abc123...`,
     response: {
       txid: 'abc123...',
       blockHeight: 2500000,
@@ -174,12 +177,12 @@ export const getEndpoints = (baseUrl: string): ApiEndpoint[] => [
     id: 'tx-raw',
     category: 'Transactions',
     method: 'GET',
-    path: '/api/tx/:txid/raw',
+    path: '/v1/transactions/:txid/raw',
     description: 'Get the raw hex-encoded transaction data.',
     params: [
       { name: 'txid', type: 'string', description: 'Transaction ID', required: true }
     ],
-    example: `curl ${baseUrl}/api/tx/abc123.../raw`,
+    example: `curl ${baseUrl}/v1/transactions/abc123.../raw`,
     response: {
       txid: 'abc123...',
       hex: '0500000000010...'
@@ -189,12 +192,12 @@ export const getEndpoints = (baseUrl: string): ApiEndpoint[] => [
     id: 'tx-verbose',
     category: 'Transactions',
     method: 'GET',
-    path: '/api/tx/:txid/verbose',
+    path: '/v1/transactions/:txid/verbose',
     description: 'Get the full decoded transaction from the Zebra node (raw hex + decoded JSON with all inputs, outputs, shielded data, and script details).',
     params: [
       { name: 'txid', type: 'string', description: 'Transaction ID (64 hex characters)', required: true }
     ],
-    example: `curl ${baseUrl}/api/tx/abc123.../verbose`,
+    example: `curl ${baseUrl}/v1/transactions/abc123.../verbose`,
     response: {
       txid: 'abc123...',
       hex: '0500000000010...',
@@ -215,7 +218,7 @@ export const getEndpoints = (baseUrl: string): ApiEndpoint[] => [
     id: 'tx-shielded',
     category: 'Transactions',
     method: 'GET',
-    path: '/api/tx/shielded',
+    path: '/v1/transactions/shielded-summary',
     description: 'Query shielded transactions with advanced filters. Filter by pool type, fully-shielded vs partial, and minimum shielded actions.',
     params: [
       { name: 'limit', type: 'number', description: 'Results per page (1–100, default: 50)' },
@@ -224,7 +227,7 @@ export const getEndpoints = (baseUrl: string): ApiEndpoint[] => [
       { name: 'type', type: 'string', description: 'Filter: "fully-shielded" (no transparent I/O) or "partial" (mixed)' },
       { name: 'min_actions', type: 'number', description: 'Minimum number of shielded actions/spends/outputs' }
     ],
-    example: `curl '${baseUrl}/api/tx/shielded?pool=orchard&type=fully-shielded&limit=10'`,
+    example: `curl '${baseUrl}/v1/transactions/shielded-summary?pool=orchard&type=fully-shielded&limit=10'`,
     response: {
       transactions: [
         {
@@ -251,7 +254,7 @@ export const getEndpoints = (baseUrl: string): ApiEndpoint[] => [
     id: 'shielded-flows',
     category: 'Transactions',
     method: 'GET',
-    path: '/api/shielded/list',
+    path: '/v1/transactions/shielded',
     description: 'Paginated list of shielded flows (shielding and deshielding events). Uses cursor-based pagination for efficient traversal.',
     params: [
       { name: 'limit', type: 'number', description: 'Results per page (1–100, default: 50)' },
@@ -261,7 +264,7 @@ export const getEndpoints = (baseUrl: string): ApiEndpoint[] => [
       { name: 'flow_type', type: 'string', description: '"all" (default), "shield", or "deshield"' },
       { name: 'pool', type: 'string', description: '"all" (default), "sapling", "orchard", or "mixed"' }
     ],
-    example: `curl '${baseUrl}/api/shielded/list?flow_type=shield&pool=orchard&limit=10'`,
+    example: `curl '${baseUrl}/v1/transactions/shielded?flow_type=shield&pool=orchard&limit=10'`,
     response: {
       success: true,
       flows: [
@@ -283,12 +286,12 @@ export const getEndpoints = (baseUrl: string): ApiEndpoint[] => [
     id: 'tx-broadcast',
     category: 'Transactions',
     method: 'POST',
-    path: '/api/tx/broadcast',
+    path: '/v1/transactions/broadcast',
     description: 'Broadcast a signed raw transaction to the Zcash network.',
     params: [
       { name: 'rawTx', type: 'string', description: 'Hex-encoded signed transaction', required: true }
     ],
-    example: `curl -X POST ${baseUrl}/api/tx/broadcast -H "Content-Type: application/json" -d '{"rawTx": "0500..."}'`,
+    example: `curl -X POST ${baseUrl}/v1/transactions/broadcast -H "Content-Type: application/json" -d '{"rawTx": "0500..."}'`,
     response: {
       success: true,
       txid: 'abc123...'
@@ -303,10 +306,10 @@ export const getEndpoints = (baseUrl: string): ApiEndpoint[] => [
     id: 'mempool',
     category: 'Mempool',
     method: 'GET',
-    path: '/api/mempool',
+    path: '/v1/mempool',
     description: 'Get current mempool status including all pending transactions and shielded/transparent breakdown.',
     params: [],
-    example: `curl ${baseUrl}/api/mempool`,
+    example: `curl ${baseUrl}/v1/mempool`,
     response: {
       success: true,
       count: 5,
@@ -333,12 +336,12 @@ export const getEndpoints = (baseUrl: string): ApiEndpoint[] => [
     id: 'mempool-tx',
     category: 'Mempool',
     method: 'GET',
-    path: '/api/mempool/tx/:txid',
+    path: '/v1/mempool/:txid',
     description: 'Check if a specific transaction is in the mempool and get its details.',
     params: [
       { name: 'txid', type: 'string', description: 'Transaction ID to look up', required: true }
     ],
-    example: `curl ${baseUrl}/api/mempool/tx/abc123...`,
+    example: `curl ${baseUrl}/v1/mempool/abc123...`,
     response: {
       success: true,
       inMempool: true,
@@ -366,14 +369,14 @@ export const getEndpoints = (baseUrl: string): ApiEndpoint[] => [
     id: 'address-details',
     category: 'Addresses',
     method: 'GET',
-    path: '/api/address/:address',
+    path: '/v1/addresses/:address',
     description: 'Get balance, transaction count, and paginated transaction history for a transparent address.',
     params: [
       { name: 'address', type: 'string', description: 'Zcash transparent address (t-address)', required: true },
       { name: 'page', type: 'number', description: 'Page number (default: 1)' },
       { name: 'limit', type: 'number', description: 'Transactions per page (1–100, default: 25)' }
     ],
-    example: `curl '${baseUrl}/api/address/t1abc...?page=1&limit=25'`,
+    example: `curl '${baseUrl}/v1/addresses/t1abc...?page=1&limit=25'`,
     response: {
       address: 't1abc...',
       balance: 12345600000,
@@ -399,13 +402,13 @@ export const getEndpoints = (baseUrl: string): ApiEndpoint[] => [
     id: 'rich-list',
     category: 'Addresses',
     method: 'GET',
-    path: '/api/rich-list',
+    path: '/v1/addresses/rich-list',
     description: 'Get the top transparent addresses ranked by balance, with concentration metrics.',
     params: [
       { name: 'limit', type: 'number', description: 'Number of addresses to return (1–500, default: 100)' },
       { name: 'offset', type: 'number', description: 'Pagination offset (default: 0)' }
     ],
-    example: `curl '${baseUrl}/api/rich-list?limit=10'`,
+    example: `curl '${baseUrl}/v1/addresses/rich-list?limit=10'`,
     response: {
       success: true,
       addresses: [
@@ -439,10 +442,10 @@ export const getEndpoints = (baseUrl: string): ApiEndpoint[] => [
     id: 'address-labels',
     category: 'Addresses',
     method: 'GET',
-    path: '/api/labels',
+    path: '/v1/labels',
     description: 'Get all known address labels (exchanges, miners, custodians, government seizures, etc.).',
     params: [],
-    example: `curl ${baseUrl}/api/labels`,
+    example: `curl ${baseUrl}/v1/labels`,
     response: {
       labels: [
         {
@@ -465,12 +468,12 @@ export const getEndpoints = (baseUrl: string): ApiEndpoint[] => [
     id: 'circulating-supply',
     category: 'Supply',
     method: 'GET',
-    path: '/api/circulating-supply',
+    path: '/v1/network/circulating-supply',
     description: 'Get the current ZEC circulating supply. Returns plain text by default (for aggregator compatibility) or JSON with the format parameter.',
     params: [
       { name: 'format', type: 'string', description: 'Set to "json" for structured response. Omit for plain text number.' }
     ],
-    example: `curl '${baseUrl}/api/circulating-supply?format=json'`,
+    example: `curl '${baseUrl}/v1/network/circulating-supply?format=json'`,
     response: {
       circulatingSupply: 16234567.89,
       circulatingSupplyZat: '1623456789000000',
@@ -483,10 +486,10 @@ export const getEndpoints = (baseUrl: string): ApiEndpoint[] => [
     id: 'supply-pools',
     category: 'Supply',
     method: 'GET',
-    path: '/api/supply',
+    path: '/v1/network/supply',
     description: 'Get the current value locked in each Zcash pool (Transparent, Sprout, Sapling, Orchard).',
     params: [],
-    example: `curl ${baseUrl}/api/supply`,
+    example: `curl ${baseUrl}/v1/network/supply`,
     response: [
       { id: 'transparent', chainValue: 6500000.12, chainValueZat: '650000012000000', monitored: true },
       { id: 'sprout', chainValue: 25000.50, chainValueZat: '2500050000000', monitored: true },
@@ -499,10 +502,10 @@ export const getEndpoints = (baseUrl: string): ApiEndpoint[] => [
     id: 'supply-transparent-breakdown',
     category: 'Supply',
     method: 'GET',
-    path: '/api/supply/transparent-breakdown',
+    path: '/v1/network/supply/transparent-breakdown',
     description: 'Breakdown of transparent supply by labeled category (exchanges, miners, custodians, etc.).',
     params: [],
-    example: `curl ${baseUrl}/api/supply/transparent-breakdown`,
+    example: `curl ${baseUrl}/v1/network/supply/transparent-breakdown`,
     response: {
       success: true,
       categories: [
@@ -519,10 +522,10 @@ export const getEndpoints = (baseUrl: string): ApiEndpoint[] => [
     id: 'halving',
     category: 'Supply',
     method: 'GET',
-    path: '/api/network/halving',
+    path: '/v1/network/halving',
     description: 'Get information about the next Zcash block reward halving, including countdown, current/next subsidy, and funding stream breakdown.',
     params: [],
-    example: `curl ${baseUrl}/api/network/halving`,
+    example: `curl ${baseUrl}/v1/network/halving`,
     response: {
       success: true,
       halvingBlock: 2726400,
@@ -544,12 +547,12 @@ export const getEndpoints = (baseUrl: string): ApiEndpoint[] => [
     id: 'emission',
     category: 'Supply',
     method: 'GET',
-    path: '/api/network/emission',
+    path: '/v1/network/emission',
     description: 'Historical supply emission curve and daily emission data.',
     params: [
       { name: 'period', type: 'string', description: 'Time range: "30d", "90d", "1y", "all" (default: "1y")' }
     ],
-    example: `curl '${baseUrl}/api/network/emission?period=1y'`,
+    example: `curl '${baseUrl}/v1/network/emission?period=1y'`,
     response: {
       success: true,
       maxSupply: 21000000,
@@ -569,12 +572,12 @@ export const getEndpoints = (baseUrl: string): ApiEndpoint[] => [
     id: 'pool-history',
     category: 'Supply',
     method: 'GET',
-    path: '/api/network/pool-history',
+    path: '/v1/shielded-pools/history',
     description: 'Historical shielded pool sizes over time. Shows the split between Sprout, Sapling, Orchard, and Transparent pools.',
     params: [
       { name: 'period', type: 'string', description: 'Time range: "7d", "30d", "90d", "1y", "all" (default: "1y")' }
     ],
-    example: `curl '${baseUrl}/api/network/pool-history?period=90d'`,
+    example: `curl '${baseUrl}/v1/shielded-pools/history?period=90d'`,
     response: {
       success: true,
       period: '90d',
@@ -604,10 +607,10 @@ export const getEndpoints = (baseUrl: string): ApiEndpoint[] => [
     id: 'network-stats',
     category: 'Network',
     method: 'GET',
-    path: '/api/network/stats',
+    path: '/v1/network/stats',
     description: 'Comprehensive network statistics: mining (hashrate, difficulty, block times), network (peers, height), blockchain (size, tx volume), and supply (pool breakdown).',
     params: [],
-    example: `curl ${baseUrl}/api/network/stats`,
+    example: `curl ${baseUrl}/v1/network/stats`,
     response: {
       success: true,
       mining: {
@@ -653,13 +656,13 @@ export const getEndpoints = (baseUrl: string): ApiEndpoint[] => [
     id: 'mining-metrics',
     category: 'Network',
     method: 'GET',
-    path: '/api/network/mining-metrics',
+    path: '/v1/mining/metrics',
     description: 'Rolling-window mining metrics for charting: solution rate, difficulty, block times, fees, and transaction counts over recent blocks.',
     params: [
       { name: 'window', type: 'number', description: 'Rolling average window size in blocks (5–100, default: 20)' },
       { name: 'limit', type: 'number', description: 'Number of data points to return (20–500, default: 120)' }
     ],
-    example: `curl '${baseUrl}/api/network/mining-metrics?window=20&limit=60'`,
+    example: `curl '${baseUrl}/v1/mining/metrics?window=20&limit=60'`,
     response: {
       success: true,
       window: 20,
@@ -674,12 +677,12 @@ export const getEndpoints = (baseUrl: string): ApiEndpoint[] => [
     id: 'network-hashrate-history',
     category: 'Network',
     method: 'GET',
-    path: '/api/network/hashrate-history',
+    path: '/v1/mining/hashrate-history',
     description: 'Daily-bucketed network hashrate (Sol/s) history, for long-range trend charts (weeks to a year+).',
     params: [
       { name: 'period', type: 'string', description: "'7d' | '30d' | '90d' | '1y' | 'all' (default: '90d')" }
     ],
-    example: `curl '${baseUrl}/api/network/hashrate-history?period=1y'`,
+    example: `curl '${baseUrl}/v1/mining/hashrate-history?period=1y'`,
     response: {
       success: true,
       period: '1y',
@@ -693,10 +696,10 @@ export const getEndpoints = (baseUrl: string): ApiEndpoint[] => [
     id: 'network-health',
     category: 'Network',
     method: 'GET',
-    path: '/api/network/health',
+    path: '/v1/network/health',
     description: 'Check the health status of the Zebra node.',
     params: [],
-    example: `curl ${baseUrl}/api/network/health`,
+    example: `curl ${baseUrl}/v1/network/health`,
     response: {
       success: true,
       zebra: { healthy: true, ready: true, healthEndpointAvailable: true, readyEndpointAvailable: true }
@@ -706,10 +709,10 @@ export const getEndpoints = (baseUrl: string): ApiEndpoint[] => [
     id: 'network-peers',
     category: 'Network',
     method: 'GET',
-    path: '/api/network/peers',
+    path: '/v1/network/peers',
     description: 'Get privacy-preserving aggregate information about peers currently connected to ZecBlock.',
     params: [],
-    example: `curl ${baseUrl}/api/network/peers`,
+    example: `curl ${baseUrl}/v1/network/peers`,
     response: {
       success: true,
       count: 35,
@@ -727,10 +730,10 @@ export const getEndpoints = (baseUrl: string): ApiEndpoint[] => [
     id: 'network-nodes',
     category: 'Network',
     method: 'GET',
-    path: '/api/network/nodes',
+    path: '/v1/network/nodes',
     description: 'Get coarse, aggregated geographic distribution of observed Zcash nodes. Individual IPs, ISPs, cities, and precise coordinates are never returned.',
     params: [],
-    example: `curl ${baseUrl}/api/network/nodes`,
+    example: `curl ${baseUrl}/v1/network/nodes`,
     response: {
       success: true,
       locations: [
@@ -742,10 +745,10 @@ export const getEndpoints = (baseUrl: string): ApiEndpoint[] => [
     id: 'network-node-stats',
     category: 'Network',
     method: 'GET',
-    path: '/api/network/nodes/stats',
+    path: '/v1/network/nodes/stats',
     description: 'Get observed node counts, geographic concentration, trends, and Zebra/Zakura/zcashd client diversity.',
     params: [],
-    example: `curl ${baseUrl}/api/network/nodes/stats`,
+    example: `curl ${baseUrl}/v1/network/nodes/stats`,
     response: {
       success: true,
       stats: { activeNodes: 190, countries: 31, torNodes: 4 },
@@ -766,12 +769,12 @@ export const getEndpoints = (baseUrl: string): ApiEndpoint[] => [
     id: 'network-node-history',
     category: 'Network',
     method: 'GET',
-    path: '/api/network/node-history',
+    path: '/v1/network/nodes/history',
     description: 'Get privacy-preserving node-count and client-diversity snapshots.',
     params: [
       { name: 'period', type: 'string', required: false, description: '24h, 7d, 30d, or 90d (default: 30d)' }
     ],
-    example: `curl "${baseUrl}/api/network/node-history?period=30d"`,
+    example: `curl "${baseUrl}/v1/network/nodes/history?period=30d"`,
     response: {
       success: true,
       period: '30d',
@@ -784,10 +787,10 @@ export const getEndpoints = (baseUrl: string): ApiEndpoint[] => [
     id: 'network-fees',
     category: 'Network',
     method: 'GET',
-    path: '/api/network/fees',
+    path: '/v1/network/fees',
     description: 'Get current fee estimates based on ZIP-317 conventional fee structure.',
     params: [],
-    example: `curl ${baseUrl}/api/network/fees`,
+    example: `curl ${baseUrl}/v1/network/fees`,
     response: {
       success: true,
       fees: { low: 0.00001, standard: 0.0001, high: 0.001 },
@@ -800,10 +803,10 @@ export const getEndpoints = (baseUrl: string): ApiEndpoint[] => [
     id: 'blockchain-info',
     category: 'Network',
     method: 'GET',
-    path: '/api/blockchain-info',
+    path: '/v1/network/blockchain-info',
     description: 'Raw blockchain info from the Zebra node (getblockchaininfo RPC), including consensus rules and upgrade activation heights.',
     params: [],
-    example: `curl ${baseUrl}/api/blockchain-info`,
+    example: `curl ${baseUrl}/v1/network/blockchain-info`,
     response: {
       chain: 'main',
       blocks: 2500000,
@@ -820,10 +823,10 @@ export const getEndpoints = (baseUrl: string): ApiEndpoint[] => [
     id: 'price',
     category: 'Network',
     method: 'GET',
-    path: '/api/price',
+    path: '/v1/network/price',
     description: 'Get the current ZEC/USD price and 24-hour change (sourced from CoinGecko).',
     params: [],
-    example: `curl ${baseUrl}/api/price`,
+    example: `curl ${baseUrl}/v1/network/price`,
     response: {
       price: 35.42,
       change24h: -2.15,
@@ -834,12 +837,12 @@ export const getEndpoints = (baseUrl: string): ApiEndpoint[] => [
     id: 'price-historical',
     category: 'Network',
     method: 'GET',
-    path: '/api/price/at',
+    path: '/v1/network/price/at',
     description: 'Get the historical ZEC/USD price for a specific date. Falls back to the closest earlier date if exact date is unavailable.',
     params: [
       { name: 'date', type: 'string', description: 'Date in YYYY-MM-DD format', required: true }
     ],
-    example: `curl ${baseUrl}/api/price/at?date=2025-01-15`,
+    example: `curl ${baseUrl}/v1/network/price/at?date=2025-01-15`,
     response: {
       date: '2025-01-15',
       price_usd: 34.82,
@@ -850,10 +853,10 @@ export const getEndpoints = (baseUrl: string): ApiEndpoint[] => [
     id: 'protocol-stats',
     category: 'Network',
     method: 'GET',
-    path: '/api/network/protocol-stats',
+    path: '/v1/network/protocol-stats',
     description: 'Commitment tree sizes and nullifier set sizes for Sapling and Orchard pools, with monthly historical growth data.',
     params: [],
-    example: `curl ${baseUrl}/api/network/protocol-stats`,
+    example: `curl ${baseUrl}/v1/network/protocol-stats`,
     response: {
       success: true,
       current: {
@@ -877,7 +880,7 @@ export const getEndpoints = (baseUrl: string): ApiEndpoint[] => [
     id: 'privacy-stats',
     category: 'Privacy',
     method: 'GET',
-    path: '/api/privacy-stats',
+    path: '/v1/privacy/stats',
     description:
       'Blockchain-wide privacy statistics: all-time totals, shielded pool sizes, Privacy Score v2 (rolling usage, quality, depth, and turnstile hygiene), and daily trends.',
     params: [
@@ -888,7 +891,7 @@ export const getEndpoints = (baseUrl: string): ApiEndpoint[] => [
         required: false,
       },
     ],
-    example: `curl '${baseUrl}/api/privacy-stats?days=365'`,
+    example: `curl '${baseUrl}/v1/privacy/stats?days=365'`,
     response: {
       totals: {
         blocks: 3425936,
@@ -967,7 +970,7 @@ export const getEndpoints = (baseUrl: string): ApiEndpoint[] => [
     id: 'anonymity-set',
     category: 'Privacy',
     method: 'GET',
-    path: '/api/analytics/anonymity-set',
+    path: '/v1/privacy/anonymity-set',
     description:
       'Cumulative shield and deshield transaction counts at each ZEC amount threshold — how large the anonymity crowd is at or above each size.',
     params: [
@@ -978,7 +981,7 @@ export const getEndpoints = (baseUrl: string): ApiEndpoint[] => [
         required: false,
       },
     ],
-    example: `curl '${baseUrl}/api/analytics/anonymity-set?period=30d'`,
+    example: `curl '${baseUrl}/v1/privacy/anonymity-set?period=30d'`,
     response: {
       period: '30d',
       thresholds: [
@@ -997,7 +1000,7 @@ export const getEndpoints = (baseUrl: string): ApiEndpoint[] => [
     id: 'shielding-distribution',
     category: 'Privacy',
     method: 'GET',
-    path: '/api/analytics/shielding-distribution',
+    path: '/v1/privacy/shielding-distribution',
     description:
       'Histogram of shield and deshield flows by log-spaced amount buckets — transaction counts and volumes per range.',
     params: [
@@ -1008,7 +1011,7 @@ export const getEndpoints = (baseUrl: string): ApiEndpoint[] => [
         required: false,
       },
     ],
-    example: `curl '${baseUrl}/api/analytics/shielding-distribution?period=30d'`,
+    example: `curl '${baseUrl}/v1/privacy/shielding-distribution?period=30d'`,
     response: {
       period: '30d',
       buckets: [
@@ -1030,13 +1033,13 @@ export const getEndpoints = (baseUrl: string): ApiEndpoint[] => [
     id: 'shielded-count',
     category: 'Privacy',
     method: 'GET',
-    path: '/api/stats/shielded-count',
+    path: '/v1/stats/shielded-count',
     description: 'Total count of shielded transactions since a given date. With detailed=true, includes Sapling/Orchard breakdown.',
     params: [
       { name: 'since', type: 'string', description: 'Start date in ISO format (e.g., "2025-01-01")', required: true },
       { name: 'detailed', type: 'boolean', description: 'If "true", returns pool breakdown and fully/partially shielded counts' }
     ],
-    example: `curl '${baseUrl}/api/stats/shielded-count?since=2025-01-01&detailed=true'`,
+    example: `curl '${baseUrl}/v1/stats/shielded-count?since=2025-01-01&detailed=true'`,
     response: {
       success: true,
       since: '2025-01-01',
@@ -1052,13 +1055,13 @@ export const getEndpoints = (baseUrl: string): ApiEndpoint[] => [
     id: 'shielded-daily',
     category: 'Privacy',
     method: 'GET',
-    path: '/api/stats/shielded-daily',
+    path: '/v1/stats/shielded-daily',
     description: 'Daily shielded transaction counts for a date range. Useful for building adoption trend charts.',
     params: [
       { name: 'since', type: 'string', description: 'Start date in ISO format', required: true },
       { name: 'until', type: 'string', description: 'End date in ISO format (default: now)' }
     ],
-    example: `curl '${baseUrl}/api/stats/shielded-daily?since=2026-04-01&until=2026-05-01'`,
+    example: `curl '${baseUrl}/v1/stats/shielded-daily?since=2026-04-01&until=2026-05-01'`,
     response: {
       success: true,
       since: '2026-04-01',
@@ -1075,12 +1078,12 @@ export const getEndpoints = (baseUrl: string): ApiEndpoint[] => [
     id: 'blend-check',
     category: 'Privacy',
     method: 'GET',
-    path: '/api/blend-check',
+    path: '/v1/privacy/blend-check',
     description: 'Check how common a ZEC amount is in shielded transactions. Higher blend scores mean better privacy — your transaction blends in with more others.',
     params: [
       { name: 'amount', type: 'number', description: 'ZEC amount to check (e.g., 1.0)', required: true }
     ],
-    example: `curl '${baseUrl}/api/blend-check?amount=1.0'`,
+    example: `curl '${baseUrl}/v1/privacy/blend-check?amount=1.0'`,
     response: {
       amount: 1.0,
       amountZat: 100000000,
@@ -1103,12 +1106,12 @@ export const getEndpoints = (baseUrl: string): ApiEndpoint[] => [
     id: 'blend-check-split',
     category: 'Privacy',
     method: 'GET',
-    path: '/api/blend-check/split',
+    path: '/v1/privacy/blend-check/split',
     description: 'Get recommendations for splitting an amount into common denominations to improve privacy.',
     params: [
       { name: 'amount', type: 'number', description: 'ZEC amount to split (e.g., 3.7)', required: true }
     ],
-    example: `curl '${baseUrl}/api/blend-check/split?amount=3.7'`,
+    example: `curl '${baseUrl}/v1/privacy/blend-check/split?amount=3.7'`,
     response: {
       amount: 3.7,
       originalScore: 25,
@@ -1128,14 +1131,14 @@ export const getEndpoints = (baseUrl: string): ApiEndpoint[] => [
     id: 'tx-linkability',
     category: 'Privacy',
     method: 'GET',
-    path: '/api/tx/:txid/linkability',
+    path: '/v1/transactions/:txid/linkability',
     description: 'Analyze potential linkability between a shielding transaction and subsequent deshielding transactions based on amount, timing, and other heuristics.',
     params: [
       { name: 'txid', type: 'string', description: 'Transaction ID of a shielding/deshielding tx', required: true },
       { name: 'limit', type: 'number', description: 'Max linked transactions to return (1–20, default: 5)' },
       { name: 'tolerance', type: 'number', description: 'Amount tolerance in ZEC (default: 0.001)' }
     ],
-    example: `curl '${baseUrl}/api/tx/abc123.../linkability?limit=5'`,
+    example: `curl '${baseUrl}/v1/transactions/abc123.../linkability?limit=5'`,
     response: {
       success: true,
       txid: 'abc123...',
@@ -1168,10 +1171,10 @@ export const getEndpoints = (baseUrl: string): ApiEndpoint[] => [
     id: 'crosschain-stats',
     category: 'Cross-Chain',
     method: 'GET',
-    path: '/api/crosschain/stats',
+    path: '/v1/crosschain/stats',
     description: 'Live cross-chain swap statistics via NEAR Intents. Shows 24h volume, inflows, outflows, and recent swaps.',
     params: [],
-    example: `curl ${baseUrl}/api/crosschain/stats`,
+    example: `curl ${baseUrl}/v1/crosschain/stats`,
     response: {
       success: true,
       totalVolume24h: 125000,
@@ -1196,13 +1199,13 @@ export const getEndpoints = (baseUrl: string): ApiEndpoint[] => [
     id: 'crosschain-trends',
     category: 'Cross-Chain',
     method: 'GET',
-    path: '/api/crosschain/trends',
+    path: '/v1/crosschain/trends',
     description: 'Historical cross-chain volume trends over time.',
     params: [
       { name: 'period', type: 'string', description: '"7d", "30d", or "90d" (default: "30d")' },
       { name: 'granularity', type: 'string', description: '"daily" or "weekly" (default: "daily")' }
     ],
-    example: `curl '${baseUrl}/api/crosschain/trends?period=30d&granularity=daily'`,
+    example: `curl '${baseUrl}/v1/crosschain/trends?period=30d&granularity=daily'`,
     response: {
       success: true,
       period: '30d',
@@ -1217,7 +1220,7 @@ export const getEndpoints = (baseUrl: string): ApiEndpoint[] => [
     id: 'crosschain-history',
     category: 'Cross-Chain',
     method: 'GET',
-    path: '/api/crosschain/history',
+    path: '/v1/crosschain/history',
     description: 'Paginated history of all cross-chain swaps with optional filters.',
     params: [
       { name: 'page', type: 'number', description: 'Page number (default: 1)' },
@@ -1225,7 +1228,7 @@ export const getEndpoints = (baseUrl: string): ApiEndpoint[] => [
       { name: 'direction', type: 'string', description: '"entry" (into ZEC) or "exit" (out of ZEC)' },
       { name: 'chain', type: 'string', description: 'Filter by chain (e.g., "ethereum", "bitcoin")' }
     ],
-    example: `curl '${baseUrl}/api/crosschain/history?direction=entry&chain=ethereum&limit=10'`,
+    example: `curl '${baseUrl}/v1/crosschain/history?direction=entry&chain=ethereum&limit=10'`,
     response: {
       success: true,
       total: 500,
@@ -1253,12 +1256,12 @@ export const getEndpoints = (baseUrl: string): ApiEndpoint[] => [
     id: 'name-resolve',
     category: 'Names (ZNS)',
     method: 'GET',
-    path: '/api/name/:name',
+    path: '/v1/names/:name',
     description: 'Resolve a ZNS (Zcash Name Service) name to its registered address, along with marketplace listing if any.',
     params: [
       { name: 'name', type: 'string', description: 'ZNS name to resolve (e.g., "satoshi")', required: true }
     ],
-    example: `curl ${baseUrl.replace('://api.', '://')}/api/name/satoshi`,
+    example: `curl ${baseUrl}/v1/names/satoshi`,
     response: {
       name: 'satoshi',
       address: 'u1abc...',
@@ -1280,12 +1283,12 @@ export const getEndpoints = (baseUrl: string): ApiEndpoint[] => [
     id: 'name-events',
     category: 'Names (ZNS)',
     method: 'GET',
-    path: '/api/name/:name/events',
+    path: '/v1/names/:name/events',
     description: 'Get the full event history for a ZNS name: claims, listings, delistings, sales, and updates.',
     params: [
       { name: 'name', type: 'string', description: 'ZNS name (e.g., "satoshi")', required: true }
     ],
-    example: `curl ${baseUrl.replace('://api.', '://')}/api/name/satoshi/events`,
+    example: `curl ${baseUrl}/v1/names/satoshi/events`,
     response: {
       events: [
         { id: 7, name: 'satoshi', action: 'LIST', txid: '7ac64ad0...', height: 2450010, ua: 'u1abc...', price: 10000000000, nonce: 1, signature: 'eaBfFGlJ...' },
@@ -1303,10 +1306,10 @@ export const getEndpoints = (baseUrl: string): ApiEndpoint[] => [
     id: 'pools-overview',
     category: 'Pool Analytics',
     method: 'GET',
-    path: '/api/pools/overview',
+    path: '/v1/shielded-pools/overview',
     description: 'Current shielded pool sizes (Sapling, Orchard, Sprout) with 24h, 7d, and 30d deltas showing supply movement between pools.',
     params: [],
-    example: `curl ${baseUrl}/api/pools/overview`,
+    example: `curl ${baseUrl}/v1/shielded-pools/overview`,
     response: {
       pools: [
         { pool: 'orchard', supply_zec: 1245678.12, delta_24h: 3412.5, delta_7d: -12340.8, delta_30d: 54210.3 },
@@ -1323,14 +1326,14 @@ export const getEndpoints = (baseUrl: string): ApiEndpoint[] => [
     id: 'pools-flows',
     category: 'Pool Analytics',
     method: 'GET',
-    path: '/api/pools/flows',
+    path: '/v1/shielded-pools/flows',
     description: 'Time-series shield/deshield volume data. Supports daily or hourly granularity with optional pool filtering.',
     params: [
       { name: 'period', type: 'string', description: 'Time window: 30d, 90d, 1y, all (default: 30d)', required: false },
       { name: 'pool', type: 'string', description: 'Filter by pool: all, orchard, sapling, sprout (default: all)', required: false },
       { name: 'granularity', type: 'string', description: 'Bucket size: daily or hourly (default: daily)', required: false }
     ],
-    example: `curl "${baseUrl}/api/pools/flows?period=7d&granularity=hourly&pool=orchard"`,
+    example: `curl "${baseUrl}/v1/shielded-pools/flows?period=7d&granularity=hourly&pool=orchard"`,
     response: {
       period: '7d',
       pool: 'orchard',
@@ -1346,12 +1349,12 @@ export const getEndpoints = (baseUrl: string): ApiEndpoint[] => [
     id: 'pools-turnstile',
     category: 'Pool Analytics',
     method: 'GET',
-    path: '/api/pools/turnstile',
+    path: '/v1/shielded-pools/turnstile',
     description: 'Turnstile analysis: tracks where deshielded ZEC goes after exiting a shielded pool (still held, reshielded, transferred, sent to exchange, sent to bridge).',
     params: [
       { name: 'since', type: 'string', description: 'Start date in YYYY-MM-DD format (default: 2020-01-01)', required: false }
     ],
-    example: `curl "${baseUrl}/api/pools/turnstile?since=2026-01-01"`,
+    example: `curl "${baseUrl}/v1/shielded-pools/turnstile?since=2026-01-01"`,
     response: {
       summary: {
         total_deshielded_zat: 18340000000000,
@@ -1374,7 +1377,7 @@ export const getEndpoints = (baseUrl: string): ApiEndpoint[] => [
     id: 'transparent-exposed',
     category: 'Transparent Analysis',
     method: 'GET',
-    path: '/api/transparent/exposed',
+    path: '/v1/transparent/exposed',
     description: 'Paginated list of reusable transparent address balances whose public keys are exposed on-chain (quantum-vulnerable). Direct addressless P2PK and bare-multisig UTXOs are excluded from address balances and reported by the summary endpoint. Supports offset and cursor pagination.',
     params: [
       { name: 'limit', type: 'number', description: 'Results per page (1-1000, default 100)', required: false },
@@ -1383,7 +1386,7 @@ export const getEndpoints = (baseUrl: string): ApiEndpoint[] => [
       { name: 'sort', type: 'string', description: 'Sort order: "balance" (default, descending) or "address" (ascending, required for cursor pagination)', required: false },
       { name: 'min_balance', type: 'number', description: 'Minimum balance in zatoshis (default 0)', required: false }
     ],
-    example: `curl "${baseUrl}/api/transparent/exposed?limit=10&sort=balance"`,
+    example: `curl "${baseUrl}/v1/transparent/exposed?limit=10&sort=balance"`,
     response: {
       addresses: [
         {
@@ -1412,10 +1415,10 @@ export const getEndpoints = (baseUrl: string): ApiEndpoint[] => [
     id: 'transparent-exposed-summary',
     category: 'Transparent Analysis',
     method: 'GET',
-    path: '/api/transparent/exposed/summary',
+    path: '/v1/transparent/exposed/summary',
     description: 'Aggregate quantum-exposure statistics, separating reusable address balances from direct addressless P2PK and bare-multisig UTXOs.',
     params: [],
-    example: `curl ${baseUrl}/api/transparent/exposed/summary`,
+    example: `curl ${baseUrl}/v1/transparent/exposed/summary`,
     response: {
       total_addresses: 182345,
       total_balance: 1234567890000,
@@ -1454,4 +1457,57 @@ export function getEndpointsByCategory(baseUrl: string) {
     name: category,
     endpoints: endpoints.filter(e => e.category === category)
   }));
+}
+
+/** One route inventory drives the router, OpenAPI and visible documentation. */
+export function getEndpoints(baseUrl: string): ApiEndpoint[] {
+  const examples = getExampleEndpoints(baseUrl);
+  return reference.map(route => {
+    const sample = examples.find(item => item.path === route.path && item.method === route.method);
+    const pathNames = [...route.path.matchAll(/:([A-Za-z_][A-Za-z0-9_]*)/g)].map(match => match[1]);
+    const names = [...pathNames, ...route.query];
+    const params: ApiEndpoint['params'] = names.map(name => {
+      if (name === 'cursor' && route.listKey) return { name, type: 'string', description: 'Opaque cursor returned in meta.page. Keep the same filters when following it.' };
+      if (name === 'limit' && route.listKey) return { name, type: 'integer', description: 'Items per page, 1–100. Defaults to 25; no client-side lookahead is needed.' };
+      return sample?.params.find(param => param.name === name) || { name, type: 'string', description: pathNames.includes(name) ? 'Resource identifier in the URL path.' : 'Optional query parameter.', required: pathNames.includes(name) };
+    });
+    // Body parameters belong to POST requests, not the query-name inventory.
+    if (route.method === 'POST') params.push(...(sample?.params.filter(param => !names.includes(param.name)) || []));
+    if (route.ownershipToken) params.push({ name: 'X-Node-Token', type: 'header', required: route.method === 'DELETE', description: 'Registration ownership token; required for updates and deletion.' });
+    let data = sample ? structuredClone(sample.response) : null;
+    if (data && typeof data === 'object') {
+      delete data.success;
+      if (route.listKey) data = data[route.listKey] || [];
+      const convert = (value: any, parts: string[]): void => {
+        if (value == null || typeof value !== 'object') return;
+        const [key, ...rest] = parts;
+        if (key === '*') { if (Array.isArray(value)) value.forEach(item => convert(item, rest)); return; }
+        if (!(key in value)) return;
+        if (rest.length) convert(value[key], rest);
+        else if (value[key] != null) value[key] = String(value[key]);
+      };
+      for (const field of route.zatoshiFields) {
+        if (route.listKey && Array.isArray(data)) data.forEach(item => convert(item, field.split('.')));
+        else convert(data, field.split('.'));
+      }
+    }
+    const exampleUrl = baseUrl + route.path.replace(/:([A-Za-z_][A-Za-z0-9_]*)/g, (_, name) => `<${name}>`);
+    let example = sample?.example || `curl -X ${route.method} '${exampleUrl}'`;
+    if (sample && route.listKey) example = `curl '${baseUrl}${route.path}?limit=25'`;
+    return {
+      id: sample?.id || `${route.method.toLowerCase()}-${route.path.slice(4).replace(/[^a-zA-Z0-9]+/g, '-')}`,
+      method: route.method as ApiEndpoint['method'], path: route.path,
+      category: sample?.category || route.category[0].toUpperCase() + route.category.slice(1),
+      description: route.description, params, example,
+      response: sample ? { data, meta: {
+        requestId: '00000000-0000-4000-8000-000000000000', network: NETWORK,
+        generatedAt: '2026-09-07T00:00:00.000Z', indexedHeight: null,
+        source: { indexedHeight: null, observedAt: null },
+        cache: { status: 'unknown', ageSeconds: null }, freshness: { status: 'unavailable', ageSeconds: null },
+        units: { authoritativeMonetary: 'zatoshi', authoritativeEncoding: 'decimal-string', zatoshiPerZec: '100000000', legacyFormattedFields: 'field-defined' },
+        ...(route.listKey ? { page: { limit: 25, hasNext: false, hasPrev: false, nextCursor: null, prevCursor: null } } : {}),
+      } } : null,
+      note: [route.note, 'Success responses use { data, meta }; failures use application/problem+json. Examples are illustrative, not current observations.', route.zatoshiFields.length ? `Exact zatoshi strings: ${route.zatoshiFields.join(', ')}.` : 'Amounts and timestamps retain their documented field-specific units.'].filter(Boolean).join(' '),
+    };
+  });
 }

@@ -1,0 +1,1696 @@
+[
+  {
+    "method": "GET",
+    "path": "/v1/names/status",
+    "description": "Name registry status and pricing.",
+    "category": "names",
+    "query": [],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": null,
+    "ownershipToken": false
+  },
+  {
+    "method": "GET",
+    "path": "/v1/names",
+    "description": "Cursor-paginated registered names.",
+    "category": "names",
+    "query": [
+      "cursor",
+      "limit"
+    ],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": null,
+    "ownershipToken": false
+  },
+  {
+    "method": "GET",
+    "path": "/v1/names/:name/events",
+    "description": "Recent public name registry events.",
+    "category": "names",
+    "query": [],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": null,
+    "ownershipToken": false
+  },
+  {
+    "method": "GET",
+    "path": "/v1/names/:name",
+    "description": "Name registration or pricing when unregistered.",
+    "category": "names",
+    "query": [],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": null,
+    "ownershipToken": false
+  },
+  {
+    "method": "GET",
+    "path": "/v1/network/info",
+    "description": "Current indexed chain height.",
+    "category": "network",
+    "query": [],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": null,
+    "ownershipToken": false
+  },
+  {
+    "method": "GET",
+    "path": "/v1/blocks",
+    "description": "Cursor-paginated block list (canonical listing endpoint).",
+    "category": "blocks",
+    "query": [
+      "cursor",
+      "limit"
+    ],
+    "listKey": "blocks",
+    "zatoshiFields": [
+      "total_fees"
+    ],
+    "note": "total_fees is a raw zatoshi BIGINT column, not pre-divided by the legacy handler.",
+    "ownershipToken": false
+  },
+  {
+    "method": "GET",
+    "path": "/v1/blocks/:heightOrHash",
+    "description": "Block detail by height or hash.",
+    "category": "blocks",
+    "query": [
+      "summary"
+    ],
+    "listKey": null,
+    "zatoshiFields": [
+      "total_fees"
+    ],
+    "note": null,
+    "ownershipToken": false
+  },
+  {
+    "method": "GET",
+    "path": "/v1/search/anchors/:root",
+    "description": "Look up the block containing a given Orchard/Sapling anchor root.",
+    "category": "search",
+    "query": [],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": null,
+    "ownershipToken": false
+  },
+  {
+    "method": "GET",
+    "path": "/v1/blocks/:hashOrHeight/archive",
+    "description": "Orphaned/non-canonical block archive lookup.",
+    "category": "blocks",
+    "query": [],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": null,
+    "ownershipToken": false
+  },
+  {
+    "method": "GET",
+    "path": "/v1/network/stats",
+    "description": "Aggregate network statistics.",
+    "category": "network",
+    "query": [],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": null,
+    "ownershipToken": false
+  },
+  {
+    "method": "GET",
+    "path": "/v1/network/fees",
+    "description": "Fee estimates.",
+    "category": "network",
+    "query": [],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": null,
+    "ownershipToken": false
+  },
+  {
+    "method": "GET",
+    "path": "/v1/network/health",
+    "description": "Zebra node health snapshot.",
+    "category": "network",
+    "query": [],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": null,
+    "ownershipToken": false
+  },
+  {
+    "method": "GET",
+    "path": "/v1/network/peers",
+    "description": "Known peer list.",
+    "category": "network",
+    "query": [],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": null,
+    "ownershipToken": false
+  },
+  {
+    "method": "GET",
+    "path": "/v1/network/supply/transparent-breakdown",
+    "description": "Transparent supply breakdown.",
+    "category": "network",
+    "query": [],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": null,
+    "ownershipToken": false
+  },
+  {
+    "method": "GET",
+    "path": "/v1/network/supply",
+    "description": "Total/circulating supply.",
+    "category": "network",
+    "query": [],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": null,
+    "ownershipToken": false
+  },
+  {
+    "method": "GET",
+    "path": "/v1/network/blockchain-info",
+    "description": "Zebra getblockchaininfo passthrough summary.",
+    "category": "network",
+    "query": [],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": null,
+    "ownershipToken": false
+  },
+  {
+    "method": "GET",
+    "path": "/v1/network/circulating-supply",
+    "description": "Circulating supply, plain-number legacy format.",
+    "category": "network",
+    "query": [
+      "format"
+    ],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": null,
+    "ownershipToken": false
+  },
+  {
+    "method": "GET",
+    "path": "/v1/network/nodes",
+    "description": "Ziggurat crawler node census.",
+    "category": "network",
+    "query": [],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": null,
+    "ownershipToken": false
+  },
+  {
+    "method": "GET",
+    "path": "/v1/network/nodes/stats",
+    "description": "Node census summary stats.",
+    "category": "network",
+    "query": [],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": null,
+    "ownershipToken": false
+  },
+  {
+    "method": "GET",
+    "path": "/v1/network/nodes/history",
+    "description": "Historical node count series.",
+    "category": "network",
+    "query": [
+      "period"
+    ],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": null,
+    "ownershipToken": false
+  },
+  {
+    "method": "GET",
+    "path": "/v1/network/price",
+    "description": "Current ZEC price.",
+    "category": "network",
+    "query": [],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": null,
+    "ownershipToken": false
+  },
+  {
+    "method": "GET",
+    "path": "/v1/network/price/at",
+    "description": "Historical ZEC price at a timestamp.",
+    "category": "network",
+    "query": [
+      "date"
+    ],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": null,
+    "ownershipToken": false
+  },
+  {
+    "method": "GET",
+    "path": "/v1/network/protocol-stats",
+    "description": "Protocol version adoption stats.",
+    "category": "network",
+    "query": [],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": null,
+    "ownershipToken": false
+  },
+  {
+    "method": "GET",
+    "path": "/v1/network/topology",
+    "description": "Peer topology graph.",
+    "category": "network",
+    "query": [],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": null,
+    "ownershipToken": false
+  },
+  {
+    "method": "GET",
+    "path": "/v1/network/nodes/list",
+    "description": "Paged node list.",
+    "category": "network",
+    "query": [
+      "dir",
+      "limit",
+      "offset",
+      "sort"
+    ],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": null,
+    "ownershipToken": false
+  },
+  {
+    "method": "GET",
+    "path": "/v1/network/nodes/health-score",
+    "description": "Per-node health scoring.",
+    "category": "network",
+    "query": [],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": null,
+    "ownershipToken": false
+  },
+  {
+    "method": "GET",
+    "path": "/v1/network/nodes/reliability",
+    "description": "Node reliability metrics.",
+    "category": "network",
+    "query": [],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": null,
+    "ownershipToken": false
+  },
+  {
+    "method": "GET",
+    "path": "/v1/network/nodes/upgrade-readiness",
+    "description": "NU upgrade readiness by node.",
+    "category": "network",
+    "query": [],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": null,
+    "ownershipToken": false
+  },
+  {
+    "method": "GET",
+    "path": "/v1/network/nodes/concentration",
+    "description": "Node/ASN/geography concentration metrics.",
+    "category": "network",
+    "query": [],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": null,
+    "ownershipToken": false
+  },
+  {
+    "method": "GET",
+    "path": "/v1/network/halving",
+    "description": "Block subsidy halving schedule.",
+    "category": "network",
+    "query": [],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": null,
+    "ownershipToken": false
+  },
+  {
+    "method": "GET",
+    "path": "/v1/mining/metrics",
+    "description": "Mining metrics summary.",
+    "category": "mining",
+    "query": [
+      "limit",
+      "window"
+    ],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": null,
+    "ownershipToken": false
+  },
+  {
+    "method": "GET",
+    "path": "/v1/mining/hashrate-history",
+    "description": "Historical network hashrate.",
+    "category": "mining",
+    "query": [
+      "period"
+    ],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": null,
+    "ownershipToken": false
+  },
+  {
+    "method": "GET",
+    "path": "/v1/shielded-pools/history",
+    "description": "Daily shielded and transparent pool balances from chain state.",
+    "category": "shielded-pools",
+    "query": [
+      "format",
+      "period"
+    ],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": null,
+    "ownershipToken": false
+  },
+  {
+    "method": "GET",
+    "path": "/v1/network/emission",
+    "description": "ZEC emission curve.",
+    "category": "network",
+    "query": [
+      "period"
+    ],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": null,
+    "ownershipToken": false
+  },
+  {
+    "method": "GET",
+    "path": "/v1/network/chain-size-history",
+    "description": "Chain size growth over time.",
+    "category": "network",
+    "query": [
+      "period"
+    ],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": null,
+    "ownershipToken": false
+  },
+  {
+    "method": "GET",
+    "path": "/v1/network/blocks/recent-summary",
+    "description": "Lightweight recent-blocks summary for charts (distinct from /v1/blocks).",
+    "category": "network",
+    "query": [
+      "limit"
+    ],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": null,
+    "ownershipToken": false
+  },
+  {
+    "method": "GET",
+    "path": "/v1/crosschain/stats",
+    "description": "Cross-chain swap stats.",
+    "category": "crosschain",
+    "query": [],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": null,
+    "ownershipToken": false
+  },
+  {
+    "method": "GET",
+    "path": "/v1/crosschain/inflows",
+    "description": "Cross-chain inflow volume.",
+    "category": "crosschain",
+    "query": [
+      "limit",
+      "page"
+    ],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": null,
+    "ownershipToken": false
+  },
+  {
+    "method": "GET",
+    "path": "/v1/crosschain/outflows",
+    "description": "Cross-chain outflow volume.",
+    "category": "crosschain",
+    "query": [
+      "limit",
+      "page"
+    ],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": null,
+    "ownershipToken": false
+  },
+  {
+    "method": "GET",
+    "path": "/v1/crosschain/status",
+    "description": "NEAR Intents integration configuration status.",
+    "category": "crosschain",
+    "query": [],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": null,
+    "ownershipToken": false
+  },
+  {
+    "method": "GET",
+    "path": "/v1/crosschain/db-stats",
+    "description": "Materialized-view-backed swap dashboard stats.",
+    "category": "crosschain",
+    "query": [],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": null,
+    "ownershipToken": false
+  },
+  {
+    "method": "GET",
+    "path": "/v1/crosschain/trends",
+    "description": "Cross-chain swap trends over time.",
+    "category": "crosschain",
+    "query": [
+      "granularity",
+      "period"
+    ],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": null,
+    "ownershipToken": false
+  },
+  {
+    "method": "GET",
+    "path": "/v1/crosschain/history",
+    "description": "Historical swap list.",
+    "category": "crosschain",
+    "query": [
+      "chain",
+      "direction",
+      "limit",
+      "page"
+    ],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": null,
+    "ownershipToken": false
+  },
+  {
+    "method": "GET",
+    "path": "/v1/crosschain/volume-by-chain",
+    "description": "Swap volume grouped by source chain.",
+    "category": "crosschain",
+    "query": [
+      "period"
+    ],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": null,
+    "ownershipToken": false
+  },
+  {
+    "method": "GET",
+    "path": "/v1/crosschain/addresses/:address",
+    "description": "Cross-chain swap history for one ZEC address.",
+    "category": "crosschain",
+    "query": [],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": null,
+    "ownershipToken": false
+  },
+  {
+    "method": "GET",
+    "path": "/v1/crosschain/popular-pairs",
+    "description": "Most popular source/dest chain pairs.",
+    "category": "crosschain",
+    "query": [],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": null,
+    "ownershipToken": false
+  },
+  {
+    "method": "GET",
+    "path": "/v1/crosschain/size-distribution",
+    "description": "Swap size histogram.",
+    "category": "crosschain",
+    "query": [],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": null,
+    "ownershipToken": false
+  },
+  {
+    "method": "GET",
+    "path": "/v1/crosschain/wrapped-zec/supply",
+    "description": "Wrapped ZEC supply across chains (read-only RPC, no shared DB).",
+    "category": "crosschain",
+    "query": [],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": null,
+    "ownershipToken": false
+  },
+  {
+    "method": "GET",
+    "path": "/v1/privacy/stats",
+    "description": "Aggregate shielded-vs-transparent stats.",
+    "category": "privacy",
+    "query": [
+      "days"
+    ],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": null,
+    "ownershipToken": false
+  },
+  {
+    "method": "GET",
+    "path": "/v1/stats/shielded-count",
+    "description": "Running count of shielded transactions.",
+    "category": "stats",
+    "query": [
+      "detailed",
+      "since"
+    ],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": null,
+    "ownershipToken": false
+  },
+  {
+    "method": "GET",
+    "path": "/v1/stats/shielded-daily",
+    "description": "Daily shielded transaction counts.",
+    "category": "stats",
+    "query": [
+      "since",
+      "until"
+    ],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": null,
+    "ownershipToken": false
+  },
+  {
+    "method": "GET",
+    "path": "/v1/privacy/risks",
+    "description": "Per-transaction privacy risk indicators.",
+    "category": "privacy",
+    "query": [
+      "limit",
+      "minScore",
+      "offset",
+      "period",
+      "riskLevel",
+      "sort"
+    ],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": null,
+    "ownershipToken": false
+  },
+  {
+    "method": "GET",
+    "path": "/v1/privacy/linkage-edges",
+    "description": "Precomputed address linkage edges.",
+    "category": "privacy",
+    "query": [
+      "limit",
+      "minScore",
+      "offset",
+      "period",
+      "riskLevel",
+      "sort",
+      "txid"
+    ],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": null,
+    "ownershipToken": false
+  },
+  {
+    "method": "GET",
+    "path": "/v1/privacy/batch-risks",
+    "description": "Batch deshield/for-shield risk detection.",
+    "category": "privacy",
+    "query": [
+      "afterAmount",
+      "afterScore",
+      "limit",
+      "minScore",
+      "period",
+      "riskLevel",
+      "sort"
+    ],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": null,
+    "ownershipToken": false
+  },
+  {
+    "method": "GET",
+    "path": "/v1/privacy/clusters",
+    "description": "Precomputed batch clusters.",
+    "category": "privacy",
+    "query": [
+      "afterAmount",
+      "afterScore",
+      "limit",
+      "minScore",
+      "period",
+      "riskLevel",
+      "sort"
+    ],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": null,
+    "ownershipToken": false
+  },
+  {
+    "method": "GET",
+    "path": "/v1/privacy/graph/:txid",
+    "description": "Privacy linkage graph rooted at a transaction.",
+    "category": "privacy",
+    "query": [],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": null,
+    "ownershipToken": false
+  },
+  {
+    "method": "GET",
+    "path": "/v1/privacy/shield/:txid/batch",
+    "description": "Batch-shield linkage for a transaction.",
+    "category": "privacy",
+    "query": [],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": null,
+    "ownershipToken": false
+  },
+  {
+    "method": "GET",
+    "path": "/v1/privacy/patterns",
+    "description": "Detected privacy-relevant transaction patterns.",
+    "category": "privacy",
+    "query": [
+      "limit",
+      "offset",
+      "riskLevel",
+      "type"
+    ],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": null,
+    "ownershipToken": false
+  },
+  {
+    "method": "GET",
+    "path": "/v1/privacy/common-amounts",
+    "description": "Observed public-flow amount buckets; not a measured anonymity set.",
+    "category": "privacy",
+    "query": [
+      "chain",
+      "limit",
+      "period"
+    ],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": null,
+    "ownershipToken": false
+  },
+  {
+    "method": "GET",
+    "path": "/v1/privacy/recommended-swap-amounts",
+    "description": "Common round swap amounts observed in public flows; no privacy guarantee.",
+    "category": "privacy",
+    "query": [
+      "chain",
+      "token"
+    ],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": null,
+    "ownershipToken": false
+  },
+  {
+    "method": "GET",
+    "path": "/v1/privacy/fee-lanes",
+    "description": "Fee-lane privacy heuristics.",
+    "category": "privacy",
+    "query": [
+      "period"
+    ],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": null,
+    "ownershipToken": false
+  },
+  {
+    "method": "GET",
+    "path": "/v1/privacy/wallet-fingerprints",
+    "description": "Wallet fingerprinting signal aggregates.",
+    "category": "privacy",
+    "query": [
+      "period"
+    ],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": null,
+    "ownershipToken": false
+  },
+  {
+    "method": "GET",
+    "path": "/v1/privacy/anonymity-set",
+    "description": "Counts of public shielding and deshielding flows at overlapping amount thresholds.",
+    "category": "privacy",
+    "query": [
+      "period"
+    ],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": null,
+    "ownershipToken": false
+  },
+  {
+    "method": "GET",
+    "path": "/v1/privacy/shielding-distribution",
+    "description": "Distribution of shielding behavior.",
+    "category": "privacy",
+    "query": [
+      "period"
+    ],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": null,
+    "ownershipToken": false
+  },
+  {
+    "method": "GET",
+    "path": "/v1/network/fee-distribution",
+    "description": "Fee distribution histogram.",
+    "category": "network",
+    "query": [
+      "period"
+    ],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": null,
+    "ownershipToken": false
+  },
+  {
+    "method": "GET",
+    "path": "/v1/analytics/usage-clock",
+    "description": "Time-of-day/week usage heatmap.",
+    "category": "analytics",
+    "query": [
+      "period"
+    ],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": null,
+    "ownershipToken": false
+  },
+  {
+    "method": "GET",
+    "path": "/v1/privacy/blend-check",
+    "description": "Transaction \"blend\" (mixing quality) check.",
+    "category": "privacy",
+    "query": [
+      "amount"
+    ],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": null,
+    "ownershipToken": false
+  },
+  {
+    "method": "GET",
+    "path": "/v1/privacy/blend-check/split",
+    "description": "Blend-check split breakdown.",
+    "category": "privacy",
+    "query": [
+      "amount"
+    ],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": null,
+    "ownershipToken": false
+  },
+  {
+    "method": "GET",
+    "path": "/v1/shielded-pools/overview",
+    "description": "Shielded pool balances and observed changes.",
+    "category": "shielded-pools",
+    "query": [],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": null,
+    "ownershipToken": false
+  },
+  {
+    "method": "GET",
+    "path": "/v1/shielded-pools/flows",
+    "description": "Daily public shielding and deshielding flows.",
+    "category": "shielded-pools",
+    "query": [
+      "format",
+      "granularity",
+      "period",
+      "pool"
+    ],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": null,
+    "ownershipToken": false
+  },
+  {
+    "method": "GET",
+    "path": "/v1/shielded-pools/turnstile",
+    "description": "Public deshielding cohorts and subsequent observed destinations.",
+    "category": "shielded-pools",
+    "query": [
+      "since"
+    ],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": null,
+    "ownershipToken": false
+  },
+  {
+    "method": "GET",
+    "path": "/v1/mining/pool-distribution",
+    "description": "Mining pool hashrate distribution.",
+    "category": "mining",
+    "query": [
+      "period"
+    ],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": null,
+    "ownershipToken": false
+  },
+  {
+    "method": "GET",
+    "path": "/v1/mining/pool-ranking",
+    "description": "Ranked mining pools.",
+    "category": "mining",
+    "query": [
+      "period"
+    ],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": null,
+    "ownershipToken": false
+  },
+  {
+    "method": "GET",
+    "path": "/v1/mining/hashrate-share",
+    "description": "Hashrate share over time.",
+    "category": "mining",
+    "query": [
+      "period"
+    ],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": null,
+    "ownershipToken": false
+  },
+  {
+    "method": "GET",
+    "path": "/v1/mining/rewards",
+    "description": "Block reward accounting.",
+    "category": "mining",
+    "query": [
+      "period"
+    ],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": null,
+    "ownershipToken": false
+  },
+  {
+    "method": "GET",
+    "path": "/v1/mining/miner-behavior",
+    "description": "Miner behavior heuristics.",
+    "category": "mining",
+    "query": [
+      "period"
+    ],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": null,
+    "ownershipToken": false
+  },
+  {
+    "method": "GET",
+    "path": "/v1/mining/zodl-leaderboard",
+    "description": "ZODL miner leaderboard.",
+    "category": "mining",
+    "query": [
+      "period"
+    ],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": null,
+    "ownershipToken": false
+  },
+  {
+    "method": "GET",
+    "path": "/v1/migration/overview",
+    "description": "Sapling→Orchard/Ironwood migration overview.",
+    "category": "migration",
+    "query": [],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": null,
+    "ownershipToken": false
+  },
+  {
+    "method": "GET",
+    "path": "/v1/migration/cohorts",
+    "description": "Migration cohort breakdown.",
+    "category": "migration",
+    "query": [],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": null,
+    "ownershipToken": false
+  },
+  {
+    "method": "GET",
+    "path": "/v1/migration/denominations",
+    "description": "Migration by amount denomination.",
+    "category": "migration",
+    "query": [],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": null,
+    "ownershipToken": false
+  },
+  {
+    "method": "GET",
+    "path": "/v1/migration/activity",
+    "description": "Compact hourly/daily migration activity buckets for time-series charts.",
+    "category": "migration",
+    "query": [
+      "granularity"
+    ],
+    "listKey": null,
+    "zatoshiFields": [
+      "buckets.*.volumeZat"
+    ],
+    "note": "volumeZat per bucket is an exact SQL SUM() of the raw zatoshi BIGINT column, never divided into ZEC — per the route's own docblock.",
+    "ownershipToken": false
+  },
+  {
+    "method": "GET",
+    "path": "/v1/migration/summary",
+    "description": "Small, fixed-size digest of migration activity (headline totals + 24h/7d windows).",
+    "category": "migration",
+    "query": [],
+    "listKey": null,
+    "zatoshiFields": [
+      "totalVolumeZat",
+      "volumeZat24h",
+      "volumeZat7d"
+    ],
+    "note": "Exact zatoshi integers throughout per the route's own docblock — never divided into a ZEC float.",
+    "ownershipToken": false
+  },
+  {
+    "method": "GET",
+    "path": "/v1/migration/scatter",
+    "description": "Individual migration transactions with privacy classification (measured ~10.4MB response at current chain height).",
+    "category": "migration",
+    "query": [],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": null,
+    "ownershipToken": false
+  },
+  {
+    "method": "GET",
+    "path": "/v1/migration/scatter/compact",
+    "description": "Versioned compact migration points with bounded ranges, finalized chunks, ETags, and incremental canonical-tail cursors.",
+    "category": "migration",
+    "query": [
+      "afterHash",
+      "afterHeight",
+      "chunkStart",
+      "manifest",
+      "range"
+    ],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": null,
+    "ownershipToken": false
+  },
+  {
+    "method": "GET",
+    "path": "/v1/migration/tiers",
+    "description": "Migration progress by holding tier.",
+    "category": "migration",
+    "query": [],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": null,
+    "ownershipToken": false
+  },
+  {
+    "method": "GET",
+    "path": "/v1/valuation/search-interest",
+    "description": "Imported Google Trends weekly observations, with provenance and provisional-week flags. Not a live feed or a valuation signal.",
+    "category": "valuation",
+    "query": [],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": null,
+    "ownershipToken": false
+  },
+  {
+    "method": "GET",
+    "path": "/v1/valuation/snapshot",
+    "description": "Current valuation snapshot.",
+    "category": "valuation",
+    "query": [],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": null,
+    "ownershipToken": false
+  },
+  {
+    "method": "GET",
+    "path": "/v1/valuation/history",
+    "description": "Historical valuation series.",
+    "category": "valuation",
+    "query": [
+      "period"
+    ],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": null,
+    "ownershipToken": false
+  },
+  {
+    "method": "GET",
+    "path": "/v1/valuation/hodl-waves",
+    "description": "HODL wave age-band breakdown.",
+    "category": "valuation",
+    "query": [
+      "period"
+    ],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": null,
+    "ownershipToken": false
+  },
+  {
+    "method": "GET",
+    "path": "/v1/valuation/dormancy",
+    "description": "Coin dormancy metrics.",
+    "category": "valuation",
+    "query": [
+      "period"
+    ],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": null,
+    "ownershipToken": false
+  },
+  {
+    "method": "GET",
+    "path": "/v1/pulse",
+    "description": "Real-time \"pulse\" activity feed.",
+    "category": "pulse",
+    "query": [
+      "days",
+      "limit",
+      "metric",
+      "offset"
+    ],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": null,
+    "ownershipToken": false
+  },
+  {
+    "method": "GET",
+    "path": "/v1/pulse/summary",
+    "description": "Pulse summary metrics.",
+    "category": "pulse",
+    "query": [],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": null,
+    "ownershipToken": false
+  },
+  {
+    "method": "GET",
+    "path": "/v1/transparent/exposed",
+    "description": "Transparent addresses with exposed-linkage risk.",
+    "category": "transparent",
+    "query": [
+      "cursor",
+      "limit",
+      "min_balance",
+      "offset",
+      "sort"
+    ],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": null,
+    "ownershipToken": false
+  },
+  {
+    "method": "GET",
+    "path": "/v1/transparent/exposed/summary",
+    "description": "Summary of transparent exposure risk.",
+    "category": "transparent",
+    "query": [],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": null,
+    "ownershipToken": false
+  },
+  {
+    "method": "GET",
+    "path": "/v1/labels",
+    "description": "Known-address label directory.",
+    "category": "address",
+    "query": [],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": null,
+    "ownershipToken": false
+  },
+  {
+    "method": "GET",
+    "path": "/v1/labels/:address",
+    "description": "Label for one address.",
+    "category": "address",
+    "query": [],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": null,
+    "ownershipToken": false
+  },
+  {
+    "method": "GET",
+    "path": "/v1/addresses/rich-list",
+    "description": "Top addresses by transparent balance.",
+    "category": "address",
+    "query": [
+      "limit",
+      "offset"
+    ],
+    "listKey": null,
+    "zatoshiFields": [
+      "addresses.*.balanceZat",
+      "addresses.*.totalReceivedZat",
+      "addresses.*.totalSentZat",
+      "concentration.top10Zat",
+      "concentration.top100Zat",
+      "concentration.totalTransparentZat",
+      "concentration.totalAddressedZat",
+      "concentration.directAddresslessZat"
+    ],
+    "note": "Fields ending in Zat are exact decimal strings sourced from PostgreSQL BIGINT values. The older ZEC number fields remain for legacy compatibility and are display-only.",
+    "ownershipToken": false
+  },
+  {
+    "method": "GET",
+    "path": "/v1/addresses/:address",
+    "description": "Address summary + paginated transaction history.",
+    "category": "address",
+    "query": [
+      "limit",
+      "page"
+    ],
+    "listKey": null,
+    "zatoshiFields": [
+      "balance",
+      "totalReceived",
+      "totalSent"
+    ],
+    "note": "balance/totalReceived/totalSent are exact zatoshi decimal strings, using the source *Zat fields when available. Older upstream safe integers remain compatible; unsafe numeric values fail closed. Null and zero are distinct.",
+    "ownershipToken": false
+  },
+  {
+    "method": "GET",
+    "path": "/v1/addresses/:address/graph",
+    "description": "Address cluster/linkage graph.",
+    "category": "address",
+    "query": [],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": null,
+    "ownershipToken": false
+  },
+  {
+    "method": "GET",
+    "path": "/v1/crosslink/finalizers",
+    "description": "Crosslink BFT finalizer set.",
+    "category": "crosslink",
+    "query": [
+      "active"
+    ],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": null,
+    "ownershipToken": false
+  },
+  {
+    "method": "GET",
+    "path": "/v1/crosslink/finalizers/:pubkey/participation",
+    "description": "Finalizer participation history.",
+    "category": "crosslink",
+    "query": [
+      "window"
+    ],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": null,
+    "ownershipToken": false
+  },
+  {
+    "method": "GET",
+    "path": "/v1/crosslink/participation",
+    "description": "Aggregate finalizer participation.",
+    "category": "crosslink",
+    "query": [
+      "window"
+    ],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": null,
+    "ownershipToken": false
+  },
+  {
+    "method": "GET",
+    "path": "/v1/crosslink/bft-chain",
+    "description": "BFT finalized chain segment.",
+    "category": "crosslink",
+    "query": [
+      "limit"
+    ],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": null,
+    "ownershipToken": false
+  },
+  {
+    "method": "GET",
+    "path": "/v1/crosslink/finalizers/:pubkey",
+    "description": "Single finalizer detail.",
+    "category": "crosslink",
+    "query": [],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": null,
+    "ownershipToken": false
+  },
+  {
+    "method": "GET",
+    "path": "/v1/crosslink",
+    "description": "Crosslink overview stats.",
+    "category": "crosslink",
+    "query": [],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": null,
+    "ownershipToken": false
+  },
+  {
+    "method": "GET",
+    "path": "/v1/crosslink/bft-tip",
+    "description": "Current BFT-finalized tip.",
+    "category": "crosslink",
+    "query": [],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": null,
+    "ownershipToken": false
+  },
+  {
+    "method": "GET",
+    "path": "/v1/crosslink/bootstrap-info",
+    "description": "Crosslink bootstrap parameters.",
+    "category": "crosslink",
+    "query": [],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": null,
+    "ownershipToken": false
+  },
+  {
+    "method": "GET",
+    "path": "/v1/crosslink/divergence-history",
+    "description": "PoW/BFT chain divergence history.",
+    "category": "crosslink",
+    "query": [
+      "limit"
+    ],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": null,
+    "ownershipToken": false
+  },
+  {
+    "method": "GET",
+    "path": "/v1/crosslink/fork-monitor",
+    "description": "Fork monitor dashboard (reported node tips vs. cTAZ).",
+    "category": "crosslink",
+    "query": [],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": null,
+    "ownershipToken": false
+  },
+  {
+    "method": "POST",
+    "path": "/v1/crosslink/fork-monitor/checks",
+    "description": "Live hash comparison at up to 10 heights (read-only RPC, no writes).",
+    "category": "crosslink",
+    "query": [],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": null,
+    "ownershipToken": false
+  },
+  {
+    "method": "GET",
+    "path": "/v1/crosslink/block-hash/:height",
+    "description": "Block hash at a given height (used by external fork-finder scripts).",
+    "category": "crosslink",
+    "query": [],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": null,
+    "ownershipToken": false
+  },
+  {
+    "method": "POST",
+    "path": "/v1/crosslink/fork-monitor/nodes",
+    "description": "Voluntary node self-registration for the fork monitor (per-name rate limited, capacity-bounded upstream).",
+    "category": "crosslink",
+    "query": [],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": null,
+    "ownershipToken": true
+  },
+  {
+    "method": "DELETE",
+    "path": "/v1/crosslink/fork-monitor/nodes/:name",
+    "description": "Delete a node report using its registration ownership token.",
+    "category": "crosslink",
+    "query": [],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": null,
+    "ownershipToken": true
+  },
+  {
+    "method": "GET",
+    "path": "/v1/uncles",
+    "description": "Recent orphaned blocks (\"uncles\").",
+    "category": "reorgs",
+    "query": [
+      "limit",
+      "offset"
+    ],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": null,
+    "ownershipToken": false
+  },
+  {
+    "method": "GET",
+    "path": "/v1/uncles/forks",
+    "description": "Detected chain forks.",
+    "category": "reorgs",
+    "query": [
+      "limit",
+      "offset"
+    ],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": null,
+    "ownershipToken": false
+  },
+  {
+    "method": "GET",
+    "path": "/v1/uncles/:hash",
+    "description": "Single orphaned block detail.",
+    "category": "reorgs",
+    "query": [],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": null,
+    "ownershipToken": false
+  },
+  {
+    "method": "POST",
+    "path": "/v1/uncles/reports",
+    "description": "Report an observed tip hash for comparison (IP rate limited, PoW-shape validated upstream).",
+    "category": "reorgs",
+    "query": [],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": null,
+    "ownershipToken": false
+  },
+  {
+    "method": "GET",
+    "path": "/v1/uncles/stats",
+    "description": "Reorg/orphan dashboard stats.",
+    "category": "reorgs",
+    "query": [],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": null,
+    "ownershipToken": false
+  },
+  {
+    "method": "GET",
+    "path": "/v1/uncles/nodes",
+    "description": "Reporting node list for the reorg dashboard.",
+    "category": "reorgs",
+    "query": [],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": null,
+    "ownershipToken": false
+  },
+  {
+    "method": "GET",
+    "path": "/v1/transactions",
+    "description": "Cursor-paginated transaction list with type filter.",
+    "category": "transactions",
+    "query": [
+      "cursor",
+      "limit",
+      "type"
+    ],
+    "listKey": "transactions",
+    "zatoshiFields": [
+      "fee",
+      "total_input",
+      "total_output",
+      "value_balance",
+      "value_balance_sapling",
+      "value_balance_orchard",
+      "value_balance_ironwood"
+    ],
+    "note": "These are raw BIGINT columns selected directly (t.fee, t.total_input, ...), never divided by the legacy handler.",
+    "ownershipToken": false
+  },
+  {
+    "method": "GET",
+    "path": "/v1/transactions/shielded",
+    "description": "Shielding, deshielding and fully shielded transaction collection.",
+    "category": "transactions",
+    "query": [
+      "cursor",
+      "flow_type",
+      "limit",
+      "min_zec",
+      "pool"
+    ],
+    "listKey": "flows",
+    "zatoshiFields": [],
+    "note": null,
+    "ownershipToken": false
+  },
+  {
+    "method": "GET",
+    "path": "/v1/transactions/shielded-summary",
+    "description": "Shielded transaction summary metrics.",
+    "category": "transactions",
+    "query": [
+      "limit",
+      "min_actions",
+      "offset",
+      "pool",
+      "skip_count",
+      "type"
+    ],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": null,
+    "ownershipToken": false
+  },
+  {
+    "method": "GET",
+    "path": "/v1/transactions/:txid/linkability",
+    "description": "Linkability analysis for one transaction.",
+    "category": "transactions",
+    "query": [
+      "limit",
+      "tolerance"
+    ],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": null,
+    "ownershipToken": false
+  },
+  {
+    "method": "POST",
+    "path": "/v1/transactions/broadcast",
+    "description": "Broadcast a fully-signed raw transaction (no keys involved).",
+    "category": "transactions",
+    "query": [],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": "Core public write endpoint. See README caveats re: proxy write semantics (no v1-layer idempotency key yet — a client retry on timeout may double-submit; legacy sendrawtransaction is itself idempotent at the mempool level for an unchanged tx, so a duplicate submit is harmless, but a network partition on the internal hop can still return a spurious error for a tx that actually broadcast).",
+    "ownershipToken": false
+  },
+  {
+    "method": "GET",
+    "path": "/v1/mempool",
+    "description": "Current mempool transaction summaries.",
+    "category": "mempool",
+    "query": [],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": null,
+    "ownershipToken": false
+  },
+  {
+    "method": "GET",
+    "path": "/v1/mempool/:txid",
+    "description": "Single mempool transaction detail.",
+    "category": "mempool",
+    "query": [],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": null,
+    "ownershipToken": false
+  },
+  {
+    "method": "GET",
+    "path": "/v1/transactions/:txid/raw",
+    "description": "Raw transaction hex.",
+    "category": "transactions",
+    "query": [],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": null,
+    "ownershipToken": false
+  },
+  {
+    "method": "GET",
+    "path": "/v1/transactions/:txid/verbose",
+    "description": "Verbose decoded transaction (zebra getrawtransaction verbose=1).",
+    "category": "transactions",
+    "query": [],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": null,
+    "ownershipToken": false
+  },
+  {
+    "method": "POST",
+    "path": "/v1/transactions/raw/batch",
+    "description": "Batch raw-tx fetch by txid list (read-only despite POST verb; body carries the id list).",
+    "category": "transactions",
+    "query": [],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": null,
+    "ownershipToken": false
+  },
+  {
+    "method": "GET",
+    "path": "/v1/transactions/:txid",
+    "description": "Full transaction detail (inputs, outputs, cross-chain bridge match).",
+    "category": "transactions",
+    "query": [],
+    "listKey": null,
+    "zatoshiFields": [
+      "feeZat",
+      "totalInputZat",
+      "totalOutputZat",
+      "valueBalanceZat",
+      "valueBalanceSaplingZat",
+      "valueBalanceOrchardZat",
+      "valueBalanceIronwoodZat",
+      "stakingAction.amountZat"
+    ],
+    "note": "Fields ending in Zat/Zats are exact decimal strings sourced from PostgreSQL BIGINT values. The older ZEC number fields remain for legacy compatibility and are display-only.",
+    "ownershipToken": false
+  },
+  {
+    "method": "POST",
+    "path": "/v1/scan/orchard",
+    "description": "Batch-scan a height range for Orchard transactions (wallet scanning aid).",
+    "category": "scan",
+    "query": [],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": "v1 enforces a stricter max range (default 50,000 blocks vs. legacy's 1,000,000, see V1_SCAN_ORCHARD_MAX_RANGE) and a per-IP rate limit (default 5/minute, see V1_SCAN_ORCHARD_RATE_LIMIT_MAX/_WINDOW_MS) before proxying to the legacy endpoint.",
+    "ownershipToken": false
+  },
+  {
+    "method": "POST",
+    "path": "/v1/scan/lightwalletd",
+    "description": "Batch-scan blocks via Lightwalletd gRPC for client-side trial decryption.",
+    "category": "scan",
+    "query": [],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": "v1 requires an explicit `endHeight` (legacy defaults a missing one to the current chain tip, which v1 treats as an unbounded-until-resolved request shape and rejects), enforces a stricter max range (default 10,000 blocks vs. legacy's 50,000, see V1_SCAN_LIGHTWALLETD_MAX_RANGE — lightwalletd scanning is more expensive per block: gRPC + parallel streaming + optional disk cache writes), and a per-IP rate limit (default 3/minute, see V1_SCAN_LIGHTWALLETD_RATE_LIMIT_MAX/_WINDOW_MS) before proxying.",
+    "ownershipToken": false
+  }
+]

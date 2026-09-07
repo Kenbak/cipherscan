@@ -73,20 +73,18 @@ test('stub entries always explain why they fail closed', () => {
   }
 });
 
-test('private (paid) endpoints are never adapted — payment semantics are out of v1 scope', () => {
-  for (const entry of MANIFEST) {
-    if (entry.classification === 'private') {
-      assert.notEqual(entry.v1.status, 'adapter', `${entry.legacyPath}: private/paid endpoints must not be blanket-proxied`);
-    }
+test('paid adapters explicitly preserve caller authentication', () => {
+  for (const entry of MANIFEST.filter(e => e.classification === 'private')) {
+    assert.equal(entry.v1.status, 'adapter');
+    assert.equal(entry.v1.forwardPaymentAuth, true);
   }
 });
 
-test('every public-classified entry is an adapter — never a stub or excluded (complete public coverage requirement)', () => {
+test('every public-classified entry has an implemented adapter or native handler (complete public coverage requirement)', () => {
   for (const entry of MANIFEST) {
     if (entry.classification === 'public') {
-      assert.equal(
-        entry.v1.status,
-        'adapter',
+      assert.ok(
+        ['adapter', 'native'].includes(entry.v1.status),
         `${entry.method} ${entry.legacyPath}: public endpoints must be adapters, not "${entry.v1.status}" — either implement the adapter (with validation/rate-limiting if needed) or reclassify with concrete product evidence`
       );
     }
@@ -104,10 +102,12 @@ test('the two scan endpoints are public adapters with v1-layer cost validation A
   }
 });
 
-test('the ownership-protected DELETE endpoint stays excluded until v1 models its auth contract', () => {
+test('the ownership-protected DELETE endpoint explicitly forwards the node token without service-key privilege', () => {
   const entry = MANIFEST.find((e) => e.legacyPath === '/api/crosslink/fork-monitor/report/:name' && e.method === 'DELETE');
   assert.ok(entry, 'expected to find the fork-monitor report DELETE entry');
-  assert.equal(entry.v1.status, 'excluded');
+  assert.equal(entry.v1.status, 'adapter');
+  assert.equal(entry.auth, 'node-token');
+  assert.equal(entry.v1.forwardNodeToken, true);
 });
 
 test('classification counts are reported (informational; also guards against silent manifest shrinkage)', () => {
@@ -121,11 +121,11 @@ test('classification counts are reported (informational; also guards against sil
   assert.ok(counts.deprecated >= 1);
 });
 
-test('list-shaped adapter entries declare a cursorMap with next/prev functions', () => {
+test('list-shaped adapter entries declare a supported collection and pagination source', () => {
   for (const entry of MANIFEST) {
     if (entry.v1.status === 'adapter' && entry.v1.shape === 'list') {
-      assert.equal(typeof entry.v1.cursorMap?.next, 'function', `${entry.v1.path}: list shape requires cursorMap.next`);
-      assert.equal(typeof entry.v1.cursorMap?.prev, 'function', `${entry.v1.path}: list shape requires cursorMap.prev`);
+      assert.ok(['blocks', 'transactions', 'flows'].includes(entry.v1.listKey));
+      assert.equal(entry.v1.paginationKey, 'pagination');
       assert.ok(entry.v1.listKey, `${entry.v1.path}: list shape requires listKey`);
     }
   }

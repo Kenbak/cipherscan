@@ -1,3 +1,4 @@
+import { readApiData } from '@/lib/api-client';
 // WASM Loader for Zcash memo decryption
 // This wrapper handles dynamic loading of the WASM module
 
@@ -140,7 +141,7 @@ export async function decryptMemo(txHex: string, viewingKey: string): Promise<De
 export async function decryptMemoFromTxid(txid: string, viewingKey: string): Promise<DecryptedOutput> {
   // Use the correct API based on network
   const apiBaseUrl = getApiUrl();
-  const apiUrl = `${apiBaseUrl}/api/tx/${txid}/raw`;
+  const apiUrl = `${apiBaseUrl}/v1/transactions/${txid}/raw`;
 
   try {
     const response = await fetch(apiUrl);
@@ -151,7 +152,7 @@ export async function decryptMemoFromTxid(txid: string, viewingKey: string): Pro
       throw new Error(`Failed to fetch raw transaction: ${response.status}`);
     }
 
-    const txData = await response.json();
+    const txData = await readApiData(response);
 
     if (txData.hex) {
       return decryptMemo(txData.hex, viewingKey);

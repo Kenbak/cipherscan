@@ -111,12 +111,12 @@ function getFlagEmoji(countryCode: string): string {
 
 export function NodeMap({ initialLocations, initialStats }: NodeMapProps) {
   const locationsQuery = useApiQuery<NodeLocationsResponse>(
-    '/api/network/nodes',
+    '/v1/network/nodes',
     undefined,
     { refreshInterval: 300_000, initialData: initialLocations ?? undefined },
   );
   const statsQuery = useApiQuery<NodeStatsResponse>(
-    '/api/network/nodes/stats',
+    '/v1/network/nodes/stats',
     undefined,
     { refreshInterval: 300_000, initialData: initialStats ?? undefined },
   );

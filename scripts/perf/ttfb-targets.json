@@ -64,6 +64,12 @@
       "core": true
     },
     {
+      "id": "network-nodes",
+      "routeGroup": "/network/nodes",
+      "path": "/network/nodes",
+      "core": true
+    },
+    {
       "id": "privacy",
       "routeGroup": "/privacy",
       "path": "/privacy",

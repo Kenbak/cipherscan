@@ -22,7 +22,7 @@ export default async function NU7VotePage() {
   const baseUrl = getBaseUrl();
   const pageUrl = new URL('/governance/nu7', `${baseUrl}/`).toString();
 
-  const networkStats = await fetchJson(`${apiBase}/api/network/stats`);
+  const networkStats = await fetchJson(`${apiBase}/v1/network/stats`);
 
   const supply = networkStats?.supply ?? null;
   const initialData = {

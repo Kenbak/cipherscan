@@ -1,5 +1,6 @@
 'use client';
 
+import { readApiData } from '@/lib/api-client';
 import { useState, useEffect, useCallback } from 'react';
 import { getApiUrl } from '@/lib/api-config';
 
@@ -14,13 +15,13 @@ export function MaintenanceBanner() {
   const checkStaleness = useCallback(async () => {
     try {
       const API_URL = getApiUrl();
-      const res = await fetch(`${API_URL}/api/blocks?limit=1`);
+      const res = await fetch(`${API_URL}/v1/blocks?limit=1`);
       if (!res.ok) {
         setStatus('unavailable');
         return;
       }
-      const data = await res.json();
-      const latest = data.blocks?.[0];
+      const data = await readApiData(res);
+      const latest = data?.[0];
       if (!latest?.timestamp) {
         setStatus('unavailable');
         return;

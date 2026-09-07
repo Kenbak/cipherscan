@@ -1,5 +1,6 @@
 'use client';
 
+import { readApiData } from '@/lib/api-client';
 import { useState, useEffect, useCallback } from 'react';
 import { getApiUrl, isCrosslinkNetwork } from '@/lib/api-config';
 
@@ -13,10 +14,10 @@ export function ChainSyncBanner() {
 
   const poll = useCallback(async () => {
     try {
-      const res = await fetch(`${getApiUrl()}/api/crosslink`);
+      const res = await fetch(`${getApiUrl()}/v1/crosslink`);
       if (!res.ok) return;
-      const data = await res.json();
-      if (data.success && data.finalityGap != null) {
+      const data = await readApiData(res);
+      if (data && data.finalityGap != null) {
         setGap(data.finalityGap);
         setTipHeight(data.tipHeight ?? null);
         setFinalizedHeight(data.finalizedHeight ?? null);

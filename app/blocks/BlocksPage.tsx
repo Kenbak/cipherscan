@@ -1,3 +1,4 @@
+import { readApiCollection, parseApiCursor } from '@/lib/api-client';
 import type { Metadata } from 'next';
 import { getApiUrl } from '@/lib/api-config';
 import { retainLastGoodOrBuildFallback } from '@/lib/isr-fallback';
@@ -17,7 +18,7 @@ interface BlocksPageProps {
 }
 
 interface BlocksRequest {
-  cursor: number | null;
+  cursor: string | null;
   direction: 'next' | 'prev';
   page: number;
   pageParamConsistent: boolean;
@@ -34,7 +35,7 @@ function parsePositiveInteger(value: string | undefined): number | null {
 }
 
 function parseBlocksRequest(searchParams: SearchParams): BlocksRequest {
-  const cursor = parsePositiveInteger(firstValue(searchParams.cursor));
+  const cursor = parseApiCursor(firstValue(searchParams.cursor));
   const rawPage = firstValue(searchParams.page);
   const requestedPage = parsePositiveInteger(rawPage);
   const direction = cursor && firstValue(searchParams.direction) === 'prev' ? 'prev' : 'next';
@@ -46,8 +47,8 @@ function parseBlocksRequest(searchParams: SearchParams): BlocksRequest {
     // `page` is only a UI label; the cursor identifies the result slice. Keep
     // malformed combinations out of the index while canonicalizing valid
     // navigation URLs to their cursor identity below.
-    pageParamConsistent: rawPage === undefined
-      || (cursor !== null ? requestedPage !== null && requestedPage >= 2 : requestedPage === 1),
+    pageParamConsistent: (firstValue(searchParams.cursor) === undefined || cursor !== null)
+      && (rawPage === undefined || (cursor !== null ? requestedPage !== null && requestedPage >= 2 : requestedPage === 1)),
   };
 }
 
@@ -87,13 +88,12 @@ function unavailableBlocks(policy: UnavailablePolicy, error: unknown) {
 async function getInitialBlocks(request: BlocksRequest, unavailablePolicy: UnavailablePolicy) {
   let res: Response;
   try {
-    const params = new URLSearchParams({ limit: String(PAGE_SIZE + 1) });
+    const params = new URLSearchParams({ limit: String(PAGE_SIZE) });
     if (request.cursor !== null) {
       params.set('cursor', String(request.cursor));
-      params.set('direction', request.direction);
     }
 
-    res = await fetchWithDeadline(`${API_URL}/api/blocks/list?${params.toString()}`, {
+    res = await fetchWithDeadline(`${API_URL}/v1/blocks?${params.toString()}`, {
       next: { revalidate: 30, tags: ['chain-tip'] },
     });
   } catch (error) {
@@ -110,58 +110,18 @@ async function getInitialBlocks(request: BlocksRequest, unavailablePolicy: Unava
     );
   }
 
-  let json: unknown;
   try {
-    json = await res.json();
-  } catch (error) {
-    return unavailableBlocks(unavailablePolicy, error);
-  }
-
-  if (!json || typeof json !== 'object' || !('success' in json) || json.success !== true) {
-    return unavailableBlocks(unavailablePolicy, new Error('Latest blocks API reported failure'));
-  }
-  if (!('blocks' in json) || !Array.isArray(json.blocks)) {
-    return unavailableBlocks(unavailablePolicy, new Error('Latest blocks API returned malformed data'));
-  }
-
-  try {
-    const all = json.blocks;
-    // A reverse query returns one boundary row from the preceding page when
-    // using PAGE_SIZE + 1. Drop that lookahead so Prev reconstructs the same
-    // 25-row slice that the forward crawl path produced.
-    const reverseOffset = request.direction === 'prev' && all.length > PAGE_SIZE ? 1 : 0;
-    const blocks = all.slice(reverseOffset, reverseOffset + PAGE_SIZE);
-    const firstBlock = blocks[0] ?? null;
-    const lastBlock = blocks[blocks.length - 1] ?? null;
-    const apiPagination: Record<string, unknown> = 'pagination' in json
-      && json.pagination !== null
-      && typeof json.pagination === 'object'
-      ? json.pagination as Record<string, unknown>
-      : {};
-    const total = Number(apiPagination.total) || 0;
-
+    const { items: blocks, page } = await readApiCollection<any>(res);
     return {
       blocks,
-      trailingBlock: request.direction === 'next' && all.length > PAGE_SIZE
-        ? all[PAGE_SIZE]
-        : null,
-      pagination: {
-        ...apiPagination,
-        page: request.page,
-        total,
-        totalPages: Math.ceil(total / PAGE_SIZE),
-        hasNext: request.direction === 'prev'
-          ? request.cursor !== null && blocks.length > 0
-          : all.length > PAGE_SIZE,
-        hasPrev: request.page > 1,
-        nextCursor: lastBlock ? Number(lastBlock.height) : null,
-        prevCursor: firstBlock ? Number(firstBlock.height) : null,
-      },
+      trailingBlock: null,
+      pagination: { ...page, page: request.page, total: page.total ?? 0, totalPages: Math.ceil((page.total ?? 0) / PAGE_SIZE) },
       available: true,
     };
   } catch (error) {
     return unavailableBlocks(unavailablePolicy, error);
   }
+
 }
 
 export default async function BlocksPage({

@@ -1,0 +1,352 @@
+{
+  "GET /v1/network/grpc-status": [],
+  "GET /v1/system/health": [],
+  "GET /v1/system/health/deep": [],
+  "GET /v1/network/info": [],
+  "GET /v1/blocks": [
+    "cursor",
+    "limit"
+  ],
+  "GET /v1/blocks/:heightOrHash": [
+    "summary"
+  ],
+  "GET /v1/search/anchors/:root": [],
+  "GET /v1/blocks/:hashOrHeight/archive": [],
+  "GET /v1/network/stats": [],
+  "GET /v1/network/fees": [],
+  "GET /v1/network/health": [],
+  "GET /v1/network/peers": [],
+  "GET /v1/network/supply/transparent-breakdown": [],
+  "GET /v1/network/supply": [],
+  "GET /v1/network/blockchain-info": [],
+  "GET /v1/network/circulating-supply": [
+    "format"
+  ],
+  "GET /v1/network/nodes": [],
+  "GET /v1/network/nodes/stats": [],
+  "GET /v1/network/nodes/history": [
+    "period"
+  ],
+  "GET /v1/network/price": [],
+  "GET /v1/network/price/at": [
+    "date"
+  ],
+  "GET /v1/network/protocol-stats": [],
+  "GET /v1/network/topology": [],
+  "GET /v1/network/nodes/list": [
+    "dir",
+    "limit",
+    "offset",
+    "sort"
+  ],
+  "GET /v1/network/nodes/health-score": [],
+  "GET /v1/network/nodes/reliability": [],
+  "GET /v1/network/nodes/upgrade-readiness": [],
+  "GET /v1/network/nodes/concentration": [],
+  "GET /v1/network/halving": [],
+  "GET /v1/mining/metrics": [
+    "limit",
+    "window"
+  ],
+  "GET /v1/mining/hashrate-history": [
+    "period"
+  ],
+  "GET /v1/shielded-pools/history": [
+    "format",
+    "period"
+  ],
+  "GET /v1/network/emission": [
+    "period"
+  ],
+  "GET /v1/network/chain-size-history": [
+    "period"
+  ],
+  "GET /v1/network/blocks/recent-summary": [
+    "limit"
+  ],
+  "GET /v1/crosschain/stats": [],
+  "GET /v1/crosschain/inflows": [
+    "limit",
+    "page"
+  ],
+  "GET /v1/crosschain/outflows": [
+    "limit",
+    "page"
+  ],
+  "GET /v1/crosschain/status": [],
+  "GET /v1/crosschain/db-stats": [],
+  "GET /v1/crosschain/trends": [
+    "granularity",
+    "period"
+  ],
+  "GET /v1/crosschain/history": [
+    "chain",
+    "direction",
+    "limit",
+    "page"
+  ],
+  "GET /v1/crosschain/volume-by-chain": [
+    "period"
+  ],
+  "GET /v1/crosschain/addresses/:address": [],
+  "GET /v1/crosschain/popular-pairs": [],
+  "GET /v1/crosschain/size-distribution": [],
+  "GET /v1/crosschain/wrapped-zec/supply": [],
+  "GET /v1/privacy/stats": [
+    "days"
+  ],
+  "GET /v1/stats/shielded-count": [
+    "detailed",
+    "since"
+  ],
+  "GET /v1/stats/shielded-daily": [
+    "since",
+    "until"
+  ],
+  "GET /v1/privacy/risks": [
+    "limit",
+    "minScore",
+    "offset",
+    "period",
+    "riskLevel",
+    "sort"
+  ],
+  "GET /v1/privacy/linkage-edges": [
+    "limit",
+    "minScore",
+    "offset",
+    "period",
+    "riskLevel",
+    "sort",
+    "txid"
+  ],
+  "GET /v1/privacy/batch-risks": [
+    "afterAmount",
+    "afterScore",
+    "limit",
+    "minScore",
+    "period",
+    "riskLevel",
+    "sort"
+  ],
+  "GET /v1/privacy/clusters": [
+    "afterAmount",
+    "afterScore",
+    "limit",
+    "minScore",
+    "period",
+    "riskLevel",
+    "sort"
+  ],
+  "GET /v1/privacy/graph/:txid": [],
+  "GET /v1/privacy/shield/:txid/batch": [],
+  "GET /v1/privacy/patterns": [
+    "limit",
+    "offset",
+    "riskLevel",
+    "type"
+  ],
+  "GET /v1/privacy/common-amounts": [
+    "chain",
+    "limit",
+    "period"
+  ],
+  "GET /v1/privacy/recommended-swap-amounts": [
+    "chain",
+    "token"
+  ],
+  "GET /v1/privacy/fee-lanes": [
+    "period"
+  ],
+  "GET /v1/privacy/wallet-fingerprints": [
+    "period"
+  ],
+  "GET /v1/privacy/anonymity-set": [
+    "period"
+  ],
+  "GET /v1/privacy/shielding-distribution": [
+    "period"
+  ],
+  "GET /v1/network/fee-distribution": [
+    "period"
+  ],
+  "GET /v1/analytics/usage-clock": [
+    "period"
+  ],
+  "GET /v1/privacy/blend-check": [
+    "amount"
+  ],
+  "GET /v1/privacy/blend-check/split": [
+    "amount"
+  ],
+  "GET /v1/shielded-pools/overview": [],
+  "GET /v1/shielded-pools/flows": [
+    "format",
+    "granularity",
+    "period",
+    "pool"
+  ],
+  "GET /v1/shielded-pools/turnstile": [
+    "since"
+  ],
+  "GET /v1/mining/pool-distribution": [
+    "period"
+  ],
+  "GET /v1/mining/pool-ranking": [
+    "period"
+  ],
+  "GET /v1/mining/hashrate-share": [
+    "period"
+  ],
+  "GET /v1/mining/rewards": [
+    "period"
+  ],
+  "GET /v1/mining/miner-behavior": [
+    "period"
+  ],
+  "GET /v1/mining/zodl-leaderboard": [
+    "period"
+  ],
+  "GET /v1/migration/overview": [],
+  "GET /v1/migration/cohorts": [],
+  "GET /v1/migration/denominations": [],
+  "GET /v1/migration/activity": [
+    "granularity"
+  ],
+  "GET /v1/migration/summary": [],
+  "GET /v1/migration/scatter": [],
+  "GET /v1/migration/scatter/compact": [
+    "afterHash",
+    "afterHeight",
+    "chunkStart",
+    "manifest",
+    "range"
+  ],
+  "GET /v1/migration/tiers": [],
+  "GET /v1/valuation/search-interest": [],
+  "GET /v1/valuation/snapshot": [],
+  "GET /v1/valuation/history": [
+    "period"
+  ],
+  "GET /v1/valuation/hodl-waves": [
+    "period"
+  ],
+  "GET /v1/valuation/dormancy": [
+    "period"
+  ],
+  "GET /v1/pulse": [
+    "days",
+    "limit",
+    "metric",
+    "offset"
+  ],
+  "GET /v1/pulse/summary": [],
+  "GET /v1/transparent/exposed": [
+    "cursor",
+    "limit",
+    "min_balance",
+    "offset",
+    "sort"
+  ],
+  "GET /v1/transparent/exposed/summary": [],
+  "GET /v1/labels": [],
+  "GET /v1/labels/:address": [],
+  "GET /v1/addresses/rich-list": [
+    "limit",
+    "offset"
+  ],
+  "GET /v1/addresses/:address": [
+    "limit",
+    "page"
+  ],
+  "GET /v1/addresses/:address/graph": [],
+  "GET /v1/crosslink/finalizers": [
+    "active"
+  ],
+  "GET /v1/crosslink/finalizers/:pubkey/participation": [
+    "window"
+  ],
+  "GET /v1/crosslink/participation": [
+    "window"
+  ],
+  "GET /v1/crosslink/bft-chain": [
+    "limit"
+  ],
+  "GET /v1/crosslink/finalizers/:pubkey": [],
+  "GET /v1/crosslink": [],
+  "GET /v1/crosslink/bft-tip": [],
+  "GET /v1/crosslink/bootstrap-info": [],
+  "GET /v1/crosslink/divergence-history": [
+    "limit"
+  ],
+  "GET /v1/crosslink/fork-monitor": [],
+  "POST /v1/crosslink/fork-monitor/checks": [],
+  "GET /v1/crosslink/block-hash/:height": [],
+  "POST /v1/crosslink/fork-monitor/nodes": [],
+  "DELETE /v1/crosslink/fork-monitor/nodes/:name": [],
+  "GET /v1/uncles": [
+    "limit",
+    "offset"
+  ],
+  "GET /v1/uncles/forks": [
+    "limit",
+    "offset"
+  ],
+  "GET /v1/uncles/:hash": [],
+  "POST /v1/uncles/reports": [],
+  "GET /v1/uncles/stats": [],
+  "GET /v1/uncles/nodes": [],
+  "GET /v1/transactions": [
+    "cursor",
+    "limit",
+    "type"
+  ],
+  "GET /v1/transactions/shielded": [
+    "cursor",
+    "flow_type",
+    "limit",
+    "min_zec",
+    "pool"
+  ],
+  "GET /v1/transactions/shielded-summary": [
+    "limit",
+    "min_actions",
+    "offset",
+    "pool",
+    "skip_count",
+    "type"
+  ],
+  "GET /v1/transactions/:txid/linkability": [
+    "limit",
+    "tolerance"
+  ],
+  "POST /v1/transactions/broadcast": [],
+  "GET /v1/mempool": [],
+  "GET /v1/mempool/:txid": [],
+  "GET /v1/transactions/:txid/raw": [],
+  "GET /v1/transactions/:txid/verbose": [],
+  "POST /v1/transactions/raw/batch": [],
+  "GET /v1/transactions/:txid/summary": [],
+  "GET /v1/transactions/:txid": [],
+  "POST /v1/scan/orchard": [],
+  "POST /v1/scan/lightwalletd": [],
+  "GET /v1/sitemaps/blocks": [
+    "end",
+    "start"
+  ],
+  "GET /v1/sitemaps/transactions/recent": [],
+  "GET /v1/signals/latest": [],
+  "GET /v1/signals/history": [
+    "days"
+  ],
+  "GET /v1/signals/performance": [
+    "horizon"
+  ],
+  "GET /v1/names": [
+    "cursor",
+    "limit"
+  ],
+  "GET /v1/names/status": [],
+  "GET /v1/names/:name": [],
+  "GET /v1/names/:name/events": []
+}

@@ -1,5 +1,6 @@
 'use client';
 
+import { readApiData } from '@/lib/api-client';
 import { ChartWatermark } from '@/components/ChartWatermark';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
@@ -26,7 +27,7 @@ const DEFAULT_BLOCKS = 60;
  * Color-coded by finality state: green (finalized), gold (pending), orange
  * (being voted on right now). Hover for details, click to open block detail.
  *
- * Works for any Zcash chain because it only needs /api/blocks — we just
+ * Works for any Zcash chain because it only needs /v1/blocks — we just
  * recommend showing it for Crosslink where the classic geo node map is
  * less useful (small peer pool).
  */
@@ -51,22 +52,22 @@ export function BlockActivityChart({
     try {
       const api = getApiUrl();
       const [blocksRes, crossRes, bftRes] = await Promise.all([
-        fetch(`${api}/api/blocks?limit=${limit}`),
-        fetch(`${api}/api/crosslink`).catch(() => null),
-        fetch(`${api}/api/crosslink/bft-tip`).catch(() => null),
+        fetch(`${api}/v1/blocks?limit=${limit}`),
+        fetch(`${api}/v1/crosslink`).catch(() => null),
+        fetch(`${api}/v1/crosslink/bft-tip`).catch(() => null),
       ]);
 
       if (blocksRes.ok) {
-        const data = await blocksRes.json();
-        setBlocks(data.blocks || []);
+        const data = await readApiData(blocksRes);
+        setBlocks(data || []);
       }
       if (crossRes && crossRes.ok) {
-        const j = await crossRes.json();
-        if (j.success) setFinalizedHeight(j.finalizedHeight);
+        const j = await readApiData(crossRes);
+        if (j) setFinalizedHeight(j.finalizedHeight);
       }
       if (bftRes && bftRes.ok) {
-        const j = await bftRes.json();
-        if (j.success) setVotedHash(j.votedBlockHash || null);
+        const j = await readApiData(bftRes);
+        if (j) setVotedHash(j.votedBlockHash || null);
       }
     } catch (err) {
       console.error('BlockActivityChart fetch error:', err);

@@ -36,6 +36,11 @@
 /** @typedef {{ next: (pagination: object) => object|null, prev: (pagination: object) => object|null }} CursorMap */
 
 const MANIFEST = [
+  { method: 'GET', legacyPath: '/api/grpc-status', file: 'server/api/server.js', classification: 'ops', domain: 'network', auth: 'none', description: 'Observed stream and WebSocket service status.', v1: { path: '/v1/network/grpc-status', status: 'adapter', shape: 'passthrough' } },
+  { method: 'GET', legacyPath: '/api/names/status', file: 'server/api/v1/routes/names.js', classification: 'public', domain: 'names', auth: 'none', description: 'Name registry status and pricing.', v1: { path: '/v1/names/status', status: 'native', nativeKey: 'nameStatus' } },
+  { method: 'GET', legacyPath: '/api/names', file: 'server/api/v1/routes/names.js', classification: 'public', domain: 'names', auth: 'none', description: 'Cursor-paginated registered names.', v1: { path: '/v1/names', status: 'native', nativeKey: 'names' } },
+  { method: 'GET', legacyPath: '/api/name/:name/events', file: 'server/api/v1/routes/names.js', classification: 'public', domain: 'names', auth: 'none', description: 'Recent public name registry events.', v1: { path: '/v1/names/:name/events', status: 'native', nativeKey: 'nameEvents' } },
+  { method: 'GET', legacyPath: '/api/name/:name', file: 'server/api/v1/routes/names.js', classification: 'public', domain: 'names', auth: 'none', description: 'Name registration or pricing when unregistered.', v1: { path: '/v1/names/:name', status: 'native', nativeKey: 'name' } },
   // ---------------------------------------------------------------------
   // system / health (blocks.js)
   // ---------------------------------------------------------------------
@@ -128,7 +133,7 @@ const MANIFEST = [
   { method: 'GET', legacyPath: '/api/network/halving', file: 'server/api/routes/network-analytics.js', classification: 'public', domain: 'network', auth: 'none', description: 'Block subsidy halving schedule.', v1: { path: '/v1/network/halving', status: 'adapter', shape: 'passthrough' } },
   { method: 'GET', legacyPath: '/api/network/mining-metrics', file: 'server/api/routes/network-analytics.js', classification: 'public', domain: 'mining', auth: 'none', description: 'Mining metrics summary.', v1: { path: '/v1/mining/metrics', status: 'adapter', shape: 'passthrough' } },
   { method: 'GET', legacyPath: '/api/network/hashrate-history', file: 'server/api/routes/network-analytics.js', classification: 'public', domain: 'mining', auth: 'none', description: 'Historical network hashrate.', v1: { path: '/v1/mining/hashrate-history', status: 'adapter', shape: 'passthrough' } },
-  { method: 'GET', legacyPath: '/api/network/pool-history', file: 'server/api/routes/network-analytics.js', classification: 'public', domain: 'mining', auth: 'none', description: 'Historical mining pool share.', v1: { path: '/v1/mining/pool-history', status: 'adapter', shape: 'passthrough' } },
+  { method: 'GET', legacyPath: '/api/network/pool-history', file: 'server/api/routes/network-analytics.js', classification: 'public', domain: 'shielded-pools', auth: 'none', description: 'Daily shielded and transparent pool balances from chain state.', v1: { path: '/v1/shielded-pools/history', status: 'adapter', shape: 'passthrough' } },
   { method: 'GET', legacyPath: '/api/network/emission', file: 'server/api/routes/network-analytics.js', classification: 'public', domain: 'network', auth: 'none', description: 'ZEC emission curve.', v1: { path: '/v1/network/emission', status: 'adapter', shape: 'passthrough' } },
   { method: 'GET', legacyPath: '/api/network/chain-size-history', file: 'server/api/routes/network-analytics.js', classification: 'public', domain: 'network', auth: 'none', description: 'Chain size growth over time.', v1: { path: '/v1/network/chain-size-history', status: 'adapter', shape: 'passthrough' } },
   { method: 'GET', legacyPath: '/api/network/blocks/recent', file: 'server/api/routes/network-analytics.js', classification: 'public', domain: 'network', auth: 'none', description: 'Lightweight recent-blocks summary for charts (distinct from /v1/blocks).', v1: { path: '/v1/network/blocks/recent-summary', status: 'adapter', shape: 'passthrough' } },
@@ -162,11 +167,11 @@ const MANIFEST = [
   { method: 'GET', legacyPath: '/api/privacy/graph/:txid', file: 'server/api/routes/privacy.js', classification: 'public', domain: 'privacy', auth: 'none', description: 'Privacy linkage graph rooted at a transaction.', v1: { path: '/v1/privacy/graph/:txid', status: 'adapter', shape: 'passthrough' } },
   { method: 'GET', legacyPath: '/api/privacy/shield/:txid/batch', file: 'server/api/routes/privacy.js', classification: 'public', domain: 'privacy', auth: 'none', description: 'Batch-shield linkage for a transaction.', v1: { path: '/v1/privacy/shield/:txid/batch', status: 'adapter', shape: 'passthrough' } },
   { method: 'GET', legacyPath: '/api/privacy/patterns', file: 'server/api/routes/privacy.js', classification: 'public', domain: 'privacy', auth: 'none', description: 'Detected privacy-relevant transaction patterns.', v1: { path: '/v1/privacy/patterns', status: 'adapter', shape: 'passthrough' } },
-  { method: 'GET', legacyPath: '/api/privacy/common-amounts', file: 'server/api/routes/privacy.js', classification: 'public', domain: 'privacy', auth: 'none', description: 'Common transaction amount buckets (anonymity set aid).', v1: { path: '/v1/privacy/common-amounts', status: 'adapter', shape: 'passthrough' } },
-  { method: 'GET', legacyPath: '/api/privacy/recommended-swap-amounts', file: 'server/api/routes/privacy.js', classification: 'public', domain: 'privacy', auth: 'none', description: 'Recommended round amounts for better anonymity sets.', v1: { path: '/v1/privacy/recommended-swap-amounts', status: 'adapter', shape: 'passthrough' } },
+  { method: 'GET', legacyPath: '/api/privacy/common-amounts', file: 'server/api/routes/privacy.js', classification: 'public', domain: 'privacy', auth: 'none', description: 'Observed public-flow amount buckets; not a measured anonymity set.', v1: { path: '/v1/privacy/common-amounts', status: 'adapter', shape: 'passthrough' } },
+  { method: 'GET', legacyPath: '/api/privacy/recommended-swap-amounts', file: 'server/api/routes/privacy.js', classification: 'public', domain: 'privacy', auth: 'none', description: 'Common round swap amounts observed in public flows; no privacy guarantee.', v1: { path: '/v1/privacy/recommended-swap-amounts', status: 'adapter', shape: 'passthrough' } },
   { method: 'GET', legacyPath: '/api/privacy/fee-lanes', file: 'server/api/routes/privacy.js', classification: 'public', domain: 'privacy', auth: 'none', description: 'Fee-lane privacy heuristics.', v1: { path: '/v1/privacy/fee-lanes', status: 'adapter', shape: 'passthrough' } },
   { method: 'GET', legacyPath: '/api/privacy/wallet-fingerprints', file: 'server/api/routes/privacy.js', classification: 'public', domain: 'privacy', auth: 'none', description: 'Wallet fingerprinting signal aggregates.', v1: { path: '/v1/privacy/wallet-fingerprints', status: 'adapter', shape: 'passthrough' } },
-  { method: 'GET', legacyPath: '/api/analytics/anonymity-set', file: 'server/api/routes/analytics.js', classification: 'public', domain: 'privacy', auth: 'none', description: 'Anonymity set size estimates.', v1: { path: '/v1/privacy/anonymity-set', status: 'adapter', shape: 'passthrough' } },
+  { method: 'GET', legacyPath: '/api/analytics/anonymity-set', file: 'server/api/routes/analytics.js', classification: 'public', domain: 'privacy', auth: 'none', description: 'Counts of public shielding and deshielding flows at overlapping amount thresholds.', v1: { path: '/v1/privacy/anonymity-set', status: 'adapter', shape: 'passthrough' } },
   { method: 'GET', legacyPath: '/api/analytics/shielding-distribution', file: 'server/api/routes/analytics.js', classification: 'public', domain: 'privacy', auth: 'none', description: 'Distribution of shielding behavior.', v1: { path: '/v1/privacy/shielding-distribution', status: 'adapter', shape: 'passthrough' } },
   { method: 'GET', legacyPath: '/api/network/fee-distribution', file: 'server/api/routes/analytics.js', classification: 'public', domain: 'network', auth: 'none', description: 'Fee distribution histogram.', v1: { path: '/v1/network/fee-distribution', status: 'adapter', shape: 'passthrough' } },
   { method: 'GET', legacyPath: '/api/analytics/usage-clock', file: 'server/api/routes/analytics.js', classification: 'public', domain: 'analytics', auth: 'none', description: 'Time-of-day/week usage heatmap.', v1: { path: '/v1/analytics/usage-clock', status: 'adapter', shape: 'passthrough' } },
@@ -176,9 +181,9 @@ const MANIFEST = [
   // ---------------------------------------------------------------------
   // pools.js + mining.js
   // ---------------------------------------------------------------------
-  { method: 'GET', legacyPath: '/api/pools/overview', file: 'server/api/routes/pools.js', classification: 'public', domain: 'mining', auth: 'none', description: 'Mining pool overview.', v1: { path: '/v1/mining/pools/overview', status: 'adapter', shape: 'passthrough' } },
-  { method: 'GET', legacyPath: '/api/pools/flows', file: 'server/api/routes/pools.js', classification: 'public', domain: 'mining', auth: 'none', description: 'Coinbase reward flows by pool.', v1: { path: '/v1/mining/pools/flows', status: 'adapter', shape: 'passthrough' } },
-  { method: 'GET', legacyPath: '/api/pools/turnstile', file: 'server/api/routes/pools.js', classification: 'public', domain: 'mining', auth: 'none', description: 'Orchard/Ironwood turnstile pool metrics.', v1: { path: '/v1/mining/pools/turnstile', status: 'adapter', shape: 'passthrough' } },
+  { method: 'GET', legacyPath: '/api/pools/overview', file: 'server/api/routes/pools.js', classification: 'public', domain: 'shielded-pools', auth: 'none', description: 'Shielded pool balances and observed changes.', v1: { path: '/v1/shielded-pools/overview', status: 'adapter', shape: 'passthrough' } },
+  { method: 'GET', legacyPath: '/api/pools/flows', file: 'server/api/routes/pools.js', classification: 'public', domain: 'shielded-pools', auth: 'none', description: 'Daily public shielding and deshielding flows.', v1: { path: '/v1/shielded-pools/flows', status: 'adapter', shape: 'passthrough' } },
+  { method: 'GET', legacyPath: '/api/pools/turnstile', file: 'server/api/routes/pools.js', classification: 'public', domain: 'shielded-pools', auth: 'none', description: 'Public deshielding cohorts and subsequent observed destinations.', v1: { path: '/v1/shielded-pools/turnstile', status: 'adapter', shape: 'passthrough' } },
   { method: 'GET', legacyPath: '/api/mining/pool-distribution', file: 'server/api/routes/mining.js', classification: 'public', domain: 'mining', auth: 'none', description: 'Mining pool hashrate distribution.', v1: { path: '/v1/mining/pool-distribution', status: 'adapter', shape: 'passthrough' } },
   { method: 'GET', legacyPath: '/api/mining/pool-ranking', file: 'server/api/routes/mining.js', classification: 'public', domain: 'mining', auth: 'none', description: 'Ranked mining pools.', v1: { path: '/v1/mining/pool-ranking', status: 'adapter', shape: 'passthrough' } },
   { method: 'GET', legacyPath: '/api/mining/hashrate-share', file: 'server/api/routes/mining.js', classification: 'public', domain: 'mining', auth: 'none', description: 'Hashrate share over time.', v1: { path: '/v1/mining/hashrate-share', status: 'adapter', shape: 'passthrough' } },
@@ -221,6 +226,7 @@ const MANIFEST = [
     v1: { path: '/v1/migration/scatter/compact', status: 'adapter', shape: 'passthrough' },
   },
   { method: 'GET', legacyPath: '/api/migration/tiers', file: 'server/api/routes/migration.js', classification: 'public', domain: 'migration', auth: 'none', description: 'Migration progress by holding tier.', v1: { path: '/v1/migration/tiers', status: 'adapter', shape: 'passthrough' } },
+  { method: 'GET', legacyPath: '/api/valuation/search-interest', file: 'server/api/routes/valuation.js', classification: 'public', domain: 'valuation', auth: 'none', description: 'Imported Google Trends weekly observations, with provenance and provisional-week flags. Not a live feed or a valuation signal.', v1: { path: '/v1/valuation/search-interest', status: 'adapter', shape: 'passthrough' } },
   { method: 'GET', legacyPath: '/api/valuation/snapshot', file: 'server/api/routes/valuation.js', classification: 'public', domain: 'valuation', auth: 'none', description: 'Current valuation snapshot.', v1: { path: '/v1/valuation/snapshot', status: 'adapter', shape: 'passthrough' } },
   { method: 'GET', legacyPath: '/api/valuation/history', file: 'server/api/routes/valuation.js', classification: 'public', domain: 'valuation', auth: 'none', description: 'Historical valuation series.', v1: { path: '/v1/valuation/history', status: 'adapter', shape: 'passthrough' } },
   { method: 'GET', legacyPath: '/api/valuation/hodl-waves', file: 'server/api/routes/valuation.js', classification: 'public', domain: 'valuation', auth: 'none', description: 'HODL wave age-band breakdown.', v1: { path: '/v1/valuation/hodl-waves', status: 'adapter', shape: 'passthrough' } },
@@ -261,7 +267,7 @@ const MANIFEST = [
       path: '/v1/addresses/:address', status: 'adapter', shape: 'passthrough',
       zatoshiFields: ['balance', 'totalReceived', 'totalSent'],
       zatoshiConfidence: 'verified',
-      notes: 'balance/totalReceived/totalSent are the raw zatoshi columns (parseFloat without /1e8 division) in the branch with an existing address summary row; null/0 in the no-history branches convert safely.',
+      notes: 'balance/totalReceived/totalSent are exact zatoshi decimal strings, using the source *Zat fields when available. Older upstream safe integers remain compatible; unsafe numeric values fail closed. Null and zero are distinct.',
     },
   },
   { method: 'GET', legacyPath: '/api/address/:address/graph', file: 'server/api/routes/address.js', classification: 'public', domain: 'address', auth: 'none', description: 'Address cluster/linkage graph.', v1: { path: '/v1/addresses/:address/graph', status: 'adapter', shape: 'passthrough' } },
@@ -281,11 +287,11 @@ const MANIFEST = [
   { method: 'GET', legacyPath: '/api/crosslink/fork-monitor', file: 'server/api/routes/crosslink/fork-monitor.js', classification: 'public', domain: 'crosslink', auth: 'none', description: 'Fork monitor dashboard (reported node tips vs. cTAZ).', v1: { path: '/v1/crosslink/fork-monitor', status: 'adapter', shape: 'passthrough' } },
   { method: 'POST', legacyPath: '/api/crosslink/fork-monitor/check', file: 'server/api/routes/crosslink/fork-monitor.js', classification: 'public', domain: 'crosslink', auth: 'none', description: 'Live hash comparison at up to 10 heights (read-only RPC, no writes).', v1: { path: '/v1/crosslink/fork-monitor/checks', status: 'adapter', shape: 'passthrough' } },
   { method: 'GET', legacyPath: '/api/crosslink/block-hash/:height', file: 'server/api/routes/crosslink/fork-monitor.js', classification: 'public', domain: 'crosslink', auth: 'none', description: 'Block hash at a given height (used by external fork-finder scripts).', v1: { path: '/v1/crosslink/block-hash/:height', status: 'adapter', shape: 'passthrough' } },
-  { method: 'POST', legacyPath: '/api/crosslink/fork-monitor/report', file: 'server/api/routes/crosslink/fork-monitor.js', classification: 'public', domain: 'crosslink', auth: 'none', description: 'Voluntary node self-registration for the fork monitor (per-name rate limited, capacity-bounded upstream).', v1: { path: '/v1/crosslink/fork-monitor/nodes', status: 'adapter', shape: 'passthrough' } },
+  { method: 'POST', legacyPath: '/api/crosslink/fork-monitor/report', file: 'server/api/routes/crosslink/fork-monitor.js', classification: 'public', domain: 'crosslink', auth: 'none', description: 'Voluntary node self-registration for the fork monitor (per-name rate limited, capacity-bounded upstream).', v1: { path: '/v1/crosslink/fork-monitor/nodes', status: 'adapter', shape: 'passthrough', forwardNodeToken: true } },
   {
     method: 'DELETE', legacyPath: '/api/crosslink/fork-monitor/report/:name', file: 'server/api/routes/crosslink/fork-monitor.js',
-    classification: 'ops', domain: 'crosslink', auth: 'none', description: 'Delete a registered fork-monitor node report by name.',
-    v1: { status: 'excluded', notes: 'Authenticated upstream with a per-registration ownership token or service key. Kept out of v1 until mutation authentication is represented as a first-class versioned contract.' },
+    classification: 'public', domain: 'crosslink', auth: 'node-token', description: 'Delete a node report using its registration ownership token.',
+    v1: { path: '/v1/crosslink/fork-monitor/nodes/:name', status: 'adapter', shape: 'passthrough', forwardNodeToken: true },
   },
 
   // ---------------------------------------------------------------------
@@ -316,7 +322,7 @@ const MANIFEST = [
       notes: 'These are raw BIGINT columns selected directly (t.fee, t.total_input, ...), never divided by the legacy handler.',
     },
   },
-  { method: 'GET', legacyPath: '/api/shielded/list', file: 'server/api/routes/transactions/tx-lists.js', classification: 'public', domain: 'transactions', auth: 'none', description: 'Shielded-only transaction list.', v1: { path: '/v1/transactions/shielded', status: 'adapter', shape: 'passthrough' } },
+  { method: 'GET', legacyPath: '/api/shielded/list', file: 'server/api/routes/transactions/tx-lists.js', classification: 'public', domain: 'transactions', auth: 'none', description: 'Shielding, deshielding and fully shielded transaction collection.', v1: { path: '/v1/transactions/shielded', status: 'adapter', shape: 'list', listKey: 'flows', paginationKey: 'pagination' } },
   { method: 'GET', legacyPath: '/api/tx/shielded', file: 'server/api/routes/transactions/tx-read.js', classification: 'public', domain: 'transactions', auth: 'none', description: 'Shielded transaction summary metrics.', v1: { path: '/v1/transactions/shielded-summary', status: 'adapter', shape: 'passthrough' } },
   { method: 'GET', legacyPath: '/api/tx/:txid/linkability', file: 'server/api/routes/transactions/tx-read.js', classification: 'public', domain: 'transactions', auth: 'none', description: 'Linkability analysis for one transaction.', v1: { path: '/v1/transactions/:txid/linkability', status: 'adapter', shape: 'passthrough' } },
   {
@@ -332,7 +338,7 @@ const MANIFEST = [
   {
     method: 'GET', legacyPath: '/api/seo/tx/:txid', file: 'server/api/routes/transactions/tx-detail.js',
     classification: 'internal', domain: 'transactions', auth: 'none', description: 'Lightweight metadata for server-rendered titles/JSON-LD.',
-    v1: { status: 'excluded', notes: 'SSR/meta support endpoint, not a general data-product contract; the same fields are a subset of /v1/transactions/:txid.' },
+    v1: { path: '/v1/transactions/:txid/summary', status: 'adapter', shape: 'passthrough', notes: 'Bounded transaction summary for SSR and metadata; shares indexed detail authority.' },
   },
   {
     method: 'GET', legacyPath: '/api/tx/:txid', file: 'server/api/routes/transactions/tx-detail.js',
@@ -389,15 +395,19 @@ const MANIFEST = [
   // ---------------------------------------------------------------------
   // sitemaps.js — internal SEO infrastructure, out of v1 scope
   // ---------------------------------------------------------------------
-  { method: 'GET', legacyPath: '/api/sitemaps/blocks', file: 'server/api/routes/sitemaps.js', classification: 'internal', domain: 'sitemaps', auth: 'none', description: 'Block sitemap shard data, consumed by app/sitemap.ts.', v1: { status: 'excluded', notes: 'SEO infrastructure for our own Next.js sitemap generation, not a general external data contract.' } },
-  { method: 'GET', legacyPath: '/api/sitemaps/transactions/recent', file: 'server/api/routes/sitemaps.js', classification: 'internal', domain: 'sitemaps', auth: 'none', description: 'Recent-transaction sitemap shard data.', v1: { status: 'excluded', notes: 'Same as /api/sitemaps/blocks.' } },
+  { method: 'GET', legacyPath: '/api/sitemaps/blocks', file: 'server/api/routes/sitemaps.js', classification: 'internal', domain: 'sitemaps', auth: 'none', description: 'Block sitemap shard data, consumed by app/sitemap.ts.', v1: { path: '/v1/sitemaps/blocks', status: 'adapter', shape: 'passthrough' } },
+  { method: 'GET', legacyPath: '/api/sitemaps/transactions/recent', file: 'server/api/routes/sitemaps.js', classification: 'internal', domain: 'sitemaps', auth: 'none', description: 'Recent-transaction sitemap shard data.', v1: { path: '/v1/sitemaps/transactions/recent', status: 'adapter', shape: 'passthrough' } },
 
   // ---------------------------------------------------------------------
   // server/signals/api.js — paid feature (x402 / CipherPay), out of v1 scope
   // ---------------------------------------------------------------------
-  { method: 'GET', legacyPath: '/api/signals/latest', file: 'server/signals/api.js', classification: 'private', domain: 'signals', auth: 'service-key|bearer|x402', description: 'Current trading signal + 7-day history (paid).', v1: { status: 'excluded', notes: 'Payment-gated (x402/CipherPay session). Proxying would need to forward Authorization/x402 payment headers end-to-end and is deliberately excluded from the initial v1 contract; revisit once a monetized-endpoint pattern exists in v1.' } },
-  { method: 'GET', legacyPath: '/api/signals/history', file: 'server/signals/api.js', classification: 'private', domain: 'signals', auth: 'service-key|bearer|x402', description: 'Full trading signal history (paid).', v1: { status: 'excluded', notes: 'See /api/signals/latest.' } },
-  { method: 'GET', legacyPath: '/api/signals/performance', file: 'server/signals/api.js', classification: 'private', domain: 'signals', auth: 'service-key|bearer|x402', description: 'Backtest performance summary (paid).', v1: { status: 'excluded', notes: 'See /api/signals/latest.' } },
+  ...['latest', 'history', 'performance'].map(resource => ({
+    method: 'GET', legacyPath: `/api/signals/${resource}`, file: 'server/signals/api.js',
+    classification: 'private', domain: 'signals', auth: 'service-key|bearer|x402',
+    description: `Payment-protected trading signals: ${resource}.`,
+    v1: { path: `/v1/signals/${resource}`, status: 'adapter', shape: 'passthrough', forwardPaymentAuth: true,
+      notes: 'Requires the existing signals authorization. Caller credentials are forwarded only to this fixed service; the v1 internal service key is never attached. Payment challenges and receipts remain in their protocol headers; responses are never cached.' },
+  })),
 ];
 
 // -- Small integrity checks that run at require()-time (cheap, synchronous,
@@ -410,7 +420,7 @@ const MANIFEST = [
     if (!entry.method || !entry.legacyPath || !entry.classification || !entry.v1) {
       throw new Error(`v1 manifest: malformed entry for ${entry.legacyPath || '<unknown>'}`);
     }
-    if (entry.v1.status === 'adapter') {
+    if (['adapter', 'native'].includes(entry.v1.status)) {
       if (!entry.v1.path) {
         throw new Error(`v1 manifest: adapter entry for ${entry.legacyPath} is missing v1.path`);
       }
@@ -424,6 +434,6 @@ const MANIFEST = [
 })();
 
 const CLASSIFICATIONS = ['public', 'internal', 'ops', 'private', 'deprecated'];
-const V1_STATUSES = ['adapter', 'stub', 'excluded'];
+const V1_STATUSES = ['adapter', 'native', 'stub', 'excluded'];
 
 module.exports = { MANIFEST, CLASSIFICATIONS, V1_STATUSES };

@@ -1,50 +1,12 @@
 /**
- * server/api/v1/lib/build-route.js
- *
- * Generic Express handler factory that turns one manifest entry into a
- * mounted /v1 route. This is the "adapter" — it never contains business
- * SQL; it only knows how to (a) optionally run v1-layer request validation,
- * (b) forward a request to the legacy endpoint via lib/internal-client.js
- * (a TRANSITIONAL loopback-proxy bridge — see that file's docblock and
- * README.md "Architecture status"; it is not the intended permanent
- * architecture), and (c) reshape whatever comes back into the standard
- * {data, meta} / RFC 9457 envelope, relaying only an allowlisted set of
- * transport/cache/quota headers (lib/headers.js) and adding a
- * Server-Timing entry for the internal hop.
- *
- * Response reshaping rules (documented here because they apply uniformly
- * across ~90 endpoints rather than being repeated per-route):
- *
- *   - shape: 'passthrough' (default)
- *       The legacy JSON body, minus a top-level `success` key, becomes
- *       `data` verbatim (object or array, whatever the legacy handler
- *       returned). If the legacy body signals an error (`success === false`,
- *       a top-level `error` string, or a non-2xx status), the SAME status
- *       code and the legacy `error` message are relayed as an RFC 9457
- *       problem — legacy error strings in this codebase are already
- *       written to be client-safe (no stack traces / no raw DB errors),
- *       so no additional sanitization is layered on top here.
- *
- *   - shape: 'list'
- *       `data` becomes the legacy `body[listKey]` array; `body[paginationKey]`
- *       is translated into `meta.page` using lib/cursor.js and the entry's
- *       `cursorMap`. The v1 request's own `cursor` query param (if any) is
- *       decoded and its fields are merged directly into the legacy request
- *       query string — see decodeCursor() below for why this requires no
- *       per-entry field mapping on the way in.
- *
- * Query-forwarding: every client query parameter is forwarded to the legacy
- * endpoint as-is (legacy handlers already parse/clamp/validate their own
- * query params defensively — see e.g. blocks.js `Math.min(Math.max(...))`
- * patterns). This keeps the vast majority of manifest entries free of
- * bespoke allowlists. Endpoints that need STRICTER-than-legacy validation
- * (currently: the two scan endpoints — see lib/scan-validation.js) opt in
- * via `entry.v1.validateKey`, run BEFORE any legacy dispatch happens.
- * KNOWN CAVEAT (documented in README.md): a future hardening pass should
- * add explicit per-route query schemas at the v1 layer itself instead of
- * relying entirely on legacy-side validation for the rest of the surface.
+ * Manifest-driven adapter. The existing handlers remain the data authority.
+ * Query names are allowlisted in routes/index.js; source handlers validate values.
+ * Lists use route/filter-bound opaque cursors and one-row lookahead. Writes retain
+ * source semantics. Only explicitly declared authorization headers are forwarded.
+ * Successful data is wrapped once; HTTP failures become non-cacheable problems.
  */
 
+const { createHash } = require('node:crypto');
 const { sendProblem } = require('./problem');
 const { sendSuccess } = require('./envelope');
 const { applyZatoshiFields } = require('./zatoshi');
@@ -94,8 +56,9 @@ function relayLegacyError(res, req, status, body, dispatchResult) {
   const detail = (body && typeof body === 'object' && typeof body.error === 'string')
     ? body.error
     : 'The upstream endpoint reported an error.';
-  const typeSlug = status === 404 ? 'not-found' : status === 429 ? 'rate-limited' : status >= 400 && status < 500 ? 'validation-error' : 'upstream-error';
-  sendProblem(res, typeSlug, { status, detail, instance: req.originalUrl });
+  status = status >= 400 ? status : 502;
+  const typeSlug = status === 402 ? 'payment-required' : status === 401 ? 'authentication-required' : status === 403 ? 'access-denied' : status === 404 ? 'not-found' : status === 429 ? 'rate-limited' : status >= 400 && status < 500 ? 'validation-error' : 'upstream-error';
+  sendProblem(res, typeSlug, { status, detail, instance: req.originalUrl, extra: status === 402 ? { paymentRequired: body } : body?.status === 'building' ? { code: 'building' } : undefined });
 }
 
 function handleDispatchError(res, req, err) {
@@ -141,6 +104,14 @@ function buildAdapterHandler(entry, internalClient, config) {
       }
     }
 
+    const paymentAuth = entry.v1.forwardPaymentAuth ? {} : undefined;
+    if (paymentAuth) {
+      for (const name of ['authorization', 'payment-signature', 'x-payment', 'x-service-key']) {
+        const value = req.headers[name];
+        if (value !== undefined && (typeof value !== 'string' || value.length > 16_384)) return sendProblem(res, 'validation-error', { detail: 'Invalid authorization header.' });
+        if (value) paymentAuth[name] = value;
+      }
+    }
     let legacyPath;
     try {
       legacyPath = fillLegacyPath(entry.legacyPath, req.params);
@@ -150,36 +121,70 @@ function buildAdapterHandler(entry, internalClient, config) {
       return;
     }
 
+    if (Object.values(req.query || {}).some(value => typeof value !== 'string')) {
+      sendProblem(res, 'validation-error', { detail: 'Query parameters must occur once and contain scalar values.' });
+      return;
+    }
     const query = new URLSearchParams();
     for (const [k, v] of Object.entries(req.query || {})) {
       if (typeof v === 'string') query.set(k, v);
     }
 
+    const filters = new URLSearchParams(query);
+    for (const key of ['limit', 'cursor', 'direction', 'cursor_idx', 'cursor_id', 'cursor_txid']) filters.delete(key);
+    filters.sort();
+    const filterId = createHash('sha256').update(filters.toString()).digest('hex').slice(0, 16);
+    const position = (item, direction) => {
+      if (!item) return null;
+      const base = { route: entry.v1.path, filters: filterId, direction };
+      if (entry.v1.listKey === 'blocks') return { ...base, cursor: Number(item.height) };
+      if (entry.v1.listKey === 'transactions') return { ...base, cursor: Number(item.block_height), cursor_idx: Number(item.tx_index ?? 0) };
+      return { ...base, cursor: Number(item.blockTime), cursor_id: req.query.flow_type === 'fully_shielded' ? item.txid : item.id, cursor_txid: item.txid };
+    };
+    let pageLimit = null;
+    let pageDirection = 'next';
     if (shape === 'list') {
-      const rawCursor = req.query.cursor;
-      if (rawCursor) {
-        const decoded = decodeCursor(rawCursor);
-        if (!decoded) {
-          sendProblem(res, 'validation-error', {
-            instance: req.originalUrl,
-            detail: 'The `cursor` query parameter is invalid or expired.',
-            errors: [{ field: 'cursor', issue: 'malformed or unrecognized cursor' }],
-          });
+      pageLimit = req.query.limit === undefined ? 25 : Number(req.query.limit);
+      if (!Number.isInteger(pageLimit) || pageLimit < 1 || pageLimit > 100) {
+        sendProblem(res, 'validation-error', { detail: '`limit` must be an integer from 1 to 100.' });
+        return;
+      }
+      if (req.query.cursor) {
+        const decoded = decodeCursor(req.query.cursor);
+        const validPosition = decoded && Number.isSafeInteger(Number(decoded.cursor)) && Number(decoded.cursor) >= 0;
+        const allowed = ['v', 'route', 'filters', 'cursor', 'cursor_idx', 'cursor_id', 'cursor_txid', 'direction'];
+        if (!validPosition || decoded.route !== entry.v1.path || decoded.filters !== filterId || !['next', 'prev'].includes(decoded.direction)
+            || Object.keys(decoded).some(k => !allowed.includes(k))
+            || (decoded.cursor_idx !== undefined && (!Number.isSafeInteger(Number(decoded.cursor_idx)) || Number(decoded.cursor_idx) < 0))
+            || (decoded.cursor_txid !== undefined && !/^[a-f0-9]{64}$/.test(String(decoded.cursor_txid)))
+            || (decoded.cursor_id !== undefined && !/^(?:[0-9]+|[a-f0-9]{64})$/.test(String(decoded.cursor_id)))) {
+          sendProblem(res, 'validation-error', { detail: 'The cursor is invalid for this collection.', errors: [{ field: 'cursor', issue: 'invalid collection cursor' }] });
           return;
         }
         query.delete('cursor');
-        for (const [k, v] of Object.entries(decoded)) {
-          if (k === 'v') continue;
-          query.set(k, String(v));
+        for (const k of ['cursor', 'cursor_idx', 'cursor_id', 'cursor_txid', 'direction']) {
+          if (decoded[k] !== undefined) query.set(k, String(decoded[k]));
         }
+        pageDirection = decoded.direction;
+      } else {
+        for (const k of ['direction', 'cursor_idx', 'cursor_id', 'cursor_txid']) query.delete(k);
       }
+      // Lookahead belongs to the API, not to each page component.
+      query.set('limit', String(pageLimit + 1));
     }
+
+    // v1 always returns JSON; legacy's default plain-text supply endpoint is for aggregators.
+    if (entry.legacyPath === '/api/circulating-supply') query.set('format', 'json');
 
     let dispatchResult;
     try {
       dispatchResult = await internalClient.dispatch(entry.method, legacyPath, {
         query,
         body: entry.method === 'GET' ? undefined : req.body,
+        parentSignal: req.v1?.abortSignal,
+        useServiceKey: !entry.v1.forwardNodeToken && !entry.v1.forwardPaymentAuth,
+        paymentAuth,
+        nodeToken: entry.v1.forwardNodeToken && typeof req.headers['x-node-token'] === 'string' && req.headers['x-node-token'].length <= 200 ? req.headers['x-node-token'] : undefined,
       });
     } catch (err) {
       handleDispatchError(res, req, err);
@@ -196,6 +201,8 @@ function buildAdapterHandler(entry, internalClient, config) {
       return;
     }
 
+    const headerHeight = dispatchResult.headers?.['x-cipherscan-indexed-height'];
+    if (req.v1 && typeof headerHeight === 'string' && /^\d+$/.test(headerHeight) && Number.isSafeInteger(Number(headerHeight))) req.v1.indexedHeight = Number(headerHeight);
     const indexedHeight = typeof req.v1?.resolveIndexedHeight === 'function'
       ? await req.v1.resolveIndexedHeight()
       : req.v1?.indexedHeight ?? null;
@@ -205,37 +212,73 @@ function buildAdapterHandler(entry, internalClient, config) {
 
     if (shape === 'list') {
       const listKey = entry.v1.listKey;
-      const paginationKey = entry.v1.paginationKey || 'pagination';
-      const items = Array.isArray(body?.[listKey]) ? body[listKey] : [];
-      const pagination = body?.[paginationKey] || {};
-
+      if (!Array.isArray(body?.[listKey]) || !body?.[entry.v1.paginationKey || 'pagination']) {
+        sendProblem(res, 'upstream-contract-mismatch', { detail: 'The collection source returned an invalid shape.' });
+        return;
+      }
+      const all = body[listKey];
+      const pagination = body[entry.v1.paginationKey || 'pagination'];
+      let hasMore = all.length > pageLimit;
+      // The deployed source caps reads at 100. At that boundary, probe one
+      // additional row instead of treating a full page as the end of history.
+      if (!hasMore && all.length === pageLimit && pageLimit === 100) {
+        const edge = position(pageDirection === 'prev' ? all[0] : all.at(-1), pageDirection);
+        const probeQuery = new URLSearchParams(query);
+        probeQuery.set('limit', '1');
+        for (const key of ['cursor', 'cursor_idx', 'cursor_id', 'cursor_txid', 'direction']) {
+          if (edge[key] !== undefined) probeQuery.set(key, String(edge[key]));
+        }
+        try {
+          const probe = await internalClient.dispatch(entry.method, legacyPath, { query: probeQuery, parentSignal: req.v1?.abortSignal });
+          if (!probe.ok || !Array.isArray(probe.body?.[listKey])) throw new UpstreamError('Invalid pagination probe.');
+          hasMore = probe.body[listKey].length > 0;
+        } catch (error) { handleDispatchError(res, req, error); return; }
+      }
+      const items = pageDirection === 'prev' && all.length > pageLimit ? all.slice(1) : all.slice(0, pageLimit);
       const { value: convertedItems, warnings: zWarnings } = applyZatoshiToData(items, entry.v1.zatoshiFields);
-      warnings.push(...zWarnings);
-
+      if (zWarnings.length) {
+        sendProblem(res, 'upstream-contract-mismatch', { detail: 'The collection source returned an invalid monetary value.' });
+        return;
+      }
+      if (listKey === 'blocks') {
+        for (let i = 0; i < convertedItems.length; i++) {
+          const next = items[i + 1] || (pageDirection === 'next' ? all[pageLimit] : null);
+          convertedItems[i] = { ...convertedItems[i], intervalSeconds: next && Number.isFinite(Number(items[i].timestamp)) && Number.isFinite(Number(next.timestamp)) ? Number(items[i].timestamp) - Number(next.timestamp) : null };
+        }
+      }
       const page = buildPageMeta({
-        limit: pagination.limit,
-        hasNext: pagination.hasNext,
-        hasPrev: pagination.hasPrev,
-        nextLegacyCursor: entry.v1.cursorMap?.next ? entry.v1.cursorMap.next(pagination) : null,
-        prevLegacyCursor: entry.v1.cursorMap?.prev ? entry.v1.cursorMap.prev(pagination) : null,
-        mapLegacyCursor: (payload) => payload,
+        limit: pageLimit,
+        hasNext: pageDirection === 'prev' ? items.length > 0 && !!req.query.cursor : hasMore,
+        hasPrev: pageDirection === 'prev' ? hasMore : !!req.query.cursor && items.length > 0,
+        nextLegacyCursor: position(items.at(-1), 'next'),
+        prevLegacyCursor: position(items[0], 'prev'),
+        mapLegacyCursor: value => value,
         total: pagination.total ?? null,
       });
-
       sendSuccess(res, convertedItems, { indexedHeight, page, warnings });
       return;
     }
 
+    if (entry.v1.forwardPaymentAuth) res.set('Cache-Control', 'private, no-store');
     // passthrough
     let data = body;
     if (data && typeof data === 'object' && !Array.isArray(data) && 'success' in data) {
       const { success, ...rest } = data;
       data = rest;
     }
+    if (entry.v1.path === '/v1/addresses/:address' && data && !Array.isArray(data)) {
+      data = { ...data };
+      for (const field of ['balance', 'totalReceived', 'totalSent']) {
+        if (data[`${field}Zat`] !== undefined) data[field] = data[`${field}Zat`];
+      }
+    }
     const { value: convertedData, warnings: zWarnings } = applyZatoshiFields(data, entry.v1.zatoshiFields || []);
-    warnings.push(...zWarnings);
+    if (zWarnings.length) {
+      sendProblem(res, 'upstream-contract-mismatch', { detail: 'The source returned an invalid monetary value.' });
+      return;
+    }
 
-    sendSuccess(res, convertedData, { indexedHeight, warnings });
+    sendSuccess(res, convertedData, { indexedHeight, warnings, status });
   };
 }
 

@@ -28,7 +28,7 @@ export function NetworkHistoryCharts({ initialData }: { initialData?: ChainSizeH
   const colors = getChartColors(theme);
 
   const { data, loading } = useApiQuery<ChainSizeHistoryResponse>(
-    '/api/network/chain-size-history',
+    '/v1/network/chain-size-history',
     { period: '1y' },
     { initialData: initialData ?? undefined },
   );

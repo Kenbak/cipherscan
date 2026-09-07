@@ -38,17 +38,17 @@ const OVERVIEW_REFRESH_MS = 30000;
 /**
  * Homepage-sized "Ironwood migration progress" widget — a stat block, not a
  * table, since this data is a handful of fixed numbers rather than a
- * variable-length recent-activity list. Reuses the same /api/migration/overview
+ * variable-length recent-activity list. Reuses the same /v1/migration/overview
  * endpoint the site-wide IronwoodBanner already polls, so this always agrees
  * with what that banner says elsewhere on the page.
  */
 export const IronwoodProgressCard = memo(function IronwoodProgressCard({ footer }: { footer?: ReactNode } = {}) {
   const { data, loading, error } = useApiQuery<MigrationOverview>(
-    '/api/migration/overview',
+    '/v1/migration/overview',
     undefined,
     { refreshInterval: OVERVIEW_REFRESH_MS },
   );
-  const unavailable = !!error || (!loading && (!data || data.success === false));
+  const unavailable = !!error || (!loading && (!data || !(data)));
 
   if (loading) {
     return (

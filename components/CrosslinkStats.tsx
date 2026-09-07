@@ -1,5 +1,6 @@
 'use client';
 
+import { readApiData } from '@/lib/api-client';
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { Tooltip } from '@/components/Tooltip';
@@ -49,10 +50,10 @@ export function CrosslinkStats() {
 
   const fetchStats = useCallback(async () => {
     try {
-      const res = await fetch(`${getApiUrl()}/api/crosslink`);
+      const res = await fetch(`${getApiUrl()}/v1/crosslink`);
       if (!res.ok) return;
-      const data = await res.json();
-      if (data.success) {
+      const data = await readApiData(res);
+      if (data) {
         setStats({
           tipHeight: data.tipHeight,
           finalizedHeight: data.finalizedHeight,

@@ -1,4 +1,5 @@
 'use client';
+import { readApiData } from '@/lib/api-client';
 import { ChartWatermark } from '@/components/ChartWatermark';
 import { ChartSkeleton } from '@/components/ui/Skeleton';
 
@@ -121,8 +122,8 @@ function DistributionSection() {
 
   useEffect(() => {
     setLoading(true);
-    fetch(`${getApiUrl()}/api/mining/pool-distribution?period=${period}`)
-      .then(r => r.ok ? r.json() : null)
+    fetch(`${getApiUrl()}/v1/mining/pool-distribution?period=${period}`)
+      .then(r => r.ok ? readApiData(r) : null)
       .then(res => {
         if (res?.pools) {
           setData(res.pools);
@@ -171,8 +172,8 @@ function RankingSection() {
 
   useEffect(() => {
     setLoading(true);
-    fetch(`${getApiUrl()}/api/mining/pool-ranking?period=${period}`)
-      .then(r => r.ok ? r.json() : null)
+    fetch(`${getApiUrl()}/v1/mining/pool-ranking?period=${period}`)
+      .then(r => r.ok ? readApiData(r) : null)
       .then(res => {
         if (res?.ranking) {
           setRanking(res.ranking);
@@ -320,8 +321,8 @@ function HashrateShareSection() {
 
   useEffect(() => {
     setLoading(true);
-    fetch(`${getApiUrl()}/api/mining/hashrate-share?period=${period}`)
-      .then(r => r.ok ? r.json() : null)
+    fetch(`${getApiUrl()}/v1/mining/hashrate-share?period=${period}`)
+      .then(r => r.ok ? readApiData(r) : null)
       .then(res => {
         if (res?.series) {
           setSeries(res.series);
@@ -515,8 +516,8 @@ function MinerBehaviorSection() {
 
   useEffect(() => {
     setLoading(true);
-    fetch(`${getApiUrl()}/api/mining/miner-behavior?period=${period}`)
-      .then(r => r.ok ? r.json() : null)
+    fetch(`${getApiUrl()}/v1/mining/miner-behavior?period=${period}`)
+      .then(r => r.ok ? readApiData(r) : null)
       .then(res => {
         if (res) {
           setSeries(res.series || []);

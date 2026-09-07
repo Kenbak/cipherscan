@@ -63,7 +63,7 @@ export interface BlockPageSummary {
    * them into the client's initial render means the loading state shows
    * real block facts immediately instead of only a shimmering skeleton,
    * even though the full block detail (transactions, difficulty, etc.)
-   * still requires the client-side `/api/block/:id` fetch.
+   * still requires the client-side `/v1/blocks/:id` fetch.
    */
   timestamp?: number | null;
   transactionCount?: number | null;

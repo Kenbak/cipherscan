@@ -1,4 +1,5 @@
 'use client';
+import { readApiData } from '@/lib/api-client';
 import { SkeletonTable } from '@/components/ui/EmptyState';
 import { ChartWatermark } from '@/components/ChartWatermark';
 import { ChartCardSkeleton } from '@/components/ui/Skeleton';
@@ -134,32 +135,32 @@ export default function NodesClient() {
     try {
       setFetchError(false);
       const [nodeRes, statsRes, healthRes, relRes, upgradeRes, concRes] = await Promise.all([
-        fetch(`${apiUrl}/api/network/nodes/list?limit=${PAGE_SIZE}&offset=${page * PAGE_SIZE}&sort=${sortBy}&dir=${sortDir}`),
-        fetch(`${apiUrl}/api/network/nodes/stats`),
-        fetch(`${apiUrl}/api/network/nodes/health-score`),
-        fetch(`${apiUrl}/api/network/nodes/reliability`),
-        fetch(`${apiUrl}/api/network/nodes/upgrade-readiness`),
-        fetch(`${apiUrl}/api/network/nodes/concentration`),
+        fetch(`${apiUrl}/v1/network/nodes/list?limit=${PAGE_SIZE}&offset=${page * PAGE_SIZE}&sort=${sortBy}&dir=${sortDir}`),
+        fetch(`${apiUrl}/v1/network/nodes/stats`),
+        fetch(`${apiUrl}/v1/network/nodes/health-score`),
+        fetch(`${apiUrl}/v1/network/nodes/reliability`),
+        fetch(`${apiUrl}/v1/network/nodes/upgrade-readiness`),
+        fetch(`${apiUrl}/v1/network/nodes/concentration`),
       ]);
 
       setFetchError([nodeRes, statsRes, healthRes, relRes, upgradeRes, concRes].some(res => !res.ok));
       if (nodeRes.ok) {
-        const nodeData = await nodeRes.json();
+        const nodeData = await readApiData(nodeRes);
         setNodes(nodeData.nodes || []);
         setTotal(nodeData.total || 0);
       }
 
       if (statsRes.ok) {
-        const statsData = await statsRes.json();
+        const statsData = await readApiData(statsRes);
         setStats(statsData.stats || null);
         setClients(statsData.clients?.distribution || []);
         setVersions(statsData.clients?.versions || []);
       }
 
-      if (healthRes.ok) setHealth(await healthRes.json());
-      if (relRes.ok) setReliability(await relRes.json());
-      if (upgradeRes.ok) setUpgrade(await upgradeRes.json());
-      if (concRes.ok) setConcentration(await concRes.json());
+      if (healthRes.ok) setHealth(await readApiData(healthRes));
+      if (relRes.ok) setReliability(await readApiData(relRes));
+      if (upgradeRes.ok) setUpgrade(await readApiData(upgradeRes));
+      if (concRes.ok) setConcentration(await readApiData(concRes));
     } catch (err) {
       setFetchError(true);
       console.error('Failed to fetch node data:', err);

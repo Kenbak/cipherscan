@@ -90,8 +90,8 @@ export default function ApiEndpointComponent({ endpoint }: ApiEndpointProps) {
         </div>
       </div>
 
-      {/* Response (collapsible) */}
-      <div>
+      {/* Response (collapsible): only show examples backed by an actual payload. */}
+      {endpoint.response !== null && <div>
         <button
           onClick={() => setShowResponse(!showResponse)}
           className="flex items-center gap-2 mb-2 group cursor-pointer"
@@ -115,7 +115,7 @@ export default function ApiEndpointComponent({ endpoint }: ApiEndpointProps) {
             </pre>
           </div>
         )}
-      </div>
+      </div>}
     </div>
   );
 }

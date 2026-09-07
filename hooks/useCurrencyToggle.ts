@@ -1,5 +1,6 @@
 'use client';
 
+import { readApiData } from '@/lib/api-client';
 import { useState, useEffect, useRef } from 'react';
 import { getApiUrl } from '@/lib/api-config';
 import { zatToZec } from '@/lib/format-numbers';
@@ -32,9 +33,9 @@ export function useCurrencyToggle() {
     let cancelled = false;
     async function fetchPrice() {
       try {
-        const res = await fetch(`${getApiUrl()}/api/price`);
+        const res = await fetch(`${getApiUrl()}/v1/network/price`);
         if (res.ok) {
-          const data = await res.json();
+          const data = await readApiData(res);
           if (!cancelled && typeof data.price === 'number') {
             setPrice(data.price);
           }

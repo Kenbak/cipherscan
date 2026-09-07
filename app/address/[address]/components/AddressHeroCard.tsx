@@ -41,9 +41,9 @@ export function AddressHeroCard({
               )}
             </div>
 
-            <p className="text-sm text-muted leading-relaxed max-w-lg">
+            <div className="text-sm text-muted leading-relaxed max-w-lg">
               {summary}
-            </p>
+            </div>
 
             {/* Cross-chain summary if present */}
             {crossChain && crossChain.totalSwaps > 0 && (

@@ -16,7 +16,7 @@ const PoolCurrencyContext = createContext({
 export function PoolCurrencyProvider({ children }: { children: ReactNode }) {
   const [currency, setCurrency] = useState<PoolCurrency>('zec');
   const [now, setNow] = useState(0);
-  const { data: quote } = useApiQuery<PriceQuote>('/api/price', undefined, { enabled: isMainnet, refreshInterval: 30_000 });
+  const { data: quote } = useApiQuery<PriceQuote>('/v1/network/price', undefined, { enabled: isMainnet, refreshInterval: 30_000 });
   useEffect(() => {
     setNow(Date.now());
     const timer = setInterval(() => setNow(Date.now()), 15_000);

@@ -1,5 +1,6 @@
 'use client';
 
+import { ApiError, readApiData } from '@/lib/api-client';
 import { ChartWatermark } from '@/components/ChartWatermark';
 import { useEffect, useState } from 'react';
 import {
@@ -134,11 +135,11 @@ export function TurnstileTracker({ showCardHeader = false }: TurnstileTrackerPro
     const flowsPeriod = getFlowsApiPeriod(period);
 
     Promise.all([
-      fetch(`${getApiUrl()}/api/pools/turnstile?since=${since}`).then(r => {
-        if (r.status === 503) return r.json().then(d => { setViewBuilding(d?.status === 'building'); return null; });
-        return r.ok ? r.json() : null;
+      fetch(`${getApiUrl()}/v1/shielded-pools/turnstile?since=${since}`).then(r => {
+        if (r.status === 503) return readApiData(r).catch(error => { setViewBuilding(error instanceof ApiError && error.code === 'building'); return null; });
+        return r.ok ? readApiData(r) : null;
       }),
-      fetch(`${getApiUrl()}/api/pools/flows?period=${flowsPeriod}&pool=all`).then(r => r.ok ? r.json() : null),
+      fetch(`${getApiUrl()}/v1/shielded-pools/flows?period=${flowsPeriod}&pool=all`).then(r => r.ok ? readApiData(r) : null),
     ])
       .then(([turnstileData, flowsData]) => {
         if (!turnstileData) setUnavailable(true);

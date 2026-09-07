@@ -79,7 +79,7 @@ export function SwapSizeDistribution({ unit = 'usd', zecPrice = null }: { unit?:
   const colors = getChartColors(theme);
   const [viewMode, setViewMode] = useState<ViewMode>('count');
 
-  const { data, loading } = useApiQuery<SizeDistributionResponse>('/api/crosschain/size-distribution');
+  const { data, loading } = useApiQuery<SizeDistributionResponse>('/v1/crosschain/size-distribution');
 
   const chartData = useMemo(() => {
     if (!data?.buckets?.length) return [];

@@ -1,5 +1,6 @@
 'use client';
 
+import { readApiData } from '@/lib/api-client';
 import { useState } from 'react';
 import Link from 'next/link';
 import { Card, CardBody } from '@/components/ui/Card';
@@ -99,15 +100,15 @@ export default function BroadcastClient() {
     setResult(null);
 
     try {
-      const res = await fetch(`${getApiUrl()}/api/tx/broadcast`, {
+      const res = await fetch(`${getApiUrl()}/v1/transactions/broadcast`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ rawTx: hex }),
       });
-      const data = await res.json();
-      setResult(data);
-    } catch {
-      setResult({ success: false, error: 'Network error. Could not reach the API.' });
+      const data = await readApiData(res);
+      setResult({ ...data, success: true });
+    } catch (error) {
+      setResult({ success: false, error: error instanceof Error ? error.message : 'Network error. Could not reach the API.' });
     } finally {
       setLoading(false);
     }

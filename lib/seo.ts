@@ -1,3 +1,4 @@
+import { readApiData } from '@/lib/api-client';
 import { cache } from 'react';
 import type { Metadata } from 'next';
 import {
@@ -211,11 +212,11 @@ export const getBlockResolution = cache(async (identifier: string): Promise<Bloc
       // Use the same long revalidation for the tip lookup so this fetch does
       // not pull the page-level s-maxage back to 30s.  An hour-old tip is
       // fine here — the 100-block margin absorbs the drift.
-      const tipRes = await fetchWithDeadline(`${getApiUrl()}/api/info`, {
+      const tipRes = await fetchWithDeadline(`${getApiUrl()}/v1/network/info`, {
         next: { revalidate: 3600 },
       });
       if (tipRes.ok) {
-        const tipData = await tipRes.json();
+        const tipData = await readApiData(tipRes);
         const tipHeight = Number(tipData.height ?? tipData.blocks);
         if (Number.isSafeInteger(tipHeight) && requestedHeight < tipHeight - 100) {
           revalidateSeconds = 3600;
@@ -229,7 +230,7 @@ export const getBlockResolution = cache(async (identifier: string): Promise<Bloc
   let response: Response;
 
   try {
-    response = await fetchWithDeadline(`${getApiUrl()}/api/block/${encodeURIComponent(normalizedIdentifier)}?summary=1`, {
+    response = await fetchWithDeadline(`${getApiUrl()}/v1/blocks/${encodeURIComponent(normalizedIdentifier)}?summary=1`, {
       next: { revalidate: revalidateSeconds },
     });
   } catch {
@@ -246,7 +247,7 @@ export const getBlockResolution = cache(async (identifier: string): Promise<Bloc
 
   let block: unknown;
   try {
-    block = await response.json();
+    block = await readApiData(response);
   } catch {
     return { state: 'unavailable' };
   }
@@ -285,11 +286,11 @@ export const getTxResolution = cache(async (txid: string): Promise<TxResolution>
     // re-invoking the serverless function on every crawler visit.
     // Pending/absent paths fall through to the mempool fetch (revalidate 10s)
     // which pulls the effective page revalidation down automatically.
-    const res = await fetchWithDeadline(`${getApiUrl()}/api/seo/tx/${encodeURIComponent(txid)}`, {
+    const res = await fetchWithDeadline(`${getApiUrl()}/v1/transactions/${encodeURIComponent(txid)}/summary`, {
       next: { revalidate: 300 },
     });
     if (res.ok) {
-      const data = await res.json();
+      const data = await readApiData(res);
       const indexedStatus: TxMeta['status'] = data.status === 'stale'
         ? 'stale'
         : data.status === 'unknown' || data.isCanonical === false
@@ -336,13 +337,12 @@ export const getTxMeta = cache(async (txid: string): Promise<TxMeta | null> => {
 
 async function getPendingTxResolution(txid: string): Promise<TxResolution> {
   try {
-    const mempoolRes = await fetchWithDeadline(`${getApiUrl()}/api/mempool/tx/${encodeURIComponent(txid)}`, {
+    const mempoolRes = await fetchWithDeadline(`${getApiUrl()}/v1/mempool/${encodeURIComponent(txid)}`, {
       next: { revalidate: 10 },
     });
     if (!mempoolRes.ok) return { state: 'unavailable' };
 
-    const mempoolData = await mempoolRes.json();
-    if (!mempoolData.success) return { state: 'unavailable' };
+    const mempoolData = await readApiData(mempoolRes);
     if (!mempoolData.inMempool) return { state: 'absent' };
     if (!mempoolData.transaction) {
       return { state: 'unavailable' };
@@ -391,12 +391,12 @@ export type AddressResolution =
 
 export const getAddressResolution = cache(async (address: string): Promise<AddressResolution> => {
   try {
-    const res = await fetchWithDeadline(`${getApiUrl()}/api/address/${encodeURIComponent(address)}?limit=1`, {
+    const res = await fetchWithDeadline(`${getApiUrl()}/v1/addresses/${encodeURIComponent(address)}?limit=1`, {
       next: { revalidate: 60 },
     });
     if (res.status === 404 || res.status === 410) return { state: 'absent' };
     if (!res.ok) return { state: 'unavailable' };
-    const data = await res.json();
+    const data = await readApiData(res);
 
     const isShielded = data.type === 'shielded' || (data.note && (
       data.note.includes('Shielded address') ||

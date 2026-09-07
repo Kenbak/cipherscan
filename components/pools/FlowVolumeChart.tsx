@@ -97,7 +97,7 @@ export function FlowVolumeChart() {
   const [hiddenSeries, setHiddenSeries] = useState<Set<string>>(new Set());
 
   const { data: apiRes, loading } = useApiQuery<{ points: FlowPoint[] }>(
-    '/api/pools/flows',
+    '/v1/shielded-pools/flows',
     { period, pool: poolFilter },
   );
   const points = useMemo(

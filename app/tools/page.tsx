@@ -124,17 +124,17 @@ export default function ToolsPage() {
             <div className="space-y-3 text-sm font-mono">
               <div className="flex items-center gap-3">
                 <Badge color="green">POST</Badge>
-                <code className="text-primary">/api/tx/broadcast</code>
+                <code className="text-primary">/v1/transactions/broadcast</code>
                 <span className="text-muted hidden sm:inline">— Broadcast signed transaction</span>
               </div>
               <div className="flex items-center gap-3">
                 <Badge color="gold">GET</Badge>
-                <code className="text-primary">/api/tx/:txid</code>
+                <code className="text-primary">/v1/transactions/:txid</code>
                 <span className="text-muted hidden sm:inline">— Get transaction details</span>
               </div>
               <div className="flex items-center gap-3">
                 <Badge color="gold">GET</Badge>
-                <code className="text-primary">/api/search/anchor/:root</code>
+                <code className="text-primary">/v1/search/anchors/:root</code>
                 <span className="text-muted hidden sm:inline">— Search anchor root (canonical + orphaned)</span>
               </div>
             </div>

@@ -23,6 +23,7 @@ function loadTypeScriptModule(relativePath, imports = {}) {
     if (Object.prototype.hasOwnProperty.call(imports, specifier)) {
       return imports[specifier];
     }
+    if (specifier === '@/lib/api-client') return loadTypeScriptModule('lib/api-client.ts');
     return require(specifier);
   };
   const evaluate = new Function('exports', 'require', 'module', '__filename', '__dirname', output);
@@ -250,19 +251,19 @@ test('block resolution is shared, cached, and preserves unavailable states', asy
       });
     }
     if (identifier === '506') {
-      return new Response(JSON.stringify({ height: 506 }), {
+      return new Response(JSON.stringify(v1Fixture({ height: 506 })), {
         status: 200,
         headers: { 'Content-Type': 'application/json' },
       });
     }
 
-    return new Response(JSON.stringify({
+    return new Response(JSON.stringify(v1Fixture({
       height: '123',
       hash: 'b'.repeat(64),
       transactionCount: '1',
       isOrphaned: true,
       canonicalBlock: { hash: 'c'.repeat(64) },
-    }), {
+    })), {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
     });
@@ -358,7 +359,7 @@ test('block summary feed avoids transaction detail fan-out', async () => {
 
 test('block metadata uses resolved canonical identity through the shared builder', async () => {
   let resolution;
-  let fetchTip = async () => new Response(JSON.stringify({ height: 1_000 }), {
+  let fetchTip = async () => new Response(JSON.stringify(v1Fixture({ height: 1_000 })), {
     headers: { 'content-type': 'application/json' },
   });
   const metadataCalls = [];
@@ -687,9 +688,10 @@ test('ZNS child sitemap coalesces one bounded registration refresh', async () =>
         return { registered: 5000 };
       },
       isValidName: (name) => /^name\d+$/.test(name),
-      listZnsRegistrations: async (limit, offset) => {
+      listZnsRegistrations: async (limit, cursor) => {
         registrationCalls += 1;
-        return Array.from({ length: limit }, (_, index) => ({ name: `name${offset + index}` }));
+        const offset = Number(cursor || 0);
+        return { items: Array.from({ length: limit }, (_, index) => ({ name: `name${offset + index}` })), page: { nextCursor: String(offset + limit), hasNext: true } };
       },
     },
   });
@@ -732,7 +734,7 @@ test('transaction archive metadata indexes only unfiltered first pages', async (
 
   const txFirst = await txs.generateMetadata({ searchParams: Promise.resolve({}) });
   const txArchive = await txs.generateMetadata({
-    searchParams: Promise.resolve({ cursor: '100', cursor_idx: '1', direction: 'next', page: '2' }),
+    searchParams: Promise.resolve({ cursor: Buffer.from(JSON.stringify({ v: 1, route: '/v1/transactions', cursor: 100, cursor_idx: 1 })).toString('base64url'), direction: 'next', page: '2' }),
   });
   const txFilter = await txs.generateMetadata({ searchParams: Promise.resolve({ type: 'coinbase' }) });
   assert.equal(txFirst.index, true);
@@ -743,7 +745,7 @@ test('transaction archive metadata indexes only unfiltered first pages', async (
 
   const shieldedFirst = await txs.generateMetadata({ searchParams: Promise.resolve({ type: 'shielded' }) });
   const shieldedArchive = await txs.generateMetadata({
-    searchParams: Promise.resolve({ type: 'shielded', cursor: '100', cursor_id: '1', direction: 'next', page: '2' }),
+    searchParams: Promise.resolve({ type: 'shielded', cursor: Buffer.from(JSON.stringify({ v: 1, route: '/v1/transactions/shielded', cursor: 100, cursor_id: 1 })).toString('base64url'), direction: 'next', page: '2' }),
   });
   const shieldedFilter = await txs.generateMetadata({
     searchParams: Promise.resolve({ type: 'shielded', pool: 'orchard' }),
@@ -821,7 +823,8 @@ test('crawl graph avoids canonical block aliases and known shared redirect targe
   assert.equal(reorgs.includes('href={`/block/${block.canonicalBlock?.hash || block.canonicalHash}`'), false);
   assert.match(footer, /href="https:\/\/www\.cipherpay\.app\/"/);
   assert.equal(footer.includes('https://www.cipherpay.app/en'), false);
-  assert.match(footer, /href="\/charts"/);
+  assert.match(footer, /getNavigation/);
+  assert.match(fs.readFileSync(path.join(repositoryRoot, 'lib/navigation.ts'), 'utf8'), /href: '\/charts'/);
   assert.match(sitemapDefinitions, /['"]\/usage-clock['"]/);
   assert.match(richListPage, /next: \{ revalidate: 60 \}/);
   assert.match(richListClient, /initialAddresses/);
@@ -834,3 +837,9 @@ test('crawl graph avoids canonical block aliases and known shared redirect targe
   assert.equal(content.includes('github.com/ZcashFoundation/zebra/security/advisories/GHSA-28xj-328h-72vm'), false);
   assert.equal(content.includes('github.com/ZcashFoundation/zebra/security/advisories/GHSA-jg86-rwhm-fhg4'), false);
 });
+
+function v1Fixture(body) {
+ const { success, ...rest } = body;
+ const collection = rest.pagination && (rest.blocks || rest.transactions || rest.flows);
+ return { data: collection || rest, meta: { requestId: '00000000-0000-4000-8000-000000000000', network: 'mainnet', generatedAt: '2026-09-07T00:00:00.000Z', indexedHeight: 123, source: { indexedHeight: null, observedAt: null }, freshness: { status: 'unknown', ageSeconds: null }, ...(collection ? { page: { limit: 25, hasNext: false, hasPrev: false, nextCursor: null, prevCursor: null, total: rest.pagination.total ?? 0 } } : {}) } };
+}

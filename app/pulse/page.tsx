@@ -169,7 +169,7 @@ export default function PulsePage() {
   const pageSize = 30;
 
   const { data: pulseData, loading } = useApiQuery<PulseResponse>(
-    '/api/pulse',
+    '/v1/pulse',
     { days, limit: pageSize, offset: page * pageSize, metric: metricFilter ?? undefined },
   );
   const events = pulseData?.events ?? [];

@@ -1,5 +1,7 @@
 'use client';
 
+import { readApiData } from '@/lib/api-client';
+import { getApiUrl } from '@/lib/api-config';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useState, useEffect } from 'react';
@@ -50,16 +52,16 @@ export default function NamePage() {
       try {
         setError(null);
         const [res, eventsRes] = await Promise.all([
-          fetch(`/api/name/${name}`),
-          fetch(`/api/name/${name}/events`).catch(() => null),
+          fetch(`${getApiUrl()}/v1/names/${encodeURIComponent(name)}`),
+          fetch(`${getApiUrl()}/v1/names/${encodeURIComponent(name)}/events`).catch(() => null),
         ]);
 
         if (res.ok) {
-          const data = await res.json();
+          const data = await readApiData(res);
           if (data.address) {
             setRegistration(data);
             if (eventsRes?.ok) {
-              const eventsData = await eventsRes.json();
+              const eventsData = await readApiData(eventsRes);
               setEvents(eventsData.events || []);
             }
           } else {

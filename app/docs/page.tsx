@@ -78,7 +78,7 @@ export default function DocsPage() {
             <p>
               <strong className="text-primary">Networks:</strong> This API is available on both{' '}
               <code className="text-cipher-gold">mainnet</code> ({' '}
-              <code className="text-xs text-muted">api.mainnet.cipherscan.app</code>) and{' '}
+              <code className="text-xs text-muted">api.zecblock.com</code>) and{' '}
               <code className="text-cipher-gold">testnet</code> ({' '}
               <code className="text-xs text-muted">api.testnet.cipherscan.app</code>).
               The base URL above reflects the network you are currently viewing.
@@ -89,7 +89,7 @@ export default function DocsPage() {
               when the API returns <code className="text-danger">429 Too Many Requests</code>.
             </p>
             <p>
-              <strong className="text-primary">Values:</strong> Units are field-defined in the legacy API; do not
+              <strong className="text-primary">Values:</strong> Units are field-defined in the v1 API; do not
               infer a unit from a bare number. Exact integer fields ending in <code>Zat</code> or <code>Zats</code>{' '}
               are decimal-string zatoshis (1 ZEC = 100,000,000 zatoshis). Separately named ZEC fields are
               display values and should not be used for accounting.
@@ -127,17 +127,17 @@ export default function DocsPage() {
 {`const BASE = '${baseUrl}';
 
 // Latest blocks
-const blocks = await fetch(BASE + '/api/blocks?limit=5');
+const blocks = await fetch(BASE + '/v1/blocks?limit=5');
 console.log(await blocks.json());
 
 // Privacy stats (v2 score + optional trend depth)
-const stats = await fetch(BASE + '/api/privacy-stats?days=365');
-const { metrics } = await stats.json();
+const stats = await fetch(BASE + '/v1/privacy/stats?days=365');
+const { data: { metrics } } = await stats.json();
 console.log('Privacy score:', metrics.privacyScore, 'v' + metrics.scoreVersion);
 console.log('Usage (30d tx share):', metrics.scoreBreakdown?.usage?.percent + '%');
 
 // Blend check — how common is 1 ZEC?
-const blend = await fetch(BASE + '/api/blend-check?amount=1.0');
+const blend = await fetch(BASE + '/v1/privacy/blend-check?amount=1.0');
 console.log(await blend.json());`}
               </pre>
             </div>
@@ -152,17 +152,17 @@ console.log(await blend.json());`}
 BASE = '${baseUrl}'
 
 # Circulating supply
-supply = requests.get(f'{BASE}/api/circulating-supply?format=json').json()
+supply = requests.get(f'{BASE}/v1/network/circulating-supply?format=json').json()['data']
 print(f"Circulating: {supply['circulatingSupply']} ZEC")
 
 # Rich list top 10
-rich = requests.get(f'{BASE}/api/rich-list?limit=10').json()
+rich = requests.get(f'{BASE}/v1/addresses/rich-list?limit=10').json()['data']
 for addr in rich['addresses']:
     label = addr.get('label', 'Unknown')
     print(f"#{addr['rank']} {label}: {addr['balance'] / 1e8:.2f} ZEC")
 
 # Mempool
-mempool = requests.get(f'{BASE}/api/mempool').json()
+mempool = requests.get(f'{BASE}/v1/mempool').json()['data']['data']
 print(f"Pending: {mempool['count']} txs ({mempool['stats']['shieldedPercentage']}% shielded)")`}
               </pre>
             </div>
@@ -173,13 +173,13 @@ print(f"Pending: {mempool['count']} txs ({mempool['stats']['shieldedPercentage']
             <div className="docs-code-block border border-cipher-border rounded-lg p-4 overflow-x-auto">
               <pre className="text-sm text-secondary font-mono">
 {`# Halving countdown
-curl ${baseUrl}/api/network/halving
+curl ${baseUrl}/v1/network/halving
 
 # Cross-chain swap volume
-curl ${baseUrl}/api/crosschain/stats
+curl ${baseUrl}/v1/crosschain/stats
 
 # Shielded transaction count since 2025
-curl '${baseUrl}/api/stats/shielded-count?since=2025-01-01&detailed=true'`}
+curl '${baseUrl}/v1/stats/shielded-count?since=2025-01-01&detailed=true'`}
               </pre>
             </div>
           </div>

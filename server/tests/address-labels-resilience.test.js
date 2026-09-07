@@ -19,6 +19,10 @@ function loadAddressLabels() {
   const localRequire = (specifier) => {
     if (specifier === 'react') return { useEffect: () => {}, useState: () => [null, () => {}] };
     if (specifier === '@/lib/api-config') return { getApiUrl: () => 'https://api.invalid' };
+    if (specifier === '@/lib/api-client') {
+      const apiSource = ts.transpileModule(fs.readFileSync(path.resolve(__dirname, '../../lib/api-client.ts'), 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText;
+      const apiModule = { exports: {} }; new Function('exports', 'module', apiSource)(apiModule.exports, apiModule); return apiModule.exports;
+    }
     return require(specifier);
   };
   new Function('exports', 'require', 'module', '__filename', '__dirname', output)(
@@ -37,7 +41,7 @@ test('concurrent official-label consumers share one request', async (t) => {
   global.fetch = async () => {
     requests += 1;
     await new Promise((resolve) => setTimeout(resolve, 5));
-    return { ok: true, json: async () => ({ labels: [] }) };
+    return { ok: true, json: async () => ({ data: { labels: [] }, meta: { requestId: 'test', network: 'mainnet' } }) };
   };
   t.after(() => { global.fetch = originalFetch; });
 

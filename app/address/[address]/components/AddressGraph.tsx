@@ -1,5 +1,6 @@
 'use client';
 
+import { readApiData } from '@/lib/api-client';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { getApiUrl } from '@/lib/api-config';
@@ -100,8 +101,8 @@ export function AddressGraph({ address }: { address: string }) {
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    fetch(`${getApiUrl()}/api/address/${encodeURIComponent(address)}/graph`)
-      .then(res => (res.ok ? res.json() : Promise.reject(new Error(`HTTP ${res.status}`))))
+    fetch(`${getApiUrl()}/v1/addresses/${encodeURIComponent(address)}/graph`)
+      .then(res => (res.ok ? readApiData(res) : Promise.reject(new Error(`HTTP ${res.status}`))))
       .then(json => {
         if (!cancelled) {
           setData(json);
@@ -134,7 +135,7 @@ export function AddressGraph({ address }: { address: string }) {
   }, [loading]);
 
   const bubbleNodes = useMemo(() => {
-    if (!data?.success || width === 0) return [] as BubbleNode[];
+    if (!data || width === 0) return [] as BubbleNode[];
 
     const raw: Omit<BubbleNode, 'x' | 'y' | 'vx' | 'vy' | 'targetX' | 'targetY'>[] = [];
     const seen = new Set<string>();
@@ -215,7 +216,7 @@ export function AddressGraph({ address }: { address: string }) {
     return <div className="min-h-[560px] rounded-xl bg-cipher-surface animate-pulse" />;
   }
 
-  if (error || !data?.success) {
+  if (error || !data) {
     return (
       <div className="h-[200px] flex items-center justify-center text-muted text-sm rounded-xl border border-cipher-border">
         Entity graph unavailable right now.

@@ -1,5 +1,6 @@
 'use client';
 
+import { readApiData } from '@/lib/api-client';
 import { useState } from 'react';
 import Link from 'next/link';
 import { getApiUrl } from '@/lib/api-config';
@@ -44,9 +45,9 @@ export default function AnchorSearchClient() {
     setResult(null);
 
     try {
-      const res = await fetch(`${getApiUrl()}/api/search/anchor/${trimmed}`);
+      const res = await fetch(`${getApiUrl()}/v1/search/anchors/${trimmed}`);
       if (!res.ok) throw new Error(`API error: ${res.status}`);
-      const data = await res.json();
+      const data = await readApiData(res);
       setResult(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Search failed');

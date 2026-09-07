@@ -1,6 +1,7 @@
 import { ZNS } from 'zcashname-sdk';
 import { NETWORK } from './api-config';
-import { callZnsRpc } from './zns-rpc';
+import { readApiData, readApiCollection } from './api-client';
+import { getApiUrl } from './api-config';
 
 // Infer types from ZNS class methods (SDK no longer exports them directly)
 type Registration = NonNullable<Awaited<ReturnType<ZNS['resolveName']>>>;
@@ -36,25 +37,13 @@ export function getClient(): ZNS {
   return client;
 }
 
-export function getZnsStatus(signal: AbortSignal): Promise<Status> {
-  return callZnsRpc<Status>(getZnsUrl(), 'status', {}, signal);
+export async function getZnsStatus(signal: AbortSignal): Promise<Status> {
+  return readApiData<Status>(await fetch(`${getApiUrl()}/v1/names/status`, { signal }));
 }
-
-export async function listZnsRegistrations(
-  limit: number,
-  offset: number,
-  signal: AbortSignal,
-): Promise<Registration[]> {
-  const result = await callZnsRpc<unknown>(
-    getZnsUrl(),
-    'resolve',
-    { query: '', limit, offset },
-    signal,
-  );
-  if (!Array.isArray(result)) {
-    throw new Error('ZNS registration response is not an array');
-  }
-  return result as Registration[];
+export async function listZnsRegistrations(limit: number, cursor: string | null, signal: AbortSignal) {
+  const params = new URLSearchParams({ limit: String(limit) });
+  if (cursor) params.set('cursor', cursor);
+  return readApiCollection<Registration>(await fetch(`${getApiUrl()}/v1/names?${params}`, { signal }));
 }
 
 // Client-safe: pure validator, no network or env access.

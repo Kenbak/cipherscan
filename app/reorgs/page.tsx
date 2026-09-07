@@ -1,5 +1,6 @@
 'use client';
 
+import { readApiData } from '@/lib/api-client';
 import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { formatRelativeTime, formatDateUTC } from '@/lib/utils';
@@ -271,30 +272,30 @@ export default function UnclesPage() {
       setError(null);
 
       const [statsRes, orphansRes, forksRes, nodesRes] = await Promise.all([
-        fetch(`${API_URL}/api/uncles/stats`),
-        fetch(`${API_URL}/api/uncles?limit=50`),
-        fetch(`${API_URL}/api/uncles/forks?limit=100`),
-        fetch(`${API_URL}/api/uncles/nodes`),
+        fetch(`${API_URL}/v1/uncles/stats`),
+        fetch(`${API_URL}/v1/uncles?limit=50`),
+        fetch(`${API_URL}/v1/uncles/forks?limit=100`),
+        fetch(`${API_URL}/v1/uncles/nodes`),
       ]);
 
       if (statsRes.ok) {
-        const statsData = await statsRes.json();
-        if (statsData.success) setStats(statsData);
+        const statsData = await readApiData(statsRes);
+        if (statsData) setStats(statsData);
       }
 
       if (orphansRes.ok) {
-        const orphansData = await orphansRes.json();
-        if (orphansData.success) setOrphans(orphansData.orphanedBlocks || []);
+        const orphansData = await readApiData(orphansRes);
+        if (orphansData) setOrphans(orphansData.orphanedBlocks || []);
       }
 
       if (forksRes.ok) {
-        const forksData = await forksRes.json();
-        if (forksData.success) setForks(forksData.forks || []);
+        const forksData = await readApiData(forksRes);
+        if (forksData) setForks(forksData.forks || []);
       }
 
       if (nodesRes.ok) {
-        const nodesData = await nodesRes.json();
-        if (nodesData.success) {
+        const nodesData = await readApiData(nodesRes);
+        if (nodesData) {
           setNodes(nodesData.nodes || []);
           setNodesSummary(nodesData.summary || null);
         }
@@ -501,7 +502,7 @@ export default function UnclesPage() {
             <EmptyState
               icon="🛡️"
               title="No Reorg Events Recorded"
-              description={<>Chain reorganization events will appear here when detected. External nodes can report competing tips via the <code className="text-cipher-gold">POST /api/uncle/report</code> endpoint.</>}
+              description={<>Chain reorganization events will appear here when detected. External nodes can report competing tips via the <code className="text-cipher-gold">POST /v1/uncles/report</code> endpoint.</>}
             />
           </CardBody>
         </Card>
@@ -656,7 +657,7 @@ export default function UnclesPage() {
           </p>
           <div className="bg-cipher-surface rounded-lg p-4 border border-cipher-border">
             <code className="text-xs text-cipher-gold font-mono block mb-2">
-              POST {API_URL}/api/uncle/report
+              POST {API_URL}/v1/uncles/reports
             </code>
             <pre className="text-xs text-muted font-mono">
 {`{

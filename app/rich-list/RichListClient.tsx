@@ -1,5 +1,6 @@
 'use client';
 
+import { readApiData } from '@/lib/api-client';
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { TransparentSupplyBreakdown } from '@/components/network/TransparentSupplyBreakdown';
@@ -87,8 +88,8 @@ export default function RichListClient({
   const [zecPrice, setZecPrice] = useState<number | null>(null);
 
   useEffect(() => {
-    fetch(`${getApiUrl()}/api/price`)
-      .then(r => r.json())
+    fetch(`${getApiUrl()}/v1/network/price`)
+      .then(r => readApiData(r))
       .then(d => setZecPrice(d.price))
       .catch(() => {});
   }, []);
@@ -101,10 +102,10 @@ export default function RichListClient({
     setLoading(true);
     setError(null);
     const offset = (page - 1) * PAGE_SIZE;
-    fetch(`${getApiUrl()}/api/rich-list?limit=${PAGE_SIZE}&offset=${offset}`)
-      .then(r => r.json())
+    fetch(`${getApiUrl()}/v1/addresses/rich-list?limit=${PAGE_SIZE}&offset=${offset}`)
+      .then(r => readApiData(r))
       .then(data => {
-        if (!data.success) throw new Error(data.error || 'Failed to fetch');
+        if (!data) throw new Error(data.error || 'Failed to fetch');
         setAddresses(data.addresses);
         setConcentration(data.concentration);
         setPagination(data.pagination);

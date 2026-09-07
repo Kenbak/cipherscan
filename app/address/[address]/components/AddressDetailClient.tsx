@@ -1,5 +1,6 @@
 'use client';
 
+import { readApiData } from '@/lib/api-client';
 import { useSearchParams } from 'next/navigation';
 import { useState, useEffect, useCallback } from 'react';
 import dynamic from 'next/dynamic';
@@ -90,10 +91,10 @@ export function AddressDetailClient({ address, initialMeta = null }: AddressDeta
     try {
       setLoading(true);
 
-      const apiUrl = `${getApiUrl()}/api/address/${address}?page=${currentPage}&limit=${PAGE_SIZE}`;
+      const apiUrl = `${getApiUrl()}/v1/addresses/${address}?page=${currentPage}&limit=${PAGE_SIZE}`;
 
-      const crossChainUrl = `${getApiUrl()}/api/crosschain/address/${encodeURIComponent(address)}`;
-      const priceUrl = `${getApiUrl()}/api/price`;
+      const crossChainUrl = `${getApiUrl()}/v1/crosschain/addresses/${encodeURIComponent(address)}`;
+      const priceUrl = `${getApiUrl()}/v1/network/price`;
 
       const [response, crossChainRes, priceRes] = await Promise.all([
         fetch(apiUrl),
@@ -102,7 +103,7 @@ export function AddressDetailClient({ address, initialMeta = null }: AddressDeta
       ]);
 
       if (!response.ok) throw new Error('Failed to fetch address data');
-      const apiData = await response.json();
+      const apiData = await readApiData(response);
 
       setTotalPages(apiData.pagination?.totalPages || 1);
 
@@ -121,14 +122,14 @@ export function AddressDetailClient({ address, initialMeta = null }: AddressDeta
 
       if (crossChainRes?.ok) {
         try {
-          const ccData = await crossChainRes.json();
-          if (ccData.success && ccData.totalSwaps > 0) setCrossChain(ccData);
+          const ccData = await readApiData(crossChainRes);
+          if (ccData && ccData.totalSwaps > 0) setCrossChain(ccData);
         } catch { /* ignore */ }
       }
 
       if (priceRes?.ok) {
         try {
-          const pData = await priceRes.json();
+          const pData = await readApiData(priceRes);
           setPriceData({ price: pData.price, change24h: pData.change24h });
         } catch { /* ignore */ }
       }

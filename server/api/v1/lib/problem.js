@@ -12,6 +12,9 @@ const PROBLEM_BASE = 'https://docs.cipherscan.app/errors';
 
 /** Registry of known problem "type" slugs -> default title/status. */
 const PROBLEM_TYPES = {
+  'payment-required': { title: 'Payment Required', status: 402 },
+  'access-denied': { title: 'Access Denied', status: 403 },
+  'authentication-required': { title: 'Authentication Required', status: 401 },
   'validation-error': { title: 'Validation Error', status: 400 },
   'not-found': { title: 'Resource Not Found', status: 404 },
   'not-migrated': { title: 'Endpoint Not Yet Available in v1', status: 501 },
@@ -60,6 +63,7 @@ function buildProblem(typeSlug, opts = {}) {
 function sendProblem(res, typeSlug, opts = {}) {
   const doc = buildProblem(typeSlug, opts);
   res.status(doc.status);
+  res.set('Cache-Control', 'no-store');
   res.set('Content-Type', 'application/problem+json');
   res.json(doc);
   return doc;

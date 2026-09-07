@@ -36,7 +36,7 @@ const INTENSITY_CONFIG: Record<PulseIntensity, { duration: string; opacity: stri
 export function PulseWidget() {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
-  const { data: summary } = useApiQuery<PulseSummary>('/api/pulse/summary');
+  const { data: summary } = useApiQuery<PulseSummary>('/v1/pulse/summary');
 
   const intensity = getIntensity(summary);
   const config = INTENSITY_CONFIG[intensity];
