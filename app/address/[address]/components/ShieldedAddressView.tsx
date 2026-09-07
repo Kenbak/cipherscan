@@ -35,10 +35,7 @@ export function ShieldedAddressView({ isUnified, uaComponents, uaLoading, copied
         </div>
         <div>
           <dt className="text-xs text-muted">Shielded transaction history</dt>
-          <dd className="mt-3 space-y-2">
-            <RedactedAmount label="Shielded transaction history is private" unit={null} />
-            <p className="text-xs text-muted">Not publicly visible</p>
-          </dd>
+          <dd className="mt-3 text-secondary">Not publicly visible</dd>
         </div>
       </dl>
     </section>
