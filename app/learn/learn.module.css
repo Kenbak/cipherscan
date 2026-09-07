@@ -158,3 +158,8 @@
 .terminalBar button:focus-visible { outline: 2px solid var(--color-shielded-ink); outline-offset: 3px; }
 .terminalFooter { padding-bottom: 12px; }
 .terminalBrand { font-family: var(--font-geist-mono), monospace; color: var(--color-text-muted); }
+
+.walletIdentity { display: flex; align-items: center; gap: 12px; }
+.walletLogo { width: 40px; height: 40px; object-fit: contain; border-radius: 9px; flex-shrink: 0; }
+.companyLogo { display: inline-flex; align-items: center; padding: 10px 12px; border-radius: 6px; background: var(--color-cipher-bg-dark); }
+.companyLogo img { width: 170px; height: 25px; object-fit: contain; }

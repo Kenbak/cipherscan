@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import type { ReactNode } from 'react';
 import { PageHeader } from '@/components/ui/SectionHeader';
 import { PageSectionNav } from '@/components/PageSectionNav';
@@ -86,9 +87,9 @@ export default function LearnPage() {
           <div className={styles.heroActions}>
             <Destination href="https://forum.zcashcommunity.com/" className={`${styles.button} ${styles.primaryButton}`}>Join the forum <Arrow external /></Destination>
             <Destination href="https://discord.gg/zcash" className={styles.button}>Discord <Arrow external /></Destination>
-            <Destination href="http://pool.tazminer.com:3000" className={styles.button}>Mine in browser <Arrow external /></Destination>
+            <Destination href="http://pool.tazminer.com:3000" className={styles.button}>Mine testnet ZEC <Arrow external /></Destination>
           </div>
-          <p className={styles.heroNote}>Join the community, or explore browser-based mining with WasmMiner.</p>
+          <p className={styles.heroNote}>Browser mining uses testnet Zcash (TAZ), for learning and testing. Testnet coins have no monetary value.</p>
         </div>
         <PrivacyTerminal />
       </div>
@@ -104,13 +105,13 @@ export default function LearnPage() {
       <SectionTitle number="01" title="Your wallet comes first" description="Two featured ways to hold your own keys and use shielded Zcash." />
       <div className={styles.twoColumns}>
         <article className={styles.wallet}>
-          <div className={styles.walletHeading}><h3>Zodl</h3><span className={styles.meta}>iOS · Android</span></div>
+          <div className={styles.walletHeading}><h3 className={styles.walletIdentity}><Image src="/brands/zodl.png" alt="" width={40} height={40} className={styles.walletLogo} />Zodl</h3><span className={styles.meta}>iOS · Android</span></div>
           <p>A mobile Zcash wallet from ZODL, formerly called Zashi. Receive payments, shield a transparent balance and send encrypted notes.</p>
           <div className={styles.features}><span>Self-custody</span><span>Shielded payments</span><span>In-wallet swaps</span></div>
           <Destination href="https://zodl.com/download/" className={styles.button}>Get Zodl <Arrow external /></Destination>
         </article>
         <article className={styles.wallet}>
-          <div className={styles.walletHeading}><h3>Vizor</h3><span className={styles.meta}>Mobile · Desktop</span></div>
+          <div className={styles.walletHeading}><h3 className={styles.walletIdentity}><Image src="/brands/vizor.png" alt="" width={40} height={40} className={styles.walletLogo} />Vizor</h3><span className={styles.meta}>Mobile · Desktop</span></div>
           <p>A Zcash wallet from the team behind Keplr. Manage shielded payments, contacts and multiple accounts across mobile and desktop.</p>
           <div className={styles.features}><span>Self-custody</span><span>Shielded payments</span><span>In-wallet swaps</span></div>
           <Destination href="https://vizor.cash/" className={styles.button}>Get Vizor <Arrow external /></Destination>
@@ -207,7 +208,7 @@ export default function LearnPage() {
         <div className={styles.directory}><h3>Contribute & support</h3><ResourceList items={community.slice(3)} /></div>
       </div>
       <article className={styles.cypherpunk}>
-        <div><span className={styles.eyebrow}>Company spotlight · Nasdaq: CYPH</span><h3>Cypherpunk Technologies</h3><p>A public company focused on Zcash through its ZEC treasury, mining and investment in privacy technology.</p></div>
+        <div><span className={styles.eyebrow}>Company spotlight · Nasdaq: CYPH</span><h3><span className={styles.companyLogo}><Image src="/brands/cypherpunk.svg" alt="Cypherpunk Technologies" width={170} height={25} /></span></h3><p>A public company focused on Zcash through its ZEC treasury, mining and investment in privacy technology.</p></div>
         <div><p><strong>What is $CYPH?</strong> The company’s stock ticker. Shares represent an interest in the company; ZEC is the currency used on the Zcash network.</p><div className={styles.inlineLinks}><Destination href="https://www.cypherpunk.com/" className={styles.textLink}>Explore Cypherpunk <Arrow external /></Destination><Destination href="https://www.cypherpunk.com/investors/financials" className={styles.textLink}>Investor resources <Arrow external /></Destination></div></div>
       </article>
       <div className={styles.related}>
