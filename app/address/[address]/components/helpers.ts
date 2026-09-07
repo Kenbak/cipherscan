@@ -42,6 +42,9 @@ export function transformTransactions(apiData: { address: string }, txList: unkn
 
     return {
       txid: tx.txid,
+      hasIronwood: tx.hasIronwood,
+      hasOrchard: tx.hasOrchard,
+      hasSapling: tx.hasSapling,
       timestamp: tx.blockTime,
       amount: Math.abs(zatToZec(tx.netChange)),
       type: isReceiving ? 'received' as const : 'sent' as const,
@@ -116,10 +119,7 @@ export function getTypeInfo(type: AddressData['type']) {
 }
 
 export function isShieldedAddress(data: AddressData | null): boolean {
-  return data?.type === 'shielded' && !!data?.note && (
-    data.note.includes('Shielded address') ||
-    data.note.includes('Fully shielded unified address')
-  );
+  return data?.type === 'shielded' || data?.type === 'unified';
 }
 
 export function hasNoTransactions(data: AddressData | null): boolean {

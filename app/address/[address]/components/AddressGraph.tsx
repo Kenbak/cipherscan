@@ -1,418 +1,106 @@
 'use client';
 
+import Link from 'next/link';
+import { useEffect, useMemo, useState } from 'react';
 import { readApiData } from '@/lib/api-client';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { getApiUrl } from '@/lib/api-config';
-import { AddressBubbleMap, buildBubbleNodes, type BubbleNode } from './AddressBubbleMap';
+import { AddressGraphSkeleton } from './AddressLoadingSkeleton';
+import { AddressBubbleMap } from './AddressBubbleMap';
+import { connectionNodes, type ConnectionsResponse } from './address-connections';
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-interface GraphPeer {
-  address: string;
-  balanceZec: number;
-  txCount: number;
-  label: string | null;
-  category: string | null;
-}
-
-interface GraphCounterparty {
-  address: string;
-  sentZec: number;
-  receivedZec: number;
-  txCount: number;
-  label: string | null;
-  category: string | null;
-  clusterId: number | null;
-  clusterSize: number | null;
-  sameEntity: boolean;
-}
-
-interface GraphResponse {
-  success: boolean;
-  address: string;
-  cluster: { clusterId: number; memberCount: number } | null;
-  peers: GraphPeer[];
-  peerSelection?: 'full' | 'top_by_balance';
-  counterparties: GraphCounterparty[];
-  sampledRecentTxs?: number;
-  note?: string;
-}
-
-const COLORS = {
-  self: '#91AC90',
-  entity: '#E8C48D',
-  counterparty: '#A1A9AD',
-  text: 'rgba(255, 255, 255, 0.85)',
-  textDim: 'rgba(255, 255, 255, 0.4)',
-};
-
-const GRAPH_HEIGHT = 560;
-const API_MAX_COUNTERPARTIES = 20;
-
-function shortAddr(addr: string) {
-  return `${addr.slice(0, 6)}…${addr.slice(-4)}`;
-}
-
-function fmtZec(v: number) {
-  if (v >= 1e6) return `${(v / 1e6).toFixed(1)}M`;
-  if (v >= 1e3) return `${(v / 1e3).toFixed(1)}K`;
-  if (v >= 1) return v.toFixed(2);
-  return v.toFixed(4);
-}
-
-function roleLabel(n: Pick<BubbleNode, 'role' | 'sameEntity'>) {
-  if (n.role === 'self') return 'The address you are viewing';
-  if (n.role === 'peer') return 'Same entity — co-spent in a shared input';
-  if (n.sameEntity) return 'Same entity — also seen in recent transactions';
-  return 'Recent counterparty';
-}
-
-function roleExplanation(n: Pick<BubbleNode, 'role' | 'sameEntity' | 'sentZec' | 'receivedZec'>) {
-  if (n.role === 'self') {
-    return 'Center of the map. Tan bubbles share a wallet cluster with this address; blue bubbles are recent transaction partners from our sample.';
-  }
-  if (n.role === 'peer') {
-    return 'Grouped by the common-input heuristic: spent as inputs in the same transaction, treated as one wallet. Not necessarily active recently.';
-  }
-  if (n.sameEntity) {
-    return 'Same entity cluster, also appearing in recent transaction flow with this address.';
-  }
-  if (n.receivedZec > n.sentZec) {
-    return 'Primarily sent funds to this address in our recent transaction sample.';
-  }
-  if (n.sentZec > n.receivedZec) {
-    return 'Primarily received funds from this address in our recent transaction sample.';
-  }
-  return 'Roughly balanced send/receive with this address in the recent transaction sample.';
-}
-
-// ─── Component ────────────────────────────────────────────────────────────────
+const short = (value: string) => `${value.slice(0, 6)}…${value.slice(-4)}`;
+const amount = (value: number) => value.toLocaleString('en-US', { maximumFractionDigits: 8 });
 
 export function AddressGraph({ address }: { address: string }) {
-  const router = useRouter();
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [width, setWidth] = useState(0);
-  const [data, setData] = useState<GraphResponse | null>(null);
+  const [data, setData] = useState<ConnectionsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
-  const [hoveredId, setHoveredId] = useState<string | null>(null);
-
+  const [attempt, setAttempt] = useState(0);
+  const [mode, setMode] = useState<'recent' | 'cluster'>('recent');
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [query, setQuery] = useState('');
   useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    fetch(`${getApiUrl()}/v1/addresses/${encodeURIComponent(address)}/graph`)
-      .then(res => (res.ok ? readApiData(res) : Promise.reject(new Error(`HTTP ${res.status}`))))
-      .then(json => {
-        if (!cancelled) {
-          setData(json);
-          setError(false);
-        }
-      })
-      .catch(err => {
-        console.error('Failed to load address graph:', err);
-        if (!cancelled) setError(true);
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [address]);
-
-  useEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
-    const apply = () => {
-      const w = Math.floor(el.getBoundingClientRect().width);
-      if (w > 0) setWidth(w);
-    };
-    apply();
-    const observer = new ResizeObserver(apply);
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [loading]);
-
-  const bubbleNodes = useMemo(() => {
-    if (!data || width === 0) return [] as BubbleNode[];
-
-    const raw: Omit<BubbleNode, 'x' | 'y' | 'vx' | 'vy' | 'targetX' | 'targetY'>[] = [];
-    const seen = new Set<string>();
-
-    raw.push({
-      id: data.address,
-      role: 'self',
-      name: null,
-      sameEntity: true,
-      valueZec: 0,
-      sentZec: 0,
-      receivedZec: 0,
-      txCount: 0,
-      radius: 22,
-    });
-    seen.add(data.address);
-
-    const peerCount = data.peers.length;
-    const peerRadius = Math.max(6, Math.min(12, Math.floor(130 / Math.sqrt(peerCount + 2))));
-
-    for (const peer of data.peers) {
-      if (seen.has(peer.address)) continue;
-      seen.add(peer.address);
-      raw.push({
-        id: peer.address,
-        role: 'peer',
-        name: peer.label,
-        sameEntity: true,
-        valueZec: peer.balanceZec,
-        sentZec: 0,
-        receivedZec: 0,
-        txCount: peer.txCount,
-        radius: peerRadius,
-      });
-    }
-
-    const cps = [...data.counterparties].sort(
-      (a, b) => b.sentZec + b.receivedZec - (a.sentZec + a.receivedZec),
-    );
-    const maxVal = Math.max(...cps.map(c => c.sentZec + c.receivedZec), 1);
-
-    for (const cp of cps) {
-      const total = cp.sentZec + cp.receivedZec;
-      const t = Math.log10(1 + total) / Math.log10(1 + maxVal);
-      const isInflow = cp.receivedZec >= cp.sentZec;
-      if (!seen.has(cp.address)) {
-        seen.add(cp.address);
-        raw.push({
-          id: cp.address,
-          role: isInflow ? 'inflow' : 'outflow',
-          name: cp.label,
-          sameEntity: cp.sameEntity,
-          valueZec: total,
-          sentZec: cp.sentZec,
-          receivedZec: cp.receivedZec,
-          txCount: cp.txCount,
-          radius: 10 + t * 14,
-        });
-      }
-    }
-
-    return buildBubbleNodes(raw, width, GRAPH_HEIGHT);
-  }, [data, width]);
-
-  const openAddress = useCallback(
-    (id: string) => {
-      if (id && id !== address) router.push(`/address/${id}`);
-    },
-    [address, router],
-  );
-
-  const hovered = useMemo(
-    () => (hoveredId ? bubbleNodes.find(n => n.id === hoveredId) ?? null : null),
-    [hoveredId, bubbleNodes],
-  );
-
-  if (loading) {
-    return <div className="min-h-[560px] rounded-xl bg-cipher-surface animate-pulse" />;
-  }
-
-  if (error || !data) {
-    return (
-      <div className="h-[200px] flex items-center justify-center text-muted text-sm rounded-xl border border-cipher-border">
-        Entity graph unavailable right now.
-      </div>
-    );
-  }
-
-  if (!data.cluster && data.counterparties.length === 0) {
-    return (
-      <div className="h-[200px] flex flex-col items-center justify-center gap-2 text-muted text-sm rounded-xl border border-cipher-border">
-        <p>No entity cluster or recent counterparties found for this address.</p>
-        {data.note && <p className="text-xs">{data.note}</p>}
-      </div>
-    );
-  }
-
-  const totalClusterMembers = data.cluster?.memberCount ?? 0;
-  const clusterPeersReturned = data.peers.length;
-  const clusterPeersOnGraph = clusterPeersReturned;
-  const omittedClusterPeers = Math.max(0, totalClusterMembers - 1 - clusterPeersReturned);
-  const counterpartyOnlyOnGraph = bubbleNodes.filter(
-    n => n.role !== 'self' && n.role !== 'peer',
-  ).length;
-  const isFullCluster = data.peerSelection === 'full' || omittedClusterPeers === 0;
-  const sampledTxs = data.sampledRecentTxs ?? 300;
-
-  return (
-    <div className="animate-fade-in">
-      <div className="mb-3 flex flex-wrap items-center gap-4 text-caption text-muted">
-        <span className="flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded-full" style={{ background: COLORS.self }} />
-          This address
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded-full" style={{ background: COLORS.entity }} />
-          Same entity · inner ring
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded-full" style={{ background: COLORS.counterparty }} />
-          Recent partner · outer ring
-        </span>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_280px] gap-4">
-        <div
-          ref={containerRef}
-          className="relative rounded-xl border border-cipher-border overflow-hidden h-[560px]"
-          style={{ background: 'rgba(10, 14, 26, 0.4)' }}
-          onMouseLeave={() => setHoveredId(null)}
-        >
-          {width > 0 && bubbleNodes.length > 0 && (
-            <AddressBubbleMap
-              nodes={bubbleNodes}
-              width={width}
-              height={GRAPH_HEIGHT}
-              hoveredId={hoveredId}
-              onHover={setHoveredId}
-              onClick={openAddress}
-              colors={COLORS}
-            />
-          )}
+    const controller = new AbortController();
+    setLoading(true); setError(false); setData(null); setSelectedId(null);
+    fetch(`${getApiUrl()}/v1/addresses/${encodeURIComponent(address)}/graph`, { signal: controller.signal })
+      .then(readApiData<ConnectionsResponse>)
+      .then(result => { if (!controller.signal.aborted) setData(result); })
+      .catch(() => { if (!controller.signal.aborted) setError(true); })
+      .finally(() => { if (!controller.signal.aborted) setLoading(false); });
+    return () => controller.abort();
+  }, [address, attempt]);
+  const nodes = useMemo(() => data ? connectionNodes(data, mode) : [], [data, mode]);
+  const visible = useMemo(() => nodes.filter(node => `${node.id} ${node.label || ''}`.toLowerCase().includes(query.trim().toLowerCase())), [nodes, query]);
+  const selected = nodes.find(node => node.id === selectedId);
+  const cp = selected?.counterparty;
+  if (loading) return <AddressGraphSkeleton />;
+  if (error || !data) return <div role="status" className="rounded-xl border border-cipher-border p-8 text-center">
+    <p className="text-sm text-secondary">Address connections are unavailable right now.</p>
+    <button type="button" className="mt-4 rounded border border-cipher-border px-4 py-2 text-sm text-primary hover:bg-cipher-hover" onClick={() => setAttempt(value => value + 1)}>Try again</button>
+  </div>;
+  const clusterOmitted = Math.max(0, (data.cluster?.memberCount ?? 1) - 1 - data.peers.length);
+  return <section aria-label="Address connections" className="rounded-xl border border-cipher-border bg-cipher-surface overflow-hidden">
+    <div className="p-5 sm:p-6">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div><h2 className="text-base font-semibold text-primary">Explore address connections</h2>
+          <p className="mt-2 text-sm text-muted max-w-2xl">Inspect public transaction associations and inferred clusters. These connections do not establish identity or ownership.</p></div>
+        <div className="flex gap-1 rounded-lg border border-cipher-border p-1" aria-label="Connection type">
+          {(['recent', 'cluster'] as const).map(value => <button key={value} type="button" aria-pressed={mode === value}
+            onClick={() => { setMode(value); setSelectedId(null); setQuery(''); }}
+            className={`rounded px-3 py-2 text-xs font-mono transition-colors ${mode === value ? 'bg-cipher-hover text-primary' : 'text-muted hover:text-primary'}`}>
+            {value === 'recent' ? 'Recent connections' : 'Co-spend cluster'}
+          </button>)}
         </div>
-
-        <div className="rounded-xl border border-cipher-border bg-[rgba(10,14,26,0.4)] overflow-hidden flex flex-col h-[560px]">
-          <div className="px-3 py-2 border-b border-cipher-border text-caption font-mono tracking-wider uppercase text-muted">
-            {hovered ? 'Selection' : 'About this graph'}
-          </div>
-          <div className="flex-1 overflow-y-auto px-3 py-3 text-xs">
-            {hovered ? (
-              <>
-                <div className="flex items-start gap-2 mb-2">
-                  <span
-                    className="mt-1 w-2.5 h-2.5 shrink-0 rounded-full"
-                    style={{
-                      background:
-                        hovered.role === 'self'
-                          ? COLORS.self
-                          : hovered.sameEntity
-                            ? COLORS.entity
-                            : COLORS.counterparty,
-                    }}
-                  />
-                  <div className="min-w-0">
-                    <p className="font-medium text-primary truncate">
-                      {hovered.role === 'self' ? 'This address' : hovered.name || shortAddr(hovered.id)}
-                    </p>
-                    {hovered.name && (
-                      <p className="font-mono text-muted truncate mt-0.5">{shortAddr(hovered.id)}</p>
-                    )}
-                    {hovered.role === 'self' && !hovered.name && (
-                      <p className="font-mono text-muted truncate mt-0.5">{shortAddr(hovered.id)}</p>
-                    )}
-                  </div>
-                </div>
-
-                <p className="text-secondary leading-relaxed">{roleLabel(hovered)}</p>
-                <p className="text-muted mt-2 leading-relaxed">{roleExplanation(hovered)}</p>
-
-                {hovered.role === 'peer' && hovered.valueZec > 0 && (
-                  <p className="text-secondary mt-2 font-mono">
-                    Balance {fmtZec(hovered.valueZec)} ZEC
-                    {hovered.txCount > 0 && <span className="text-muted"> · {hovered.txCount} tx</span>}
-                  </p>
-                )}
-
-                {hovered.role !== 'peer' && hovered.role !== 'self' && hovered.valueZec > 0 && (
-                  <p className="text-secondary mt-2 font-mono leading-relaxed">
-                    {hovered.receivedZec > 0 && (
-                      <span className="block">They sent {fmtZec(hovered.receivedZec)} ZEC → this address</span>
-                    )}
-                    {hovered.sentZec > 0 && (
-                      <span className="block">This address sent {fmtZec(hovered.sentZec)} ZEC → them</span>
-                    )}
-                    {hovered.txCount > 0 && (
-                      <span className="block text-muted mt-1">{hovered.txCount} tx in sample</span>
-                    )}
-                  </p>
-                )}
-
-                {hovered.role !== 'self' && (
-                  <button
-                    type="button"
-                    onClick={() => openAddress(hovered.id)}
-                    className="mt-3 font-mono text-caption text-cipher-gold hover:text-primary transition-colors"
-                  >
-                    Open address →
-                  </button>
-                )}
-              </>
-            ) : (
-              <>
-                {data.cluster ? (
-                  <>
-                    <p className="text-secondary leading-relaxed">
-                      <span className="font-mono text-muted">CLUSTER #{data.cluster.clusterId}</span>
-                      {' · '}
-                      <strong className="text-primary">{totalClusterMembers.toLocaleString()} addresses</strong>
-                      {' '}in the full cluster (from our index — not capped).
-                    </p>
-                    <p className="text-primary mt-2 leading-relaxed">
-                      On the map:{' '}
-                      <strong>1</strong> (this address) +{' '}
-                      <strong>{clusterPeersOnGraph.toLocaleString()}</strong> tan cluster{' '}
-                      {clusterPeersOnGraph === 1 ? 'peer' : 'peers'}
-                      {counterpartyOnlyOnGraph > 0 && (
-                        <>
-                          {' '}+ <strong>{counterpartyOnlyOnGraph.toLocaleString()}</strong> blue recent{' '}
-                          {counterpartyOnlyOnGraph === 1 ? 'partner' : 'partners'}
-                        </>
-                      )}
-                      .
-                    </p>
-                    {isFullCluster ? (
-                      <p className="text-muted mt-2 leading-relaxed">
-                        All {totalClusterMembers.toLocaleString()} cluster addresses are on the map.
-                        {counterpartyOnlyOnGraph > 0 && (
-                          <> Blue bubbles are extra recent transaction partners not already drawn as tan peers.</>
-                        )}
-                      </p>
-                    ) : (
-                      <p className="text-muted mt-2 leading-relaxed">
-                        Tan peers are the top {clusterPeersReturned} cluster addresses by balance.{' '}
-                        {omittedClusterPeers.toLocaleString()} more cluster{' '}
-                        {omittedClusterPeers === 1 ? 'address is' : 'addresses are'} not shown (cluster too
-                        large for the full map — cap is 64).
-                      </p>
-                    )}
-                  </>
-                ) : (
-                  <p className="text-secondary leading-relaxed">
-                    This address is not in a multi-address entity cluster. The map shows recent transaction
-                    counterparties only.
-                  </p>
-                )}
-
-                <p className="text-muted mt-3 leading-relaxed">
-                  Clusters use the <strong className="text-secondary font-normal">common-input ownership heuristic</strong>:
-                  transparent addresses spent together in the same transaction are grouped as one wallet.
-                  This is a heuristic, not proof of ownership.
-                </p>
-
-                <p className="text-muted mt-3 leading-relaxed">
-                  <strong className="text-secondary font-normal">How addresses are chosen:</strong>{' '}
-                  tan peers {isFullCluster ? 'are every co-spent address in the cluster' : 'are ranked by on-chain balance'}.
-                  Blue partners are the top {API_MAX_COUNTERPARTIES} by ZEC moved in the last {sampledTxs}{' '}
-                  transactions (sampled for high-activity addresses like exchanges).
-                </p>
-
-                <p className="text-muted mt-3 leading-relaxed">
-                  Bubble size = balance (tan) or value moved (blue). Drag to rearrange; hover for details.
-                </p>
-              </>
-            )}
-          </div>
-        </div>
+      </div>
+      <div className="mt-5 flex flex-wrap gap-x-5 gap-y-2 text-xs font-mono text-muted">
+        <span className="text-secondary">{nodes.length} connected addresses shown</span>
+        <span>{mode === 'recent' ? (data.sampledRecentTxs ? `Up to ${data.sampledRecentTxs} recent transactions · top 20 by associated value` : 'Bounded recent transaction sample') : data.cluster ? `${data.cluster.memberCount.toLocaleString('en-US')} addresses in the indexed cluster, including this address` : 'No indexed co-spend cluster'}</span>
       </div>
     </div>
-  );
+    <div className="grid lg:grid-cols-[minmax(0,1fr)_300px] border-t border-cipher-border">
+      <div className="min-w-0 p-3 sm:p-4">
+        {nodes.length ? <AddressBubbleMap key={`${address}:${mode}`} nodes={nodes} mode={mode} selectedId={selectedId} onSelect={setSelectedId} /> : <div className="h-[440px] flex flex-col items-center justify-center gap-3 p-6 text-center"><h3 className="text-primary font-medium">No {mode === 'recent' ? 'recent connections' : 'co-spend peers'} found</h3><p className="text-sm text-muted max-w-sm">The index has no connections to display in this view. This does not establish whether the address has other activity.</p></div>}
+        <div className="px-2 pt-3 pb-1 flex flex-wrap gap-x-5 gap-y-2 text-xs text-muted">
+          <span>{mode === 'cluster' ? 'Dashed links · inferred cluster membership' : 'Solid links · shared transaction activity'}</span>
+          <span>Drag to rearrange · select to inspect · + / − to zoom</span>
+        </div>
+      </div>
+      <aside aria-label="Connection inspector" className="border-t lg:border-t-0 lg:border-l border-cipher-border p-5 lg:max-h-[520px] lg:overflow-y-auto">
+        {selected ? <div>
+          <div className="flex items-center justify-between gap-2"><h3 className="text-sm font-semibold text-primary">{selected.label || 'Selected address'}</h3><button type="button" className="px-2 py-1 text-xs text-muted hover:text-primary" onClick={() => setSelectedId(null)}>Clear</button></div>
+          <p className="mt-3 font-mono text-xs text-secondary break-all">{selected.id}</p>
+          <p className="mt-3 text-xs text-muted">{mode === 'cluster' ? 'Inferred co-spend cluster member' : 'Appears in the recent transaction sample'}{mode === 'recent' && (selected.peer || cp?.sameEntity) ? ' · Also in the inferred cluster' : ''}</p>
+          <dl className="mt-4 space-y-3 border-t border-cipher-border pt-4 text-xs">
+            {mode === 'recent' && cp ? <>
+              <div><dt className="text-muted">Associated input value</dt><dd className="mt-1 text-secondary font-mono">{amount(cp.receivedZec)} ZEC</dd></div>
+              <div><dt className="text-muted">Associated output value</dt><dd className="mt-1 text-secondary font-mono">{amount(cp.sentZec)} ZEC</dd></div>
+              <div><dt className="text-muted">Transactions in sample</dt><dd className="mt-1 text-secondary font-mono">{cp.txCount.toLocaleString('en-US')}</dd></div>
+            </> : selected.peer ? <>
+              <div><dt className="text-muted">Public balance</dt><dd className="mt-1 text-secondary font-mono">{amount(selected.peer.balanceZec)} ZEC</dd></div>
+              <div><dt className="text-muted">Indexed transactions</dt><dd className="mt-1 text-secondary font-mono">{selected.peer.txCount.toLocaleString('en-US')}</dd></div>
+            </> : null}
+          </dl>
+          <Link href={`/address/${selected.id}`} className="mt-5 inline-flex rounded border border-cipher-border px-3 py-2 text-xs font-mono text-primary hover:bg-cipher-hover">Open address →</Link>
+        </div> : <div><h3 className="text-sm font-semibold text-primary">Inspect a connection</h3><p className="mt-2 text-xs leading-relaxed text-muted">Select a node or choose an address below. Its details stay open while you explore.</p></div>}
+        <div className="mt-5 border-t border-cipher-border pt-4">
+          <label htmlFor="connection-search" className="text-xs text-muted">Find a displayed address or label</label>
+          <input id="connection-search" type="search" value={query} onChange={event => setQuery(event.target.value)} placeholder="Search connections…" className="mt-2 w-full rounded border border-cipher-border bg-cipher-bg px-3 py-2 text-xs text-primary focus:outline-none focus:ring-1 focus:ring-cipher-gold" />
+          <div className="mt-2 max-h-48 overflow-y-auto space-y-1" aria-label="Displayed connections">
+            {visible.map(node => <button key={node.id} type="button" onClick={() => setSelectedId(node.id)} aria-pressed={selectedId === node.id} className={`w-full text-left rounded px-3 py-2 font-mono text-xs ${selectedId === node.id ? 'text-primary bg-cipher-hover' : 'text-secondary hover:bg-cipher-hover'}`}>
+              <span className="block truncate">{node.label || short(node.id)}</span>{node.label && <span className="text-muted">{short(node.id)}</span>}
+            </button>)}
+            {!visible.length && <p className="py-3 text-xs text-muted">{query ? 'No matching connections.' : 'No addresses in this view.'}</p>}
+          </div>
+        </div>
+      </aside>
+    </div>
+    <details className="group border-t border-cipher-border">
+      <summary className="cursor-pointer px-5 sm:px-6 py-4 text-sm text-secondary hover:bg-cipher-hover">Data &amp; interpretation</summary>
+      <div className="px-5 sm:px-6 pt-4 pb-6 text-xs leading-relaxed text-muted space-y-3">
+        <p>Recent connections are the top 20 addresses by associated input/output value in a sample of up to {data.sampledRecentTxs ?? 300} recent indexed transactions. Input values belong to other addresses in transactions crediting this address; output values belong to other addresses in transactions spending from it. Multi-input transactions and change prevent these totals from being treated as exact payments between two addresses.</p>
+        <p>Co-spend clusters use the common-input heuristic, which groups transparent addresses spent together. Membership can be indirect and is not proof of shared ownership. {clusterOmitted > 0 ? `${clusterOmitted.toLocaleString('en-US')} additional cluster members are not shown; the returned peers are ranked by balance.` : 'The map displays the cluster peers returned by the index.'}</p>
+        <p>Node sizes are uniform and positions are for readability. Links do not represent live activity, geography or private shielded transfers.</p>
+      </div>
+    </details>
+  </section>;
 }

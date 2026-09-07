@@ -1,3 +1,4 @@
+import { CopyButton } from '@/components/CopyButton';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { buildPageMetadata, getAddressResolution, formatNumber, getBaseUrl } from '@/lib/seo';
@@ -53,7 +54,7 @@ function getAddressSummary(address: string, meta: AddressMeta | null): string {
   }
 
   if (meta.isShielded) {
-    return `${typeLabel} Zcash address. Its balance and transaction history are private.`;
+    return `${typeLabel} Zcash address. Shielded balances and activity are private.${meta.type === 'unified' ? ' Transparent receiver activity, if present, can be inspected separately.' : ''}`;
   }
 
   const transactionSummary = meta.txCount === 0
@@ -112,7 +113,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   const description = descParts.join(' ');
 
-  const hasPublicActivity = meta.txCount > 0 || (!meta.isShielded && meta.balance > 0);
+  const hasPublicActivity = !meta.isShielded && (meta.txCount > 0 || meta.balance > 0);
 
   return buildPageMetadata({
     title,
@@ -167,10 +168,10 @@ export default async function AddressLayout({
       <header className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 sm:pt-12">
         <span className="text-caption font-mono text-muted tracking-wider">&gt; ZCASH_ADDRESS</span>
         <h1 className="type-page mt-2 text-primary break-all">
-          <span className="block text-lg sm:text-xl font-semibold">Zcash Address</span>
-          <span className="block mt-2 text-sm sm:text-base font-mono font-normal">{address}</span>
+          <span className="block">Zcash address</span>
+          <span className="flex items-start gap-2 mt-3 text-sm sm:text-base font-mono font-normal"><span className="min-w-0 break-all">{address}</span><CopyButton text={address} label="address" size="md" /></span>
         </h1>
-        <p className="mt-2 text-sm text-secondary">{summary}</p>
+        <p className="mt-3 text-sm text-secondary">{meta?.isShielded ? `${typeLabel} address. Shielded balances and activity are private.` : 'Public balance, indexed activity and transparent address connections.'}</p>
       </header>
       <script
         type="application/ld+json"

@@ -1,114 +1,50 @@
 'use client';
 
-import Link from 'next/link';
-import { Card, CardHeader, CardBody } from '@/components/ui/Card';
-import { Badge } from '@/components/ui/Badge';
+import { useState } from 'react';
+import { DataTable, type DataTableColumn } from '@/components/ui/DataTable';
+import { HashLink } from '@/components/ui/HashLink';
 import { TokenChainIcon } from '@/components/TokenChainIcon';
-import { Icons } from './icons';
-import type { CrossChainActivity } from './types';
+import { RelativeTime } from '@/components/RelativeTime';
+import type { CrossChainActivity, CrossChainSwap } from './types';
 
-interface CrossChainTableProps {
-  crossChain: CrossChainActivity;
-}
-
-export function CrossChainTable({ crossChain }: CrossChainTableProps) {
-  return (
-    <div className="animate-fade-in-up stagger-4">
-      <Card>
-        <CardHeader>
-          <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full">
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-mono text-muted tracking-wider">&gt; BRIDGES</span>
-              <Badge color="gold">{crossChain.totalSwaps}</Badge>
-            </div>
-            <span className="text-xs sm:text-sm text-muted font-normal font-mono sm:ml-auto">
-              ${crossChain.totalVolumeUsd.toLocaleString(undefined, { maximumFractionDigits: 0 })} vol · <span className="text-cipher-green">{crossChain.entryCount} in</span> · <span className="text-danger">{crossChain.exitCount} out</span>
-            </span>
-          </div>
-        </CardHeader>
-        <CardBody>
-          <div className="overflow-x-auto -mx-6 px-6">
-            {/* Table Header */}
-            <div className="min-w-[800px] grid grid-cols-12 gap-3 px-4 py-2 mb-2 text-xs font-semibold text-muted uppercase tracking-wider border-b block-info-border">
-              <div className="col-span-1">Type</div>
-              <div className="col-span-3">From</div>
-              <div className="col-span-1"></div>
-              <div className="col-span-3">To</div>
-              <div className="col-span-2 text-right">Value</div>
-              <div className="col-span-2 text-right">ZEC TX</div>
-            </div>
-
-            {/* Swap Rows */}
-            <div className="max-h-[600px] overflow-y-auto space-y-2 min-w-[800px]">
-              {crossChain.swaps.map((swap) => {
-                const swapAge = (() => {
-                  const diffMs = Date.now() - swap.timestamp;
-                  const diffDays = Math.floor(diffMs / 86400000);
-                  const diffHours = Math.floor(diffMs / 3600000);
-                  const diffMins = Math.floor(diffMs / 60000);
-                  if (diffDays > 0) return `${diffDays}d ago`;
-                  if (diffHours > 0) return `${diffHours}h ago`;
-                  if (diffMins > 0) return `${diffMins}m ago`;
-                  return 'now';
-                })();
-                const fromChain = swap.direction === 'inflow' ? swap.sourceChain : 'zec';
-                const toChain = swap.direction === 'inflow' ? 'zec' : swap.destChain;
-
-                return (
-                  <div key={swap.id} className="grid grid-cols-12 gap-3 items-center block-tx-row p-3 rounded-lg border border-cipher-border hover:border-cipher-gold transition group">
-                    {/* Direction */}
-                    <div className="col-span-1">
-                      {swap.direction === 'inflow' ? (
-                        <Badge color="green" icon={<Icons.ArrowDown />}>IN</Badge>
-                      ) : (
-                        <Badge color="orange" icon={<Icons.ArrowUp />}>OUT</Badge>
-                      )}
-                    </div>
-
-                    {/* From */}
-                    <div className="col-span-3 flex items-center gap-2 min-w-0">
-                      <TokenChainIcon token={swap.sourceToken} chain={fromChain} size={24} />
-                      <span className="text-xs font-mono text-primary truncate">
-                        {swap.sourceAmount.toLocaleString(undefined, { maximumFractionDigits: 4 })} {swap.sourceToken}
-                      </span>
-                    </div>
-
-                    {/* Arrow */}
-                    <div className="col-span-1 text-center">
-                      <span className="text-muted text-xs">→</span>
-                    </div>
-
-                    {/* To */}
-                    <div className="col-span-3 flex items-center gap-2 min-w-0">
-                      <TokenChainIcon token={swap.destToken} chain={toChain} size={24} />
-                      <span className="text-xs font-mono text-primary truncate">
-                        {swap.destAmount.toLocaleString(undefined, { maximumFractionDigits: 4 })} {swap.destToken}
-                      </span>
-                    </div>
-
-                    {/* Value + Age */}
-                    <div className="col-span-2 text-right">
-                      <span className="text-xs text-muted font-mono block">${swap.sourceAmountUsd.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
-                      <span className="text-caption text-muted">{swapAge}</span>
-                    </div>
-
-                    {/* ZEC TX */}
-                    <div className="col-span-2 text-right">
-                      {swap.zecTxid ? (
-                        <Link href={`/tx/${swap.zecTxid}`} className="text-xs text-cipher-gold hover:underline font-mono group-hover:text-primary transition-colors">
-                          {swap.zecTxid.slice(0, 8)}...
-                        </Link>
-                      ) : (
-                        <span className="text-xs text-muted font-mono">--</span>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </CardBody>
-      </Card>
+export function CrossChainTable({ crossChain }: { crossChain: CrossChainActivity }) {
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
+  const totalPages = Math.max(1, Math.ceil(crossChain.swaps.length / pageSize));
+  const current = Math.min(page, totalPages);
+  const rows = crossChain.swaps.slice((current - 1) * pageSize, current * pageSize);
+  const leg = (swap: CrossChainSwap, side: 'source' | 'dest') => {
+    const token = side === 'source' ? swap.sourceToken : swap.destToken;
+    const chain = side === 'source' ? swap.sourceChain : swap.destChain;
+    const amount = side === 'source' ? swap.sourceAmount : swap.destAmount;
+    return <div className="flex items-center gap-2 py-2 whitespace-nowrap"><TokenChainIcon token={token} chain={chain} size={22} /><div>
+      <p className="text-xs font-mono text-primary">{amount.toLocaleString('en-US', { maximumFractionDigits: 8 })} {token}</p><p className="text-xs text-muted mt-0.5">{chain}</p>
+    </div></div>;
+  };
+  const columns: DataTableColumn<CrossChainSwap>[] = [
+    { id: 'tx', header: 'Zcash transaction', cell: swap => swap.zecTxid ? <HashLink value={swap.zecTxid} href={`/tx/${swap.zecTxid}`} lead={10} tail={6} responsive copy={false} /> : <span className="text-xs text-muted">Unavailable</span> },
+    { id: 'direction', header: 'Direction', cell: swap => <span className={`text-xs font-mono whitespace-nowrap ${swap.direction === 'inflow' ? 'text-cipher-green' : swap.direction === 'outflow' ? 'text-danger' : 'text-muted'}`}>{swap.direction === 'inflow' ? '↓ Into Zcash' : swap.direction === 'outflow' ? '↑ Out of Zcash' : swap.direction}</span> },
+    { id: 'source', header: 'From', cell: swap => leg(swap, 'source') },
+    { id: 'destination', header: 'To', cell: swap => leg(swap, 'dest') },
+    { id: 'value', header: 'Source value (USD)', align: 'right', cell: swap => <span className="text-xs font-mono text-secondary whitespace-nowrap">${swap.sourceAmountUsd.toLocaleString('en-US', { maximumFractionDigits: 2 })}</span> },
+    { id: 'age', header: 'Age', align: 'right', cell: swap => <RelativeTime timestamp={swap.timestamp / 1000} className="text-xs text-muted whitespace-nowrap" /> },
+  ];
+  return <section aria-label="Address bridges" className="space-y-4">
+    <div className="flex flex-wrap items-baseline justify-between gap-2"><h2 className="text-base font-semibold text-primary">Bridge activity</h2><p className="text-xs text-muted">Recorded cross-chain swaps associated with this address</p></div>
+    <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm font-mono text-secondary">
+      <span>{crossChain.swaps.length.toLocaleString('en-US')} returned records</span>
+      <span>${crossChain.totalVolumeUsd.toLocaleString('en-US', { maximumFractionDigits: 2 })} <span className="text-xs text-muted">recorded volume</span></span>
+      <span>{crossChain.entryCount} in <span className="text-muted">/</span> {crossChain.exitCount} out</span>
     </div>
-  );
+    <DataTable columns={columns} rows={rows} rowKey={swap => swap.id} size="comfortable" empty={<p className="p-8 text-sm text-center text-muted">No bridge records available.</p>}
+      footer={<p className="px-4 py-3 text-xs text-muted">This is the set returned by the bridge index, not a complete history of all cross-chain activity. USD values come from bridge records.</p>} />
+    {totalPages > 1 && <nav aria-label="Bridge pagination" className="flex flex-wrap items-center justify-between gap-3 py-2">
+      <p className="text-xs text-muted">{(current - 1) * pageSize + 1}–{Math.min(current * pageSize, crossChain.swaps.length)} of {crossChain.swaps.length} records</p>
+      <div className="flex items-center gap-3 text-xs font-mono">
+        <button type="button" disabled={current === 1} onClick={() => setPage(current - 1)} className="rounded border border-cipher-border px-3 py-2 text-secondary hover:bg-cipher-hover disabled:opacity-40">← Previous</button>
+        <span className="text-muted">{current} / {totalPages}</span>
+        <button type="button" disabled={current === totalPages} onClick={() => setPage(current + 1)} className="rounded border border-cipher-border px-3 py-2 text-secondary hover:bg-cipher-hover disabled:opacity-40">Next →</button>
+      </div>
+    </nav>}
+  </section>;
 }

@@ -56,3 +56,16 @@ test('transaction metadata resolves pending and missing v1 mempool records witho
     if(inMempool) { assert.equal(result.meta.status,'pending'); assert.equal(result.meta.txid,txid); }
   }
 });
+
+test('unified address metadata never advertises an aggregate public balance', async () => {
+  const seo = load('lib/seo.ts', {
+    '@/lib/api-client': api, react: { cache: fn => fn },
+    '@/lib/network': { getConfiguredNetwork: () => 'mainnet' },
+    '@/lib/api-config': { getApiUrlForNetwork: () => 'http://localhost:3002' },
+    '@/lib/server-fetch': { fetchWithDeadline: async () => response({ address: 'u1example', type: 'unified', balance: null, transactions: [] }) },
+  });
+  const result = await seo.getAddressResolution('u1example');
+  assert.equal(result.state, 'found');
+  assert.equal(result.meta.type, 'unified');
+  assert.equal(result.meta.isShielded, true);
+});

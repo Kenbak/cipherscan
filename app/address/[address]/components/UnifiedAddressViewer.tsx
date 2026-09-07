@@ -1,137 +1,32 @@
 'use client';
 
 import Link from 'next/link';
-import { Card, CardBody } from '@/components/ui/Card';
-import { Badge } from '@/components/ui/Badge';
 import { CopyButton } from '@/components/CopyButton';
-import type { UnifiedAddressComponents, UnifiedAddressTab } from './types';
+import { TxTypeBadge } from '@/components/ui/TxTypeBadge';
+import type { UnifiedAddressComponents } from './types';
 
-interface UnifiedAddressViewerProps {
-  address: string;
+export function UnifiedAddressViewer({ uaComponents, uaLoading, copiedText, onCopy }: {
   uaComponents: UnifiedAddressComponents | null;
   uaLoading: boolean;
-  selectedAddressTab: UnifiedAddressTab;
-  onSelectTab: (tab: UnifiedAddressTab) => void;
   copiedText: string | null;
   onCopy: (text: string, label: string) => void;
-}
-
-export function UnifiedAddressViewer({
-  address,
-  uaComponents,
-  uaLoading,
-  selectedAddressTab,
-  onSelectTab,
-  copiedText,
-  onCopy,
-}: UnifiedAddressViewerProps) {
-  return (
-    <div className="mb-6 animate-fade-in-up stagger-2">
-      <Card>
-        <CardBody>
-          <div className="flex items-center gap-2 mb-4">
-            <span className="text-xs font-mono text-muted tracking-wider">&gt; ADDRESS_COMPONENTS</span>
-          </div>
-
-          {uaLoading ? (
-            <div className="flex items-center gap-2 text-xs text-muted">
-              <div className="animate-spin rounded-full h-3 w-3 border border-cipher-gold border-t-transparent" />
-              <span className="font-mono">Decoding unified address...</span>
-            </div>
-          ) : uaComponents ? (
-            <>
-              {/* Tabs */}
-              <div className="inline-flex">
-                <div className="filter-group inline-flex mb-4">
-                  <button
-                    onClick={() => onSelectTab('unified')}
-                    className={`filter-btn ${selectedAddressTab === 'unified' ? 'filter-btn-active' : ''}`}
-                  >
-                    Unified
-                  </button>
-                  <button
-                    onClick={() => uaComponents.has_transparent && onSelectTab('transparent')}
-                    disabled={!uaComponents.has_transparent}
-                    className={`filter-btn ${selectedAddressTab === 'transparent' ? 'filter-btn-active' : ''} ${!uaComponents.has_transparent ? 'opacity-30 cursor-not-allowed' : ''}`}
-                  >
-                    Transparent
-                  </button>
-                  <button
-                    onClick={() => uaComponents.has_sapling && onSelectTab('sapling')}
-                    disabled={!uaComponents.has_sapling}
-                    className={`filter-btn ${selectedAddressTab === 'sapling' ? 'filter-btn-active' : ''} ${!uaComponents.has_sapling ? 'opacity-30 cursor-not-allowed' : ''}`}
-                  >
-                    Sapling
-                  </button>
-                </div>
-              </div>
-
-              {/* Tab Content */}
-              <div className="p-4 rounded-lg bg-cipher-surface/50 border border-glass-4">
-                {selectedAddressTab === 'unified' && (
-                  <div>
-                    <div className="flex items-center gap-2 mb-2">
-                      <Badge color="purple">UNIFIED</Badge>
-                      <span className="text-caption text-muted font-mono">contains all receivers</span>
-                    </div>
-                    <div className="flex items-start gap-2">
-                      <code className="text-xs text-secondary break-all font-mono flex-1 leading-relaxed">{address}</code>
-                      <CopyButton text={address} label="unified" copiedText={copiedText} onCopy={onCopy} />
-                    </div>
-                  </div>
-                )}
-
-                {selectedAddressTab === 'transparent' && uaComponents.has_transparent && uaComponents.transparent_address && (
-                  <div>
-                    <div className="flex items-center gap-2 mb-2">
-                      <Badge color="muted">TRANSPARENT</Badge>
-                      <span className="text-caption text-muted font-mono">public on-chain</span>
-                    </div>
-                    <div className="flex items-start gap-2 mb-4">
-                      <code className="text-xs text-cipher-gold break-all font-mono flex-1 leading-relaxed">{uaComponents.transparent_address}</code>
-                      <CopyButton text={uaComponents.transparent_address} label="transparent" copiedText={copiedText} onCopy={onCopy} />
-                    </div>
-                    <Link
-                      href={`/address/${uaComponents.transparent_address}`}
-                      className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-brand-gold/10 text-cipher-gold text-sm font-medium hover:bg-brand-gold/20 transition-colors"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                      </svg>
-                      View Transactions
-                    </Link>
-                  </div>
-                )}
-
-                {selectedAddressTab === 'sapling' && uaComponents.has_sapling && (
-                  <div>
-                    <div className="flex items-center gap-2 mb-2">
-                      <Badge color="purple">SAPLING</Badge>
-                      <span className="text-caption text-muted font-mono">shielded receiver</span>
-                    </div>
-                    {uaComponents.sapling_address ? (
-                      <div className="flex items-start gap-2">
-                        <code className="text-xs text-cipher-green break-all font-mono flex-1 leading-relaxed">{uaComponents.sapling_address}</code>
-                        <CopyButton text={uaComponents.sapling_address} label="sapling" copiedText={copiedText} onCopy={onCopy} />
-                      </div>
-                    ) : (
-                      <p className="text-sm text-muted font-mono">Receiver present — address encoding unavailable</p>
-                    )}
-                  </div>
-                )}
-
-              </div>
-            </>
-          ) : (
-            <div className="p-4 rounded-lg bg-cipher-surface/50 border border-glass-4">
-              <div className="flex items-start gap-2">
-                <code className="text-xs text-secondary break-all font-mono flex-1">{address}</code>
-                <CopyButton text={address} label="address" copiedText={copiedText} onCopy={onCopy} />
-              </div>
-            </div>
-          )}
-        </CardBody>
-      </Card>
-    </div>
-  );
+}) {
+  const receivers = uaComponents ? [
+    { key: 'transparent' as const, present: uaComponents.has_transparent, address: uaComponents.transparent_address },
+    { key: 'sapling' as const, present: uaComponents.has_sapling, address: uaComponents.sapling_address && /^(zs|ztestsapling)1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]+$/.test(uaComponents.sapling_address) ? uaComponents.sapling_address : null },
+    { key: 'orchard' as const, present: uaComponents.has_orchard, address: null },
+  ].filter(receiver => receiver.present) : [];
+  return <section aria-label="Unified address receivers" className="rounded-xl border border-cipher-border bg-cipher-surface overflow-hidden">
+    <div className="p-5 sm:p-6"><h2 className="text-base font-semibold text-primary">Address receivers</h2><p className="mt-2 text-sm text-muted">Decoded locally from the address. Receiver details do not reveal shielded activity.</p></div>
+    {uaLoading ? <p role="status" className="px-5 sm:px-6 pb-6 text-sm text-muted">Decoding receivers…</p> : !uaComponents ? <p role="status" className="px-5 sm:px-6 pb-6 text-sm text-muted">Receiver decoding is unavailable. This does not mean the address is empty or has no shielded receivers.</p> : <div className="divide-y divide-cipher-border border-t border-cipher-border">
+      {receivers.map(receiver => <div key={receiver.key} className="grid sm:grid-cols-[150px_minmax(0,1fr)] gap-4 p-5 sm:p-6">
+        <div><TxTypeBadge category={receiver.key} /></div>
+        <div className="min-w-0">
+          {receiver.address ? <div className="flex items-start gap-2"><code className="min-w-0 break-all text-xs text-secondary">{receiver.address}</code><CopyButton text={receiver.address} label={receiver.key} copiedText={copiedText} onCopy={onCopy} /></div> : <p className="text-sm text-secondary">Receiver present · use the Unified Address</p>}
+          {receiver.key === 'transparent' && receiver.address ? <Link className="inline-flex mt-3 rounded border border-cipher-border px-3 py-2 text-xs font-mono text-primary hover:bg-cipher-hover" href={`/address/${receiver.address}`}>View transparent activity →</Link> : <p className="text-xs text-muted mt-2">Balance and history remain private.</p>}
+        </div>
+      </div>)}
+      {!receivers.length && <p className="p-5 text-sm text-muted">No supported receiver details were returned by the decoder.</p>}
+    </div>}
+  </section>;
 }

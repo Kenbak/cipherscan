@@ -14,6 +14,9 @@ export interface Transaction {
   blockHeight?: number;
   from?: string | null;
   to?: string | null;
+  hasIronwood?: boolean;
+  hasOrchard?: boolean;
+  hasSapling?: boolean;
   isCoinbase?: boolean;
   isShielded?: boolean;
   isDeshielding?: boolean;

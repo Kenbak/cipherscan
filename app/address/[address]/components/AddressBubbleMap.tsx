@@ -1,482 +1,101 @@
 'use client';
 
+import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { ChartWatermark } from '@/components/ChartWatermark';
-import { useRef, useEffect, useCallback } from 'react';
-import { Delaunay } from 'd3-delaunay';
+import type { ConnectionNode } from './address-connections';
 
-export type BubbleRole = 'self' | 'peer' | 'inflow' | 'outflow';
+const HEIGHT = 440;
+const short = (address: string) => `${address.slice(0, 6)}…${address.slice(-4)}`;
 
-export interface BubbleNode {
-  id: string;
-  role: BubbleRole;
-  name: string | null;
-  sameEntity: boolean;
-  valueZec: number;
-  sentZec: number;
-  receivedZec: number;
-  txCount: number;
-  radius: number;
-  x: number;
-  y: number;
-  vx: number;
-  vy: number;
-  targetX: number;
-  targetY: number;
-}
-
-interface AddressBubbleMapProps {
-  nodes: BubbleNode[];
-  width: number;
-  height: number;
-  hoveredId: string | null;
-  onHover: (id: string | null) => void;
-  onClick: (id: string) => void;
-  colors: {
-    self: string;
-    entity: string;
-    counterparty: string;
-    text: string;
-    textDim: string;
+/** A bounded, labelled relationship diagram. Positions and sizes do not encode money. */
+export function AddressBubbleMap({ nodes, selectedId, onSelect, mode }: {
+  nodes: ConnectionNode[];
+  selectedId: string | null;
+  onSelect: (id: string | null) => void;
+  mode: 'recent' | 'cluster';
+}) {
+  const container = useRef<HTMLDivElement>(null);
+  const svg = useRef<SVGSVGElement>(null);
+  const [width, setWidth] = useState(720);
+  const [view, setView] = useState({ x: 0, y: 0, zoom: 1 });
+  const [positions, setPositions] = useState<Record<string, { x: number; y: number }>>({});
+  const drag = useRef<{ id: string | null; x: number; y: number; moved: boolean } | null>(null);
+  const gridId = useId().replace(/:/g, '');
+  useEffect(() => {
+    const element = container.current;
+    if (!element) return;
+    const observer = new ResizeObserver(entries => setWidth(Math.max(320, entries[0].contentRect.width)));
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
+  const layout = useMemo(() => nodes.map((node, index) => {
+    const ring = nodes.length > 24 ? Math.floor(index / 20) : 0;
+    const inRing = nodes.length > 24 ? Math.min(20, nodes.length - ring * 20) : nodes.length;
+    const angle = ((nodes.length > 24 ? index % 20 : index) / Math.max(1, inRing)) * Math.PI * 2 - Math.PI / 2 + ring * .14;
+    const scale = nodes.length > 24 ? .48 + ring * .23 : 1;
+    return { ...node, x: width / 2 + Math.cos(angle) * (width / 2 - 65) * scale, y: HEIGHT / 2 + Math.sin(angle) * 155 * scale };
+  }), [nodes, width]);
+  const reset = () => { setView({ x: 0, y: 0, zoom: 1 }); setPositions({}); };
+  const point = (event: React.PointerEvent<SVGSVGElement>) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    return { x: (event.clientX - rect.left) * width / rect.width, y: (event.clientY - rect.top) * HEIGHT / rect.height };
   };
-}
-
-function nodeColor(n: Pick<BubbleNode, 'role' | 'sameEntity'>, colors: AddressBubbleMapProps['colors']) {
-  if (n.role === 'self') return colors.self;
-  if (n.sameEntity) return colors.entity;
-  return colors.counterparty;
-}
-
-function hashUnit(s: string) {
-  let h = 2166136261;
-  for (let i = 0; i < s.length; i++) {
-    h ^= s.charCodeAt(i);
-    h = Math.imul(h, 16777619);
-  }
-  return ((h >>> 0) % 10000) / 10000;
-}
-
-function shortAddr(addr: string) {
-  return `${addr.slice(0, 6)}…${addr.slice(-4)}`;
-}
-
-export function AddressBubbleMap({
-  nodes,
-  width,
-  height,
-  hoveredId,
-  onHover,
-  onClick,
-  colors,
-}: AddressBubbleMapProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const simNodesRef = useRef<BubbleNode[]>([]);
-  const animRef = useRef(0);
-  const hoveredRef = useRef<string | null>(null);
-  const dragRef = useRef<{
-    id: string;
-    moved: boolean;
-    startX: number;
-    startY: number;
-    offsetX: number;
-    offsetY: number;
-    lastX: number;
-    lastY: number;
-    vx: number;
-    vy: number;
-  } | null>(null);
-
-  // Sync simulation state when graph data changes
-  useEffect(() => {
-    simNodesRef.current = nodes.map(n => ({
-      ...n,
-      vx: 0,
-      vy: 0,
-    }));
-  }, [nodes]);
-
-  // Keep hover ref in sync for animation loop
-  useEffect(() => {
-    hoveredRef.current = hoveredId;
-  }, [hoveredId]);
-
-  // Animation + rendering
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas || width <= 0 || height <= 0) return;
-
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    const dpr = window.devicePixelRatio || 1;
-    canvas.width = width * dpr;
-    canvas.height = height * dpr;
-    canvas.style.width = `${width}px`;
-    canvas.style.height = `${height}px`;
-
-    const cx = width / 2;
-    const cy = height / 2;
-
-    const tick = () => {
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      ctx.clearRect(0, 0, width, height);
-
-      const sim = simNodesRef.current;
-      if (!sim.length) {
-        animRef.current = requestAnimationFrame(tick);
-        return;
-      }
-
-      const activeHover = hoveredRef.current;
-      const drag = dragRef.current;
-      const hub = sim.find(n => n.role === 'self');
-      const hx = hub?.x ?? cx;
-      const hy = hub?.y ?? cy;
-
-      // ── Physics ────────────────────────────────────────────────────────
-      for (const n of sim) {
-        if (drag?.id === n.id) continue;
-
-        if (n.role === 'self') {
-          n.vx *= 0.85;
-          n.vy *= 0.85;
-          n.x += n.vx;
-          n.y += n.vy;
-          const m = n.radius + 8;
-          n.x = Math.max(m, Math.min(width - m, n.x));
-          n.y = Math.max(m, Math.min(height - m, n.y));
-          continue;
-        }
-
-        // Zone pull — peers orbit the hub, inflow left, outflow right
-        if (n.role === 'peer' && hub) {
-          const angle = Math.atan2(n.targetY - cy, n.targetX - cx);
-          const r = Math.hypot(n.targetX - cx, n.targetY - cy);
-          const tx = hx + Math.cos(angle) * r;
-          const ty = hy + Math.sin(angle) * r;
-          n.vx += (tx - n.x) * 0.018;
-          n.vy += (ty - n.y) * 0.018;
-        } else {
-          n.vx += (n.targetX - n.x) * 0.018;
-          n.vy += (n.targetY - n.y) * 0.018;
-        }
-
-        // Hovered bubble pushes neighbors away (bubble-map hover lift)
-        if (activeHover && activeHover !== n.id) {
-          const h = sim.find(b => b.id === activeHover);
-          if (h) {
-            const dx = n.x - h.x;
-            const dy = n.y - h.y;
-            const dist = Math.hypot(dx, dy) || 1;
-            const range = h.radius + n.radius + (activeHover === h.id ? 0 : 36);
-            if (dist < range) {
-              const f = (1 - dist / range) * 0.35;
-              n.vx += (dx / dist) * f;
-              n.vy += (dy / dist) * f;
-            }
-          }
-        }
-
-        n.vx *= 0.88;
-        n.vy *= 0.88;
-
-        const speed = Math.hypot(n.vx, n.vy);
-        const maxSpeed = activeHover === n.id ? 0.15 : 2.8;
-        if (speed > maxSpeed) {
-          n.vx = (n.vx / speed) * maxSpeed;
-          n.vy = (n.vy / speed) * maxSpeed;
-        }
-
-        n.x += n.vx;
-        n.y += n.vy;
-      }
-
-      // Collisions
-      for (let i = 0; i < sim.length; i++) {
-        for (let j = i + 1; j < sim.length; j++) {
-          const a = sim[i];
-          const b = sim[j];
-          if (a.role === 'self' || b.role === 'self') continue;
-          const dx = b.x - a.x;
-          const dy = b.y - a.y;
-          let dist = Math.hypot(dx, dy);
-          if (dist < 0.01) dist = 0.01;
-          const hoverPad =
-            (activeHover === a.id ? 14 : 0) + (activeHover === b.id ? 14 : 0);
-          const minDist = a.radius + b.radius + 6 + hoverPad;
-          if (dist < minDist) {
-            const push = (minDist - dist) * 0.45;
-            const ux = dx / dist;
-            const uy = dy / dist;
-            if (drag?.id !== a.id) {
-              a.x -= ux * push;
-              a.y -= uy * push;
-            }
-            if (drag?.id !== b.id) {
-              b.x += ux * push;
-              b.y += uy * push;
-            }
-          }
-        }
-      }
-
-      // Hub collision — nothing overlaps the anchor
-      if (hub) {
-        for (const n of sim) {
-          if (n.role === 'self') continue;
-          const dx = n.x - hub.x;
-          const dy = n.y - hub.y;
-          const dist = Math.hypot(dx, dy) || 1;
-          const minDist = hub.radius + n.radius + 10;
-          if (dist < minDist) {
-            const push = minDist - dist;
-            n.x += (dx / dist) * push;
-            n.y += (dy / dist) * push;
-          }
-        }
-      }
-
-      // Soft bounds
-      for (const n of sim) {
-        if (n.role === 'self') continue;
-        const m = n.radius + 8;
-        if (n.x < m) n.x = m;
-        if (n.x > width - m) n.x = width - m;
-        if (n.y < m) n.y = m;
-        if (n.y > height - m) n.y = height - m;
-      }
-
-      // ── Draw links to hub ────────────────────────────────────────────
-      if (hub) {
-        for (const n of sim) {
-          if (n.role === 'self') continue;
-          const active =
-            activeHover && (activeHover === n.id || activeHover === hub.id);
-          ctx.beginPath();
-          ctx.moveTo(hub.x, hub.y);
-          ctx.lineTo(n.x, n.y);
-          ctx.strokeStyle = n.sameEntity
-            ? active
-              ? 'rgba(232, 196, 141, 0.75)'
-              : 'rgba(232, 196, 141, 0.18)'
-            : active
-              ? 'rgba(91, 156, 246, 0.8)'
-              : 'rgba(91, 156, 246, 0.22)';
-          ctx.lineWidth = active ? 1.8 : 0.9;
-          ctx.globalAlpha = activeHover && !active ? 0.25 : 1;
-          ctx.stroke();
-          ctx.globalAlpha = 1;
-        }
-      }
-
-      // ── Draw bubbles ─────────────────────────────────────────────────
-      for (const n of sim) {
-        const isActive = activeHover === n.id;
-        const isDimmed = Boolean(activeHover) && !isActive && n.role !== 'self';
-        const r = n.radius * (isActive ? 1.12 : 1);
-        const fill = nodeColor(n, colors);
-
-        if (isActive) {
-          ctx.beginPath();
-          ctx.arc(n.x, n.y, r + 8, 0, Math.PI * 2);
-          ctx.fillStyle = fill;
-          ctx.globalAlpha = 0.2;
-          ctx.fill();
-          ctx.globalAlpha = 1;
-        }
-
-        ctx.beginPath();
-        ctx.arc(n.x, n.y, r, 0, Math.PI * 2);
-        ctx.fillStyle = fill;
-        ctx.globalAlpha = isDimmed ? 0.22 : isActive || n.role === 'self' ? 1 : 0.9;
-        ctx.fill();
-        ctx.globalAlpha = 1;
-
-        ctx.strokeStyle = isActive ? 'rgba(255,255,255,0.85)' : 'rgba(255,255,255,0.25)';
-        ctx.lineWidth = isActive ? 2 : 0.8;
-        ctx.beginPath();
-        ctx.arc(n.x, n.y, r, 0, Math.PI * 2);
-        ctx.stroke();
-
-        if (n.role === 'self' || n.name || isActive) {
-          const label = n.role === 'self' ? 'This address' : n.name || shortAddr(n.id);
-          ctx.font = `${n.role === 'self' || n.name ? '600' : '400'} 11px ui-monospace, monospace`;
-          ctx.fillStyle = isDimmed ? colors.textDim : isActive || n.name ? colors.text : colors.textDim;
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'top';
-          ctx.fillText(label, n.x, n.y + r + 5);
-        }
-      }
-
-      animRef.current = requestAnimationFrame(tick);
-    };
-
-    animRef.current = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(animRef.current);
-  }, [width, height, colors]);
-
-  const findNodeAt = useCallback(
-    (mx: number, my: number): BubbleNode | null => {
-      const sim = simNodesRef.current;
-      if (!sim.length) return null;
-
-      const points: [number, number][] = sim.map(n => [n.x, n.y]);
-      const delaunay = Delaunay.from(points);
-      const idx = delaunay.find(mx, my);
-      const n = sim[idx];
-      if (!n) return null;
-      // Voronoi picks the nearest cell; cap distance so empty corners stay clear
-      const dx = n.x - mx;
-      const dy = n.y - my;
-      const maxDist = Math.max(n.radius * 2.5, 44);
-      if (dx * dx + dy * dy > maxDist * maxDist) return null;
-      return n;
-    },
-    [],
-  );
-
-  const handleMouseMove = useCallback(
-    (e: React.MouseEvent<HTMLCanvasElement>) => {
-      const canvas = canvasRef.current;
-      if (!canvas) return;
-      const rect = canvas.getBoundingClientRect();
-      const mx = e.clientX - rect.left;
-      const my = e.clientY - rect.top;
-
-      const drag = dragRef.current;
-      if (drag) {
-        const n = simNodesRef.current.find(b => b.id === drag.id);
-        if (n) {
-          n.x = mx + drag.offsetX;
-          n.y = my + drag.offsetY;
-          drag.vx = drag.vx * 0.65 + (mx - drag.lastX) * 0.35;
-          drag.vy = drag.vy * 0.65 + (my - drag.lastY) * 0.35;
-          drag.lastX = mx;
-          drag.lastY = my;
-          if (Math.hypot(mx - drag.startX, my - drag.startY) > 5) drag.moved = true;
-          canvas.style.cursor = 'grabbing';
-        }
-        return;
-      }
-
-      const hit = findNodeAt(mx, my);
-      hoveredRef.current = hit?.id ?? null;
-      onHover(hit?.id ?? null);
-      canvas.style.cursor = hit ? 'grab' : 'default';
-    },
-    [findNodeAt, onHover],
-  );
-
-  const handleMouseDown = useCallback(
-    (e: React.MouseEvent<HTMLCanvasElement>) => {
-      const canvas = canvasRef.current;
-      if (!canvas) return;
-      const rect = canvas.getBoundingClientRect();
-      const mx = e.clientX - rect.left;
-      const my = e.clientY - rect.top;
-      const hit = findNodeAt(mx, my);
-      if (!hit) return;
-      dragRef.current = {
-        id: hit.id,
-        moved: false,
-        startX: mx,
-        startY: my,
-        offsetX: hit.x - mx,
-        offsetY: hit.y - my,
-        lastX: mx,
-        lastY: my,
-        vx: 0,
-        vy: 0,
-      };
-    },
-    [findNodeAt],
-  );
-
-  const handleMouseUp = useCallback(
-    (e: React.MouseEvent<HTMLCanvasElement>) => {
-      const drag = dragRef.current;
-      if (!drag) return;
-      const n = simNodesRef.current.find(b => b.id === drag.id);
-      if (n) {
-        if (!drag.moved) {
-          onClick(n.id);
-        } else {
-          n.vx = Math.max(-6, Math.min(6, drag.vx));
-          n.vy = Math.max(-6, Math.min(6, drag.vy));
-        }
-      }
-      dragRef.current = null;
-      const canvas = canvasRef.current;
-      if (canvas) canvas.style.cursor = 'default';
-    },
-    [onClick],
-  );
-
-  const handleMouseLeave = useCallback(() => {
-    dragRef.current = null;
-    hoveredRef.current = null;
-    onHover(null);
-    const canvas = canvasRef.current;
-    if (canvas) canvas.style.cursor = 'default';
-  }, [onHover]);
-
-  return (
-    <div ref={containerRef} className="relative w-full" style={{ height }}>
-      <ChartWatermark size="map" />
-      <canvas
-        ref={canvasRef}
-        className="block w-full"
-        style={{ height }}
-        onMouseMove={handleMouseMove}
-        onMouseDown={handleMouseDown}
-        onMouseUp={handleMouseUp}
-        onMouseLeave={handleMouseLeave}
-      />
+  const buttonClass = 'rounded border border-cipher-border px-3 py-2 text-xs font-mono text-secondary hover:bg-cipher-hover hover:text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-cipher-gold';
+  return <div ref={container} className="relative min-w-0 bg-cipher-bg rounded-lg overflow-hidden">
+    <div className="absolute top-3 left-3 z-10 flex gap-1.5 bg-cipher-surface rounded-lg p-1">
+      <button type="button" aria-label="Zoom out" className={buttonClass} disabled={view.zoom <= .6} onClick={() => setView(v => ({ ...v, zoom: Math.max(.6, v.zoom - .2) }))}>−</button>
+      <button type="button" aria-label="Zoom in" className={buttonClass} disabled={view.zoom >= 2.4} onClick={() => setView(v => ({ ...v, zoom: Math.min(2.4, v.zoom + .2) }))}>+</button>
+      <button type="button" className={buttonClass} onClick={reset}>Reset view</button>
     </div>
-  );
-}
-
-/** Assign initial positions + zone targets for the bubble simulation. */
-export function buildBubbleNodes(
-  raw: Omit<BubbleNode, 'x' | 'y' | 'vx' | 'vy' | 'targetX' | 'targetY'>[],
-  width: number,
-  height: number,
-): BubbleNode[] {
-  const cx = width / 2;
-  const cy = height / 2;
-  const spread = Math.min(width, height);
-  const peers = raw.filter(r => r.role === 'peer');
-  const counterparties = raw.filter(r => r.role === 'inflow' || r.role === 'outflow');
-
-  return raw.map(n => {
-    let x = cx;
-    let y = cy;
-    let targetX = cx;
-    let targetY = cy;
-    const jitter = (salt: string, amp: number) => (hashUnit(n.id + salt) - 0.5) * amp;
-
-    if (n.role === 'peer') {
-      const peerIdx = peers.findIndex(p => p.id === n.id);
-      const perRing = peers.length <= 14 ? peers.length : 14;
-      const ring = Math.floor(peerIdx / perRing);
-      const idxInRing = peerIdx % perRing;
-      const countInRing = Math.min(perRing, peers.length - ring * perRing);
-      const angle = (idxInRing / Math.max(countInRing, 1)) * Math.PI * 2 + ring * 0.4;
-      const r = spread * (0.14 + ring * 0.07);
-      targetX = cx + Math.cos(angle) * r;
-      targetY = cy + Math.sin(angle) * r;
-      x = targetX + jitter('x', 20);
-      y = targetY + jitter('y', 20);
-    } else if (n.role === 'inflow' || n.role === 'outflow') {
-      const idx = counterparties.findIndex(p => p.id === n.id);
-      const angle = (idx / Math.max(counterparties.length, 1)) * Math.PI * 2;
-      const r = spread * 0.38;
-      targetX = cx + Math.cos(angle) * r;
-      targetY = cy + Math.sin(angle) * r;
-      x = targetX + jitter('x', 36);
-      y = targetY + jitter('y', 36);
-    }
-
-    return { ...n, x, y, vx: 0, vy: 0, targetX, targetY };
-  });
+    <svg ref={svg} role="group" aria-label="Interactive address connections. Select a node to inspect; drag nodes or the background to rearrange." viewBox={`0 0 ${width} ${HEIGHT}`} className="block w-full touch-none" style={{ height: HEIGHT }}
+      onPointerDown={event => {
+        if (event.button !== 0) return;
+        const target = (event.target as Element).closest('[data-node]');
+        drag.current = { id: target?.getAttribute('data-node') || null, ...point(event), moved: false };
+        event.currentTarget.setPointerCapture(event.pointerId);
+      }}
+      onPointerMove={event => {
+        if (!drag.current) return;
+        const p = point(event), previous = drag.current;
+        const dx = p.x - previous.x, dy = p.y - previous.y;
+        if (Math.abs(dx) + Math.abs(dy) < 2 && !previous.moved) return;
+        previous.moved = true;
+        if (previous.id) {
+          const node = layout.find(n => n.id === previous.id);
+          if (node) setPositions(current => { const old = current[node.id] || node; return { ...current, [node.id]: { x: old.x + dx / view.zoom, y: old.y + dy / view.zoom } }; });
+        } else setView(v => ({ ...v, x: v.x + dx, y: v.y + dy }));
+        previous.x = p.x; previous.y = p.y;
+      }}
+      onPointerUp={event => {
+        if (drag.current && !drag.current.moved) onSelect(drag.current.id);
+        drag.current = null;
+        if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+      }} onPointerCancel={() => { drag.current = null; }}>
+      <defs><pattern id={gridId} width="24" height="24" patternUnits="userSpaceOnUse"><circle cx="1" cy="1" r=".8" className="fill-muted" opacity=".15" /></pattern></defs>
+      <rect width={width} height={HEIGHT} fill={`url(#${gridId})`} />
+      <g transform={`translate(${width / 2 + view.x} ${HEIGHT / 2 + view.y}) scale(${view.zoom}) translate(${-width / 2} ${-HEIGHT / 2})`}>
+        {layout.map(node => {
+          const p = positions[node.id] || node;
+          return <line key={node.id} x1={width / 2} y1={HEIGHT / 2} x2={p.x} y2={p.y}
+            className={selectedId === node.id ? 'stroke-cipher-gold' : 'stroke-muted'}
+            strokeWidth={selectedId === node.id ? 2 : 1} strokeDasharray={mode === 'cluster' ? '4 5' : undefined}
+            opacity={selectedId && selectedId !== node.id ? .12 : selectedId === node.id ? .85 : .35} />;
+        })}
+        <circle cx={width / 2} cy={HEIGHT / 2} r="28" className="fill-cipher-surface stroke-cipher-gold" strokeWidth="2" />
+        <circle cx={width / 2} cy={HEIGHT / 2} r="5" className="fill-cipher-gold" />
+        <text x={width / 2} y={HEIGHT / 2 + 47} textAnchor="middle" className="fill-primary font-mono" fontSize="12">This address</text>
+        {layout.map((node, index) => {
+          const p = positions[node.id] || node, selected = selectedId === node.id;
+          return <g key={node.id} data-node={node.id} role="button" tabIndex={0} aria-label={`Inspect ${node.label || node.id}`} aria-pressed={selected}
+            className="cursor-grab outline-none group" onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); onSelect(node.id); } }}>
+            <title>{node.label ? `${node.label} · ` : ''}{node.id}</title>
+            <circle cx={p.x} cy={p.y} r="20" fill="transparent" className="group-focus-visible:stroke-cipher-gold" strokeWidth="2" />
+            <circle cx={p.x} cy={p.y} r={selected ? 11 : 8} className={selected ? 'fill-cipher-gold stroke-cipher-gold' : 'fill-cipher-surface stroke-secondary'} strokeWidth="2" opacity={selectedId && !selected ? .4 : 1} />
+            {(selected || (!selectedId && (nodes.length <= 10 || index % Math.ceil(nodes.length / 8) === 0))) && <text x={p.x} y={p.y + 29} textAnchor="middle" fontSize="11" className="fill-secondary font-mono pointer-events-none">{node.label ? node.label.slice(0, 19) : short(node.id)}</text>}
+          </g>;
+        })}
+      </g>
+    </svg>
+    <ChartWatermark size="map" />
+  </div>;
 }

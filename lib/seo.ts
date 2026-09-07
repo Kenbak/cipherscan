@@ -398,7 +398,7 @@ export const getAddressResolution = cache(async (address: string): Promise<Addre
     if (!res.ok) return { state: 'unavailable' };
     const data = await readApiData(res);
 
-    const isShielded = data.type === 'shielded' || (data.note && (
+    const isShielded = data.type === 'shielded' || data.type === 'unified' || (data.note && (
       data.note.includes('Shielded address') ||
       data.note.includes('Fully shielded')
     ));

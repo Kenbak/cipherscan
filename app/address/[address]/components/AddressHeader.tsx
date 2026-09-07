@@ -3,7 +3,6 @@
 import { ExportButton } from '@/components/ExportButton';
 import { AddressLabel } from '@/components/AddressLabel';
 import { Badge } from '@/components/ui/Badge';
-import { CopyButton } from '@/components/CopyButton';
 import { Icons } from './icons';
 import type { AddressData, Transaction } from './types';
 
@@ -15,21 +14,19 @@ interface AddressHeaderProps {
     color: string;
     description: string;
   };
-  copiedText: string | null;
-  onCopy: (text: string, label: string) => void;
 }
 
 export function AddressHeader({
   address,
   data,
   typeInfo,
-  copiedText,
-  onCopy,
 }: AddressHeaderProps) {
   return (
-    <div className="mb-6 animate-fade-in-up">
-      <div className="flex items-start justify-between gap-2 sm:gap-4 mb-2">
-        <span className="text-caption font-mono text-muted tracking-wider">&gt; ADDRESS_DETAILS</span>
+    <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+      <div className="flex flex-wrap items-center gap-3">
+        <Badge color={typeInfo.color as 'purple' | 'gold' | 'muted'} icon={<Icons.Shield />}>{typeInfo.label}</Badge>
+        <AddressLabel address={address} />
+      </div>
         <ExportButton
           data={{
             address: data.address,
@@ -63,17 +60,6 @@ export function AddressHeader({
             tx.amount.toFixed(8),
           ]}
         />
-      </div>
-
-      <Badge color={typeInfo.color as 'purple' | 'gold' | 'muted'} icon={<Icons.Shield />}>
-        {typeInfo.label}
-      </Badge>
-
-      <div className="flex flex-wrap items-center gap-2 mt-2">
-        <code className="text-sm text-secondary break-all font-mono">{address}</code>
-        <CopyButton text={address} label="address" copiedText={copiedText} onCopy={onCopy} />
-        <AddressLabel address={address} />
-      </div>
     </div>
   );
 }

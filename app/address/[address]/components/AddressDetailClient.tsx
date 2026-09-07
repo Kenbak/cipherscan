@@ -11,30 +11,18 @@ import { zatToZec } from '@/lib/format-numbers';
 import { AddressHeader } from './AddressHeader';
 import { AddressHeroCard } from './AddressHeroCard';
 import { AddressTabBar } from './AddressTabBar';
-import { AddressLoadingSkeleton } from './AddressLoadingSkeleton';
+import { AddressLoadingSkeleton, AddressGraphSkeleton } from './AddressLoadingSkeleton';
 import { EmptyAddressView, IndexingIssueView } from './AddressStateViews';
 import { ShieldedAddressView } from './ShieldedAddressView';
 import { CrossChainTable } from './CrossChainTable';
 import { TransactionTable } from './TransactionTable';
-import { AddressSummary } from './AddressSummary';
 
-// AddressGraph pulls in d3-delaunay (via AddressBubbleMap) for its bubble
-// layout. It's below-fold behind the "Graph" tab (not the default active
-// tab), so most address-page visits never need it — dynamic-import it into
-// its own chunk instead of paying for it on every address-page load.
+// Load the interactive connections workspace only when it is opened.
 const AddressGraph = dynamic(
   () => import('./AddressGraph').then((mod) => mod.AddressGraph),
   {
     ssr: false,
-    loading: () => (
-      <div
-        className="h-64 rounded-xl border border-cipher-border bg-cipher-surface animate-pulse"
-        role="status"
-        aria-live="polite"
-      >
-        <span className="sr-only">Loading address graph…</span>
-      </div>
-    ),
+    loading: () => <AddressGraphSkeleton />,
   },
 );
 import {
@@ -49,7 +37,6 @@ import type {
   AddressTab,
   CrossChainActivity,
   PriceData,
-  UnifiedAddressTab,
   UnifiedAddressComponents,
 } from './types';
 
@@ -74,8 +61,7 @@ export function AddressDetailClient({ address, initialMeta = null }: AddressDeta
   const [totalPages, setTotalPages] = useState(1);
 
   const [uaComponents, setUaComponents] = useState<UnifiedAddressComponents | null>(null);
-  const [uaLoading, setUaLoading] = useState(false);
-  const [selectedAddressTab, setSelectedAddressTab] = useState<UnifiedAddressTab>('unified');
+  const [uaLoading, setUaLoading] = useState(() => address.startsWith('u1') || address.startsWith('utest'));
 
   const copyToClipboard = async (text: string, label: string) => {
     try {
@@ -88,6 +74,7 @@ export function AddressDetailClient({ address, initialMeta = null }: AddressDeta
   };
 
   const fetchPageData = useCallback(async () => {
+    if (initialMeta?.isShielded) { setLoading(false); return; }
     try {
       setLoading(true);
 
@@ -139,13 +126,15 @@ export function AddressDetailClient({ address, initialMeta = null }: AddressDeta
     } finally {
       setLoading(false);
     }
-  }, [address, currentPage]);
+  }, [address, currentPage, initialMeta?.isShielded]);
 
   useEffect(() => {
     fetchPageData();
   }, [fetchPageData]);
 
   useEffect(() => {
+    let cancelled = false;
+    setUaComponents(null);
     const decodeUA = async () => {
       if (!address.startsWith('u1') && !address.startsWith('utest')) {
         return;
@@ -154,21 +143,24 @@ export function AddressDetailClient({ address, initialMeta = null }: AddressDeta
       try {
         setUaLoading(true);
         const components = await decodeUnifiedAddress(address);
-        setUaComponents(components);
+        if (!cancelled) setUaComponents(components);
       } catch (error) {
         console.error('Failed to decode unified address:', error);
       } finally {
-        setUaLoading(false);
+        if (!cancelled) setUaLoading(false);
       }
     };
     decodeUA();
+    return () => { cancelled = true; };
   }, [address]);
 
-  if (loading) {
+  const privateLookup = initialMeta?.isShielded || isShieldedAddress(data);
+
+  if (loading && !privateLookup) {
     return <AddressLoadingSkeleton initialMeta={initialMeta} address={address} />;
   }
 
-  const shielded = isShieldedAddress(data);
+  const shielded = privateLookup;
   const noTransactions = hasNoTransactions(data);
   const indexingIssue = hasIndexingIssue(data, shielded, noTransactions);
 
@@ -181,8 +173,6 @@ export function AddressDetailClient({ address, initialMeta = null }: AddressDeta
         isUnified={isUnified}
         uaComponents={uaComponents}
         uaLoading={uaLoading}
-        selectedAddressTab={selectedAddressTab}
-        onSelectTab={setSelectedAddressTab}
         copiedText={copiedText}
         onCopy={copyToClipboard}
       />
@@ -213,20 +203,18 @@ export function AddressDetailClient({ address, initialMeta = null }: AddressDeta
   const totalTxCount = data.transactionCount || data.transactions.length;
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-12 animate-fade-in">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-5 pb-12 animate-fade-in">
       <AddressHeader
         address={address}
         data={data}
         typeInfo={typeInfo}
-        copiedText={copiedText}
-        onCopy={copyToClipboard}
       />
 
       <AddressHeroCard
         data={data}
         priceData={priceData}
         crossChain={crossChain}
-        summary={<AddressSummary data={data} totalTxCount={totalTxCount} />}
+        totalTxCount={totalTxCount}
       />
 
       <AddressTabBar
