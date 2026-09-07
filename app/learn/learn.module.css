@@ -122,22 +122,13 @@
 .heroActions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 24px; }
 .heroActions .button { padding: 9px 12px; gap: 8px; font-size: .75rem; }
 .intro p.heroNote { font-size: .75rem; color: var(--color-text-muted); margin: 12px 0 0; }
-.terminal { border: 1px solid var(--color-border); border-radius: 12px; background: var(--color-surface); overflow: hidden; }
-.terminalBar { display: flex; align-items: center; justify-content: space-between; padding: 14px 20px; border-bottom: 1px solid var(--color-border); color: var(--color-text-muted); font: .75rem var(--font-geist-mono), monospace; }
+.terminal { width: 100%; max-width: 520px; justify-self: end; border: 1px solid var(--color-border); border-radius: 12px; background: var(--color-surface); overflow: hidden; }
+.terminalBar { display: flex; align-items: center; justify-content: space-between; padding: 8px 16px; border-bottom: 1px solid var(--color-border); color: var(--color-text-muted); font: .75rem var(--font-geist-mono), monospace; }
 .terminalBar > span:first-child { display: flex; gap: 10px; align-items: center; }
 .terminalDot { width: 7px; height: 7px; background: var(--color-shielded-ink); border-radius: 50%; }
-.terminalBody { padding: 24px; font: .875rem/1.9 var(--font-geist-mono), monospace; }
-.terminalCommand { margin-bottom: 14px; }
-.terminalCommand > span:first-child { color: var(--color-shielded-ink); padding-right: 8px; }
+.terminalBody { padding: 16px; font: .875rem/1.55 var(--font-geist-mono), monospace; }
 .terminalCursor { color: var(--color-shielded-ink); animation: terminalCursor 0.8s step-end 4; }
-.terminalLine { white-space: pre; animation: terminalReveal .35s both; }
-.terminalLine > span, .terminalBracket { color: var(--color-text-muted); }
-.terminalLine strong { color: var(--color-shielded-ink); font-weight: 400; }
-.terminalFooter { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin: 0 24px; padding: 14px 0; border-top: 1px solid var(--color-border); font-size: .75rem; color: var(--color-text-secondary); }
-.terminalFooter button { cursor: pointer; color: var(--color-text-muted); padding: 6px; border-radius: 4px; }
-.terminalFooter button:hover { color: var(--color-text-primary); background: var(--color-hover); }
-.terminalFooter button:focus-visible { outline: 2px solid var(--color-shielded-ink); outline-offset: 3px; }
-.terminalAttribution { padding: 0 24px 16px; text-align: right; font: .75rem var(--font-geist-mono), monospace; color: var(--color-text-muted); }
+.terminalFooter { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin: 0 16px; padding: 10px 0; border-top: 1px solid var(--color-border); font-size: .75rem; color: var(--color-text-secondary); }
 .readingCard { position: relative; padding: 24px; border-block: 1px solid var(--color-border); background: linear-gradient(120deg, rgb(var(--color-gold-rgb) / .05), transparent 65%); display: flex; flex-direction: column; align-items: flex-start; }
 .readingCard h3, .cypherpunk h3 { font-size: 1.375rem; font-weight: 600; letter-spacing: -.025em; margin-top: 12px; }
 .readingCard p, .cypherpunk p { color: var(--color-text-secondary); font-size: .875rem; line-height: 1.7; margin: 12px 0 20px; }
@@ -146,25 +137,24 @@
 .cypherpunk p:last-child { margin-bottom: 0; }
 .cypherpunk strong { color: var(--color-text-primary); font-weight: 500; }
 .cypherpunk .inlineLinks { flex-wrap: wrap; gap: 12px 24px; }
-@keyframes terminalReveal { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes terminalCursor { 50% { opacity: 0; } }
-@media (prefers-reduced-motion: reduce) { .terminalLine, .terminalCursor { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .terminalCursor { animation: none; } }
 @media (max-width: 640px) {
   .sectionTransition { gap: 14px; }
   .sectionTransition .meta { display: none; }
   .sectionTransition svg { height: 32px; }
-  .terminalBody { padding: 20px; }
+  .terminal { max-width: none; }
   .cypherpunk { grid-template-columns: 1fr; gap: 4px; padding: 20px; }
   .readingCard { padding: 20px; }
 }
 
 .heroHeader { margin-bottom: 16px; }
-.heroNav { margin-top: 28px; margin-bottom: 0; }
+.heroNav { margin-top: 28px; margin-bottom: 0; padding-top: 20px; border-top: 1px solid var(--color-border); }
 .heroNav + .steps { margin-top: 0; border-top: 0; }
 .comparison { align-self: start; }
-.terminalBody { height: calc(17.1em + 48px); white-space: pre; color: var(--color-text-secondary); font-family: var(--font-geist-mono), monospace; }
+.terminalBody { height: calc(13.95em + 32px); white-space: pre; color: var(--color-text-secondary); font-family: var(--font-geist-mono), monospace; }
 .terminalBar button { cursor: pointer; padding: 6px; border-radius: 4px; color: var(--color-text-muted); }
 .terminalBar button:hover { color: var(--color-text-primary); background: var(--color-hover); }
 .terminalBar button:focus-visible { outline: 2px solid var(--color-shielded-ink); outline-offset: 3px; }
-.terminalFooter { padding-bottom: 18px; }
+.terminalFooter { padding-bottom: 12px; }
 .terminalBrand { font-family: var(--font-geist-mono), monospace; color: var(--color-text-muted); }
