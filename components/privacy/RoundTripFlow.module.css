@@ -1,8 +1,8 @@
 /* Round-trip flow.
    Mobile: one column with a vertical rail down the left.
    Desktop: two endpoint panels either side of a centred rail.
-   Endpoint content is left-aligned at both sizes — centring each stage was
-   what made the three columns read as ragged, undifferentiated stacks. */
+   Desktop endpoint blocks are centred in equal-width columns; their labels
+   and values remain left-aligned for scanning. */
 
 .flow {
   position: relative;
@@ -179,8 +179,16 @@
     padding-left: 0;
   }
 
+  .stage {
+    width: min(100%, 18rem);
+    justify-self: center;
+  }
+
   .stageKey {
     margin-left: 0;
+    width: fit-content;
+    padding-right: 8px;
+    background: var(--color-surface-solid);
   }
 
   .stageKey > span:first-child {
