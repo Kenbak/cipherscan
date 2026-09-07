@@ -21,8 +21,12 @@ function initialGlyphs(): string[] {
   return Array.from({ length: LENGTH }, () => '█');
 }
 
-/** A durable hidden amount, never a loading state or an estimated value. */
-export function RedactedAmount({ className = '' }: { className?: string }) {
+/** A durable hidden value, never a loading state or an estimated value. */
+export function RedactedAmount({
+  className = '',
+  label = 'Amount hidden — fully shielded transaction',
+  unit = 'ZEC',
+}: { className?: string; label?: string; unit?: string | null }) {
   const [glyphs, setGlyphs] = useState<string[]>(initialGlyphs);
 
   useEffect(() => {
@@ -53,11 +57,11 @@ export function RedactedAmount({ className = '' }: { className?: string }) {
 
   return (
     <IconTooltip
-      label="Amount hidden — fully shielded transaction"
+      label={label}
       className={`font-mono text-sm text-secondary whitespace-nowrap ${className}`}
     >
       <span aria-hidden="true" className="redacted-blocks">{glyphs.map((glyph, i) => <span key={i}>{glyph}</span>)}</span>
-      <span aria-hidden="true" className="text-muted ml-1.5">ZEC</span>
+      {unit && <span aria-hidden="true" className="text-muted ml-1.5">{unit}</span>}
     </IconTooltip>
   );
 }

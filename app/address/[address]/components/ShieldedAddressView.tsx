@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { Badge } from '@/components/ui/Badge';
+import { RedactedAmount } from '@/components/ui/RedactedAmount';
 import { Icons } from './icons';
 import { UnifiedAddressViewer } from './UnifiedAddressViewer';
 import type { UnifiedAddressComponents } from './types';
@@ -25,8 +26,20 @@ export function ShieldedAddressView({ isUnified, uaComponents, uaLoading, copied
         </div>
       </div>
       <dl className="grid sm:grid-cols-2 gap-5 border-t border-cipher-border mt-6 pt-5 text-sm">
-        <div><dt className="text-xs text-muted">Shielded balance</dt><dd className="mt-1 font-mono text-secondary">Not publicly visible</dd></div>
-        <div><dt className="text-xs text-muted">Shielded transaction history</dt><dd className="mt-1 font-mono text-secondary">Not publicly visible</dd></div>
+        <div>
+          <dt className="text-xs text-muted">Shielded balance</dt>
+          <dd className="mt-3 space-y-2">
+            <RedactedAmount label="Shielded balance is private" />
+            <p className="text-xs text-muted">Not publicly visible</p>
+          </dd>
+        </div>
+        <div>
+          <dt className="text-xs text-muted">Shielded transaction history</dt>
+          <dd className="mt-3 space-y-2">
+            <RedactedAmount label="Shielded transaction history is private" unit={null} />
+            <p className="text-xs text-muted">Not publicly visible</p>
+          </dd>
+        </div>
       </dl>
     </section>
     {isUnified && <UnifiedAddressViewer uaComponents={uaComponents} uaLoading={uaLoading} copiedText={copiedText} onCopy={onCopy} />}
