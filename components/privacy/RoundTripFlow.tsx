@@ -1,4 +1,3 @@
-import type { ReactNode } from 'react';
 import { ShieldedIcon, ShieldingIcon, UnshieldingIcon } from '@/components/icons/shield-flow';
 import { HashLink } from '@/components/ui/HashLink';
 import { CURRENCY } from '@/lib/config';
@@ -13,31 +12,21 @@ function formatAmount(value: number) {
   return value.toLocaleString(undefined, { maximumFractionDigits: 8 });
 }
 
-/** Label/value pair on a shared label column, so values line up down the panel. */
-function Row({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <div className={styles.row}>
-      <span className={styles.rowLabel}>{label}</span>
-      <span className={styles.rowValue}>{children}</span>
-    </div>
-  );
-}
-
 function PublicAddresses({ addresses, side }: { addresses: string[]; side: 'From' | 'To' }) {
   const unique = [...new Set(addresses || [])];
-  if (unique.length === 0) return <Row label={side}><span className="text-muted">Not supplied</span></Row>;
   return (
     <>
-      <Row label={unique.length > 1 ? `${side} (${unique.length})` : side}>
-        <HashLink
+      <div className={styles.address}>
+        <span className={styles.addressLabel}>{side}{unique.length > 1 ? ` (${unique.length})` : ''}</span>
+        {unique[0] ? <HashLink
           value={unique[0]}
           href={`/address/${unique[0]}`}
           lead={10}
           tail={8}
           copy={false}
-          linkClassName="font-mono text-data text-primary hover:underline"
-        />
-      </Row>
+          linkClassName="font-mono text-xs text-primary hover:underline"
+        /> : <span className="text-xs text-muted">Not supplied</span>}
+      </div>
       {unique.length > 1 && (
         <details className={styles.more}>
           <summary>+{unique.length - 1} more public {side === 'From' ? 'input' : 'output'} addresses</summary>
@@ -93,7 +82,7 @@ function Endpoint({
       </span>
       <p className={styles.stageKey}>
         {shielding ? 'Shielding' : 'Deshielding'}
-        <span className="text-muted"> · {pool || (shielding ? 'into pool' : 'out of pool')}</span>
+        <span className={styles.pool}>· {pool || (shielding ? 'into pool' : 'out of pool')}</span>
       </p>
 
       {/* The amount is the evidence, so it leads the panel. */}
@@ -103,14 +92,13 @@ function Endpoint({
 
       <div className={styles.rows}>
         <PublicAddresses addresses={addresses} side={shielding ? 'From' : 'To'} />
-        <Row label="Tx">
-          <HashLink value={txid} href={`/tx/${txid}`} copy={false} />
-        </Row>
-        <Row label="Time">
-          <time dateTime={new Date(time * 1000).toISOString()} className="font-mono text-data text-muted">
-            {eventTime(time)} UTC
-          </time>
-        </Row>
+        <div className={styles.eventMeta}>
+          <span>Transaction</span>
+          <HashLink value={txid} href={`/tx/${txid}`} copy={false} linkClassName="font-mono text-xs text-secondary hover:text-primary hover:underline" />
+        </div>
+        <time dateTime={new Date(time * 1000).toISOString()} className={styles.eventTime}>
+          {eventTime(time)} UTC
+        </time>
       </div>
     </div>
   );

@@ -1,8 +1,8 @@
 /* Round-trip flow.
    Mobile: one column with a vertical rail down the left.
    Desktop: two endpoint panels either side of a centred rail.
-   Desktop markers and amounts share three equal columns. Label/value rows
-   retain their own left-aligned grid beneath each endpoint. */
+   Desktop markers and amounts share three equal columns. Address links lead
+   the supporting details; transaction and time use a quieter second tier. */
 
 .flow {
   position: relative;
@@ -32,10 +32,16 @@
   display: flex;
   align-items: center;
   gap: 7px;
-  font: 500 var(--text-caption)/1.4 var(--font-geist-mono);
-  letter-spacing: 0.035em;
-  text-transform: uppercase;
+  font-size: var(--text-data);
+  font-weight: 500;
+  line-height: 1.4;
   color: var(--color-text-primary);
+}
+
+.pool {
+  font-weight: 400;
+  text-transform: capitalize;
+  color: var(--color-text-muted);
 }
 
 .endpointMarker {
@@ -52,14 +58,14 @@
 
 .amount {
   margin-top: 10px;
-  font: 500 1.375rem/1.2 var(--font-geist-mono);
+  font: 400 1.25rem/1.3 var(--font-geist-mono);
   font-variant-numeric: tabular-nums lining-nums;
   letter-spacing: -0.02em;
   color: var(--color-text-primary);
 }
 
 .amountUnit {
-  font-size: 0.875rem;
+  font-size: var(--text-caption);
   font-weight: 400;
   color: var(--color-text-muted);
 }
@@ -67,32 +73,35 @@
 .rows {
   margin-top: 12px;
   display: grid;
-  gap: 5px;
+  gap: 6px;
 }
 
-/* Shared label column so values align down the panel. */
-.row {
-  display: grid;
-  grid-template-columns: 62px minmax(0, 1fr);
-  gap: 10px;
+.address,
+.eventMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
   align-items: baseline;
 }
 
-.rowLabel {
-  font: 400 var(--text-caption)/1.5 var(--font-geist-mono);
+.addressLabel,
+.eventMeta,
+.eventTime {
+  font-size: var(--text-caption);
+  line-height: 1.5;
   color: var(--color-text-muted);
 }
 
-.rowValue {
-  min-width: 0;
-  overflow-wrap: anywhere;
-  font-size: var(--text-data);
-  color: var(--color-text-secondary);
+.eventMeta {
+  margin-top: 4px;
+}
+
+.eventTime {
+  font-variant-numeric: tabular-nums;
 }
 
 .more {
   margin-top: 4px;
-  margin-left: 72px;
   font-size: var(--text-caption);
   color: var(--color-text-secondary);
 }
@@ -126,13 +135,16 @@
 }
 
 .linkDelay {
-  font: 400 var(--text-data)/1.4 var(--font-geist-mono);
+  font-size: var(--text-data);
+  font-weight: 500;
+  line-height: 1.4;
   color: var(--color-text-primary);
 }
 
 .linkMatch {
   margin-top: 3px;
-  font: 400 var(--text-caption)/1.5 var(--font-geist-mono);
+  font-size: var(--text-caption);
+  line-height: 1.5;
   color: var(--color-text-secondary);
 }
 
@@ -206,13 +218,14 @@
     margin-inline: auto;
   }
 
-  .row {
-    grid-template-columns: 38px minmax(0, 1fr);
-    gap: 8px;
+  .address,
+  .eventMeta {
+    justify-content: center;
   }
 
+  .eventTime,
   .more {
-    margin-left: 46px;
+    text-align: center;
   }
 
   .caveat {
