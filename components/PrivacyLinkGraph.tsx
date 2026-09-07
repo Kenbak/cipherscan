@@ -1,20 +1,15 @@
 'use client';
 
+import { useTheme } from '@/contexts/ThemeContext';
 import { ChartWatermark } from '@/components/ChartWatermark';
+import { HashLink } from '@/components/ui/HashLink';
+import { riskButtonClass } from '@/components/privacy/RiskEvidence';
 import '@xyflow/react/dist/style.css';
 import styles from './PrivacyLinkGraph.module.css';
-
-import { memo, useMemo } from 'react';
+import { memo, useMemo, useState, useCallback } from 'react';
 import {
-  Background,
-  Controls,
-  Handle,
-  MarkerType,
-  Position,
-  ReactFlow,
-  type Edge,
-  type Node,
-  type NodeProps,
+  Background, Controls, Handle, Position, ReactFlow, applyNodeChanges, BaseEdge, EdgeLabelRenderer, getSmoothStepPath,
+  type Edge, type EdgeProps, type Node, type NodeProps, type NodeChange, type ReactFlowInstance,
 } from '@xyflow/react';
 
 interface PrivacyGraphNode {
@@ -25,268 +20,116 @@ interface PrivacyGraphNode {
   blockTime?: number;
   subtitle?: string;
 }
+interface GraphEdge { id: string; source: string; target: string; type: string; confidence: number; label?: string }
+interface PrivacyLinkGraphProps { nodes: PrivacyGraphNode[]; edges: GraphEdge[]; focusNodeId?: string; height?: number }
+type GraphNodeData = Record<string, unknown> & PrivacyGraphNode;
 
-interface GraphEdge {
-  id: string;
-  source: string;
-  target: string;
-  type: string;
-  confidence: number;
-  label?: string;
-}
-
-interface PrivacyLinkGraphProps {
-  nodes: PrivacyGraphNode[];
-  edges: GraphEdge[];
-  focusNodeId?: string;
-  height?: number;
-}
-
-function truncateLabel(label: string) {
-  return label.length > 18 ? `${label.slice(0, 18)}...` : label;
-}
-
-type GraphNodeData = Record<string, unknown> & PrivacyGraphNode & { isFocus: boolean };
-
-const palettes = {
-  txFocus: {
-    border: 'border-cipher-gold/50',
-    bg: 'bg-brand-gold/10',
-    title: 'text-cipher-gold',
-    label: 'var(--color-gold-glow, #F8BC21)',
-    amount: 'var(--color-text-primary)',
-  },
-  tx: {
-    border: 'border-cipher-gold-muted/40',
-    bg: 'bg-brand-gold/5',
-    title: 'text-cipher-gold-muted',
-    label: 'var(--color-gold-muted, #B59959)',
-    amount: 'var(--color-text-primary)',
-  },
-  cluster: {
-    border: 'border-cipher-green/40',
-    bg: 'bg-cipher-green/10',
-    title: 'text-cipher-green',
-    label: 'var(--color-green, #65C79A)',
-    amount: 'var(--color-text-primary)',
-  },
-  address: {
-    border: 'border-cipher-border',
-    bg: 'bg-cipher-surface',
-    title: 'text-secondary',
-    label: 'var(--color-text-secondary)',
-    amount: 'var(--color-text-primary)',
-  },
-  pool: {
-    border: 'border-cipher-shielded/30',
-    bg: 'bg-cipher-shielded/5',
-    title: 'text-cipher-shielded',
-    label: 'var(--color-shielded-ink)',
-    amount: 'var(--color-text-primary)',
-  },
-};
-
-function GraphCardNode({ data }: NodeProps) {
+function GraphCardNode({ data, selected }: NodeProps) {
   const node = data as GraphNodeData;
+  const privatePool = node.type === 'pool';
+  const label = node.label.length > 22 ? `${node.label.slice(0, 10)}…${node.label.slice(-7)}` : node.label;
+  return <div className={`${styles.node} ${selected ? styles.selected : ''} ${privatePool ? styles.pool : ''} ${node.type === 'address' ? styles.addressNode : ''}`}>
+    <Handle type="target" position={Position.Left} className={styles.handle} />
+    <p className={`text-xs ${privatePool ? 'text-cipher-shielded' : 'text-muted'}`}>{privatePool ? 'Shielded activity' : node.subtitle || node.type}</p>
+    <p className="mt-2 text-sm font-mono text-primary">{privatePool ? 'Not observable' : label}</p>
+    {node.amountZec != null && <p className="mt-2 font-mono text-sm text-primary">{node.amountZec.toLocaleString(undefined, { maximumFractionDigits: 8 })} <span className="text-muted text-xs">ZEC</span></p>}
+    {privatePool && <p className="mt-2 text-xs text-muted">Internal transfers are hidden</p>}
+    <Handle type="source" position={Position.Right} className={styles.handle} />
+  </div>;
+}
+const nodeTypes = { evidence: memo(GraphCardNode) };
+function EvidenceEdge(props: EdgeProps) {
+  const [path, x, y] = getSmoothStepPath(props);
+  return <><BaseEdge path={path} style={props.style} /><EdgeLabelRenderer>{props.label && <span className="absolute pointer-events-none rounded px-2 py-1 text-xs text-secondary bg-cipher-bg" style={{ transform: `translate(-50%, -100%) translate(${x}px, ${y - 58}px)` }}>{props.label}</span>}</EdgeLabelRenderer></>;
+}
+const edgeTypes = { evidence: EvidenceEdge };
 
-  const palette =
-    node.type === 'pool' ? palettes.pool
-    : node.type === 'transaction' ? (node.isFocus ? palettes.txFocus : palettes.tx)
-    : node.type === 'cluster' ? palettes.cluster
-    : palettes.address;
+// Layout encodes roles only. Neither distance nor line width encodes money or certainty.
+function layoutNodes(nodes: PrivacyGraphNode[], edges: GraphEdge[]): Node[] {
+  const pool = nodes.some(node => node.type === 'pool');
+  const columns = new Map<number, number>();
+  return [...new Map(nodes.map(node => [node.id, node])).values()].map(node => {
+    let column = 0;
+    if (pool) {
+      if (node.type === 'pool') column = 2;
+      else if (node.type === 'transaction') column = edges.some(edge => edge.target === node.id && edge.source.startsWith('pool:')) ? 3 : 1;
+      else column = edges.some(edge => edge.source === node.id) ? 0 : 4;
+    } else {
+      if (node.type === 'cluster') column = 1;
+      else if (node.type === 'address') column = edges.some(edge => edge.source === node.id) ? 0 : 2;
+      else column = edges.some(edge => edge.target === node.id && nodes.some(n => n.id === edge.source && n.type === 'transaction')) ? 1 : 0;
+    }
+    const row = columns.get(column) || 0;
+    columns.set(column, row + 1);
+    return { id: node.id, type: 'evidence', position: { x: column * 255, y: row * (node.type === 'address' ? 105 : 145) }, data: { ...node }, ariaLabel: `${node.subtitle || node.type}: ${node.label}` };
+  });
+}
 
-  if (node.type === 'pool') {
-    return (
-      <div className={`rounded-xl border border-dashed px-5 py-3.5 backdrop-blur-sm ${palette.border} ${palette.bg}`}>
-        <Handle type="target" position={Position.Left} className="!h-2.5 !w-2.5 !border-0 !bg-white/20 !rounded-full" />
-        <div className="flex items-center gap-2">
-          <svg className="w-3.5 h-3.5 text-cipher-shielded shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-          </svg>
-          <p className={`text-caption font-mono uppercase tracking-[0.12em] ${palette.title} opacity-80`}>
-            Shielded Pool
-          </p>
-        </div>
-        <p className="mt-1 text-caption text-muted">Privacy boundary</p>
-        <Handle type="source" position={Position.Right} className="!h-2.5 !w-2.5 !border-0 !bg-white/20 !rounded-full" />
-      </div>
-    );
-  }
+export function PrivacyLinkGraph(props: PrivacyLinkGraphProps) {
+  // Remount graph state for a different evidence set; selections and drags stay local.
+  const nodes = [...new Map(props.nodes.map(node => [node.id, node])).values()];
+  const identity = nodes.map(node => node.id).join('|');
+  return <EvidenceGraph key={identity} {...props} nodes={nodes} />;
+}
 
-  return (
-    <div className={`max-w-[180px] rounded-xl border px-4 py-3 shadow-lg backdrop-blur-sm ${palette.border} ${palette.bg}`}>
-      <Handle type="target" position={Position.Left} className="!h-2.5 !w-2.5 !border-0 !bg-white/20 !rounded-full" />
-      <p className={`text-caption font-mono uppercase tracking-[0.12em] opacity-70 ${palette.title}`}>
-        {node.type}
-      </p>
-      <p
-        className="mt-1 text-caption font-medium leading-tight font-mono"
-        style={{ color: palette.label, opacity: 0.9 }}
-      >
-        {truncateLabel(node.label)}
-      </p>
-      {node.amountZec !== undefined && (
-        <p className="mt-1 text-caption font-mono text-primary">
-          {node.amountZec.toFixed(4)} ZEC
-        </p>
-      )}
-      {node.subtitle && (
-        <p className="mt-0.5 text-caption leading-snug text-muted">{node.subtitle}</p>
-      )}
-      <Handle type="source" position={Position.Right} className="!h-2.5 !w-2.5 !border-0 !bg-white/20 !rounded-full" />
+function EvidenceGraph({ nodes, edges, focusNodeId, height = 320 }: PrivacyLinkGraphProps) {
+  const { theme } = useTheme();
+  const initial = useMemo(() => layoutNodes(nodes, edges), [nodes, edges]);
+  const [flowNodes, setFlowNodes] = useState<Node[]>(initial);
+  const [selected, setSelected] = useState(focusNodeId || nodes[0]?.id);
+  const [instance, setInstance] = useState<ReactFlowInstance | null>(null);
+  const onNodesChange = useCallback((changes: NodeChange[]) => {
+    setFlowNodes(current => applyNodeChanges(changes, current));
+    const selection = changes.find(change => change.type === 'select' && change.selected);
+    if (selection?.type === 'select') setSelected(selection.id);
+  }, []);
+  const selectNode = (id: string) => {
+    setSelected(id);
+    const node = flowNodes.find(item => item.id === id);
+    if (node && instance) void instance.setCenter(node.position.x + 102, node.position.y + 50, { zoom: 1 });
+  };
+  const flowEdges = useMemo<Edge[]>(() => edges.filter(edge => nodes.some(node => node.id === edge.source) && nodes.some(node => node.id === edge.target)).map(edge => {
+    const observed = ['transparent_input', 'transparent_output', 'pool_entry'].includes(edge.type);
+    return {
+      id: edge.id, source: edge.source, target: edge.target, type: 'evidence',
+      label: observed ? edge.label : 'Candidate link',
+      style: { stroke: 'var(--color-text-muted)', strokeWidth: 1.5, ...(observed ? {} : { strokeDasharray: '5 5' }) },
+      labelStyle: { fill: 'var(--color-text-secondary)', fontSize: 12 },
+      labelBgStyle: { fill: 'var(--color-surface-solid)' }, labelBgPadding: [7, 5], labelBgBorderRadius: 4,
+      ariaLabel: `${observed ? 'Public observation' : 'Inferred relationship'}${edge.label ? `: ${edge.label}` : ''}`,
+    };
+  }), [nodes, edges]);
+  const inspected = nodes.find(node => node.id === selected);
+  const href = inspected?.type === 'transaction' && /^[a-f0-9]{64}$/i.test(inspected.id) ? `/tx/${inspected.id}` : inspected?.type === 'address' ? `/address/${inspected.label}` : null;
+  if (!nodes.length) return <p className="text-sm text-muted">No graph observations are available.</p>;
+  return <section aria-label="Linkage evidence graph" className={`${styles.root} rounded-xl border border-cipher-border overflow-hidden bg-cipher-bg`}>
+    <div className="px-4 py-4 border-b border-cipher-border flex flex-wrap items-center justify-between gap-3">
+      <div><h4 className="text-sm font-medium text-primary">Linkage evidence</h4><p className="text-xs text-muted mt-1">Drag nodes to arrange · pan to move · select to inspect</p></div>
+      <button className={riskButtonClass} onClick={() => { setFlowNodes(initial); setSelected(focusNodeId || nodes[0]?.id); void instance?.fitView({ padding: 0.12, duration: 0 }); }}>Reset layout</button>
     </div>
-  );
-}
-
-const nodeTypes = {
-  graphNode: memo(GraphCardNode),
-};
-
-function buildLayout(nodes: PrivacyGraphNode[], edges: GraphEdge[], focusNodeId?: string) {
-  const addressSources = new Set(edges.filter((edge) => edge.source.startsWith('address:')).map((edge) => edge.source));
-  const addressTargets = new Set(edges.filter((edge) => edge.target.startsWith('address:')).map((edge) => edge.target));
-
-  const leftAddresses = nodes.filter((node) => node.type === 'address' && addressSources.has(node.id));
-  const rightAddresses = nodes.filter((node) => node.type === 'address' && addressTargets.has(node.id) && !addressSources.has(node.id));
-  const clusters = nodes.filter((node) => node.type === 'cluster');
-  const poolNodes = nodes.filter((node) => node.type === 'pool');
-  const txNodes = nodes
-    .filter((node) => node.type === 'transaction')
-    .sort((a, b) => (a.blockTime || 0) - (b.blockTime || 0));
-
-  const hasPool = poolNodes.length > 0;
-  const hasCluster = clusters.length > 0;
-
-  const positionColumn = (columnNodes: PrivacyGraphNode[], x: number, yStart: number, yGap: number) =>
-    columnNodes.map((node, index) => [node.id, { x, y: yStart + index * yGap }] as const);
-
-  if (hasPool) {
-    // Pool layout: addr -> shieldTx -> pool -> deshieldTx -> addr
-    // Place all txs in time order, split around the pool
-    const shieldTxs = txNodes.filter((n) => edges.some((e) => e.source === n.id && e.target.startsWith('pool:')));
-    const deshieldTxs = txNodes.filter((n) => edges.some((e) => e.target === n.id && e.source.startsWith('pool:')));
-    const otherTxs = txNodes.filter((n) => !shieldTxs.includes(n) && !deshieldTxs.includes(n));
-
-    return new Map([
-      ...positionColumn(leftAddresses, 30, 60, 120),
-      ...positionColumn(shieldTxs, 280, 50, 130),
-      ...positionColumn(otherTxs, 280, 50 + shieldTxs.length * 130, 130),
-      ...positionColumn(poolNodes, 560, 65, 130),
-      ...positionColumn(deshieldTxs, 840, 50, 130),
-      ...positionColumn(rightAddresses, 1100, 60, 120),
-    ]);
-  }
-
-  // Non-pool layout (clusters, batch patterns, etc.)
-  const focusIdx = txNodes.findIndex((node) => node.id === focusNodeId);
-  const sourceTx = focusIdx > 0 ? txNodes.slice(0, focusIdx) : [];
-  const focusTx = focusIdx >= 0 ? [txNodes[focusIdx]] : txNodes.slice(0, 1);
-  const targetTx = focusIdx >= 0 ? txNodes.slice(focusIdx + 1) : txNodes.slice(1);
-
-  return new Map([
-    ...positionColumn(leftAddresses, 30, 30, 120),
-    ...positionColumn(sourceTx, 280, 60, 130),
-    ...positionColumn(focusTx, 540, 60, 130),
-    ...positionColumn(clusters, 800, 60, 130),
-    ...positionColumn(targetTx, hasCluster ? 1060 : 800, 60, 130),
-    ...positionColumn(rightAddresses, hasCluster ? 1300 : 1060, 30, 120),
-  ]);
-}
-
-function edgeStroke(type: string): string {
-  switch (type) {
-    case 'PAIR_LINK': return 'var(--color-gold, #91AC90)';
-    case 'transparent_output': return 'var(--color-text-muted)';
-    case 'pool_entry': return 'var(--color-shielded-state)';
-    default: return 'var(--color-cipher-blue)';
-  }
-}
-
-export function PrivacyLinkGraph({
-  nodes,
-  edges,
-  focusNodeId,
-  height = 360,
-}: PrivacyLinkGraphProps) {
-  const positions = buildLayout(nodes, edges, focusNodeId);
-  const flowNodes = useMemo<Node[]>(() => (
-    nodes
-      .filter((node) => positions.has(node.id))
-      .map((node) => ({
-        id: node.id,
-        type: 'graphNode',
-        position: positions.get(node.id) || { x: 0, y: 0 },
-        draggable: false,
-        data: {
-          ...node,
-          isFocus: node.id === focusNodeId,
-        } satisfies GraphNodeData,
-      }))
-  ), [nodes, positions, focusNodeId]);
-
-  const flowEdges = useMemo<Edge[]>(() => (
-    edges.map((edge) => ({
-      id: edge.id,
-      source: edge.source,
-      target: edge.target,
-      label: edge.label,
-      type: 'smoothstep',
-      animated: edge.type === 'PAIR_LINK',
-      markerEnd: {
-        type: MarkerType.ArrowClosed,
-        width: 14,
-        height: 14,
-      },
-      style: {
-        stroke: edgeStroke(edge.type),
-        strokeOpacity: 0.55,
-        strokeWidth: Math.max(1.5, edge.confidence / 40),
-        ...(edge.type === 'pool_entry' ? { strokeDasharray: '6 3' } : {}),
-      },
-      labelStyle: {
-        fill: 'var(--color-text-muted, #64748b)',
-        fontSize: 12,
-        fontWeight: 500,
-      },
-      labelBgStyle: {
-        fill: 'var(--color-surface, #0b0f1a)',
-        fillOpacity: 0.9,
-      },
-      labelBgPadding: [6, 4] as [number, number],
-      labelBgBorderRadius: 8,
-    }))
-  ), [edges]);
-
-  if (nodes.length === 0 || edges.length === 0) {
-    return null;
-  }
-
-  return (
-    <div className={`${styles.root} w-full overflow-hidden rounded-2xl border border-white/[0.06]`} style={{ background: 'linear-gradient(135deg, rgba(15,20,25,0.95) 0%, rgba(10,15,22,0.98) 100%)' }}>
-      <div className="flex items-center justify-between border-b border-white/[0.04] px-5 py-3.5">
-        <div>
-          <p className="text-caption font-mono uppercase tracking-[0.18em] text-muted">Link Graph</p>
-          <p className="mt-0.5 text-caption text-secondary">Drag, pan, and zoom to inspect the relationship.</p>
-        </div>
-      </div>
-      <div style={{ height }} className="w-full">
-        <ReactFlow
-          nodes={flowNodes}
-          edges={flowEdges}
-          nodeTypes={nodeTypes}
-          fitView
-          fitViewOptions={{ padding: 0.35 }}
-          minZoom={0.45}
-          maxZoom={1.8}
-          nodesConnectable={false}
-          elementsSelectable
-          proOptions={{ hideAttribution: true }}
-        >
-          <Background color="rgba(148,163,184,0.04)" gap={24} size={1} />
-          <Controls showInteractive={false} className="!border-white/10 !bg-white/[0.03] !shadow-none [&>button]:!border-white/10 [&>button]:!bg-transparent [&>button]:!text-muted [&>button:hover]:!bg-white/5" />
-        </ReactFlow>
-      </div>
-      <ChartWatermark className="px-5 pb-3" />
+    <div className="w-full" style={{ height: Math.max(260, height) }}>
+      <ReactFlow<Node, Edge> colorMode={theme} nodes={flowNodes.map(node => ({ ...node, selected: node.id === selected }))} edges={flowEdges} nodeTypes={nodeTypes} edgeTypes={edgeTypes}
+        onInit={flow => {
+          setInstance(flow);
+          if (window.matchMedia('(max-width: 639px)').matches) {
+            const focus = initial.find(node => node.id === selected) || initial[0];
+            if (focus) void flow.setCenter(focus.position.x + 102, focus.position.y + 53, { zoom: 0.9 });
+          }
+        }} onNodesChange={onNodesChange} onNodeClick={(_, node) => setSelected(node.id)}
+        fitView fitViewOptions={{ padding: 0.12 }} minZoom={0.2} maxZoom={2} nodesDraggable nodesConnectable={false}
+        zoomOnScroll={false} panOnScroll={false} preventScrolling={false} deleteKeyCode={null} proOptions={{ hideAttribution: true }}>
+        <Background color="var(--color-border)" gap={24} size={1} />
+        <Controls showInteractive={false} />
+      </ReactFlow>
     </div>
-  );
+    <div className="border-t border-cipher-border p-4 grid gap-4 sm:grid-cols-[220px_1fr]">
+      <label className="text-xs text-muted">Inspect a node
+        <select className="mt-2 block w-full rounded-md border border-cipher-border bg-cipher-surface px-3 py-2 text-sm text-primary" value={selected} onChange={event => selectNode(event.target.value)}>{nodes.map(node => <option key={node.id} value={node.id}>{node.subtitle || node.type} · {node.label.slice(0, 12)}</option>)}</select>
+      </label>
+      <div className="min-w-0 text-sm text-secondary" aria-live="polite">
+        {inspected && <><p className="text-xs text-muted mb-2">{inspected.subtitle || inspected.type}</p>{href ? <HashLink value={inspected.type === 'address' ? inspected.label : inspected.id} href={href} full className="max-w-full" /> : <p>{inspected.type === 'pool' ? 'No individual transfers can be followed inside the shielded pool.' : inspected.label}</p>}{inspected.blockTime != null && <p className="mt-2 text-xs text-muted">{new Date(inspected.blockTime * 1000).toUTCString()}</p>}</>}
+      </div>
+    </div>
+    <div className="px-4 pb-4 space-y-3"><p className="text-xs text-muted">Solid line: public association · Dashed line: inferred relationship. Layout is schematic; it does not trace hidden funds.</p><ChartWatermark /></div>
+  </section>;
 }
