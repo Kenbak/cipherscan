@@ -57,7 +57,7 @@ const categories: NavigationCategory[] = [
     { href: '/docs', label: 'API Docs', desc: 'Endpoints and response formats' },
   ] },
   { id: 'resources', label: 'Resources', items: [
-    { href: '/learn', label: 'Learn Zcash', desc: 'How Zcash works' },
+    { href: '/learn', label: 'Learn Zcash', desc: 'Wallets, privacy and resources' },
     { href: '/learn/crosslink', label: 'Learn Crosslink', desc: 'Finality and staking', networks: crosslink },
     { href: '/newsletter', label: 'Newsletter', desc: 'Zcash updates and analysis' },
     { href: '/about', label: 'About', desc: 'Purpose and team' },
