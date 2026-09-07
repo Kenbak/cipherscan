@@ -1,0 +1,55 @@
+.page {
+  --clock-gold: #f8bc21;
+  --clock-daylight: #65c7ba;
+  --clock-heat-low: #20272c;
+  --clock-heat-high: #f8bc21;
+  --clock-land-day: #658b82;
+  --clock-land-night: #35434d;
+  --clock-night: rgb(4 13 26 / 35%);
+  --clock-node-night: #998044;
+}
+:global(.light) .page {
+  --clock-gold: #ac7800;
+  --clock-daylight: #187c71;
+  --clock-heat-low: #eef0ec;
+  --clock-heat-high: #ac7800;
+  --clock-land-day: #78968e;
+  --clock-land-night: #929eaa;
+  --clock-night: rgb(67 88 106 / 10%);
+  --clock-node-night: #766448;
+}
+.page button, .page summary, .page input { touch-action: manipulation; }
+.page :is(button, summary, input, a):focus-visible, .heatCell:focus-visible {
+  outline: 2px solid var(--color-shielded-ink);
+  outline-offset: 4px;
+}
+.toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; padding: 16px 0; border-block: 1px solid var(--color-border); margin-bottom: 24px; }
+.periods { display: flex; gap: 4px; }
+.period { padding: 8px 12px; border-radius: 5px; font: 12px var(--font-geist-mono), monospace; color: var(--color-text-secondary); transition: background-color .15s, color .15s; }
+.period:hover { background: var(--color-surface); color: var(--color-text-primary); }
+.period[aria-pressed='true'] { background: rgb(var(--color-shielded-rgb) / 12%); color: var(--color-shielded-ink); }
+.stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); margin: 0 0 24px; gap: 20px; }
+.stats dt { font-size: 12px; color: var(--color-text-muted); margin-bottom: 6px; }
+.stats dd { font: 500 20px var(--font-geist-mono), monospace; color: var(--color-text-primary); font-variant-numeric: tabular-nums; }
+.cardHeading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.cardHeading h2 { font-size: 14px; font-weight: 600; color: var(--color-text-primary); }
+.cardHeading > span { font: 11px var(--font-geist-mono), monospace; color: var(--color-text-muted); }
+.legend { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 16px; font-size: 12px; color: var(--color-text-secondary); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend i { width: 8px; height: 8px; border-radius: 50%; }
+.empty, .notice { padding: 24px; margin-bottom: 20px; border: 1px solid var(--color-border); border-radius: 8px; font-size: 14px; color: var(--color-text-secondary); }
+.methodology { margin-top: 24px; border-top: 1px solid var(--color-border); }
+.methodology summary { padding: 20px 0; cursor: pointer; font-size: 14px; color: var(--color-text-primary); }
+.methodology > div { max-width: 80ch; padding-bottom: 16px; }
+.heatCell { flex: 1; border-radius: 2px; position: relative; }
+.heatTip { display: none; position: absolute; z-index: 2; bottom: 0; left: 0; background: var(--color-surface); border: 1px solid var(--color-border); padding: 4px 6px; color: var(--color-text-primary); white-space: nowrap; font: 11px var(--font-geist-mono), monospace; box-shadow: 0 2px 8px rgb(0 0 0 / 10%); pointer-events: none; }
+.heatCell:nth-child(n+13) .heatTip { left: auto; right: 0; }
+.heatCell:is(:hover, :focus-visible) .heatTip { display: block; }
+@media (max-width: 640px) {
+  .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .stats dd { font-size: 18px; }
+}
+
+.nodeDay, .nodeNight { width: 10px; height: 10px; border-radius: 50%; background: var(--clock-gold); }
+.nodeNight { background: var(--clock-node-night); }
+.belowKey { width: 8px; height: 8px; border-radius: 2px; background: var(--color-text-secondary); }
