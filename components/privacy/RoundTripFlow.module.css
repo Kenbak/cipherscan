@@ -1,13 +1,214 @@
-.flow { position: relative; display: grid; gap: 18px; padding: 4px 0; }
-.flow::before { content: ''; position: absolute; top: 20px; bottom: 20px; left: 16px; border-left: 1px dashed var(--color-text-muted); }
-.stage { display: grid; grid-template-columns: 34px minmax(0, 1fr); gap: 14px; position: relative; }
-.marker { display: flex; align-items: center; justify-content: center; width: 34px; height: 34px; border: 1px solid var(--color-border); border-radius: 50%; background: var(--color-surface-solid); }
-.privateMarker { border-style: dashed; }
-.content { padding-top: 2px; min-width: 0; }
-@media (min-width: 768px) {
-  .flow { grid-template-columns: minmax(0, 1fr) minmax(180px, .75fr) minmax(0, 1fr); gap: 24px; padding-top: 4px; }
-  .flow::before { top: 21px; bottom: auto; left: 17%; right: 17%; border-left: 0; border-top: 1px dashed var(--color-text-muted); }
-  .stage { display: flex; flex-direction: column; align-items: center; gap: 9px; text-align: center; }
-  .marker { position: relative; }
-  .privateStage .content { padding-top: 5px; }
+/* Round-trip flow.
+   Mobile: one column with a vertical rail down the left.
+   Desktop: two endpoint panels either side of a centred rail.
+   Endpoint content is left-aligned at both sizes — centring each stage was
+   what made the three columns read as ragged, undifferentiated stacks. */
+
+.flow {
+  position: relative;
+  display: grid;
+  gap: 18px;
+  padding: 4px 0 2px;
+}
+
+/* Vertical rail behind the stages (mobile). */
+.flow::before {
+  content: '';
+  position: absolute;
+  top: 10px;
+  bottom: 10px;
+  left: 7px;
+  border-left: 1px dashed var(--color-border);
+}
+
+.stage {
+  position: relative;
+  min-width: 0;
+  padding-left: 26px;
+}
+
+/* Direction key: icon and label on one line. */
+.stageKey {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font: 500 var(--text-caption)/1.4 var(--font-geist-mono);
+  letter-spacing: 0.035em;
+  text-transform: uppercase;
+  color: var(--color-text-primary);
+  margin-left: -26px;
+}
+
+/* The icon sits on the rail. */
+.stageKey > span:first-child {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 15px;
+  flex-shrink: 0;
+  background: var(--color-surface);
+}
+
+.amount {
+  margin-top: 10px;
+  font: 500 1.375rem/1.2 var(--font-geist-mono);
+  font-variant-numeric: tabular-nums lining-nums;
+  letter-spacing: -0.02em;
+  color: var(--color-text-primary);
+}
+
+.amountUnit {
+  font-size: 0.875rem;
+  font-weight: 400;
+  color: var(--color-text-muted);
+}
+
+.rows {
+  margin-top: 12px;
+  display: grid;
+  gap: 5px;
+}
+
+/* Shared label column so values align down the panel. */
+.row {
+  display: grid;
+  grid-template-columns: 62px minmax(0, 1fr);
+  gap: 10px;
+  align-items: baseline;
+}
+
+.rowLabel {
+  font: 400 var(--text-caption)/1.5 var(--font-geist-mono);
+  color: var(--color-text-muted);
+}
+
+.rowValue {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-size: var(--text-data);
+  color: var(--color-text-secondary);
+}
+
+.more {
+  margin-top: 4px;
+  margin-left: 72px;
+  font-size: var(--text-caption);
+  color: var(--color-text-secondary);
+}
+
+.more summary {
+  cursor: pointer;
+  padding: 3px 0;
+}
+
+.moreList {
+  display: grid;
+  gap: 6px;
+  padding: 4px 0;
+}
+
+/* The rail annotation: interval plus what the pair actually shows. */
+.link {
+  position: relative;
+  padding-left: 26px;
+}
+
+.linkMarker {
+  position: absolute;
+  left: 0;
+  top: 1px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 15px;
+  background: var(--color-surface-solid);
+}
+
+.linkDelay {
+  font: 400 var(--text-data)/1.4 var(--font-geist-mono);
+  color: var(--color-text-primary);
+}
+
+.linkMatch {
+  margin-top: 3px;
+  font: 400 var(--text-caption)/1.5 var(--font-geist-mono);
+  color: var(--color-text-secondary);
+}
+
+.linkPrivacy {
+  margin-top: 4px;
+  font-size: var(--text-caption);
+  line-height: 1.5;
+  color: var(--color-text-muted);
+}
+
+.caveat {
+  margin-top: 16px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  background: var(--color-hover);
+  font-size: var(--text-caption);
+  line-height: 1.5;
+  color: var(--color-text-muted);
+}
+
+.caveatLabel {
+  color: var(--color-text-secondary);
+}
+
+@media (min-width: 900px) {
+  .flow {
+    grid-template-columns: minmax(0, 1fr) minmax(180px, 0.55fr) minmax(0, 1fr);
+    gap: 32px;
+    align-items: start;
+    padding: 2px 0;
+  }
+
+  /* The dashed interval stays between the observations, never behind them. */
+  .flow::before {
+    display: none;
+  }
+
+  .stage,
+  .link {
+    padding-left: 0;
+  }
+
+  .stageKey {
+    margin-left: 0;
+  }
+
+  .stageKey > span:first-child {
+    background: none;
+  }
+
+  /* Centre column aligns to the rail; its text stays centred because it
+     annotates the connection rather than listing values. */
+  .link {
+    text-align: center;
+    padding-top: 18px;
+  }
+
+  .linkRail {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+
+  .linkRail::before,
+  .linkRail::after {
+    content: '';
+    flex: 1;
+    border-top: 1px dashed var(--color-text-muted);
+  }
+
+  .linkMarker {
+    position: static;
+    width: 30px;
+    height: 30px;
+    border: 1px dashed var(--color-border);
+    border-radius: 50%;
+    background: none;
+  }
 }
