@@ -1,121 +1,55 @@
 'use client';
 
-import { useState } from 'react';
-import type { ApiEndpoint } from '../endpoints';
+import { useRef, useEffect, useState } from 'react';
+import { describeSchema, type ApiEndpoint } from '../endpoints';
+import styles from '../docs.module.css';
 
-interface ApiEndpointProps {
-  endpoint: ApiEndpoint;
-}
-
-export default function ApiEndpointComponent({ endpoint }: ApiEndpointProps) {
-  const [copiedEndpoint, setCopiedEndpoint] = useState<string | null>(null);
-  const [showResponse, setShowResponse] = useState(false);
-
-  const copyToClipboard = (text: string, endpointId: string) => {
-    navigator.clipboard.writeText(text);
-    setCopiedEndpoint(endpointId);
-    setTimeout(() => setCopiedEndpoint(null), 2000);
-  };
-
-  return (
-    <div id={endpoint.id} className="card scroll-mt-20">
-      {/* Method & Path */}
-      <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-4">
-        <span className={`inline-block px-3 py-1 rounded font-mono text-sm font-semibold ${
-          endpoint.method === 'GET' ? 'bg-cipher-green text-cipher-bg' : 'bg-brand-gold text-cipher-bg-dark'
-        }`}>
-          {endpoint.method}
-        </span>
-        <code className="text-base sm:text-lg text-cipher-gold font-mono break-all">
-          {endpoint.path}
-        </code>
+export default function ApiEndpointComponent({ endpoint, onShowGuide }: { endpoint: ApiEndpoint; onShowGuide: () => void }) {
+  const ref = useRef<HTMLDetailsElement>(null);
+  const [copyStatus, setCopyStatus] = useState('Copy request');
+  const timeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    const openHash = () => {
+      if (location.hash.slice(1) === endpoint.id && ref.current) {
+        ref.current.open = true;
+        ref.current.scrollIntoView({ block: 'start' });
+      }
+    };
+    openHash();
+    window.addEventListener('hashchange', openHash);
+    return () => { window.removeEventListener('hashchange', openHash); if (timeout.current) clearTimeout(timeout.current); };
+  }, [endpoint.id]);
+  async function copy() {
+    try { await navigator.clipboard.writeText(endpoint.example); setCopyStatus('Copied'); }
+    catch { setCopyStatus('Copy failed — select the text'); }
+    if (timeout.current) clearTimeout(timeout.current);
+    timeout.current = setTimeout(() => setCopyStatus('Copy request'), 2500);
+  }
+  return <details ref={ref} id={endpoint.id} className={styles.endpoint}>
+    <summary><span className={styles.method} data-method={endpoint.method}>{endpoint.method}</span><span className={styles.endpointHeading}><code>{endpoint.path}</code><span>{endpoint.description}</span></span><span className={styles.chevron} aria-hidden="true">⌄</span></summary>
+    <div className={styles.endpointBody}>
+      <div className={styles.endpointMeta}>
+        <span>{endpoint.pagination === 'cursor' ? 'Cursor pagination' : 'JSON response'}</span>
+        {endpoint.category === 'crosslink' && <span>Crosslink network</span>}
+        <a href={`#${endpoint.id}`} aria-label={`Permalink to ${endpoint.method} ${endpoint.path}`}>Permalink ↗</a>
       </div>
-
-      {/* Description */}
-      <p className="text-secondary mb-4">{endpoint.description}</p>
-
-      {/* Note */}
-      {endpoint.note && (
-        <div className="warning-box rounded-lg p-3 mb-4 text-sm">
-          <span className="warning-text">{endpoint.note}</span>
-        </div>
-      )}
-
-      {/* Parameters */}
-      {endpoint.params.length > 0 && (
-        <div className="mb-4">
-          <h4 className="text-sm font-semibold text-muted mb-2 uppercase">Parameters</h4>
-          <div className="space-y-2">
-            {endpoint.params.map((param, i) => (
-              <div key={i} className="flex flex-col sm:flex-row sm:items-start gap-2 text-sm">
-                <div className="flex items-center gap-1.5 shrink-0">
-                  <code className="text-cipher-gold font-mono">{param.name}</code>
-                  <span className="text-muted">({param.type})</span>
-                  {param.required && (
-                    <span className="text-caption font-semibold text-danger uppercase tracking-wider">required</span>
-                  )}
-                </div>
-                <span className="text-secondary">- {param.description}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Example Request */}
-      <div className="mb-4">
-        <div className="flex items-center justify-between mb-2">
-          <h4 className="text-sm font-semibold text-muted uppercase">Example Request</h4>
-          <button
-            onClick={() => copyToClipboard(endpoint.example, endpoint.id)}
-            className="text-xs text-cipher-gold hover:text-cipher-green transition-colors flex items-center gap-1"
-            aria-label={`Copy example for ${endpoint.path}`}
-          >
-            {copiedEndpoint === endpoint.id ? (
-              <span>Copied</span>
-            ) : (
-              <>
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                </svg>
-                Copy
-              </>
-            )}
-          </button>
-        </div>
-        <div className="docs-code-block border border-cipher-border rounded-lg p-3 overflow-x-auto">
-          <code className="text-xs sm:text-sm text-secondary font-mono whitespace-pre">
-            {endpoint.example}
-          </code>
-        </div>
-      </div>
-
-      {/* Response (collapsible): only show examples backed by an actual payload. */}
-      {endpoint.response !== null && <div>
-        <button
-          onClick={() => setShowResponse(!showResponse)}
-          className="flex items-center gap-2 mb-2 group cursor-pointer"
-        >
-          <svg
-            className={`w-3 h-3 text-muted transition-transform duration-200 ${showResponse ? 'rotate-90' : ''}`}
-            fill="currentColor"
-            viewBox="0 0 20 20"
-            aria-hidden="true"
-          >
-            <path d="M6 4l8 6-8 6V4z" />
-          </svg>
-          <h4 className="text-sm font-semibold text-muted uppercase group-hover:text-secondary transition-colors">
-            Example Response
-          </h4>
-        </button>
-        {showResponse && (
-          <div className="docs-code-block border border-cipher-border rounded-lg p-3 overflow-x-auto">
-            <pre className="text-xs sm:text-sm text-secondary font-mono">
-              {JSON.stringify(endpoint.response, null, 2)}
-            </pre>
-          </div>
-        )}
+      {endpoint.ownershipToken && <p className={styles.note}>An ownership token is required to update or delete an existing registration. A new registration returns its token.</p>}
+      {endpoint.path === '/v1/transactions/broadcast' && <p className={styles.note}>Submit an already signed transaction. A timeout does not establish that submission failed; check the transaction ID before retrying.</p>}
+      {endpoint.parameters.length > 0 && <div className={styles.parameters}>
+        <h3>Parameters</h3>
+        <dl>{endpoint.parameters.map(param => <div key={`${param.in}-${param.name}`}><dt><code>{param.name}</code><small>{param.in} · {param.schema.type || 'string'}{param.required ? ' · required' : ' · optional'}</small></dt><dd>{param.description || (param.in === 'path' ? 'Resource identifier in the URL path.' : '')} {describeSchema(param.schema)}</dd></div>)}</dl>
       </div>}
+      {endpoint.requestBody && <div className={styles.parameters}>
+        <h3>JSON request body</h3><p>Save the body as <code>request.json</code> before running the request below.</p>
+        {endpoint.requestBody.description && <p>{endpoint.requestBody.description}</p>}
+        <dl>{Object.entries(endpoint.requestBody.properties || {}).map(([name, schema]) => <div key={name}><dt><code>{name}</code><small>{schema.type}{endpoint.requestBody?.required?.includes(name) ? ' · required' : ' · optional'}</small></dt><dd>{describeSchema(schema) || (schema.items ? `Array of ${schema.items.type} values.` : 'See the request schema for the accepted value.')}</dd></div>)}</dl>
+        <details className={styles.schema}><summary>Full request schema</summary><pre>{JSON.stringify(endpoint.requestBody, null, 2)}</pre></details>
+      </div>}
+      <div className={styles.requestHeading}><h3>Request template</h3><button onClick={copy} aria-label={`${copyStatus} for ${endpoint.method} ${endpoint.path}`}>{copyStatus}</button><span className="sr-only" role="status">{copyStatus === 'Copy request' ? '' : copyStatus}</span></div>
+      <pre className={styles.code}><code>{endpoint.example}</code></pre>
+      <p className={styles.hint}>Replace angle-bracket placeholders before use. Requests use your selected API base; preview access may require an additional header.</p>
+      {endpoint.zatoshiFields.length > 0 && <p className={styles.note}>Exact decimal-string zatoshi fields: {endpoint.zatoshiFields.map((f, i) => <span key={f}>{i > 0 && ', '}<code>{f}</code></span>)}. Other units are field-specific.</p>}
+      <p className={styles.hint}>Success: <code>{'{ data, meta }'}</code>. Errors: <code>application/problem+json</code>. {endpoint.pagination === 'cursor' && <>List items are in <code>data</code>, with navigation in <code>meta.page</code>. </>}<a href="#response-contract" onClick={onShowGuide}>Response conventions →</a></p>
     </div>
-  );
+  </details>;
 }

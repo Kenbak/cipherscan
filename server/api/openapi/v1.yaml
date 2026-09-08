@@ -419,18 +419,20 @@ paths:
       tags:
         - names
       parameters:
-        - name: cursor
-          in: query
-          required: false
-          schema:
-            type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
         - name: limit
           in: query
           required: false
           schema:
+            type: integer
+            minimum: 1
+            maximum: 500
+            default: 100
+        - name: cursor
+          in: query
+          required: false
+          description: Opaque cursor from a previous response's meta.page.nextCursor/prevCursor.
+          schema:
             type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
       x-cipherscan-legacy-path: /api/names
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -1025,6 +1027,7 @@ paths:
             type: integer
             minimum: 1
             maximum: 100
+            default: 25
         - name: cursor
           in: query
           required: false
@@ -1136,7 +1139,7 @@ paths:
           required: false
           schema:
             type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
       x-cipherscan-legacy-path: /api/block/:heightOrHash
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -2410,7 +2413,7 @@ paths:
           required: false
           schema:
             type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
       x-cipherscan-legacy-path: /api/network/node-history
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -2606,10 +2609,13 @@ paths:
       parameters:
         - name: date
           in: query
-          required: false
+          required: true
           schema:
             type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+            format: date
+          description: >-
+            UTC calendar date (YYYY-MM-DD). The response indicates when an earlier available price
+            is used.
       x-cipherscan-legacy-path: /api/price/at
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -2904,25 +2910,25 @@ paths:
           required: false
           schema:
             type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
         - name: limit
           in: query
           required: false
           schema:
             type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
         - name: offset
           in: query
           required: false
           schema:
             type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
         - name: sort
           in: query
           required: false
           schema:
             type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
       x-cipherscan-legacy-path: /api/network/nodes/list
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -3505,13 +3511,13 @@ paths:
           required: false
           schema:
             type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
         - name: window
           in: query
           required: false
           schema:
             type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
       x-cipherscan-legacy-path: /api/network/mining-metrics
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -3614,7 +3620,7 @@ paths:
           required: false
           schema:
             type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
       x-cipherscan-legacy-path: /api/network/hashrate-history
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -3717,13 +3723,13 @@ paths:
           required: false
           schema:
             type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
         - name: period
           in: query
           required: false
           schema:
             type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
       x-cipherscan-legacy-path: /api/network/pool-history
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -3826,7 +3832,7 @@ paths:
           required: false
           schema:
             type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
       x-cipherscan-legacy-path: /api/network/emission
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -3929,7 +3935,7 @@ paths:
           required: false
           schema:
             type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
       x-cipherscan-legacy-path: /api/network/chain-size-history
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -4032,7 +4038,7 @@ paths:
           required: false
           schema:
             type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
       x-cipherscan-legacy-path: /api/network/blocks/recent
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -4231,13 +4237,13 @@ paths:
           required: false
           schema:
             type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
         - name: page
           in: query
           required: false
           schema:
             type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
       x-cipherscan-legacy-path: /api/crosschain/inflows
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -4340,13 +4346,13 @@ paths:
           required: false
           schema:
             type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
         - name: page
           in: query
           required: false
           schema:
             type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
       x-cipherscan-legacy-path: /api/crosschain/outflows
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -4640,14 +4646,23 @@ paths:
           in: query
           required: false
           schema:
+            default: daily
             type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+            enum:
+              - daily
+              - weekly
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
         - name: period
           in: query
           required: false
           schema:
+            default: 30d
             type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+            enum:
+              - 7d
+              - 30d
+              - 90d
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
       x-cipherscan-legacy-path: /api/crosschain/trends
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -4750,25 +4765,35 @@ paths:
           required: false
           schema:
             type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+            minLength: 1
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
         - name: direction
           in: query
           required: false
           schema:
             type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+            enum:
+              - inflow
+              - outflow
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
         - name: limit
           in: query
           required: false
           schema:
-            type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+            default: 25
+            type: integer
+            minimum: 1
+            maximum: 100
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
         - name: page
           in: query
           required: false
           schema:
-            type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+            default: 1
+            type: integer
+            minimum: 1
+            maximum: 9007199254740991
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
       x-cipherscan-legacy-path: /api/crosschain/history
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -4870,8 +4895,12 @@ paths:
           in: query
           required: false
           schema:
+            default: 30d
             type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+            enum:
+              - 7d
+              - 30d
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
       x-cipherscan-legacy-path: /api/crosschain/volume-by-chain
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -5364,7 +5393,7 @@ paths:
           required: false
           schema:
             type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
       x-cipherscan-legacy-path: /api/privacy-stats
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -5467,13 +5496,14 @@ paths:
           required: false
           schema:
             type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
         - name: since
           in: query
-          required: false
+          required: true
           schema:
             type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+            format: date
+          description: Start date (YYYY-MM-DD).
       x-cipherscan-legacy-path: /api/stats/shielded-count
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -5573,16 +5603,17 @@ paths:
       parameters:
         - name: since
           in: query
-          required: false
+          required: true
           schema:
             type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+            format: date
+          description: Start date (YYYY-MM-DD).
         - name: until
           in: query
           required: false
           schema:
             type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
       x-cipherscan-legacy-path: /api/stats/shielded-daily
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -5684,38 +5715,62 @@ paths:
           in: query
           required: false
           schema:
-            type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+            default: 20
+            type: integer
+            minimum: 1
+            maximum: 100
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
         - name: minScore
           in: query
           required: false
           schema:
-            type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+            default: 40
+            type: integer
+            minimum: 0
+            maximum: 9007199254740991
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
         - name: offset
           in: query
           required: false
           schema:
-            type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+            default: 0
+            type: integer
+            minimum: 0
+            maximum: 9007199254740991
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
         - name: period
           in: query
           required: false
           schema:
+            default: 7d
             type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+            enum:
+              - 24h
+              - 7d
+              - 30d
+              - 90d
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
         - name: riskLevel
           in: query
           required: false
           schema:
+            default: ALL
             type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+            enum:
+              - ALL
+              - HIGH
+              - MEDIUM
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
         - name: sort
           in: query
           required: false
           schema:
+            default: recent
             type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+            enum:
+              - score
+              - recent
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
       x-cipherscan-legacy-path: /api/privacy/risks
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -5817,44 +5872,71 @@ paths:
           in: query
           required: false
           schema:
-            type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+            default: 20
+            type: integer
+            minimum: 1
+            maximum: 100
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
         - name: minScore
           in: query
           required: false
           schema:
-            type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+            default: 40
+            type: integer
+            minimum: 0
+            maximum: 100
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
         - name: offset
           in: query
           required: false
           schema:
-            type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+            default: 0
+            type: integer
+            minimum: 0
+            maximum: 9007199254740991
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
         - name: period
           in: query
           required: false
           schema:
+            default: 7d
             type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+            enum:
+              - 24h
+              - 7d
+              - 30d
+              - 90d
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
         - name: riskLevel
           in: query
           required: false
           schema:
+            default: ALL
             type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+            enum:
+              - ALL
+              - HIGH
+              - MEDIUM
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
         - name: sort
           in: query
           required: false
           schema:
+            default: recent
             type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+            enum:
+              - score
+              - recent
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
         - name: txid
           in: query
           required: false
           schema:
-            type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+            anyOf:
+              - type: string
+                pattern: ^[a-fA-F0-9]{64}$
+              - {}
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
       x-cipherscan-legacy-path: /api/privacy/linkage-edges
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -5956,44 +6038,64 @@ paths:
           in: query
           required: false
           schema:
-            type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+            type: number
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
         - name: afterScore
           in: query
           required: false
           schema:
-            type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+            type: number
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
         - name: limit
           in: query
           required: false
           schema:
-            type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+            default: 20
+            type: integer
+            minimum: 1
+            maximum: 50
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
         - name: minScore
           in: query
           required: false
           schema:
-            type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+            default: 35
+            type: integer
+            minimum: 0
+            maximum: 100
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
         - name: period
           in: query
           required: false
           schema:
+            default: 30d
             type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+            enum:
+              - 7d
+              - 30d
+              - 90d
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
         - name: riskLevel
           in: query
           required: false
           schema:
+            default: ALL
             type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+            enum:
+              - ALL
+              - HIGH
+              - MEDIUM
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
         - name: sort
           in: query
           required: false
           schema:
+            default: score
             type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+            enum:
+              - score
+              - recent
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
       x-cipherscan-legacy-path: /api/privacy/batch-risks
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -6095,44 +6197,64 @@ paths:
           in: query
           required: false
           schema:
-            type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+            type: number
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
         - name: afterScore
           in: query
           required: false
           schema:
-            type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+            type: number
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
         - name: limit
           in: query
           required: false
           schema:
-            type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+            default: 20
+            type: integer
+            minimum: 1
+            maximum: 50
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
         - name: minScore
           in: query
           required: false
           schema:
-            type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+            default: 35
+            type: integer
+            minimum: 0
+            maximum: 100
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
         - name: period
           in: query
           required: false
           schema:
+            default: 30d
             type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+            enum:
+              - 7d
+              - 30d
+              - 90d
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
         - name: riskLevel
           in: query
           required: false
           schema:
+            default: ALL
             type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+            enum:
+              - ALL
+              - HIGH
+              - MEDIUM
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
         - name: sort
           in: query
           required: false
           schema:
+            default: score
             type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+            enum:
+              - score
+              - recent
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
       x-cipherscan-legacy-path: /api/privacy/clusters
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -6439,25 +6561,25 @@ paths:
           required: false
           schema:
             type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
         - name: offset
           in: query
           required: false
           schema:
             type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
         - name: riskLevel
           in: query
           required: false
           schema:
             type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
         - name: type
           in: query
           required: false
           schema:
             type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
       x-cipherscan-legacy-path: /api/privacy/patterns
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -6560,19 +6682,19 @@ paths:
           required: false
           schema:
             type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
         - name: limit
           in: query
           required: false
           schema:
             type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
         - name: period
           in: query
           required: false
           schema:
             type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
       x-cipherscan-legacy-path: /api/privacy/common-amounts
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -6672,16 +6794,18 @@ paths:
       parameters:
         - name: chain
           in: query
-          required: false
+          required: true
           schema:
             type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+            minLength: 1
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
         - name: token
           in: query
-          required: false
+          required: true
           schema:
             type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+            minLength: 1
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
       x-cipherscan-legacy-path: /api/privacy/recommended-swap-amounts
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -6784,7 +6908,7 @@ paths:
           required: false
           schema:
             type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
       x-cipherscan-legacy-path: /api/privacy/fee-lanes
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -6887,7 +7011,7 @@ paths:
           required: false
           schema:
             type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
       x-cipherscan-legacy-path: /api/privacy/wallet-fingerprints
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -6990,7 +7114,7 @@ paths:
           required: false
           schema:
             type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
       x-cipherscan-legacy-path: /api/analytics/anonymity-set
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -7093,7 +7217,7 @@ paths:
           required: false
           schema:
             type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
       x-cipherscan-legacy-path: /api/analytics/shielding-distribution
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -7196,7 +7320,7 @@ paths:
           required: false
           schema:
             type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
       x-cipherscan-legacy-path: /api/network/fee-distribution
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -7299,7 +7423,7 @@ paths:
           required: false
           schema:
             type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
       x-cipherscan-legacy-path: /api/analytics/usage-clock
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -7399,10 +7523,12 @@ paths:
       parameters:
         - name: amount
           in: query
-          required: false
+          required: true
           schema:
-            type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+            type: number
+            exclusiveMinimum: 0
+            maximum: 21000000
+          description: Amount in ZEC, greater than zero and at most 21 million.
       x-cipherscan-legacy-path: /api/blend-check
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -7502,10 +7628,12 @@ paths:
       parameters:
         - name: amount
           in: query
-          required: false
+          required: true
           schema:
-            type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+            type: number
+            exclusiveMinimum: 0
+            maximum: 21000000
+          description: Amount in ZEC, greater than zero and at most 21 million.
       x-cipherscan-legacy-path: /api/blend-check/split
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -7704,25 +7832,25 @@ paths:
           required: false
           schema:
             type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
         - name: granularity
           in: query
           required: false
           schema:
             type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
         - name: period
           in: query
           required: false
           schema:
             type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
         - name: pool
           in: query
           required: false
           schema:
             type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
       x-cipherscan-legacy-path: /api/pools/flows
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -7825,7 +7953,7 @@ paths:
           required: false
           schema:
             type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
       x-cipherscan-legacy-path: /api/pools/turnstile
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -7928,7 +8056,7 @@ paths:
           required: false
           schema:
             type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
       x-cipherscan-legacy-path: /api/mining/pool-distribution
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -8031,7 +8159,7 @@ paths:
           required: false
           schema:
             type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
       x-cipherscan-legacy-path: /api/mining/pool-ranking
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -8134,7 +8262,7 @@ paths:
           required: false
           schema:
             type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
       x-cipherscan-legacy-path: /api/mining/hashrate-share
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -8237,7 +8365,7 @@ paths:
           required: false
           schema:
             type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
       x-cipherscan-legacy-path: /api/mining/rewards
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -8340,7 +8468,7 @@ paths:
           required: false
           schema:
             type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
       x-cipherscan-legacy-path: /api/mining/miner-behavior
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -8443,7 +8571,7 @@ paths:
           required: false
           schema:
             type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
       x-cipherscan-legacy-path: /api/mining/zodl-leaderboard
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -8834,7 +8962,7 @@ paths:
           required: false
           schema:
             type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
       x-cipherscan-legacy-path: /api/migration/activity
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -9135,31 +9263,31 @@ paths:
           required: false
           schema:
             type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
         - name: afterHeight
           in: query
           required: false
           schema:
             type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
         - name: chunkStart
           in: query
           required: false
           schema:
             type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
         - name: manifest
           in: query
           required: false
           schema:
             type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
         - name: range
           in: query
           required: false
           schema:
             type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
       x-cipherscan-legacy-path: /api/migration/scatter/compact
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -9556,7 +9684,7 @@ paths:
           required: false
           schema:
             type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
       x-cipherscan-legacy-path: /api/valuation/history
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -9659,7 +9787,7 @@ paths:
           required: false
           schema:
             type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
       x-cipherscan-legacy-path: /api/valuation/hodl-waves
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -9762,7 +9890,7 @@ paths:
           required: false
           schema:
             type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
       x-cipherscan-legacy-path: /api/valuation/dormancy
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -9865,25 +9993,25 @@ paths:
           required: false
           schema:
             type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
         - name: limit
           in: query
           required: false
           schema:
             type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
         - name: metric
           in: query
           required: false
           schema:
             type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
         - name: offset
           in: query
           required: false
           schema:
             type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
       x-cipherscan-legacy-path: /api/pulse
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -10082,31 +10210,45 @@ paths:
           required: false
           schema:
             type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+            pattern: ^t[a-zA-Z0-9]+$
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
         - name: limit
           in: query
           required: false
           schema:
-            type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+            default: 100
+            type: integer
+            minimum: 1
+            maximum: 1000
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
         - name: min_balance
           in: query
           required: false
           schema:
-            type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+            default: 0
+            type: integer
+            minimum: 0
+            maximum: 9007199254740991
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
         - name: offset
           in: query
           required: false
           schema:
-            type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+            default: 0
+            type: integer
+            minimum: 0
+            maximum: 9007199254740991
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
         - name: sort
           in: query
           required: false
           schema:
+            default: balance
             type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+            enum:
+              - balance
+              - address
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
       x-cipherscan-legacy-path: /api/transparent/exposed
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -10503,13 +10645,13 @@ paths:
           required: false
           schema:
             type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
         - name: offset
           in: query
           required: false
           schema:
             type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
       x-cipherscan-legacy-path: /api/rich-list
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -10616,14 +10758,20 @@ paths:
           in: query
           required: false
           schema:
-            type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+            default: 25
+            type: integer
+            minimum: 1
+            maximum: 100
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
         - name: page
           in: query
           required: false
           schema:
-            type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+            default: 1
+            type: integer
+            minimum: 1
+            maximum: 9007199254740991
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
       x-cipherscan-legacy-path: /api/address/:address
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -10828,7 +10976,7 @@ paths:
           required: false
           schema:
             type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
       x-cipherscan-legacy-path: /api/finalizers
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -10936,7 +11084,7 @@ paths:
           required: false
           schema:
             type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
       x-cipherscan-legacy-path: /api/finalizer/:pubkey/participation
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -11039,7 +11187,7 @@ paths:
           required: false
           schema:
             type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
       x-cipherscan-legacy-path: /api/crosslink/participation
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -11142,7 +11290,7 @@ paths:
           required: false
           schema:
             type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
       x-cipherscan-legacy-path: /api/crosslink/bft-chain
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -11635,7 +11783,7 @@ paths:
           required: false
           schema:
             type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
       x-cipherscan-legacy-path: /api/crosslink/divergence-history
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -12316,13 +12464,13 @@ paths:
           required: false
           schema:
             type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
         - name: offset
           in: query
           required: false
           schema:
             type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
       x-cipherscan-legacy-path: /api/uncles
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -12425,13 +12573,13 @@ paths:
           required: false
           schema:
             type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
         - name: offset
           in: query
           required: false
           schema:
             type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
       x-cipherscan-legacy-path: /api/uncles/forks
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -12945,7 +13093,7 @@ paths:
           required: false
           schema:
             type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
         - name: limit
           in: query
           required: false
@@ -12953,6 +13101,7 @@ paths:
             type: integer
             minimum: 1
             maximum: 100
+            default: 25
         - name: cursor
           in: query
           required: false
@@ -13059,19 +13208,19 @@ paths:
           required: false
           schema:
             type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
         - name: min_zec
           in: query
           required: false
           schema:
             type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
         - name: pool
           in: query
           required: false
           schema:
             type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
         - name: limit
           in: query
           required: false
@@ -13079,6 +13228,7 @@ paths:
             type: integer
             minimum: 1
             maximum: 100
+            default: 25
         - name: cursor
           in: query
           required: false
@@ -13184,38 +13334,57 @@ paths:
           in: query
           required: false
           schema:
-            type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+            default: 50
+            type: integer
+            minimum: 1
+            maximum: 100
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
         - name: min_actions
           in: query
           required: false
           schema:
-            type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+            default: 0
+            type: integer
+            minimum: 0
+            maximum: 9007199254740991
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
         - name: offset
           in: query
           required: false
           schema:
-            type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+            default: 0
+            type: integer
+            minimum: 0
+            maximum: 9007199254740991
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
         - name: pool
           in: query
           required: false
           schema:
             type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+            enum:
+              - sapling
+              - orchard
+              - ironwood
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
         - name: skip_count
           in: query
           required: false
           schema:
             type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+            enum:
+              - 'true'
+              - 'false'
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
         - name: type
           in: query
           required: false
           schema:
             type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+            enum:
+              - fully-shielded
+              - partial
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
       x-cipherscan-legacy-path: /api/tx/shielded
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -13322,14 +13491,20 @@ paths:
           in: query
           required: false
           schema:
-            type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+            default: 5
+            type: integer
+            minimum: 1
+            maximum: 20
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
         - name: tolerance
           in: query
           required: false
           schema:
-            type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+            default: 0.001
+            type: number
+            minimum: 0.0001
+            maximum: 0.1
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
       x-cipherscan-legacy-path: /api/tx/:txid/linkability
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -14493,13 +14668,13 @@ paths:
           required: false
           schema:
             type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
         - name: start
           in: query
           required: false
           schema:
             type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
       x-cipherscan-legacy-path: /api/sitemaps/blocks
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: internal
@@ -14827,7 +15002,7 @@ paths:
           required: false
           schema:
             type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
         - name: Authorization
           in: header
           required: false
@@ -14962,7 +15137,7 @@ paths:
           required: false
           schema:
             type: string
-          description: Field-specific filter or range. Values retain the source endpoint semantics.
+          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
         - name: Authorization
           in: header
           required: false

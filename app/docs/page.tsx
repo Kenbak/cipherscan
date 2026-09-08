@@ -1,244 +1,65 @@
-'use client';
-
 import Link from 'next/link';
-import ApiSidebar from './components/ApiSidebar';
-import ApiEndpoint from './components/ApiEndpoint';
-import { getEndpoints, getEndpointsByCategory } from './endpoints';
+import { PageHeader } from '@/components/ui/SectionHeader';
 import { getApiUrl, NETWORK } from '@/lib/api-config';
+import { getBaseUrl } from '@/lib/seo';
+import ApiReference from './components/ApiReference';
+import { getEndpointsByCategory } from './endpoints';
+import styles from './docs.module.css';
 
 export default function DocsPage() {
   const baseUrl = getApiUrl();
   const categories = getEndpointsByCategory(baseUrl);
-  const endpoints = getEndpoints(baseUrl);
-
+  const endpoints = categories.flatMap(c => c.endpoints);
+  const count = (method: string) => endpoints.filter(e => e.method === method).length;
   const networkLabel = NETWORK === 'mainnet' ? 'Mainnet' : NETWORK === 'crosslink-testnet' ? 'Crosslink' : 'Testnet';
-
-  return (
-    <div className="min-h-screen flex">
-      <ApiSidebar
-        categories={categories.map(cat => ({
-          name: cat.name,
-          endpoints: cat.endpoints.map(e => ({
-            id: e.id,
-            path: e.path,
-            method: e.method
-          }))
-        }))}
-      />
-
-      <div className="flex-1 py-12 px-4 lg:px-12 max-w-5xl">
-        {/* Header */}
-        <div className="mb-12">
-          <Link href="/" className="text-cipher-gold hover:text-cipher-green transition-colors text-sm font-mono mb-4 inline-block">
-            ← Back to Explorer
-          </Link>
-          <h1 className="type-page mb-4 font-mono text-primary">
-            API Documentation
-          </h1>
-          <p className="text-base sm:text-lg text-secondary max-w-3xl">
-            Free, open API for accessing Zcash blockchain data. {endpoints.length} endpoints, no authentication required.
-          </p>
-        </div>
-
-        {/* Quick Info */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-12">
-          <div className="card">
-            <div className="text-sm text-secondary mb-1">Base URL</div>
-            <code className="text-xs sm:text-sm text-cipher-gold break-all">{baseUrl}/api</code>
-          </div>
-          <div className="card">
-            <div className="text-sm text-secondary mb-1">Network</div>
-            <div className="text-lg sm:text-xl font-semibold text-primary">{networkLabel}</div>
-            <div className="text-xs text-muted">Auto-detected from domain</div>
-          </div>
-          <div className="card">
-            <div className="text-sm text-secondary mb-1">Rate Limit</div>
-            <div className="text-lg sm:text-xl font-semibold text-primary">Response headers</div>
-            <div className="text-xs text-muted">Deployment-specific</div>
-          </div>
-          <div className="card">
-            <div className="text-sm text-secondary mb-1">Authentication</div>
-            <div className="text-lg sm:text-xl font-semibold text-cipher-green">None Required</div>
-            <div className="text-xs text-muted">Free & open</div>
-          </div>
-        </div>
-
-        {/* Important Notes */}
-        <div className="card gradient-card-purple mb-12">
-          <h2 className="text-xl font-semibold mb-4 text-primary">
-            Privacy & Limitations
-          </h2>
-          <div className="space-y-3 text-sm text-secondary">
-            <p>
-              <strong className="text-primary">Shielded Addresses:</strong> Due to Zcash&apos;s privacy features,
-              shielded addresses (z-addresses) and their balances cannot be queried. Transparent addresses
-              (t-addresses) are queryable. A Unified Address can be decoded client-side to reveal its receiver
-              types, but activity is queried only through an extracted transparent receiver.
-            </p>
-            <p>
-              <strong className="text-primary">Networks:</strong> This API is available on both{' '}
-              <code className="text-cipher-gold">mainnet</code> ({' '}
-              <code className="text-xs text-muted">api.zecblock.com</code>) and{' '}
-              <code className="text-cipher-gold">testnet</code> ({' '}
-              <code className="text-xs text-muted">api.testnet.cipherscan.app</code>).
-              The base URL above reflects the network you are currently viewing.
-            </p>
-            <p>
-              <strong className="text-primary">Rate Limiting:</strong> Limits are deployment-specific.
-              Read the standard rate-limit response headers and honor <code className="text-danger">Retry-After</code>{' '}
-              when the API returns <code className="text-danger">429 Too Many Requests</code>.
-            </p>
-            <p>
-              <strong className="text-primary">Values:</strong> Units are field-defined in the v1 API; do not
-              infer a unit from a bare number. Exact integer fields ending in <code>Zat</code> or <code>Zats</code>{' '}
-              are decimal-string zatoshis (1 ZEC = 100,000,000 zatoshis). Separately named ZEC fields are
-              display values and should not be used for accounting.
-            </p>
-          </div>
-        </div>
-
-        {/* Endpoints by category */}
-        <div className="space-y-12">
-          {categories.map((category) => (
-            <section key={category.name} className="space-y-6">
-              <div className="sticky top-[96px] docs-category-header backdrop-blur py-4 z-10 border-b border-cipher-border flex items-center justify-between">
-                <h2 className="text-2xl sm:text-3xl font-semibold font-mono text-primary">
-                  {category.name}
-                </h2>
-                <span className="text-xs text-muted font-mono">
-                  {category.endpoints.length} endpoint{category.endpoints.length !== 1 ? 's' : ''}
-                </span>
-              </div>
-              {category.endpoints.map((endpoint) => (
-                <ApiEndpoint key={endpoint.id} endpoint={endpoint} />
-              ))}
-            </section>
-          ))}
-        </div>
-
-        {/* Code Examples */}
-        <div className="mt-12 card">
-          <h2 className="text-2xl font-semibold mb-6 text-primary">Code Examples</h2>
-
-          <div className="mb-6">
-            <h3 className="text-lg font-semibold text-cipher-gold mb-3 font-mono">JavaScript / Node.js</h3>
-            <div className="docs-code-block border border-cipher-border rounded-lg p-4 overflow-x-auto">
-              <pre className="text-sm text-secondary font-mono">
-{`const BASE = '${baseUrl}';
-
-// Latest blocks
-const blocks = await fetch(BASE + '/v1/blocks?limit=5');
-console.log(await blocks.json());
-
-// Privacy stats (v2 score + optional trend depth)
-const stats = await fetch(BASE + '/v1/privacy/stats?days=365');
-const { data: { metrics } } = await stats.json();
-console.log('Privacy score:', metrics.privacyScore, 'v' + metrics.scoreVersion);
-console.log('Usage (30d tx share):', metrics.scoreBreakdown?.usage?.percent + '%');
-
-// Blend check — how common is 1 ZEC?
-const blend = await fetch(BASE + '/v1/privacy/blend-check?amount=1.0');
-console.log(await blend.json());`}
-              </pre>
-            </div>
-          </div>
-
-          <div className="mb-6">
-            <h3 className="text-lg font-semibold text-cipher-gold mb-3 font-mono">Python</h3>
-            <div className="docs-code-block border border-cipher-border rounded-lg p-4 overflow-x-auto">
-              <pre className="text-sm text-secondary font-mono">
-{`import requests
-
-BASE = '${baseUrl}'
-
-# Circulating supply
-supply = requests.get(f'{BASE}/v1/network/circulating-supply?format=json').json()['data']
-print(f"Circulating: {supply['circulatingSupply']} ZEC")
-
-# Rich list top 10
-rich = requests.get(f'{BASE}/v1/addresses/rich-list?limit=10').json()['data']
-for addr in rich['addresses']:
-    label = addr.get('label', 'Unknown')
-    print(f"#{addr['rank']} {label}: {addr['balance'] / 1e8:.2f} ZEC")
-
-# Mempool
-mempool = requests.get(f'{BASE}/v1/mempool').json()['data']['data']
-print(f"Pending: {mempool['count']} txs ({mempool['stats']['shieldedPercentage']}% shielded)")`}
-              </pre>
-            </div>
-          </div>
-
-          <div>
-            <h3 className="text-lg font-semibold text-cipher-gold mb-3 font-mono">cURL</h3>
-            <div className="docs-code-block border border-cipher-border rounded-lg p-4 overflow-x-auto">
-              <pre className="text-sm text-secondary font-mono">
-{`# Halving countdown
-curl ${baseUrl}/v1/network/halving
-
-# Cross-chain swap volume
-curl ${baseUrl}/v1/crosschain/stats
-
-# Shielded transaction count since 2025
-curl '${baseUrl}/v1/stats/shielded-count?since=2025-01-01&detailed=true'`}
-              </pre>
-            </div>
-          </div>
-        </div>
-
-        {/* Error Responses */}
-        <div className="mt-12 card">
-          <h2 className="text-2xl font-semibold mb-6 text-primary">Error Responses</h2>
-          <div className="space-y-4 text-sm">
-            <div className="flex gap-4 items-start">
-              <code className="text-cipher-green font-mono shrink-0 w-12">200</code>
-              <span className="text-secondary">Success. Response body contains the requested data.</span>
-            </div>
-            <div className="flex gap-4 items-start">
-              <code className="text-cipher-yellow font-mono shrink-0 w-12">400</code>
-              <span className="text-secondary">Bad request. Invalid parameters (e.g., non-numeric block height, missing required param).</span>
-            </div>
-            <div className="flex gap-4 items-start">
-              <code className="text-cipher-yellow font-mono shrink-0 w-12">404</code>
-              <span className="text-secondary">Not found. The requested block, transaction, address, or name does not exist.</span>
-            </div>
-            <div className="flex gap-4 items-start">
-              <code className="text-danger font-mono shrink-0 w-12">429</code>
-              <span className="text-secondary">Rate limit exceeded. Honor the response&apos;s Retry-After and rate-limit headers.</span>
-            </div>
-            <div className="flex gap-4 items-start">
-              <code className="text-danger font-mono shrink-0 w-12">500</code>
-              <span className="text-secondary">Server error. The node or database may be temporarily unavailable.</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Support */}
-        <div className="mt-12 card">
-          <h2 className="text-xl font-semibold mb-4 text-primary">Need Help?</h2>
-          <p className="text-secondary mb-4">
-            If you have questions or need support, feel free to reach out:
-          </p>
-          <div className="flex flex-col sm:flex-row gap-3">
-            <a
-              href="https://github.com/Kenbak/cipherscan"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-4 py-2 card-bg border border-cipher-border rounded-lg hover:border-cipher-gold transition-colors text-sm text-secondary"
-            >
-              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                <path fillRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clipRule="evenodd" />
-              </svg>
-              GitHub
-            </a>
-            <Link
-              href="/"
-              className="inline-flex items-center gap-2 px-4 py-2 bg-brand-gold text-cipher-bg-dark rounded-lg hover:bg-brand-gold/90 transition-colors text-sm font-semibold"
-            >
-              Explore the Blockchain →
-            </Link>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+  const base = getBaseUrl();
+  const schema = { '@context': 'https://schema.org', '@type': 'TechArticle', '@id': `${base}/docs#article`, url: `${base}/docs`, headline: 'Zcash API documentation', description: 'The public ZecBlock v1 endpoint reference, request formats, pagination and response conventions.', isPartOf: { '@id': `${base}/#website` }, publisher: { '@id': 'https://zecblock.com/#organization' } };
+  return <div className={styles.page}>
+    <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schema).replace(/</g, '\\u003c') }} />
+    <PageHeader eyebrow="DEVELOPERS_API" title="API documentation" subtitle="Build with Zcash data. Explore the v1 endpoints for blocks, transactions, shielded pools and network analytics." actions={<a className="btn btn-sm btn-secondary" href="/openapi-v1.json" download>Download OpenAPI ↗</a>} />
+    <div className={styles.metrics}><span><strong>{endpoints.length}</strong> public operations</span><span>{count('GET')} GET · {count('POST')} POST · {count('DELETE')} DELETE</span><span>{networkLabel}</span><span>API base <code>{baseUrl}/v1</code></span></div>
+    <ApiReference categories={categories}>
+      <section id="quickstart" className={styles.guide}>
+        <h2>Quick start</h2>
+        <p>Make a request to the API base above. Paths in this reference already include <code>/v1</code>; append them to the host only.</p>
+        <pre className={styles.code}><code>{`curl '${baseUrl}/v1/blocks?limit=5'`}</code></pre>
+        <p className={styles.note}>This is the v1 contract reference. Use a deployment with v1 enabled; the planned mainnet host is <code>api.zecblock.com</code>. The existing production API continues until cutover. A gated preview requires <code>X-API-Preview-Key</code>; the private local adapter handles preview access and allows reads only.</p>
+        <div className={styles.guideGrid}><div><h3>Access</h3><p>Public data routes do not require an account after launch. Updating or deleting a Crosslink node registration requires its ownership token. Paid/private services and operational routes are excluded from this reference.</p></div><div><h3>Network</h3><p>Confirm <code>meta.network</code> in the response. Endpoint availability and data coverage vary by network; Crosslink routes require a Crosslink deployment.</p></div></div>
+      </section>
+      <section id="response-contract" className={styles.guide}>
+        <h2>Responses &amp; units</h2>
+        <p>Successful responses contain <code>data</code> and <code>meta</code>. The payload belongs to the endpoint; lists with cursor pagination return an array in <code>data</code>. Read freshness and network from <code>meta</code>.</p>
+        <pre className={styles.code}><code>{`const response = await fetch('${baseUrl}/v1/blocks?limit=5');
+const body = await response.json();
+if (!response.ok) {
+  throw new Error(body.detail ?? body.title ?? 'Request failed');
+}
+const { data: blocks, meta } = body;
+console.log(blocks, meta.network, meta.freshness);`}</code></pre>
+        <div className={styles.guideGrid}><div><h3>Exact amounts</h3><p>Fields identified as zatoshis are decimal strings: <code>100000000</code> zatoshis = 1 ZEC. Preserve them as strings or integers such as JavaScript <code>BigInt</code>. Other monetary fields keep their field-defined units.</p></div><div><h3>Observation time</h3><p><code>meta.generatedAt</code> is response generation time. Data observation time is <code>meta.source.observedAt</code>; it can be null. Missing or unavailable values do not mean zero.</p></div></div>
+        <details><summary>Privacy and schema coverage</summary><p>Individual shielded balances and shielded address histories are not publicly queryable. Transparent receivers have public activity; a Unified Address is not itself a public account history. Pool totals are public aggregates.</p><p>The OpenAPI file defines requests and the shared envelope. Many domain payloads still use broad object schemas, so it is not a complete field-by-field data dictionary. This reference avoids fabricating response examples. <Link href="/learn#privacy">Learn about Zcash privacy →</Link></p></details>
+      </section>
+      <section id="pagination" className={styles.guide}>
+        <h2>Pagination</h2>
+        <p>Endpoints marked <strong>Cursor pagination</strong> return navigation in <code>meta.page</code>. Use the returned cursor unchanged and retain the same filters. Other endpoints explicitly list their own <code>page</code> or <code>offset</code> parameters.</p>
+        <pre className={styles.code}><code>{`// Continue a cursor-paginated block list.
+if (meta.page?.hasNext && meta.page.nextCursor) {
+  const query = new URLSearchParams({
+    limit: '5', cursor: meta.page.nextCursor,
+  });
+  const next = await fetch('${baseUrl}/v1/blocks?' + query);
+  if (!next.ok) throw new Error('Next page failed: ' + next.status);
+  const page = await next.json();
+  console.log(page.data);
+}`}</code></pre>
+        <p>Standard cursor lists default to 25 items and allow 1–100. The names collection defaults to 100 and allows 1–500. Endpoint parameters show the applicable bounds.</p>
+      </section>
+      <section id="errors" className={styles.guide}>
+        <h2>Errors &amp; limits</h2>
+        <p>Failures use <code>application/problem+json</code> with <code>type</code>, <code>title</code>, <code>status</code> and, when available, <code>detail</code>. Check the HTTP status before reading <code>data</code>. Rate limits are deployment-specific; honor <code>Retry-After</code> on 429 responses.</p>
+        <dl className={styles.errorList}>{[['400','Invalid path, query or body.'],['401/403','Preview access or endpoint ownership authorization is missing or denied.'],['404','The resource or enabled route was not found.'],['413','The request body exceeds the accepted size.'],['429','Too many requests; wait before retrying.'],['500','An internal error occurred.'],['502/504','An upstream request failed or timed out.'],['503','The source is unavailable or still building.']].map(([status, description]) => <div key={status} className="contents"><dt><code>{status}</code></dt><dd>{description}</dd></div>)}</dl>
+        <p>Scan endpoints have additional range and rate limits. Avoid automatically retrying writes after a timeout: the operation may already have completed.</p>
+      </section>
+    </ApiReference>
+  </div>;
 }

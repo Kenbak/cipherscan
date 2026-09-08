@@ -1,137 +1,28 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
+import { categoryId, type ApiEndpoint } from '../endpoints';
+import styles from '../docs.module.css';
 
-interface ApiSidebarProps {
-  categories: Array<{
-    name: string;
-    endpoints: Array<{ id: string; path: string; method: string }>;
-  }>;
-}
-
-export default function ApiSidebar({ categories }: ApiSidebarProps) {
+export interface Category { key: string; name: string; endpoints: ApiEndpoint[] }
+export default function ApiSidebar({ categories, search, onSearch }: { categories: Category[]; search: string; onSearch: (value: string) => void }) {
   const [isOpen, setIsOpen] = useState(false);
-  const [search, setSearch] = useState('');
-
-  const filtered = useMemo(() => {
-    if (!search.trim()) return categories;
-    const q = search.toLowerCase();
-    return categories
-      .map(cat => ({
-        ...cat,
-        endpoints: cat.endpoints.filter(
-          e => e.path.toLowerCase().includes(q) || e.id.toLowerCase().includes(q)
-        ),
-      }))
-      .filter(cat => cat.endpoints.length > 0);
-  }, [categories, search]);
-
-  const totalResults = filtered.reduce((sum, c) => sum + c.endpoints.length, 0);
-
-  return (
-    <>
-      {/* Mobile toggle */}
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="lg:hidden fixed bottom-6 right-6 z-50 bg-brand-gold text-cipher-bg-dark p-4 rounded-full shadow-lg hover:bg-brand-gold/90 transition-colors"
-        aria-label="Toggle API navigation"
-        aria-expanded={isOpen}
-      >
-        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-          {isOpen ? (
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-          ) : (
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-          )}
-        </svg>
-      </button>
-
-      {/* Overlay */}
-      {isOpen && (
-        <div
-          className="lg:hidden fixed inset-0 bg-black/50 z-40"
-          onClick={() => setIsOpen(false)}
-        />
-      )}
-
-      {/* Sidebar */}
-      <aside
-        className={`
-          fixed lg:sticky top-0 left-0 h-screen
-          w-72 docs-sidebar border-r border-cipher-border
-          overflow-y-auto z-40
-          transition-transform duration-300 ease-in-out
-          ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
-        `}
-      >
-        <div className="p-6">
-          <h2 className="text-lg font-semibold text-primary mb-4 font-mono">API Endpoints</h2>
-
-          {/* Search */}
-          <div className="relative mb-5">
-            <svg
-              className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted pointer-events-none"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              aria-hidden="true"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-            <input
-              type="text"
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              placeholder="Filter endpoints..."
-              className="w-full pl-8 pr-3 py-2 text-xs font-mono rounded border border-cipher-border bg-transparent text-primary placeholder:text-muted focus:border-cipher-gold focus:outline-none transition-colors"
-            />
-            {search && (
-              <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-caption text-muted">
-                {totalResults}
-              </span>
-            )}
-          </div>
-
-          <nav className="space-y-6">
-            {filtered.map((category) => (
-              <div key={category.name}>
-                <h3 className="text-sm font-semibold text-muted uppercase mb-2 tracking-wide">
-                  {category.name}
-                </h3>
-                <ul className="space-y-1">
-                  {category.endpoints.map((endpoint) => (
-                    <li key={endpoint.id}>
-                      <a
-                        href={`#${endpoint.id}`}
-                        onClick={() => setIsOpen(false)}
-                        className="block w-full text-left px-3 py-2 rounded text-sm docs-sidebar-item transition-colors group"
-                      >
-                        <div className="flex items-center gap-2">
-                          <span className={`
-                            text-xs font-mono font-semibold px-1.5 py-0.5 rounded shrink-0
-                            ${endpoint.method === 'GET'
-                              ? 'text-cipher-green bg-cipher-green/10'
-                              : 'text-cipher-gold bg-brand-gold/10'
-                            }
-                          `}>
-                            {endpoint.method}
-                          </span>
-                          <span className="text-secondary group-hover:text-primary transition-colors font-mono text-xs truncate">
-                            {endpoint.path}
-                          </span>
-                        </div>
-                      </a>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-            {filtered.length === 0 && (
-              <p className="text-xs text-muted px-3">No endpoints match &ldquo;{search}&rdquo;</p>
-            )}
-          </nav>
-        </div>
-      </aside>
-    </>
-  );
+  return <div className={styles.navColumn}>
+    <button className={styles.mobileToggle} onClick={() => setIsOpen(!isOpen)} aria-expanded={isOpen} aria-controls="docs-navigation">Browse documentation <span aria-hidden="true">{isOpen ? '−' : '+'}</span></button>
+    <aside id="docs-navigation" className={styles.sidebar} data-open={isOpen}>
+      <label className={styles.searchLabel} htmlFor="endpoint-search">Find an endpoint</label>
+      <div className={styles.searchBox}><input id="endpoint-search" type="search" placeholder="Search routes or topics…" value={search} onChange={e => onSearch(e.target.value)} autoComplete="off" spellCheck={false} />{search && <button onClick={() => onSearch('')} aria-label="Clear endpoint search">×</button>}</div>
+      <nav aria-label="API documentation">
+        <div className={styles.guideLinks}>{[['quickstart','Quick start'],['response-contract','Responses & units'],['pagination','Pagination'],['errors','Errors & limits']].map(([id,label]) => <a key={id} href={`#${id}`} onClick={() => { onSearch(''); setIsOpen(false); }}>{label}</a>)}</div>
+        <p className={styles.navLabel}>Public endpoints</p>
+        {categories.map(category => <details key={category.key} className={styles.navGroup} open={search ? true : undefined}>
+          <summary>{category.name}<span>{category.endpoints.length}</span></summary>
+          <a className={styles.categoryLink} href={`#${categoryId(category.key)}`} onClick={() => setIsOpen(false)}>View {category.name.toLowerCase()} →</a>
+          {category.endpoints.map(endpoint => <a key={endpoint.id} href={`#${endpoint.id}`} className={styles.routeLink} onClick={() => setIsOpen(false)} title={`${endpoint.method} ${endpoint.path}`}><span data-method={endpoint.method}>{endpoint.method}</span><code>{endpoint.path.replace(/^\/v1\//, '/')}</code></a>)}
+        </details>)}
+        {!categories.length && <p className={styles.hint}>No matching endpoints.</p>}
+        <a className={styles.specLink} href="/openapi-v1.json" download>Download OpenAPI 3.1 ↗</a>
+      </nav>
+    </aside>
+  </div>;
 }

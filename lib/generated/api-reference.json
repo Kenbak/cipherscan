@@ -8,7 +8,10 @@
     "listKey": null,
     "zatoshiFields": [],
     "note": null,
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [],
+    "requestBody": null
   },
   {
     "method": "GET",
@@ -22,7 +25,31 @@
     "listKey": null,
     "zatoshiFields": [],
     "note": null,
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": "cursor",
+    "parameters": [
+      {
+        "name": "limit",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 500,
+          "default": 100
+        }
+      },
+      {
+        "name": "cursor",
+        "in": "query",
+        "required": false,
+        "description": "Opaque cursor from a previous response's meta.page.nextCursor/prevCursor.",
+        "schema": {
+          "type": "string"
+        }
+      }
+    ],
+    "requestBody": null
   },
   {
     "method": "GET",
@@ -33,7 +60,19 @@
     "listKey": null,
     "zatoshiFields": [],
     "note": null,
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [
+      {
+        "name": "name",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      }
+    ],
+    "requestBody": null
   },
   {
     "method": "GET",
@@ -44,7 +83,19 @@
     "listKey": null,
     "zatoshiFields": [],
     "note": null,
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [
+      {
+        "name": "name",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      }
+    ],
+    "requestBody": null
   },
   {
     "method": "GET",
@@ -55,7 +106,10 @@
     "listKey": null,
     "zatoshiFields": [],
     "note": null,
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [],
+    "requestBody": null
   },
   {
     "method": "GET",
@@ -71,7 +125,31 @@
       "total_fees"
     ],
     "note": "total_fees is a raw zatoshi BIGINT column, not pre-divided by the legacy handler.",
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": "cursor",
+    "parameters": [
+      {
+        "name": "limit",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "default": 25
+        }
+      },
+      {
+        "name": "cursor",
+        "in": "query",
+        "required": false,
+        "description": "Opaque cursor from a previous response's meta.page.nextCursor/prevCursor.",
+        "schema": {
+          "type": "string"
+        }
+      }
+    ],
+    "requestBody": null
   },
   {
     "method": "GET",
@@ -86,7 +164,28 @@
       "total_fees"
     ],
     "note": null,
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [
+      {
+        "name": "heightOrHash",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      {
+        "name": "summary",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string"
+        },
+        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      }
+    ],
+    "requestBody": null
   },
   {
     "method": "GET",
@@ -97,7 +196,19 @@
     "listKey": null,
     "zatoshiFields": [],
     "note": null,
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [
+      {
+        "name": "root",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      }
+    ],
+    "requestBody": null
   },
   {
     "method": "GET",
@@ -108,7 +219,19 @@
     "listKey": null,
     "zatoshiFields": [],
     "note": null,
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [
+      {
+        "name": "hashOrHeight",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      }
+    ],
+    "requestBody": null
   },
   {
     "method": "GET",
@@ -119,7 +242,10 @@
     "listKey": null,
     "zatoshiFields": [],
     "note": null,
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [],
+    "requestBody": null
   },
   {
     "method": "GET",
@@ -130,7 +256,10 @@
     "listKey": null,
     "zatoshiFields": [],
     "note": null,
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [],
+    "requestBody": null
   },
   {
     "method": "GET",
@@ -141,7 +270,10 @@
     "listKey": null,
     "zatoshiFields": [],
     "note": null,
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [],
+    "requestBody": null
   },
   {
     "method": "GET",
@@ -152,7 +284,10 @@
     "listKey": null,
     "zatoshiFields": [],
     "note": null,
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [],
+    "requestBody": null
   },
   {
     "method": "GET",
@@ -163,7 +298,10 @@
     "listKey": null,
     "zatoshiFields": [],
     "note": null,
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [],
+    "requestBody": null
   },
   {
     "method": "GET",
@@ -174,7 +312,10 @@
     "listKey": null,
     "zatoshiFields": [],
     "note": null,
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [],
+    "requestBody": null
   },
   {
     "method": "GET",
@@ -185,7 +326,10 @@
     "listKey": null,
     "zatoshiFields": [],
     "note": null,
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [],
+    "requestBody": null
   },
   {
     "method": "GET",
@@ -198,7 +342,20 @@
     "listKey": null,
     "zatoshiFields": [],
     "note": null,
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [
+      {
+        "name": "format",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string"
+        },
+        "description": "Compatibility parameter; v1 always returns JSON."
+      }
+    ],
+    "requestBody": null
   },
   {
     "method": "GET",
@@ -209,7 +366,10 @@
     "listKey": null,
     "zatoshiFields": [],
     "note": null,
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [],
+    "requestBody": null
   },
   {
     "method": "GET",
@@ -220,7 +380,10 @@
     "listKey": null,
     "zatoshiFields": [],
     "note": null,
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [],
+    "requestBody": null
   },
   {
     "method": "GET",
@@ -233,7 +396,20 @@
     "listKey": null,
     "zatoshiFields": [],
     "note": null,
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [
+      {
+        "name": "period",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string"
+        },
+        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      }
+    ],
+    "requestBody": null
   },
   {
     "method": "GET",
@@ -244,7 +420,10 @@
     "listKey": null,
     "zatoshiFields": [],
     "note": null,
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [],
+    "requestBody": null
   },
   {
     "method": "GET",
@@ -257,7 +436,21 @@
     "listKey": null,
     "zatoshiFields": [],
     "note": null,
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [
+      {
+        "name": "date",
+        "in": "query",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "format": "date"
+        },
+        "description": "UTC calendar date (YYYY-MM-DD). The response indicates when an earlier available price is used."
+      }
+    ],
+    "requestBody": null
   },
   {
     "method": "GET",
@@ -268,7 +461,10 @@
     "listKey": null,
     "zatoshiFields": [],
     "note": null,
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [],
+    "requestBody": null
   },
   {
     "method": "GET",
@@ -279,7 +475,10 @@
     "listKey": null,
     "zatoshiFields": [],
     "note": null,
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [],
+    "requestBody": null
   },
   {
     "method": "GET",
@@ -295,7 +494,47 @@
     "listKey": null,
     "zatoshiFields": [],
     "note": null,
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [
+      {
+        "name": "dir",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string"
+        },
+        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      },
+      {
+        "name": "limit",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string"
+        },
+        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      },
+      {
+        "name": "offset",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string"
+        },
+        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      },
+      {
+        "name": "sort",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string"
+        },
+        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      }
+    ],
+    "requestBody": null
   },
   {
     "method": "GET",
@@ -306,7 +545,10 @@
     "listKey": null,
     "zatoshiFields": [],
     "note": null,
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [],
+    "requestBody": null
   },
   {
     "method": "GET",
@@ -317,7 +559,10 @@
     "listKey": null,
     "zatoshiFields": [],
     "note": null,
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [],
+    "requestBody": null
   },
   {
     "method": "GET",
@@ -328,7 +573,10 @@
     "listKey": null,
     "zatoshiFields": [],
     "note": null,
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [],
+    "requestBody": null
   },
   {
     "method": "GET",
@@ -339,7 +587,10 @@
     "listKey": null,
     "zatoshiFields": [],
     "note": null,
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [],
+    "requestBody": null
   },
   {
     "method": "GET",
@@ -350,7 +601,10 @@
     "listKey": null,
     "zatoshiFields": [],
     "note": null,
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [],
+    "requestBody": null
   },
   {
     "method": "GET",
@@ -364,7 +618,29 @@
     "listKey": null,
     "zatoshiFields": [],
     "note": null,
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [
+      {
+        "name": "limit",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string"
+        },
+        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      },
+      {
+        "name": "window",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string"
+        },
+        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      }
+    ],
+    "requestBody": null
   },
   {
     "method": "GET",
@@ -377,7 +653,20 @@
     "listKey": null,
     "zatoshiFields": [],
     "note": null,
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [
+      {
+        "name": "period",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string"
+        },
+        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      }
+    ],
+    "requestBody": null
   },
   {
     "method": "GET",
@@ -391,7 +680,29 @@
     "listKey": null,
     "zatoshiFields": [],
     "note": null,
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [
+      {
+        "name": "format",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string"
+        },
+        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      },
+      {
+        "name": "period",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string"
+        },
+        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      }
+    ],
+    "requestBody": null
   },
   {
     "method": "GET",
@@ -404,7 +715,20 @@
     "listKey": null,
     "zatoshiFields": [],
     "note": null,
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [
+      {
+        "name": "period",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string"
+        },
+        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      }
+    ],
+    "requestBody": null
   },
   {
     "method": "GET",
@@ -417,7 +741,20 @@
     "listKey": null,
     "zatoshiFields": [],
     "note": null,
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [
+      {
+        "name": "period",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string"
+        },
+        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      }
+    ],
+    "requestBody": null
   },
   {
     "method": "GET",
@@ -430,7 +767,20 @@
     "listKey": null,
     "zatoshiFields": [],
     "note": null,
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [
+      {
+        "name": "limit",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string"
+        },
+        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      }
+    ],
+    "requestBody": null
   },
   {
     "method": "GET",
@@ -441,7 +791,10 @@
     "listKey": null,
     "zatoshiFields": [],
     "note": null,
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [],
+    "requestBody": null
   },
   {
     "method": "GET",
@@ -455,7 +808,29 @@
     "listKey": null,
     "zatoshiFields": [],
     "note": null,
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [
+      {
+        "name": "limit",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string"
+        },
+        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      },
+      {
+        "name": "page",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string"
+        },
+        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      }
+    ],
+    "requestBody": null
   },
   {
     "method": "GET",
@@ -469,7 +844,29 @@
     "listKey": null,
     "zatoshiFields": [],
     "note": null,
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [
+      {
+        "name": "limit",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string"
+        },
+        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      },
+      {
+        "name": "page",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string"
+        },
+        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      }
+    ],
+    "requestBody": null
   },
   {
     "method": "GET",
@@ -480,7 +877,10 @@
     "listKey": null,
     "zatoshiFields": [],
     "note": null,
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [],
+    "requestBody": null
   },
   {
     "method": "GET",
@@ -491,7 +891,10 @@
     "listKey": null,
     "zatoshiFields": [],
     "note": null,
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [],
+    "requestBody": null
   },
   {
     "method": "GET",
@@ -505,7 +908,40 @@
     "listKey": null,
     "zatoshiFields": [],
     "note": null,
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [
+      {
+        "name": "granularity",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "default": "daily",
+          "type": "string",
+          "enum": [
+            "daily",
+            "weekly"
+          ]
+        },
+        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      },
+      {
+        "name": "period",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "default": "30d",
+          "type": "string",
+          "enum": [
+            "7d",
+            "30d",
+            "90d"
+          ]
+        },
+        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      }
+    ],
+    "requestBody": null
   },
   {
     "method": "GET",
@@ -521,7 +957,58 @@
     "listKey": null,
     "zatoshiFields": [],
     "note": null,
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [
+      {
+        "name": "chain",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      },
+      {
+        "name": "direction",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string",
+          "enum": [
+            "inflow",
+            "outflow"
+          ]
+        },
+        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      },
+      {
+        "name": "limit",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "default": 25,
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100
+        },
+        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      },
+      {
+        "name": "page",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "default": 1,
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      }
+    ],
+    "requestBody": null
   },
   {
     "method": "GET",
@@ -534,7 +1021,25 @@
     "listKey": null,
     "zatoshiFields": [],
     "note": null,
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [
+      {
+        "name": "period",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "default": "30d",
+          "type": "string",
+          "enum": [
+            "7d",
+            "30d"
+          ]
+        },
+        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      }
+    ],
+    "requestBody": null
   },
   {
     "method": "GET",
@@ -545,7 +1050,19 @@
     "listKey": null,
     "zatoshiFields": [],
     "note": null,
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [
+      {
+        "name": "address",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      }
+    ],
+    "requestBody": null
   },
   {
     "method": "GET",
@@ -556,7 +1073,10 @@
     "listKey": null,
     "zatoshiFields": [],
     "note": null,
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [],
+    "requestBody": null
   },
   {
     "method": "GET",
@@ -567,7 +1087,10 @@
     "listKey": null,
     "zatoshiFields": [],
     "note": null,
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [],
+    "requestBody": null
   },
   {
     "method": "GET",
@@ -578,7 +1101,10 @@
     "listKey": null,
     "zatoshiFields": [],
     "note": null,
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [],
+    "requestBody": null
   },
   {
     "method": "GET",
@@ -591,7 +1117,20 @@
     "listKey": null,
     "zatoshiFields": [],
     "note": null,
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [
+      {
+        "name": "days",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string"
+        },
+        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      }
+    ],
+    "requestBody": null
   },
   {
     "method": "GET",
@@ -605,7 +1144,30 @@
     "listKey": null,
     "zatoshiFields": [],
     "note": null,
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [
+      {
+        "name": "detailed",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string"
+        },
+        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      },
+      {
+        "name": "since",
+        "in": "query",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "format": "date"
+        },
+        "description": "Start date (YYYY-MM-DD)."
+      }
+    ],
+    "requestBody": null
   },
   {
     "method": "GET",
@@ -619,7 +1181,30 @@
     "listKey": null,
     "zatoshiFields": [],
     "note": null,
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [
+      {
+        "name": "since",
+        "in": "query",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "format": "date"
+        },
+        "description": "Start date (YYYY-MM-DD)."
+      },
+      {
+        "name": "until",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string"
+        },
+        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      }
+    ],
+    "requestBody": null
   },
   {
     "method": "GET",
@@ -637,7 +1222,92 @@
     "listKey": null,
     "zatoshiFields": [],
     "note": null,
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [
+      {
+        "name": "limit",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "default": 20,
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100
+        },
+        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      },
+      {
+        "name": "minScore",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "default": 40,
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      },
+      {
+        "name": "offset",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "default": 0,
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      },
+      {
+        "name": "period",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "default": "7d",
+          "type": "string",
+          "enum": [
+            "24h",
+            "7d",
+            "30d",
+            "90d"
+          ]
+        },
+        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      },
+      {
+        "name": "riskLevel",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "default": "ALL",
+          "type": "string",
+          "enum": [
+            "ALL",
+            "HIGH",
+            "MEDIUM"
+          ]
+        },
+        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      },
+      {
+        "name": "sort",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "default": "recent",
+          "type": "string",
+          "enum": [
+            "score",
+            "recent"
+          ]
+        },
+        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      }
+    ],
+    "requestBody": null
   },
   {
     "method": "GET",
@@ -656,7 +1326,107 @@
     "listKey": null,
     "zatoshiFields": [],
     "note": null,
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [
+      {
+        "name": "limit",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "default": 20,
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100
+        },
+        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      },
+      {
+        "name": "minScore",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "default": 40,
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      },
+      {
+        "name": "offset",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "default": 0,
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      },
+      {
+        "name": "period",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "default": "7d",
+          "type": "string",
+          "enum": [
+            "24h",
+            "7d",
+            "30d",
+            "90d"
+          ]
+        },
+        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      },
+      {
+        "name": "riskLevel",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "default": "ALL",
+          "type": "string",
+          "enum": [
+            "ALL",
+            "HIGH",
+            "MEDIUM"
+          ]
+        },
+        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      },
+      {
+        "name": "sort",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "default": "recent",
+          "type": "string",
+          "enum": [
+            "score",
+            "recent"
+          ]
+        },
+        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      },
+      {
+        "name": "txid",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[a-fA-F0-9]{64}$"
+            },
+            {}
+          ]
+        },
+        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      }
+    ],
+    "requestBody": null
   },
   {
     "method": "GET",
@@ -675,7 +1445,97 @@
     "listKey": null,
     "zatoshiFields": [],
     "note": null,
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [
+      {
+        "name": "afterAmount",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "number"
+        },
+        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      },
+      {
+        "name": "afterScore",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "number"
+        },
+        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      },
+      {
+        "name": "limit",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "default": 20,
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 50
+        },
+        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      },
+      {
+        "name": "minScore",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "default": 35,
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      },
+      {
+        "name": "period",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "default": "30d",
+          "type": "string",
+          "enum": [
+            "7d",
+            "30d",
+            "90d"
+          ]
+        },
+        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      },
+      {
+        "name": "riskLevel",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "default": "ALL",
+          "type": "string",
+          "enum": [
+            "ALL",
+            "HIGH",
+            "MEDIUM"
+          ]
+        },
+        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      },
+      {
+        "name": "sort",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "default": "score",
+          "type": "string",
+          "enum": [
+            "score",
+            "recent"
+          ]
+        },
+        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      }
+    ],
+    "requestBody": null
   },
   {
     "method": "GET",
@@ -694,7 +1554,97 @@
     "listKey": null,
     "zatoshiFields": [],
     "note": null,
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [
+      {
+        "name": "afterAmount",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "number"
+        },
+        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      },
+      {
+        "name": "afterScore",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "number"
+        },
+        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      },
+      {
+        "name": "limit",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "default": 20,
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 50
+        },
+        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      },
+      {
+        "name": "minScore",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "default": 35,
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      },
+      {
+        "name": "period",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "default": "30d",
+          "type": "string",
+          "enum": [
+            "7d",
+            "30d",
+            "90d"
+          ]
+        },
+        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      },
+      {
+        "name": "riskLevel",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "default": "ALL",
+          "type": "string",
+          "enum": [
+            "ALL",
+            "HIGH",
+            "MEDIUM"
+          ]
+        },
+        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      },
+      {
+        "name": "sort",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "default": "score",
+          "type": "string",
+          "enum": [
+            "score",
+            "recent"
+          ]
+        },
+        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      }
+    ],
+    "requestBody": null
   },
   {
     "method": "GET",
@@ -705,7 +1655,19 @@
     "listKey": null,
     "zatoshiFields": [],
     "note": null,
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [
+      {
+        "name": "txid",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      }
+    ],
+    "requestBody": null
   },
   {
     "method": "GET",
@@ -716,7 +1678,19 @@
     "listKey": null,
     "zatoshiFields": [],
     "note": null,
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [
+      {
+        "name": "txid",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      }
+    ],
+    "requestBody": null
   },
   {
     "method": "GET",
@@ -732,7 +1706,47 @@
     "listKey": null,
     "zatoshiFields": [],
     "note": null,
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [
+      {
+        "name": "limit",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string"
+        },
+        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      },
+      {
+        "name": "offset",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string"
+        },
+        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      },
+      {
+        "name": "riskLevel",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string"
+        },
+        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      },
+      {
+        "name": "type",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string"
+        },
+        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      }
+    ],
+    "requestBody": null
   },
   {
     "method": "GET",
@@ -747,7 +1761,38 @@
     "listKey": null,
     "zatoshiFields": [],
     "note": null,
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [
+      {
+        "name": "chain",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string"
+        },
+        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      },
+      {
+        "name": "limit",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string"
+        },
+        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      },
+      {
+        "name": "period",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string"
+        },
+        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      }
+    ],
+    "requestBody": null
   },
   {
     "method": "GET",
@@ -761,7 +1806,31 @@
     "listKey": null,
     "zatoshiFields": [],
     "note": null,
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [
+      {
+        "name": "chain",
+        "in": "query",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      },
+      {
+        "name": "token",
+        "in": "query",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      }
+    ],
+    "requestBody": null
   },
   {
     "method": "GET",
@@ -774,7 +1843,20 @@
     "listKey": null,
     "zatoshiFields": [],
     "note": null,
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [
+      {
+        "name": "period",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string"
+        },
+        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      }
+    ],
+    "requestBody": null
   },
   {
     "method": "GET",
@@ -787,7 +1869,20 @@
     "listKey": null,
     "zatoshiFields": [],
     "note": null,
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [
+      {
+        "name": "period",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string"
+        },
+        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      }
+    ],
+    "requestBody": null
   },
   {
     "method": "GET",
@@ -800,7 +1895,20 @@
     "listKey": null,
     "zatoshiFields": [],
     "note": null,
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [
+      {
+        "name": "period",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string"
+        },
+        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      }
+    ],
+    "requestBody": null
   },
   {
     "method": "GET",
@@ -813,7 +1921,20 @@
     "listKey": null,
     "zatoshiFields": [],
     "note": null,
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [
+      {
+        "name": "period",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string"
+        },
+        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      }
+    ],
+    "requestBody": null
   },
   {
     "method": "GET",
@@ -826,7 +1947,20 @@
     "listKey": null,
     "zatoshiFields": [],
     "note": null,
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [
+      {
+        "name": "period",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string"
+        },
+        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      }
+    ],
+    "requestBody": null
   },
   {
     "method": "GET",
@@ -839,7 +1973,20 @@
     "listKey": null,
     "zatoshiFields": [],
     "note": null,
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [
+      {
+        "name": "period",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string"
+        },
+        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      }
+    ],
+    "requestBody": null
   },
   {
     "method": "GET",
@@ -852,7 +1999,22 @@
     "listKey": null,
     "zatoshiFields": [],
     "note": null,
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [
+      {
+        "name": "amount",
+        "in": "query",
+        "required": true,
+        "schema": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 21000000
+        },
+        "description": "Amount in ZEC, greater than zero and at most 21 million."
+      }
+    ],
+    "requestBody": null
   },
   {
     "method": "GET",
@@ -865,7 +2027,22 @@
     "listKey": null,
     "zatoshiFields": [],
     "note": null,
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [
+      {
+        "name": "amount",
+        "in": "query",
+        "required": true,
+        "schema": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 21000000
+        },
+        "description": "Amount in ZEC, greater than zero and at most 21 million."
+      }
+    ],
+    "requestBody": null
   },
   {
     "method": "GET",
@@ -876,7 +2053,10 @@
     "listKey": null,
     "zatoshiFields": [],
     "note": null,
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [],
+    "requestBody": null
   },
   {
     "method": "GET",
@@ -892,7 +2072,47 @@
     "listKey": null,
     "zatoshiFields": [],
     "note": null,
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [
+      {
+        "name": "format",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string"
+        },
+        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      },
+      {
+        "name": "granularity",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string"
+        },
+        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      },
+      {
+        "name": "period",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string"
+        },
+        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      },
+      {
+        "name": "pool",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string"
+        },
+        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      }
+    ],
+    "requestBody": null
   },
   {
     "method": "GET",
@@ -905,7 +2125,20 @@
     "listKey": null,
     "zatoshiFields": [],
     "note": null,
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [
+      {
+        "name": "since",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string"
+        },
+        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      }
+    ],
+    "requestBody": null
   },
   {
     "method": "GET",
@@ -918,7 +2151,20 @@
     "listKey": null,
     "zatoshiFields": [],
     "note": null,
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [
+      {
+        "name": "period",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string"
+        },
+        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      }
+    ],
+    "requestBody": null
   },
   {
     "method": "GET",
@@ -931,7 +2177,20 @@
     "listKey": null,
     "zatoshiFields": [],
     "note": null,
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [
+      {
+        "name": "period",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string"
+        },
+        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      }
+    ],
+    "requestBody": null
   },
   {
     "method": "GET",
@@ -944,7 +2203,20 @@
     "listKey": null,
     "zatoshiFields": [],
     "note": null,
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [
+      {
+        "name": "period",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string"
+        },
+        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      }
+    ],
+    "requestBody": null
   },
   {
     "method": "GET",
@@ -957,7 +2229,20 @@
     "listKey": null,
     "zatoshiFields": [],
     "note": null,
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [
+      {
+        "name": "period",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string"
+        },
+        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      }
+    ],
+    "requestBody": null
   },
   {
     "method": "GET",
@@ -970,7 +2255,20 @@
     "listKey": null,
     "zatoshiFields": [],
     "note": null,
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [
+      {
+        "name": "period",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string"
+        },
+        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      }
+    ],
+    "requestBody": null
   },
   {
     "method": "GET",
@@ -983,7 +2281,20 @@
     "listKey": null,
     "zatoshiFields": [],
     "note": null,
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [
+      {
+        "name": "period",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string"
+        },
+        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      }
+    ],
+    "requestBody": null
   },
   {
     "method": "GET",
@@ -994,7 +2305,10 @@
     "listKey": null,
     "zatoshiFields": [],
     "note": null,
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [],
+    "requestBody": null
   },
   {
     "method": "GET",
@@ -1005,7 +2319,10 @@
     "listKey": null,
     "zatoshiFields": [],
     "note": null,
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [],
+    "requestBody": null
   },
   {
     "method": "GET",
@@ -1016,7 +2333,10 @@
     "listKey": null,
     "zatoshiFields": [],
     "note": null,
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [],
+    "requestBody": null
   },
   {
     "method": "GET",
@@ -1031,7 +2351,20 @@
       "buckets.*.volumeZat"
     ],
     "note": "volumeZat per bucket is an exact SQL SUM() of the raw zatoshi BIGINT column, never divided into ZEC — per the route's own docblock.",
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [
+      {
+        "name": "granularity",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string"
+        },
+        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      }
+    ],
+    "requestBody": null
   },
   {
     "method": "GET",
@@ -1046,7 +2379,10 @@
       "volumeZat7d"
     ],
     "note": "Exact zatoshi integers throughout per the route's own docblock — never divided into a ZEC float.",
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [],
+    "requestBody": null
   },
   {
     "method": "GET",
@@ -1057,7 +2393,10 @@
     "listKey": null,
     "zatoshiFields": [],
     "note": null,
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [],
+    "requestBody": null
   },
   {
     "method": "GET",
@@ -1074,7 +2413,56 @@
     "listKey": null,
     "zatoshiFields": [],
     "note": null,
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [
+      {
+        "name": "afterHash",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string"
+        },
+        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      },
+      {
+        "name": "afterHeight",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string"
+        },
+        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      },
+      {
+        "name": "chunkStart",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string"
+        },
+        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      },
+      {
+        "name": "manifest",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string"
+        },
+        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      },
+      {
+        "name": "range",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string"
+        },
+        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      }
+    ],
+    "requestBody": null
   },
   {
     "method": "GET",
@@ -1085,7 +2473,10 @@
     "listKey": null,
     "zatoshiFields": [],
     "note": null,
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [],
+    "requestBody": null
   },
   {
     "method": "GET",
@@ -1096,7 +2487,10 @@
     "listKey": null,
     "zatoshiFields": [],
     "note": null,
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [],
+    "requestBody": null
   },
   {
     "method": "GET",
@@ -1107,7 +2501,10 @@
     "listKey": null,
     "zatoshiFields": [],
     "note": null,
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [],
+    "requestBody": null
   },
   {
     "method": "GET",
@@ -1120,7 +2517,20 @@
     "listKey": null,
     "zatoshiFields": [],
     "note": null,
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [
+      {
+        "name": "period",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string"
+        },
+        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      }
+    ],
+    "requestBody": null
   },
   {
     "method": "GET",
@@ -1133,7 +2543,20 @@
     "listKey": null,
     "zatoshiFields": [],
     "note": null,
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [
+      {
+        "name": "period",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string"
+        },
+        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      }
+    ],
+    "requestBody": null
   },
   {
     "method": "GET",
@@ -1146,7 +2569,20 @@
     "listKey": null,
     "zatoshiFields": [],
     "note": null,
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [
+      {
+        "name": "period",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string"
+        },
+        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      }
+    ],
+    "requestBody": null
   },
   {
     "method": "GET",
@@ -1162,7 +2598,47 @@
     "listKey": null,
     "zatoshiFields": [],
     "note": null,
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [
+      {
+        "name": "days",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string"
+        },
+        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      },
+      {
+        "name": "limit",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string"
+        },
+        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      },
+      {
+        "name": "metric",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string"
+        },
+        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      },
+      {
+        "name": "offset",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string"
+        },
+        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      }
+    ],
+    "requestBody": null
   },
   {
     "method": "GET",
@@ -1173,7 +2649,10 @@
     "listKey": null,
     "zatoshiFields": [],
     "note": null,
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [],
+    "requestBody": null
   },
   {
     "method": "GET",
@@ -1190,7 +2669,71 @@
     "listKey": null,
     "zatoshiFields": [],
     "note": null,
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [
+      {
+        "name": "cursor",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string",
+          "pattern": "^t[a-zA-Z0-9]+$"
+        },
+        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      },
+      {
+        "name": "limit",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "default": 100,
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000
+        },
+        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      },
+      {
+        "name": "min_balance",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "default": 0,
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      },
+      {
+        "name": "offset",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "default": 0,
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      },
+      {
+        "name": "sort",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "default": "balance",
+          "type": "string",
+          "enum": [
+            "balance",
+            "address"
+          ]
+        },
+        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      }
+    ],
+    "requestBody": null
   },
   {
     "method": "GET",
@@ -1201,7 +2744,10 @@
     "listKey": null,
     "zatoshiFields": [],
     "note": null,
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [],
+    "requestBody": null
   },
   {
     "method": "GET",
@@ -1212,7 +2758,10 @@
     "listKey": null,
     "zatoshiFields": [],
     "note": null,
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [],
+    "requestBody": null
   },
   {
     "method": "GET",
@@ -1223,7 +2772,19 @@
     "listKey": null,
     "zatoshiFields": [],
     "note": null,
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [
+      {
+        "name": "address",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      }
+    ],
+    "requestBody": null
   },
   {
     "method": "GET",
@@ -1246,7 +2807,29 @@
       "concentration.directAddresslessZat"
     ],
     "note": "Fields ending in Zat are exact decimal strings sourced from PostgreSQL BIGINT values. The older ZEC number fields remain for legacy compatibility and are display-only.",
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [
+      {
+        "name": "limit",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string"
+        },
+        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      },
+      {
+        "name": "offset",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string"
+        },
+        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      }
+    ],
+    "requestBody": null
   },
   {
     "method": "GET",
@@ -1264,7 +2847,43 @@
       "totalSent"
     ],
     "note": "balance/totalReceived/totalSent are exact zatoshi decimal strings, using the source *Zat fields when available. Older upstream safe integers remain compatible; unsafe numeric values fail closed. Null and zero are distinct.",
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [
+      {
+        "name": "address",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      {
+        "name": "limit",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "default": 25,
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100
+        },
+        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      },
+      {
+        "name": "page",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "default": 1,
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      }
+    ],
+    "requestBody": null
   },
   {
     "method": "GET",
@@ -1275,7 +2894,19 @@
     "listKey": null,
     "zatoshiFields": [],
     "note": null,
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [
+      {
+        "name": "address",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      }
+    ],
+    "requestBody": null
   },
   {
     "method": "GET",
@@ -1288,7 +2919,20 @@
     "listKey": null,
     "zatoshiFields": [],
     "note": null,
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [
+      {
+        "name": "active",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string"
+        },
+        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      }
+    ],
+    "requestBody": null
   },
   {
     "method": "GET",
@@ -1301,7 +2945,28 @@
     "listKey": null,
     "zatoshiFields": [],
     "note": null,
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [
+      {
+        "name": "pubkey",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      {
+        "name": "window",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string"
+        },
+        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      }
+    ],
+    "requestBody": null
   },
   {
     "method": "GET",
@@ -1314,7 +2979,20 @@
     "listKey": null,
     "zatoshiFields": [],
     "note": null,
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [
+      {
+        "name": "window",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string"
+        },
+        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      }
+    ],
+    "requestBody": null
   },
   {
     "method": "GET",
@@ -1327,7 +3005,20 @@
     "listKey": null,
     "zatoshiFields": [],
     "note": null,
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [
+      {
+        "name": "limit",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string"
+        },
+        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      }
+    ],
+    "requestBody": null
   },
   {
     "method": "GET",
@@ -1338,7 +3029,19 @@
     "listKey": null,
     "zatoshiFields": [],
     "note": null,
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [
+      {
+        "name": "pubkey",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      }
+    ],
+    "requestBody": null
   },
   {
     "method": "GET",
@@ -1349,7 +3052,10 @@
     "listKey": null,
     "zatoshiFields": [],
     "note": null,
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [],
+    "requestBody": null
   },
   {
     "method": "GET",
@@ -1360,7 +3066,10 @@
     "listKey": null,
     "zatoshiFields": [],
     "note": null,
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [],
+    "requestBody": null
   },
   {
     "method": "GET",
@@ -1371,7 +3080,10 @@
     "listKey": null,
     "zatoshiFields": [],
     "note": null,
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [],
+    "requestBody": null
   },
   {
     "method": "GET",
@@ -1384,7 +3096,20 @@
     "listKey": null,
     "zatoshiFields": [],
     "note": null,
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [
+      {
+        "name": "limit",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string"
+        },
+        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      }
+    ],
+    "requestBody": null
   },
   {
     "method": "GET",
@@ -1395,7 +3120,10 @@
     "listKey": null,
     "zatoshiFields": [],
     "note": null,
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [],
+    "requestBody": null
   },
   {
     "method": "POST",
@@ -1406,7 +3134,27 @@
     "listKey": null,
     "zatoshiFields": [],
     "note": null,
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [],
+    "requestBody": {
+      "type": "object",
+      "required": [
+        "heights"
+      ],
+      "properties": {
+        "heights": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 10,
+          "items": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100000000
+          }
+        }
+      }
+    }
   },
   {
     "method": "GET",
@@ -1417,7 +3165,19 @@
     "listKey": null,
     "zatoshiFields": [],
     "note": null,
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [
+      {
+        "name": "height",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      }
+    ],
+    "requestBody": null
   },
   {
     "method": "POST",
@@ -1428,7 +3188,79 @@
     "listKey": null,
     "zatoshiFields": [],
     "note": null,
-    "ownershipToken": true
+    "ownershipToken": true,
+    "pagination": null,
+    "parameters": [
+      {
+        "name": "X-Node-Token",
+        "in": "header",
+        "required": false,
+        "schema": {
+          "type": "string"
+        },
+        "description": "Ownership token returned when registering the node. Required to modify or remove an existing registration."
+      }
+    ],
+    "requestBody": {
+      "type": "object",
+      "required": [
+        "name",
+        "tip"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 32
+        },
+        "tip": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100000000
+        },
+        "tip_hash": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "peers": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10000
+        },
+        "mining": {
+          "type": "boolean"
+        },
+        "ttl": {
+          "type": "string",
+          "enum": [
+            "1h",
+            "24h"
+          ]
+        },
+        "sample_hashes": {
+          "type": "array",
+          "maxItems": 12,
+          "items": {
+            "type": "object",
+            "required": [
+              "height",
+              "hash"
+            ],
+            "properties": {
+              "height": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 100000000
+              },
+              "hash": {
+                "type": "string",
+                "pattern": "^[a-fA-F0-9]{64}$"
+              }
+            }
+          }
+        }
+      }
+    }
   },
   {
     "method": "DELETE",
@@ -1439,7 +3271,28 @@
     "listKey": null,
     "zatoshiFields": [],
     "note": null,
-    "ownershipToken": true
+    "ownershipToken": true,
+    "pagination": null,
+    "parameters": [
+      {
+        "name": "name",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      {
+        "name": "X-Node-Token",
+        "in": "header",
+        "required": true,
+        "schema": {
+          "type": "string"
+        },
+        "description": "Ownership token returned when registering the node. Required to modify or remove an existing registration."
+      }
+    ],
+    "requestBody": null
   },
   {
     "method": "GET",
@@ -1453,7 +3306,29 @@
     "listKey": null,
     "zatoshiFields": [],
     "note": null,
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [
+      {
+        "name": "limit",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string"
+        },
+        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      },
+      {
+        "name": "offset",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string"
+        },
+        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      }
+    ],
+    "requestBody": null
   },
   {
     "method": "GET",
@@ -1467,7 +3342,29 @@
     "listKey": null,
     "zatoshiFields": [],
     "note": null,
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [
+      {
+        "name": "limit",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string"
+        },
+        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      },
+      {
+        "name": "offset",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string"
+        },
+        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      }
+    ],
+    "requestBody": null
   },
   {
     "method": "GET",
@@ -1478,7 +3375,19 @@
     "listKey": null,
     "zatoshiFields": [],
     "note": null,
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [
+      {
+        "name": "hash",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      }
+    ],
+    "requestBody": null
   },
   {
     "method": "POST",
@@ -1489,7 +3398,30 @@
     "listKey": null,
     "zatoshiFields": [],
     "note": null,
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [],
+    "requestBody": {
+      "type": "object",
+      "required": [
+        "height",
+        "hash"
+      ],
+      "properties": {
+        "height": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100000000
+        },
+        "hash": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "node_id": {
+          "type": "string"
+        }
+      }
+    }
   },
   {
     "method": "GET",
@@ -1500,7 +3432,10 @@
     "listKey": null,
     "zatoshiFields": [],
     "note": null,
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [],
+    "requestBody": null
   },
   {
     "method": "GET",
@@ -1511,7 +3446,10 @@
     "listKey": null,
     "zatoshiFields": [],
     "note": null,
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [],
+    "requestBody": null
   },
   {
     "method": "GET",
@@ -1534,7 +3472,40 @@
       "value_balance_ironwood"
     ],
     "note": "These are raw BIGINT columns selected directly (t.fee, t.total_input, ...), never divided by the legacy handler.",
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": "cursor",
+    "parameters": [
+      {
+        "name": "type",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string"
+        },
+        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      },
+      {
+        "name": "limit",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "default": 25
+        }
+      },
+      {
+        "name": "cursor",
+        "in": "query",
+        "required": false,
+        "description": "Opaque cursor from a previous response's meta.page.nextCursor/prevCursor.",
+        "schema": {
+          "type": "string"
+        }
+      }
+    ],
+    "requestBody": null
   },
   {
     "method": "GET",
@@ -1551,7 +3522,58 @@
     "listKey": "flows",
     "zatoshiFields": [],
     "note": null,
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": "cursor",
+    "parameters": [
+      {
+        "name": "flow_type",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string"
+        },
+        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      },
+      {
+        "name": "min_zec",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string"
+        },
+        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      },
+      {
+        "name": "pool",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string"
+        },
+        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      },
+      {
+        "name": "limit",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "default": 25
+        }
+      },
+      {
+        "name": "cursor",
+        "in": "query",
+        "required": false,
+        "description": "Opaque cursor from a previous response's meta.page.nextCursor/prevCursor.",
+        "schema": {
+          "type": "string"
+        }
+      }
+    ],
+    "requestBody": null
   },
   {
     "method": "GET",
@@ -1569,7 +3591,87 @@
     "listKey": null,
     "zatoshiFields": [],
     "note": null,
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [
+      {
+        "name": "limit",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "default": 50,
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100
+        },
+        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      },
+      {
+        "name": "min_actions",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "default": 0,
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      },
+      {
+        "name": "offset",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "default": 0,
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      },
+      {
+        "name": "pool",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string",
+          "enum": [
+            "sapling",
+            "orchard",
+            "ironwood"
+          ]
+        },
+        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      },
+      {
+        "name": "skip_count",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string",
+          "enum": [
+            "true",
+            "false"
+          ]
+        },
+        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      },
+      {
+        "name": "type",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string",
+          "enum": [
+            "fully-shielded",
+            "partial"
+          ]
+        },
+        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      }
+    ],
+    "requestBody": null
   },
   {
     "method": "GET",
@@ -1583,7 +3685,43 @@
     "listKey": null,
     "zatoshiFields": [],
     "note": null,
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [
+      {
+        "name": "txid",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      {
+        "name": "limit",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "default": 5,
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 20
+        },
+        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      },
+      {
+        "name": "tolerance",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "default": 0.001,
+          "type": "number",
+          "minimum": 0.0001,
+          "maximum": 0.1
+        },
+        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      }
+    ],
+    "requestBody": null
   },
   {
     "method": "POST",
@@ -1594,7 +3732,22 @@
     "listKey": null,
     "zatoshiFields": [],
     "note": "Core public write endpoint. See README caveats re: proxy write semantics (no v1-layer idempotency key yet — a client retry on timeout may double-submit; legacy sendrawtransaction is itself idempotent at the mempool level for an unchanged tx, so a duplicate submit is harmless, but a network partition on the internal hop can still return a spurious error for a tx that actually broadcast).",
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [],
+    "requestBody": {
+      "type": "object",
+      "required": [
+        "rawTx"
+      ],
+      "properties": {
+        "rawTx": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]+$",
+          "description": "Already signed serialized transaction. No private key is accepted."
+        }
+      }
+    }
   },
   {
     "method": "GET",
@@ -1605,7 +3758,10 @@
     "listKey": null,
     "zatoshiFields": [],
     "note": null,
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [],
+    "requestBody": null
   },
   {
     "method": "GET",
@@ -1616,7 +3772,19 @@
     "listKey": null,
     "zatoshiFields": [],
     "note": null,
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [
+      {
+        "name": "txid",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      }
+    ],
+    "requestBody": null
   },
   {
     "method": "GET",
@@ -1627,7 +3795,19 @@
     "listKey": null,
     "zatoshiFields": [],
     "note": null,
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [
+      {
+        "name": "txid",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      }
+    ],
+    "requestBody": null
   },
   {
     "method": "GET",
@@ -1638,7 +3818,19 @@
     "listKey": null,
     "zatoshiFields": [],
     "note": null,
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [
+      {
+        "name": "txid",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      }
+    ],
+    "requestBody": null
   },
   {
     "method": "POST",
@@ -1649,7 +3841,26 @@
     "listKey": null,
     "zatoshiFields": [],
     "note": null,
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [],
+    "requestBody": {
+      "type": "object",
+      "required": [
+        "txids"
+      ],
+      "properties": {
+        "txids": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 100,
+          "items": {
+            "type": "string",
+            "pattern": "^[a-fA-F0-9]{64}$"
+          }
+        }
+      }
+    }
   },
   {
     "method": "GET",
@@ -1669,7 +3880,19 @@
       "stakingAction.amountZat"
     ],
     "note": "Fields ending in Zat/Zats are exact decimal strings sourced from PostgreSQL BIGINT values. The older ZEC number fields remain for legacy compatibility and are display-only.",
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [
+      {
+        "name": "txid",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      }
+    ],
+    "requestBody": null
   },
   {
     "method": "POST",
@@ -1680,7 +3903,27 @@
     "listKey": null,
     "zatoshiFields": [],
     "note": "v1 enforces a stricter max range (default 50,000 blocks vs. legacy's 1,000,000, see V1_SCAN_ORCHARD_MAX_RANGE) and a per-IP rate limit (default 5/minute, see V1_SCAN_ORCHARD_RATE_LIMIT_MAX/_WINDOW_MS) before proxying to the legacy endpoint.",
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [],
+    "requestBody": {
+      "type": "object",
+      "required": [
+        "startHeight",
+        "endHeight"
+      ],
+      "properties": {
+        "startHeight": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "endHeight": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "description": "Inclusive block range. Maximum 10,000 blocks for lightwalletd or 50,000 for Orchard by default; configured server limits may differ."
+    }
   },
   {
     "method": "POST",
@@ -1691,6 +3934,26 @@
     "listKey": null,
     "zatoshiFields": [],
     "note": "v1 requires an explicit `endHeight` (legacy defaults a missing one to the current chain tip, which v1 treats as an unbounded-until-resolved request shape and rejects), enforces a stricter max range (default 10,000 blocks vs. legacy's 50,000, see V1_SCAN_LIGHTWALLETD_MAX_RANGE — lightwalletd scanning is more expensive per block: gRPC + parallel streaming + optional disk cache writes), and a per-IP rate limit (default 3/minute, see V1_SCAN_LIGHTWALLETD_RATE_LIMIT_MAX/_WINDOW_MS) before proxying.",
-    "ownershipToken": false
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [],
+    "requestBody": {
+      "type": "object",
+      "required": [
+        "startHeight",
+        "endHeight"
+      ],
+      "properties": {
+        "startHeight": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "endHeight": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "description": "Inclusive block range. Maximum 10,000 blocks for lightwalletd or 50,000 for Orchard by default; configured server limits may differ."
+    }
   }
 ]

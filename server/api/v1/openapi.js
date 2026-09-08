@@ -11,6 +11,7 @@
 
 const { MANIFEST } = require('./inventory/manifest');
 const queryParameters = require('./inventory/query-parameters.json');
+const { getQueryConstraint } = require('./inventory/parameter-schemas');
 
 const PROBLEM_SCHEMA = {
   type: 'object',
@@ -173,7 +174,8 @@ function requestSchema(entry) {
 }
 
 function buildOperation(entry) {
-  const isList = entry.v1.shape === 'list';
+  const isList = entry.v1.shape === 'list' || entry.v1.nativeKey === 'names';
+  const isNames = entry.v1.nativeKey === 'names';
   const isStub = entry.v1.status === 'stub';
 
   const dataSchema = isList || entry.v1.nativeKey === 'names'
@@ -184,11 +186,17 @@ function buildOperation(entry) {
   const keys = queryParameters[`${entry.method} ${entry.v1.path}`] || [];
   for (const name of keys) {
     if (isList && ['cursor', 'limit'].includes(name)) continue;
-    parameters.push({ name, in: 'query', required: false, schema: { type: 'string' }, description: name === 'format' && entry.legacyPath === '/api/circulating-supply' ? 'Compatibility parameter; v1 always returns JSON.' : 'Field-specific filter or range. Values retain the source endpoint semantics.' });
+    const requiredAmount = name === 'amount' && entry.domain === 'privacy' && entry.v1.path.includes('blend-check');
+    const requiredDate = name === 'date' && entry.v1.path === '/v1/network/price/at';
+    const requiredSince = name === 'since' && ['/v1/stats/shielded-count', '/v1/stats/shielded-daily'].includes(entry.v1.path);
+    const constraint = getQueryConstraint(entry.v1.path, name);
+    parameters.push({ name, in: 'query', required: constraint?.required ?? (requiredAmount || requiredDate || requiredSince),
+      schema: constraint?.schema || (requiredAmount ? { type: 'number', exclusiveMinimum: 0, maximum: 21000000 } : requiredDate || requiredSince ? { type: 'string', format: 'date' } : { type: 'string' }),
+      description: requiredSince ? 'Start date (YYYY-MM-DD).' : requiredAmount ? 'Amount in ZEC, greater than zero and at most 21 million.' : requiredDate ? 'UTC calendar date (YYYY-MM-DD). The response indicates when an earlier available price is used.' : name === 'format' && entry.legacyPath === '/api/circulating-supply' ? 'Compatibility parameter; v1 always returns JSON.' : 'Endpoint-specific filter or range; accepted values follow this endpoint’s data source.' });
   }
   if (isList) {
     parameters.push(
-      { name: 'limit', in: 'query', required: false, schema: { type: 'integer', minimum: 1, maximum: 100 } },
+      { name: 'limit', in: 'query', required: false, schema: { type: 'integer', minimum: 1, maximum: isNames ? 500 : 100, default: isNames ? 100 : 25 } },
       { name: 'cursor', in: 'query', required: false, description: 'Opaque cursor from a previous response\'s meta.page.nextCursor/prevCursor.', schema: { type: 'string' } },
     );
   }
