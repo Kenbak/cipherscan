@@ -91,3 +91,12 @@
   .endpointBody { padding: 14px; }
   .referenceHeading { flex-wrap: wrap; }
 }
+
+/* Keep the focus indicator inside the scrollable sidebar's clipping bounds. */
+.searchBox input:focus-visible { outline-offset: -2px; border-radius: 6px; }
+.parameterUsage { display: block; width: fit-content; margin-top: 8px; padding: 4px 8px; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 4px; color: var(--color-text-primary); overflow-wrap: anywhere; }
+.parameters a { text-decoration: underline; text-underline-offset: 3px; }
+.copyControl { display: inline-flex; align-items: center; gap: 8px; }
+.copyButton { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border: 1px solid var(--color-border); border-radius: 6px; }
+.copyButton:hover { background: var(--color-hover); }
+.copyError { font-size: 12px; color: var(--color-text-secondary); }

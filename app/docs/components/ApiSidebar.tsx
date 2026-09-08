@@ -13,7 +13,7 @@ export default function ApiSidebar({ categories, search, onSearch }: { categorie
       <label className={styles.searchLabel} htmlFor="endpoint-search">Find an endpoint</label>
       <div className={styles.searchBox}><input id="endpoint-search" type="search" placeholder="Search routes or topics…" value={search} onChange={e => onSearch(e.target.value)} autoComplete="off" spellCheck={false} />{search && <button onClick={() => onSearch('')} aria-label="Clear endpoint search">×</button>}</div>
       <nav aria-label="API documentation">
-        <div className={styles.guideLinks}>{[['quickstart','Quick start'],['response-contract','Responses & units'],['pagination','Pagination'],['errors','Errors & limits']].map(([id,label]) => <a key={id} href={`#${id}`} onClick={() => { onSearch(''); setIsOpen(false); }}>{label}</a>)}</div>
+        <div className={styles.guideLinks}>{[['quickstart','Quick start'],['parameters','Using parameters'],['response-contract','Responses & units'],['pagination','Pagination'],['errors','Errors & limits']].map(([id,label]) => <a key={id} href={`#${id}`} onClick={() => { onSearch(''); setIsOpen(false); }}>{label}</a>)}</div>
         <p className={styles.navLabel}>Public endpoints</p>
         {categories.map(category => <details key={category.key} className={styles.navGroup} open={search ? true : undefined}>
           <summary>{category.name}<span>{category.endpoints.length}</span></summary>

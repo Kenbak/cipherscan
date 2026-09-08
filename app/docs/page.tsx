@@ -26,6 +26,26 @@ export default function DocsPage() {
         <p className={styles.note}>This is the v1 contract reference. Use a deployment with v1 enabled; the planned mainnet host is <code>api.zecblock.com</code>. The existing production API continues until cutover. A gated preview requires <code>X-API-Preview-Key</code>; the private local adapter handles preview access and allows reads only.</p>
         <div className={styles.guideGrid}><div><h3>Access</h3><p>Public data routes do not require an account after launch. Updating or deleting a Crosslink node registration requires its ownership token. Paid/private services and operational routes are excluded from this reference.</p></div><div><h3>Network</h3><p>Confirm <code>meta.network</code> in the response. Endpoint availability and data coverage vary by network; Crosslink routes require a Crosslink deployment.</p></div></div>
       </section>
+      <section id="parameters" className={styles.guide}>
+        <h2>Using parameters</h2>
+        <p>Each endpoint lists its required values, types and known limits. Start with the request template, then add the optional filters you need.</p>
+        <div className={styles.guideGrid}>
+          <div><h3>Path · choose a resource</h3><p>Replace <code>:heightOrHash</code> in <code>/v1/blocks/:heightOrHash</code> with a block height, such as <code>/v1/blocks/3000000</code>. Do not include the colon or angle brackets.</p></div>
+          <div><h3>Query · filter the result</h3><p>Add <code>?</code> before the first value and <code>&amp;</code> between values. For example, <code>?limit=5</code> requests five blocks. Omit an optional parameter to use the endpoint’s default.</p></div>
+        </div>
+        <pre className={styles.code}><code>{`curl --get '${baseUrl}/v1/blocks' \\
+  --data-urlencode 'limit=5'
+
+# Continue the same list using the cursor returned in meta.page.
+curl --get '${baseUrl}/v1/blocks' \\
+  --data-urlencode 'limit=5' \\
+  --data-urlencode 'cursor=<nextCursor>'`}</code></pre>
+        <p><code>--get</code> keeps this a GET request; <code>--data-urlencode</code> safely encodes query values. In JavaScript, build query strings with <code>URLSearchParams</code>. Keep the same filters when following a cursor, and do not combine filters unless the endpoint supports that combination.</p>
+        <div className={styles.guideGrid}>
+          <div><h3>Header · supply access credentials</h3><p>Headers stay outside the URL: <code>-H 'X-Node-Token: &lt;ownership-token&gt;'</code>. Use your registration’s token only for the matching node operation. Preview access uses the separate <code>X-API-Preview-Key</code> header.</p></div>
+          <div><h3>JSON body · send structured values</h3><p>POST endpoints show an example <code>request.json</code> and the accepted fields. Save your values in that file, then use <code>--data @request.json</code> with <code>Content-Type: application/json</code>. JSON numbers and booleans are unquoted; strings use double quotes.</p></div>
+        </div>
+      </section>
       <section id="response-contract" className={styles.guide}>
         <h2>Responses &amp; units</h2>
         <p>Successful responses contain <code>data</code> and <code>meta</code>. The payload belongs to the endpoint; lists with cursor pagination return an array in <code>data</code>. Read freshness and network from <code>meta</code>.</p>
