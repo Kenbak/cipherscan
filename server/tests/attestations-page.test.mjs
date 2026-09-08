@@ -1,0 +1,89 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
+import { resolve } from 'node:path';
+import store from '../lib/attestation-store.js';
+const require = createRequire(import.meta.url);
+const React = require('react');
+const { renderToStaticMarkup } = require('react-dom/server');
+const ts = require('typescript');
+const root = resolve(import.meta.dirname, '../..');
+function loadTs(file, mocks = {}) {
+  const filename = resolve(root, file);
+  const output = ts.transpileModule(readFileSync(filename, 'utf8'), { compilerOptions: {
+    module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX, target: ts.ScriptTarget.ES2022, esModuleInterop: true,
+  }, fileName: filename }).outputText;
+  const loaded = { exports: {} };
+  new Function('require', 'module', 'exports', output)((id) => id in mocks ? mocks[id] : require(id), loaded, loaded.exports);
+  return loaded.exports;
+}
+const Link = ({ href, children, ...props }) => React.createElement('a', { href, ...props }, children);
+const Header = loadTs('components/ui/SectionHeader.tsx');
+const Client = loadTs('app/network/attestations/AttestationsClient.tsx', {
+  '@/hooks/useApiQuery': { useApiQuery: (_path, _params, options) => ({ data: options.initialData ?? null, loading: false, error: null }) },
+  '@/lib/attestation-status': require('../../lib/attestation-status'),
+}).default;
+function loadPage(network, data) {
+  const seo = loadTs('lib/seo.ts', {
+    '@/lib/network': { getConfiguredNetwork: () => network },
+    '@/lib/api-config': { getApiUrlForNetwork: () => 'https://private-service.internal' },
+    '@/lib/server-fetch': {},
+  });
+  return loadTs('app/network/attestations/page.tsx', {
+    'next/link': Link,
+    'next/navigation': { notFound: () => { throw new Error('NOT_FOUND'); } },
+    '@/components/ui/SectionHeader': Header,
+    '@/lib/seo': seo,
+    '@/lib/server-fetch': { fetchWithDeadline: async () => ({ ok: data !== null, json: async () => data }) },
+    '@/lib/network': { normalizeApiBaseUrl: (url) => url },
+    './AttestationsClient': Client,
+  });
+}
+for (const network of ['mainnet', 'testnet']) {
+  test(`${network} page server-renders one heading, full endpoint names and correct metadata`, async () => {
+    const data = store.publicSnapshot(null, network);
+    const page = loadPage(network, data);
+    const html = renderToStaticMarkup(await page.default());
+    assert.equal((html.match(/<h1\b/g) ?? []).length, 1);
+    assert.match(html, /Zero Indexer attestations/);
+    for (const endpoint of data.endpoints) assert.ok(html.includes(endpoint.hostname));
+    assert.match(html, /No endpoint is being reported as verified/);
+    assert.ok(!html.includes('private-service.internal'));
+    assert.equal(page.metadata.robots.index, network === 'mainnet');
+    assert.equal(page.metadata.robots.follow, true);
+    const host = network === 'mainnet' ? 'cipherscan.app' : 'testnet.cipherscan.app';
+    assert.equal(page.metadata.alternates.canonical, `https://${host}/network/attestations`);
+    assert.equal(page.metadata.openGraph.url, page.metadata.alternates.canonical);
+    assert.equal(page.metadata.twitter.card, 'summary_large_image');
+    assert.ok(page.metadata.openGraph.images[0].alt);
+    const schemas = [...html.matchAll(/<script type="application\/ld\+json">(.*?)<\/script>/g)].map((match) => JSON.parse(match[1]));
+    assert.equal(schemas[0].url, page.metadata.alternates.canonical);
+  });
+}
+test('API outage still renders meaningful HTML, and Crosslink returns notFound', async () => {
+  const html = renderToStaticMarkup(await loadPage('mainnet', null).default());
+  assert.equal((html.match(/<h1\b/g) ?? []).length, 1);
+  assert.match(html, /Observations are currently unavailable/);
+  const page = loadPage('crosslink-testnet', null);
+  assert.equal(page.metadata.robots.index, false);
+  await assert.rejects(page.default(), /NOT_FOUND/);
+});
+test('stale browser data cannot render a current verified state', () => {
+  const data = store.publicSnapshot(null, 'mainnet');
+  const checkedAt = new Date(Date.now() - 16 * 60_000).toISOString();
+  data.available = true;
+  data.endpoints.forEach((endpoint) => { endpoint.latest = { checkedAt, reachable: true, evidence: 'verified', tlsBinding: 'matched', release: 'unconfirmed' }; });
+  const html = renderToStaticMarkup(React.createElement(Client, { initialData: data, initialNow: Date.now(), network: 'mainnet', apiUrl: 'https://api.mainnet.cipherscan.app' }));
+  assert.match(html, /Stale observation/);
+  assert.ok(!html.includes('>Verified<'));
+  assert.ok(!html.includes('>Matched<'));
+});
+test('core sitemap has the canonical monitor with a meaningful publication date', () => {
+  const sitemap = loadTs('lib/sitemaps.ts');
+  const entries = sitemap.getStaticSitemapEntries('core', 'https://cipherscan.app', []);
+  const entry = entries.find((item) => item.url.endsWith('/network/attestations'));
+  assert.equal(entry.lastModified, '2026-09-09');
+  assert.equal(entry.changeFrequency, 'hourly');
+  assert.ok(sitemap.serializeUrlSet([entry]).includes('<priority>0.6</priority>'));
+});

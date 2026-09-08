@@ -64,6 +64,12 @@
       "core": true
     },
     {
+      "id": "network-attestations",
+      "routeGroup": "/network/attestations",
+      "path": "/network/attestations",
+      "core": true
+    },
+    {
       "id": "privacy",
       "routeGroup": "/privacy",
       "path": "/privacy",

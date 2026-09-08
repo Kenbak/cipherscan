@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import NetworkClient, { type NetworkPageInitialData } from './NetworkClient';
 import { getApiUrl, getNetwork } from '@/lib/seo';
 import { fetchWithDeadline } from '@/lib/server-fetch';
@@ -120,6 +121,9 @@ export default async function NetworkPage() {
 
   return (
     <>
+      {network !== 'crosslink-testnet' ? <nav aria-label="Network monitoring" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
+        <Link href="/network/attestations" className="text-sm text-cipher-cyan hover:underline">Zero Indexer attestation monitor →</Link>
+      </nav> : null}
       <NetworkClient initialData={initialData} />
 
       {/* Static page description — server-rendered for indexing */}
