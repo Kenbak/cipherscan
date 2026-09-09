@@ -106,7 +106,7 @@ test('running tag and hub confirmation require a fresh reproduced match, while h
   assert.match(fresh,/deploy-fdb613db-a606726/);
   assert.match(fresh,/Running build · reproduced match/);
   assert.match(fresh,/Confirmed by matching reproduced build/);
-  assert.match(fresh,/Hub’s own check: Not checked yet/);
+  assert.match(fresh.replace(/<[^>]+>/g, ''),/Hub’s own check:Not checked yet/);
   assert.ok(!fresh.includes('shieldedinfra.net'));
   for(const html of [render({},16*60_000),render({release:'mismatch'}),render({reachable:false}),render({tlsBinding:'mismatch'})]) {
     assert.ok(!html.includes('Running build · reproduced match'));

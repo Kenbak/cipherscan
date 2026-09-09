@@ -44,7 +44,7 @@ function EndpointCard({ endpoint, endpoints, now, apiUrl }: { endpoint: Attestat
   const current = !['stale', 'unavailable', 'not_checked'].includes(status);
   const hub = endpoints.find((item) => item.id === endpoint.hubId);
   const releaseLabels = { unconfirmed: 'Unconfirmed', published_match: 'Published measurements match', reproduced_match: 'Reproduced build matches', mismatch: 'Measurements differ' };
-  return <article id={endpoint.id} className="card p-0! overflow-hidden scroll-mt-28">
+  return <article id={endpoint.id} className="card @container p-0! overflow-hidden scroll-mt-28">
     <div className="p-5 sm:p-6">
       <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
         <div><div className="flex items-center gap-2 mb-1"><h3 className="font-semibold text-primary">{endpoint.name}</h3><span className="text-xs font-mono uppercase text-muted border border-cipher-border rounded px-1.5 py-0.5">{endpoint.role}</span></div>
@@ -56,42 +56,48 @@ function EndpointCard({ endpoint, endpoints, now, apiUrl }: { endpoint: Attestat
         <CheckValue label="TLS certificate" value={current ? (check?.tlsBinding === 'matched' ? 'Matched' : check?.tlsBinding === 'mismatch' ? 'Mismatch' : 'Not checked') : status === 'stale' ? 'Stale' : 'Not checked'} color={current && check?.tlsBinding === 'matched' ? 'text-cipher-green' : 'text-secondary'} />
         <CheckValue label="Software release" value={current && check ? releaseLabels[check.release] : 'Unconfirmed'} color="text-secondary" />
       </dl>
-      <dl className="mt-5 grid gap-5 sm:grid-cols-2 border-t border-cipher-border pt-4">
-        <div>
-          <dt className="text-xs text-muted mb-1.5">{!endpoint.baseline ? 'Build version' : buildMatches ? 'Running build · reproduced match' : 'Reviewed build · current match unconfirmed'}</dt>
-          <dd className="text-sm text-secondary break-all">
+      <dl className="mt-5 grid gap-5 @min-[36rem]:grid-cols-2 border-t border-cipher-border pt-5">
+        <div className="min-w-0">
+          <dt className="text-xs font-medium text-muted mb-2">{!endpoint.baseline ? 'Build version' : buildMatches ? 'Running build' : 'Reviewed build'}</dt>
+          <dd className="text-sm text-secondary">
             {endpoint.baseline ? <>
               {endpoint.baseline.tag && endpoint.baseline.tagReferenceUrl
-                ? <a href={endpoint.baseline.tagReferenceUrl} target="_blank" rel="noopener noreferrer" className="text-cipher-gold hover:underline">{endpoint.baseline.tag}</a>
+                ? <a href={endpoint.baseline.tagReferenceUrl} target="_blank" rel="noopener noreferrer" className="font-mono text-cipher-gold hover:underline break-all">{endpoint.baseline.tag}<span aria-hidden="true" className="ml-1">↗</span></a>
                 : <span>No tagged release identified</span>}
-              <span className="block font-mono text-xs mt-2">Commit: {endpoint.baseline.commit}</span>
-              <span className="block text-xs text-muted mt-2">Deployment source tag; pinned to the reviewed commit.</span>
-            </> : 'Source/build version not confirmed'}
+              <span className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
+                <span className={buildMatches ? 'text-cipher-green' : 'text-cipher-yellow'}>{buildMatches ? 'Reproduced match' : 'Current match unconfirmed'}</span>
+                <span className="text-muted">Commit <code title={endpoint.baseline.commit} className="text-secondary">{endpoint.baseline.commit.slice(0, 12)}</code></span>
+              </span>
+            </> : <span className="text-muted">Source/build version not confirmed</span>}
           </dd>
         </div>
-        {endpoint.role === 'shim' ? <div>
-          <dt className="text-xs text-muted mb-1.5">Configured hub</dt>
-          <dd className="text-sm text-secondary break-all">
+        {endpoint.role === 'shim' ? <div className="min-w-0 border-t border-cipher-border pt-5 @min-[36rem]:border-t-0 @min-[36rem]:border-l @min-[36rem]:pl-5 @min-[36rem]:pt-0">
+          <dt className="text-xs font-medium text-muted mb-2">Configured hub</dt>
+          <dd className="text-sm text-secondary">
             {endpoint.hubConfiguration ? <>
-              <span className="font-mono">{endpoint.hubConfiguration.hostname}</span>
-              <span className="block text-xs mt-2">{buildMatches ? 'Confirmed by matching reproduced build' : 'Reviewed configuration · current match unconfirmed'}</span>
-              <a href={endpoint.hubConfiguration.referenceUrl} target="_blank" rel="noopener noreferrer" className="block text-xs text-cipher-gold hover:underline mt-2">Configuration evidence ↗</a>
-            </> : hub ? <><span>{hub.hostname}</span><span className="block text-xs mt-2">Published configuration · not build-confirmed</span></> : 'Not confirmed'}
-            {hub ? <a href={`#${hub.id}`} className="block text-xs hover:text-cipher-gold mt-2">Hub’s own check: {STATES[attestationStatus(hub.latest, now)]?.label} ↓</a> : null}
+              <span className="font-mono break-all">{endpoint.hubConfiguration.hostname}</span>
+              <span className={`block text-xs mt-2 ${buildMatches ? 'text-cipher-green' : 'text-cipher-yellow'}`}>{buildMatches ? 'Confirmed by reproduced build' : 'Reviewed configuration · current match unconfirmed'}</span>
+            </> : hub ? <><span className="font-mono break-all">{hub.hostname}</span><span className="block text-xs text-muted mt-2">Published configuration · not build-confirmed</span></> : <span className="text-muted">Not confirmed</span>}
+            {hub ? <a href={`#${hub.id}`} className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs hover:underline"><span className="text-muted">Hub’s own check:</span><span className={STATES[attestationStatus(hub.latest, now)]?.color}>{STATES[attestationStatus(hub.latest, now)]?.label} <span aria-hidden="true">↓</span></span></a> : null}
+            <span className="block text-xs text-muted leading-relaxed mt-2">Configuration does not prove live routing or hub availability.</span>
           </dd>
         </div> : null}
       </dl>
       {check?.errorCode ? <p className="mt-4 text-sm text-secondary" role="status">{ERRORS[check.errorCode] ?? 'The check could not be completed.'}</p> : null}
       {check?.release === 'mismatch' ? <p className="mt-4 text-sm text-danger">The measurements differ from the configured release baseline.</p> : null}
-      <div className="mt-5 text-xs text-muted flex flex-wrap justify-between gap-x-4 gap-y-2">
-        <span>Last attempt <time dateTime={check?.checkedAt}>{timestamp(check?.checkedAt)}</time></span>
-        <span>{endpoint.role === 'shim' ? 'Configuration does not prove live routing or hub availability' : 'Hub observed independently'}</span>
-      </div>
+      <p className="mt-5 border-t border-cipher-border pt-3 text-xs text-muted leading-relaxed">
+        Last attempt <time className="tabular-nums" dateTime={check?.checkedAt}>{timestamp(check?.checkedAt)}</time>
+      </p>
     </div>
     <details className="border-t border-cipher-border">
       <summary className="cursor-pointer px-5 sm:px-6 py-3 text-xs text-secondary hover:text-cipher-gold focus-visible:outline focus-visible:outline-2 focus-visible:outline-cipher-gold">Measurements &amp; source</summary>
       <div className="px-5 sm:px-6 pb-5 text-xs space-y-4">
         <p className="text-muted">Measurements below describe the last attempt. Unsigned source claims are separate from the reviewed build and configuration evidence above.</p>
+        {endpoint.baseline ? <div className="space-y-2">
+          <p className="text-muted">Deployment source tag; pinned to the reviewed commit. {buildMatches ? 'Running build · reproduced match' : 'Reviewed build · current match unconfirmed'}.</p>
+          <dl><dt className="text-muted mb-1">Reviewed source commit</dt><dd className="font-mono text-secondary break-all">{endpoint.baseline.commit}</dd></dl>
+        </div> : null}
+        {endpoint.hubConfiguration ? <p className="text-muted">{buildMatches ? 'Confirmed by matching reproduced build' : 'Reviewed configuration · current match unconfirmed'}. <a href={endpoint.hubConfiguration.referenceUrl} target="_blank" rel="noopener noreferrer" className="text-cipher-gold hover:underline">Configuration evidence ↗</a></p> : null}
         <dl className="space-y-3">
           {['PCR0', 'PCR1', 'PCR2'].map((key) => <div key={key}><dt className="text-muted mb-1">{key}</dt><dd className="text-secondary font-mono break-all">{check?.pcrs?.[key] ?? 'Not available'}</dd></div>)}
           <div><dt className="text-muted mb-1">TLS certificate SHA-256</dt><dd className="text-secondary font-mono break-all">{check?.certificateFingerprint ?? 'Not available'}</dd></div>
@@ -139,7 +145,7 @@ export default function AttestationsClient({ initialData, initialNow, network, a
       <h2 className="font-mono text-sm text-secondary uppercase tracking-wider">Endpoint observations</h2>
       <p className="text-xs text-muted">Checks scheduled every 5 minutes · This page refreshes every minute</p>
     </div>
-    {endpoints.length ? <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">{endpoints.map((endpoint) => <EndpointCard key={endpoint.id} endpoint={endpoint} endpoints={endpoints} now={now} apiUrl={apiUrl} />)}</div>
+    {endpoints.length ? <div className="grid grid-cols-1 xl:grid-cols-2 items-start gap-5">{endpoints.map((endpoint) => <EndpointCard key={endpoint.id} endpoint={endpoint} endpoints={endpoints} now={now} apiUrl={apiUrl} />)}</div>
       : <div className="card p-6 text-sm text-muted">{query.loading ? 'Loading the endpoint registry…' : 'The endpoint registry could not be loaded. Please try again shortly.'}</div>}
   </>;
 }
