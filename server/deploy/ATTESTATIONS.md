@@ -5,7 +5,10 @@ routing, or submit transactions. The four mainnet and one testnet endpoints in
 `server/data/attestation-endpoints.json` are a curated experimental registry.
 Names, networks and hub relationships come from published configurations and the
 linked announcement; they are not derived from cryptographic evidence. Baselines
-are intentionally null: the initial release cannot assert expected software.
+are activated only after reviewed published or independently reproduced evidence.
+The Shielded Labs hub baseline was independently reproduced in run 34325307813;
+its preserved evidence is under `server/data/attestation-builds/`. Other endpoints
+remain unconfirmed until their own measurements are established.
 
 ## Local preview with real data
 
