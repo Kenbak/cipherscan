@@ -1,19 +1,35 @@
 # Canary compatibility assessment — 2026-09-10
 
 Reviewed upstream commit [`c5a3761798f9c438944d235551ddd192df9c1915`](https://codeberg.org/caution/canary/src/commit/c5a3761798f9c438944d235551ddd192df9c1915).
-This is a source/documentation assessment, not a security audit or an executed
-Canary deployment. No Canary binary, signing identity, service or public endpoint
-was installed. Existing monitoring remains authoritative for the dashboard.
+The source review below was followed by a bounded local execution on 2026-09-10.
+See [the reproducible evaluation](../evaluations/canary/README.md) and
+[the captured SDK regression](../evaluations/canary/BOOTPROOF-REPORT.md).
+Existing monitoring remains authoritative for the public dashboard.
 
-## Decision
+## Decision after execution
 
-Canary is a useful candidate for independently verifiable signed observations,
-but is not a drop-in replacement for the current collector. Keep the working
-observer and independent rebuild evidence. Evaluate Canary separately with our
-two reproduced Zec.rocks targets and explicit TLS mode before deciding adoption.
-Do not add Caution hub using trust-on-first-use: its source-backed baseline is
-still missing. Do not replace our separate evidence/TLS/release states with an
-unqualified Canary VERIFIED label.
+**Do not switch production verification to this pinned Canary build yet.** It
+initially verified both Zec.rocks targets, but repeated probes rejected valid
+Nitro evidence with `INVALID_SIGNATURE`. The pinned Bootproof SDK mishandles
+leading-zero ES384 signature integers during COSE-to-DER conversion. The preserved
+historical document passes our existing verifier and independent raw ES384
+verification; a small SDK encoding patch makes Canary accept it. The patch and
+regression material are prepared for review, not installed in production.
+
+The local trial used the upstream runtime/router through a loopback adapter,
+independently reproduced target PCRs, explicit TLS mode, 60-second probes and an
+ephemeral in-memory signer. It generated no persistent private signing seed and
+stopped automatically after five minutes. Full `canaryctl verify` checked both
+signatures and linked target evidence; local signer/config trust was explicitly
+TOFU, not Nitro-authenticated. Production monitor attestation requires a Caution/
+Nitro deployment or an existing independently verified Canary service; deployment
+access/service details have been requested from the user.
+
+Keep the current observer and independent rebuild records. Once the SDK correction
+and production monitor trust are resolved, integrate Canary as an additional proof
+source first, retaining separate evidence/TLS/release states, latest transport
+warnings and its own 180-second expiry. Do not use target TOFU to fill Caution
+hub's missing source-backed baseline.
 
 ## Comparison
 
@@ -30,7 +46,7 @@ unqualified Canary VERIFIED label.
 | Release tag and hub destination | Reviewed repository tags and build manifest mapped to exact measurements | Generic attestation policy and evidence | Keep our domain metadata/evidence mappings even if collection later changes. |
 | Source license | Existing pinned JS primitives are MIT licensed | Workspace declares AGPL-3.0-only | Record upstream provenance/license with any future integration; no Canary code is copied in this change. |
 
-## Bounded evaluation to do before adoption
+## Evaluation protocol (executed locally; production rollout still pending)
 
 1. Run an isolated Canary with fresh evaluation-only identity, `e2e_mode: tls`,
    60-second probes and our reviewed Zec.rocks mainnet/testnet PCR0/1/2. Do not
@@ -59,8 +75,10 @@ unqualified Canary VERIFIED label.
 
 ## Suggested response to Anton (not sent)
 
-Thanks! We didn't use Canary: the collector/dashboard uses pinned Caution
-`tee-attestation-js` primitives, additional certificate checks, and the Caution CLI
-for independent source rebuilds. We reviewed Canary and its signed statements and
-linked evidence look useful. We'd like to compare it alongside the existing
-observer, especially TLS binding, expiry and transport-failure handling.
+Thanks! Our live collector uses pinned Caution `tee-attestation-js`, additional
+certificate checks, and the Caution CLI for source rebuilds. We have now trialled
+Canary alongside it. Both Zec.rocks targets initially verified, and we found a
+reproducible ES384 integer-encoding edge case in the pinned Bootproof SDK during
+repeated checks. We have the exact public evidence and a candidate patch that
+fixes it. Could you review those, and let us know whether you have a production
+Canary service or deployment access we should use for the monitor?

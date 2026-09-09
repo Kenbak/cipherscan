@@ -1,0 +1,77 @@
+{
+  "evaluatedAt": "2026-09-09T22:12:36Z",
+  "lastProbeAt": "2026-09-09T22:16:41Z",
+  "canaryCommit": "c5a3761798f9c438944d235551ddd192df9c1915",
+  "bootproofCommit": "78f531a2c245404a9d8879fb71cc397096ae0077",
+  "registryCommit": "49de30d3575f597f37b452c43f7776fe7ef306ab",
+  "runtime": "Local macOS, x86_64 Rust 1.97.1 under translation, unoptimized debug build",
+  "signerTrust": "Local TOFU; ephemeral key; no monitor attestation",
+  "publicServiceDeployed": false,
+  "liveObservations": [
+    {
+      "target": "negative-wrong-pcr",
+      "status": "FAILED",
+      "reason": "INVALID_SIGNATURE",
+      "count": 1
+    },
+    {
+      "target": "negative-wrong-pcr",
+      "status": "FAILED",
+      "reason": "PCR_MISMATCH",
+      "count": 4
+    },
+    {
+      "target": "zecrocks-mainnet",
+      "status": "VERIFIED",
+      "reason": "ALL_CHECKS_PASSED",
+      "count": 5
+    },
+    {
+      "target": "zecrocks-testnet",
+      "status": "FAILED",
+      "reason": "INVALID_SIGNATURE",
+      "count": 1
+    },
+    {
+      "target": "zecrocks-testnet",
+      "status": "VERIFIED",
+      "reason": "ALL_CHECKS_PASSED",
+      "count": 4
+    }
+  ],
+  "upstreamSerialTestsPassed": 245,
+  "upstreamParallelFailure": "Optional webhook watcher tampered-signature alert exceeded 2s; serial rerun passed",
+  "upstreamLiveTlsTestsPassed": [
+    "zecrocks-mainnet",
+    "zecrocks-testnet"
+  ],
+  "completeCliVerification": "Initial two-target result verified both signatures, Nitro evidence, reproduced PCRs and TLS; subsequent repeat exposed testnet INVALID_SIGNATURE false rejection",
+  "negativeChecks": [
+    "incorrect PCR policy rejected",
+    "removed Ed25519 signature rejected",
+    "removed ML-DSA signature rejected",
+    "corrupted Ed25519 signature rejected",
+    "corrupted ML-DSA signature rejected",
+    "wrong signing key rejected",
+    "original saved statement rejected after expiry"
+  ],
+  "comparison": "Both existing network collectors agree with initial positive Canary PCR0/1/2 and TLS certificate fingerprints",
+  "historicalReplayVerified": true,
+  "retainedSqliteBytes": 282624,
+  "resourceLimitations": "Timing from unoptimized translated local build is not production performance; maximum RSS unavailable because macOS sandbox denied sysctl",
+  "falseRejectionEvidenceSha256": "7dc2abf943d2d9a7ce6fc9c83cf863a757fb1d05d0fd52289ef1bcc12ef9e125",
+  "candidateFixAcceptsCapturedEvidence": true,
+  "patchedCanarySerialTestsPassed": 245,
+  "decision": "Do not switch production collector. Review SDK correction and obtain attested Canary deployment/service details first.",
+  "localArtifactSha256": {
+    "cipherscan-canary-tests.log": "cd142fe3d2c01720df623176c09ef55be09cfda344eeddd275961e1ab9deb293",
+    "cipherscan-canary-tests-serial.log": "92f8f864f8d5eb5cb79aee16619a9d0cc48d5bac2fd999a7c325e8cbf1c03c3c",
+    "cipherscan-canary-patched-tests.log": "936822d181ac9234709b65ec0b1a9ef69b0fe9873c3d11ef4c00aae0c1a46b84",
+    "cipherscan-canary-history-verify.json": "817a8b006283219f9da1de531db53cf2cdefb2e2dd99b333d5ac589277272d60",
+    "cipherscan-canary-expiry.json": "1e293b3c1fb6910a081d8f62e937dc6a8f413748ca782b1d30c8ac530acf4260",
+    "cipherscan-canary-patched-evidence.json": "225745653425f886c29c1069602bc843b1826a639245670f564a912c278b1b39",
+    "cipherscan-bootproof-sdk-tests.log": "c652cf670033e0862ece10fac1a4dce1923e1a3b370d7517bf7ef83bd5b3c971"
+  },
+  "candidateDerRegression": "One Rust test extracted from the patched SDK function and test, compiled with edition 2024; six boundary cases pass",
+  "patchedBootproofSdkTestsPassed": 11
+}
