@@ -10,7 +10,8 @@ canonical on the primary.
 The job reads one repeatable-read snapshot on the configured replica (or primary
 when no replica is configured). It aggregates current unspent outputs once using
 the existing partial index, then reconstructs historical balances from indexed
-recent spending inputs/current output links. Daily cohorts preserve zatoshis and
+recent spending inputs/current output links. Lateral index lookups also prevent
+poor cardinality estimates from producing full-history hash joins. Daily cohorts preserve zatoshis and
 counts as integers. Day windows are [UTC midnight, next UTC midnight); HODL ages
 are measured at the last included second. CDD is in ZEC-days; average dormancy is
 in days. No new index, table, migration or global database tuning is required.
@@ -34,7 +35,9 @@ This example repairs the first-to-last missing dates found on September 9. A
 larger rebuild can correct earlier partial-day snapshots as well. Check row dates,
 bucket sums, replication health, and both `/api/valuation/hodl-waves` and
 `/api/valuation/dormancy`; these reads have a ten-minute cache. Invalidate only
-the corresponding valuation cache keys after a repair, never flush Redis.
+the corresponding valuation cache keys after a repair, never flush Redis. The
+two API endpoints expose `date` as a UTC `YYYY-MM-DD` string and exclude the
+incomplete current UTC day, independently of the server/session timezone.
 
 Signal jobs read `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` from their existing
 job environment or `server/signals/.env` (falling back to `server/api/.env`). Store

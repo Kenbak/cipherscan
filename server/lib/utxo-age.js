@@ -57,10 +57,14 @@ const RECENT_SPENDS_SQL = `
          SUM((o.value::numeric / 1e8) * (r.block_time - origin.block_time) / 86400.0)::text AS cdd,
          SUM((r.block_time - origin.block_time)::numeric / 86400.0)::text AS dormancy_sum
   FROM recent_inputs r
-  JOIN transaction_outputs o ON o.txid = r.prev_txid AND o.vout_index = r.prev_vout
-                            AND o.spent_txid = r.txid
-  JOIN transactions origin ON origin.txid = o.txid
-  WHERE o.spent = TRUE AND o.value > 0
+  CROSS JOIN LATERAL (
+    SELECT txid, value FROM transaction_outputs
+    WHERE txid = r.prev_txid AND vout_index = r.prev_vout
+      AND spent_txid = r.txid AND spent = TRUE AND value > 0 OFFSET 0
+  ) o
+  CROSS JOIN LATERAL (
+    SELECT block_time FROM transactions WHERE txid = o.txid OFFSET 0
+  ) origin
   GROUP BY 1, 2`;
 
 function computeDays(dates, unspent, spent) {

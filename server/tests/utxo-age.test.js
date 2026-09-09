@@ -100,6 +100,18 @@ test('job writes complete days atomically and preserves old rows on a failed bat
     const success=run();assert.equal(success.status,0,success.stderr);
     const rows=(await c.query('SELECT total_unspent_zat,utxo_count FROM utxo_age_daily ORDER BY date')).rows;
     assert.equal(rows.length,2);for(const row of rows){assert.equal(row.total_unspent_zat,'123456789');assert.equal(row.utxo_count,'1');}
+    await c.query("SET TIME ZONE 'Europe/Berlin'");
+    const express=require('express');const app=express();app.locals.pool={query:(...args)=>c.query(...args)};
+    app.use(require('../api/routes/valuation'));
+    const server=await new Promise(resolve=>{const listening=app.listen(0,'127.0.0.1',()=>resolve(listening));});
+    try {
+      for(const route of ['hodl-waves','dormancy']) {
+        const response=await fetch(`http://127.0.0.1:${server.address().port}/api/valuation/${route}?period=all`);
+        const body=await response.json();assert.equal(response.status,200);
+        assert.deepEqual(body.points.map(p=>p.date),['2026-09-07','2026-09-08']);
+      }
+    }finally{await new Promise(resolve=>server.close(resolve));}
+
   }finally{
     if(c)await c.end();await admin.query(`DROP DATABASE IF EXISTS ${db}`);await admin.end();
   }
