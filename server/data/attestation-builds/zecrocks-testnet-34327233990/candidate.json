@@ -1,0 +1,43 @@
+{
+  "version": 1,
+  "endpointId": "zecrocks-testnet",
+  "hostname": "tee.testnet.unsafe.zec.rocks",
+  "sourceUrl": "https://github.com/zecrocks/zeronym-shim-deploy",
+  "baseline": {
+    "authority": "reproduced",
+    "commit": "da024a0e3113810a4a10ffc085d43bb849f1a1a0",
+    "referenceUrl": "https://github.com/Kenbak/cipherscan/actions/runs/34327233990",
+    "pcrs": {
+      "PCR0": "0f40593a4135162261a89b9057a26ae297d1a0d0a2b8c19c36d0b87db1f110581368c485bbde4c18723009af630e5ebd",
+      "PCR1": "0f40593a4135162261a89b9057a26ae297d1a0d0a2b8c19c36d0b87db1f110581368c485bbde4c18723009af630e5ebd",
+      "PCR2": "21b9efbc184807662e966d34f390821309eeac6802309798826296bf3e8bec7c10edb30948c90ba67310f7b964fc500a"
+    }
+  },
+  "observation": {
+    "checkedAt": "2026-09-09T08:28:04.657Z",
+    "reachable": true,
+    "evidence": "verified",
+    "tlsBinding": "matched",
+    "release": "reproduced_match",
+    "errorCode": null,
+    "attestedAt": "2026-09-09T08:28:04.929Z",
+    "pcrs": {
+      "PCR0": "0f40593a4135162261a89b9057a26ae297d1a0d0a2b8c19c36d0b87db1f110581368c485bbde4c18723009af630e5ebd",
+      "PCR1": "0f40593a4135162261a89b9057a26ae297d1a0d0a2b8c19c36d0b87db1f110581368c485bbde4c18723009af630e5ebd",
+      "PCR2": "21b9efbc184807662e966d34f390821309eeac6802309798826296bf3e8bec7c10edb30948c90ba67310f7b964fc500a"
+    },
+    "certificateFingerprint": "bdaa6e30bfbb1d923942482c93a2ef113bcab0b229161bf7c3e50f97d2c46bb6",
+    "documentSha256": "fae087a3e7a545bb74dc4e11e419179c7ef035e508a6cf9c74520a8daf138401",
+    "claimedCommit": "da024a0e3113810a4a10ffc085d43bb849f1a1a0",
+    "verifier": "cipherscan-nitro-v1:ba0d0c57de673c8576c91a8730775a87575f5c10"
+  },
+  "evidence": {
+    "cautionCommit": "2c501466ab71326074339db06cd765d9e31c7fe1",
+    "cautionBinarySha256": "3d8a0523b328802b5f5913c2a277a573ad8b7bd8c5fd8cdfb2e2e0cf7aefbe39",
+    "sourceArchiveSha256": "d8771834a3b1f7ed78b46954cbd87677b39a816e27403b5e3544f0d9250a128b",
+    "manifestSha256": "001842e6a27123d12f4799c9d2f24d83b0632069037b69f12e44b522f5b0c722",
+    "trustedStateSha256": "6307e5af677bfb31b272ab5e5f7594cd5b423b892b734bcb1c058531837f5641",
+    "verifiedAt": "2026-09-09T08:28:04.638086353+00:00"
+  },
+  "activation": "Review build evidence, then copy baseline into the registry; this job cannot publish or activate a release."
+}

@@ -1,0 +1,43 @@
+{
+  "version": 1,
+  "endpointId": "shieldedlabs-shim",
+  "hostname": "zeronym-shim-13.shieldedinfra.net",
+  "sourceUrl": "https://github.com/ShieldedLabs/zero-shim",
+  "baseline": {
+    "authority": "reproduced",
+    "commit": "fb82506406da795946975d125618ee1d1b63b5fa",
+    "referenceUrl": "https://github.com/Kenbak/cipherscan/actions/runs/34327233925",
+    "pcrs": {
+      "PCR0": "9a3479072245ca70d2189489beaffddcbda0aef88a75d8470f0c4c3d83d2d279107cd050b27f8c42d0e307aa0ec82bd3",
+      "PCR1": "9a3479072245ca70d2189489beaffddcbda0aef88a75d8470f0c4c3d83d2d279107cd050b27f8c42d0e307aa0ec82bd3",
+      "PCR2": "21b9efbc184807662e966d34f390821309eeac6802309798826296bf3e8bec7c10edb30948c90ba67310f7b964fc500a"
+    }
+  },
+  "observation": {
+    "checkedAt": "2026-09-09T08:28:06.851Z",
+    "reachable": true,
+    "evidence": "verified",
+    "tlsBinding": "matched",
+    "release": "reproduced_match",
+    "errorCode": null,
+    "attestedAt": "2026-09-09T08:28:07.489Z",
+    "pcrs": {
+      "PCR0": "9a3479072245ca70d2189489beaffddcbda0aef88a75d8470f0c4c3d83d2d279107cd050b27f8c42d0e307aa0ec82bd3",
+      "PCR1": "9a3479072245ca70d2189489beaffddcbda0aef88a75d8470f0c4c3d83d2d279107cd050b27f8c42d0e307aa0ec82bd3",
+      "PCR2": "21b9efbc184807662e966d34f390821309eeac6802309798826296bf3e8bec7c10edb30948c90ba67310f7b964fc500a"
+    },
+    "certificateFingerprint": "0efe94625c57f2342f5338313c99b2b3534976e8b1fda5323173d0eb1d0b462f",
+    "documentSha256": "8bf2d4f22c1a32aada44633eab746eb1057f179ca9b48bab262e7764d5f3e2c2",
+    "claimedCommit": "fb82506406da795946975d125618ee1d1b63b5fa",
+    "verifier": "cipherscan-nitro-v1:ba0d0c57de673c8576c91a8730775a87575f5c10"
+  },
+  "evidence": {
+    "cautionCommit": "2c501466ab71326074339db06cd765d9e31c7fe1",
+    "cautionBinarySha256": "3d8a0523b328802b5f5913c2a277a573ad8b7bd8c5fd8cdfb2e2e0cf7aefbe39",
+    "sourceArchiveSha256": "d7d21bbcac6224ed11c2de4494668bfe1374ee0780e39a8c3a5b90ba2bbc01c7",
+    "manifestSha256": "fb0cf9af5f85cc3a90a3c05fd97dbaf47b8b2f62e1c66646dd55afbc5ed1a527",
+    "trustedStateSha256": "f1741eee8ee599874def4447065892f48d802332fae0041afb7144afa603cf52",
+    "verifiedAt": "2026-09-09T08:28:06.832960955+00:00"
+  },
+  "activation": "Review build evidence, then copy baseline into the registry; this job cannot publish or activate a release."
+}
