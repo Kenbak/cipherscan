@@ -25,6 +25,8 @@ COPY --from=deps /app/server/api/node_modules ./node_modules
 COPY server/api/ ./
 COPY server/lib/ ../lib/
 COPY server/signals/ ../signals/
+COPY server/data/attestation-endpoints.json ../data/attestation-endpoints.json
+COPY lib/attestation-status.js /app/lib/attestation-status.js
 RUN mkdir -p /var/cache/cipherscan/compact-blocks \
     && chown -R 1000:1000 /var/cache/cipherscan
 

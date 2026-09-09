@@ -117,3 +117,85 @@ Checks: `npm run test:attestations`, relevant sitemap/HTML tests, typecheck/lint
 production build, and real endpoint smoke checks. Upstream verifier updates need
 cryptographic negative tests and live checks; do not infer safety from a version
 number or an unqualified CLI success line.
+
+## Establish a release baseline
+
+The monitor already compares all three PCRs. The build tooling below produces a
+**candidate**, not an active baseline. It never copies measurements from the live
+endpoint into a trusted release. `server/data/attestation-build-inputs.json` pins
+four public source mappings and complete unsigned build manifests as reproduction
+inputs; they are not independently established measurements. Caution's hub is
+excluded until its operator provides the source mapping.
+
+### Published values
+
+Obtain an operator's release record through a trusted channel, with this shape:
+
+```json
+{
+  "sourceUrl": "https://github.com/ShieldedLabs/zero-hub",
+  "commit": "<exact 40-character source commit>",
+  "pcrs": { "PCR0": "<96 lowercase hex>", "PCR1": "<96 lowercase hex>", "PCR2": "<96 lowercase hex>" }
+}
+```
+
+Run `npm run attestations:baseline -- published shieldedlabs-hub release.json
+https://operator.example/release candidate.json` (one command). It validates the
+record and requires fresh Nitro evidence/TLS and all PCRs to match. The reference
+must identify the independently obtained release record, never this monitor's API
+or an attestation response. A match has `authority: published`, not `reproduced`.
+
+### Independent reproduction
+
+Run the **Reproduce attestation build** GitHub Actions workflow manually for a
+registered endpoint. It uses a disposable Ubuntu 24.04 runner, Docker and a CLI
+built from pinned Caution source with locked Rust dependencies. No production
+credentials, write token, build caches from other jobs or enclave hosting account
+are supplied. The workflow has a 100-minute limit and is not run every five
+minutes. It executes third-party build scripts only in that disposable runner.
+
+The wrapper uses a fresh output directory, archives the pinned app commit,
+requires the preflight manifest to match reviewed inputs, invokes source-backed
+`caution verify --from-tarball ... --no-cache`, and validates the manifest actually
+written into the rebuilt enclave. This last check rejects changes between the
+preflight and the CLI's fetch. It requires newly written trusted state with the
+correct TLS domain, then independently challenges the live HTTPS endpoint again.
+An exit code or old `trusted_hashes.json` alone cannot produce a candidate.
+
+On a separate disposable Linux machine with Docker and the CLI built from the
+exact `cautionCommit` in the build-inputs file, the equivalent command is:
+
+```sh
+npm run attestations:baseline -- reproduce shieldedlabs-hub /path/to/caution \
+  /path/to/zero-hub /tmp/new-build-result https://example.com/durable-build-evidence
+```
+
+The output directory must not already exist. The application checkout must
+contain the pinned commit. The candidate records CLI binary/source pins, source
+archive hash, build-manifest hash, trusted-state hash and a fresh live check.
+GitHub retains the JSON, log and build recipe artifact for 30 days. Archive that
+evidence durably before using it as a long-term public baseline reference.
+Neither input pinning nor a successful reproduction means the source is safe;
+it establishes a reproducible link to the reviewed source/build configuration.
+
+To inspect a changed manifest without executing it:
+
+```sh
+npm run attestations:baseline -- inspect shieldedlabs-hub /tmp/unsigned-inputs.json
+```
+
+Review new source/configuration/framework/EnclaveOS pins before updating the
+build-inputs file. Inspect output is explicitly unsigned and never supplies PCRs.
+A failed build, missing source mapping or changed manifest leaves the endpoint
+unconfirmed. Do not relax the comparison to get a green result.
+
+### Activation and release rotation
+
+Review the candidate's source, commit, evidence and authority. Preserve the
+provenance record, then copy **only its `baseline` object** into that endpoint's
+`baseline` field in `server/data/attestation-endpoints.json`. Commit/review this
+registry change and ship it to both API and observer; restart the API to reload
+the registry. The next collector run validates the new baseline automatically.
+The registry identity change invalidates earlier observations. Keep prior
+baseline/evidence records in Git history for rollback. A deployment update that
+changes PCRs remains a mismatch until its replacement baseline is established.

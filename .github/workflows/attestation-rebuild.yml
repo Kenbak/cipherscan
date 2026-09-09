@@ -1,0 +1,68 @@
+name: Reproduce attestation build
+
+on:
+  workflow_dispatch:
+    inputs:
+      endpoint:
+        description: Endpoint with reviewed, pinned build inputs
+        type: choice
+        required: true
+        options:
+          - shieldedlabs-hub
+          - shieldedlabs-shim
+          - zecrocks-mainnet
+          - zecrocks-testnet
+
+permissions:
+  contents: read
+
+concurrency:
+  group: attestation-rebuild-${{ inputs.endpoint }}
+  cancel-in-progress: false
+
+jobs:
+  reproduce:
+    # Build scripts execute here, never on the production observer/API host.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 100
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .node-version
+      - name: Build the pinned Caution CLI
+        env:
+          CARGO_NET_GIT_FETCH_WITH_CLI: 'true'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang libclang-dev pkg-config nettle-dev libgmp-dev libssl-dev libudev-dev libpcsclite-dev
+          pin=$(node -p "require('./server/data/attestation-build-inputs.json').cautionCommit")
+          git clone --no-checkout https://codeberg.org/caution/platform.git "$RUNNER_TEMP/caution-platform"
+          git -C "$RUNNER_TEMP/caution-platform" checkout --detach "$pin"
+          test "$(git -C "$RUNNER_TEMP/caution-platform" rev-parse HEAD)" = "$pin"
+          rustup toolchain install 1.97.1 --profile minimal
+          cd "$RUNNER_TEMP/caution-platform"
+          cargo +1.97.1 build --locked --release -p cli
+      - name: Reproduce pinned application and challenge the live endpoint
+        env:
+          ENDPOINT_ID: ${{ inputs.endpoint }}
+          EVIDENCE_URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          source_url=$(node -e "const r=require('./server/data/attestation-endpoints.json'); const e=r.find(e=>e.id===process.env.ENDPOINT_ID); if(!e?.sourceUrl)process.exit(1); process.stdout.write(e.sourceUrl)")
+          git clone --no-checkout "$source_url" "$RUNNER_TEMP/attestation-app"
+          node server/scripts/attestation-baseline.mjs reproduce "$ENDPOINT_ID" \
+            "$RUNNER_TEMP/caution-platform/target/release/caution" \
+            "$RUNNER_TEMP/attestation-app" "$RUNNER_TEMP/attestation-result" "$EVIDENCE_URL"
+      - name: Retain evidence for review (never activate a baseline)
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: attestation-${{ inputs.endpoint }}-${{ github.run_id }}
+          retention-days: 30
+          if-no-files-found: warn
+          path: |
+            ${{ runner.temp }}/attestation-result/*.json
+            ${{ runner.temp }}/attestation-result/*.log
+            ${{ runner.temp }}/attestation-result/Containerfile.eif

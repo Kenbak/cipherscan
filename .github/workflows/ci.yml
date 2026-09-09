@@ -40,6 +40,8 @@ jobs:
         run: npm ci --no-audit --no-fund
       - name: Run the local/CI frontend verification contract
         run: npm run verify:frontend
+      - name: Attestation page regressions
+        run: node --test server/tests/attestations-page.test.mjs
 
   # ---------------------------------------------------------------------------
   # Express API backend: locked install, syntax check, and real-Redis tests
@@ -83,7 +85,9 @@ jobs:
         working-directory: ${{ github.workspace }}
         env:
           NODE_PATH: ${{ github.workspace }}/server/api/node_modules
-        run: npm run test:server-regressions
+        run: |
+          npm run test:server-regressions
+          node --test server/tests/attestations.test.mjs server/tests/attestations-baseline.test.mjs
 
   # ---------------------------------------------------------------------------
   # Indexer: install + syntax check
