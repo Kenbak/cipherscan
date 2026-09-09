@@ -74,7 +74,7 @@ test('snapshots enforce schema, network isolation, registry identities and inval
     const value = snapshot();
     await store.saveSnapshot(value, path);
     assert.deepEqual(await store.readSnapshot(path), value);
-    assert.equal(store.publicSnapshot(value, 'mainnet', NOW).endpoints.length, 4);
+    assert.equal(store.publicSnapshot(value, 'mainnet', NOW).endpoints.length, 2);
     assert.equal(store.publicSnapshot(value, 'testnet', NOW).endpoints.length, 1);
     assert.equal(store.publicSnapshot(value, 'crosslink-testnet', NOW).endpoints.length, 0);
     value.endpoints[0].identity = '0'.repeat(64);
@@ -181,4 +181,30 @@ test('HTTPS transport rejects redirects, malformed/oversized bodies and slow res
   const assertion = assert.rejects(pending, (error) => error.code === 'timeout');
   t.mock.timers.tick(DEADLINE_MS);
   await assertion;
+});
+
+test('current build confirmation expires and never survives a failed or different observation', () => {
+  const entry = store.registry.find(item => item.id === 'zecrocks-mainnet');
+  const endpoint = { ...entry, latest: success({ release: 'reproduced_match' }) };
+  assert.equal(statuses.matchesReproducedBuild(endpoint, NOW), true);
+  assert.equal(statuses.matchesReproducedBuild(endpoint, NOW + statuses.FRESH_FOR_MS), false);
+  for (const changed of [{release:'mismatch'}, {release:'unconfirmed'}, {release:'published_match'}, {tlsBinding:'mismatch'}, {reachable:false}, {evidence:'failed'}]) {
+    assert.equal(statuses.matchesReproducedBuild({ ...endpoint, latest: { ...endpoint.latest, ...changed } }, NOW), false);
+  }
+  assert.equal(statuses.matchesReproducedBuild({...endpoint, baseline:{...endpoint.baseline,authority:'published'}}, NOW), false);
+  const data = store.publicSnapshot(snapshot(), 'mainnet', NOW);
+  const exposed = data.endpoints.find(item => item.id === entry.id);
+  assert.equal(exposed.baseline.tag, entry.baseline.tag);
+  assert.equal(exposed.hubConfiguration.hostname, 'hub.zcash.caution.co');
+});
+
+test('retired test endpoints are absent even from retained snapshots and return 404', async () => {
+  const old = snapshot();
+  old.endpoints.push({id:'shieldedlabs-hub',identity:'a'.repeat(64),latest:success(),lastSuccessful:null});
+  assert.ok(!store.publicSnapshot(old,'mainnet',NOW).endpoints.some(e=>e.id.startsWith('shieldedlabs-')));
+  const app=express();app.use(createAttestationRouter({network:'mainnet',read:async()=>old,now:()=>NOW}));
+  const server=app.listen(0,'127.0.0.1');await new Promise(resolve=>server.once('listening',resolve));
+  try {
+    for(const id of ['shieldedlabs-hub','shieldedlabs-shim']) assert.equal((await fetch(`http://127.0.0.1:${server.address().port}/api/network/attestations/${id}`)).status,404);
+  } finally {server.closeAllConnections();await new Promise(resolve=>server.close(resolve));}
 });

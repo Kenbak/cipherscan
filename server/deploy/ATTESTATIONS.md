@@ -1,14 +1,33 @@
 # Zero Indexer attestation monitor
 
 Scope: a public observer only. This does not deploy a shim/hub, change wallet
-routing, or submit transactions. The four mainnet and one testnet endpoints in
-`server/data/attestation-endpoints.json` are a curated experimental registry.
-Names, networks and hub relationships come from published configurations and the
-linked announcement; they are not derived from cryptographic evidence. Baselines
-are activated only after reviewed published or independently reproduced evidence.
-Four baselines are independently reproduced: Shielded Labs hub/shim and Zec.rocks
-mainnet/testnet shims. Preserved evidence is under `server/data/attestation-builds/`.
-Caution hub remains unconfirmed because its app source mapping is unavailable.
+routing, or submit transactions. The active registry has two mainnet endpoints
+(Zec.rocks shim and Caution hub) and one Zec.rocks testnet shim. Shielded Labs
+requested removal of its retired test hub/shim on 2026-09-10; their registry
+records are archived in `attestation-retired-endpoints.json`, and all historical
+rebuild evidence remains under `server/data/attestation-builds/`. Archived records
+are not polled or exposed through the active API.
+
+Zec.rocks mainnet/testnet baselines are independently reproduced. Their deployment
+tags were resolved with `git ls-remote --tags` on 2026-09-10 against the registered
+source repositories: `deploy-fdb613db-a606726` → `a6067268a04d14f9821edf6c83d3bdd94dab3776`,
+`deploy-a67b428a-da024a0` → `da024a0e3113810a4a10ffc085d43bb849f1a1a0`.
+These are deployment-source tags, not an inferred application semver. The manifest's
+`version: 1.0` is not used as the software release label. Tags are reviewed metadata;
+commits and independent measurements remain the identity anchor. New releases and
+tag movements require reviewed updates; polling never promotes a new baseline.
+
+The mainnet rebuilt manifest contains `ZIS_HUB=54.251.201.143:443` and
+`ZIS_HUB_TLS=hub.zcash.caution.co`. The API publishes this as reviewed
+`hubConfiguration`; the page calls it confirmed only when the latest fresh evidence,
+TLS and reproduced PCR match pass together. Missing, failed, mismatched and stale
+observations retain reviewed details but explicitly withdraw current confirmation.
+This proves a configured destination in the matching build, not network reachability,
+actual routing, traffic flow, or the hub's own software status. Testnet's hub remains
+unknown: absence of a startup override is not proof of runtime default behavior.
+Caution hub's source/build version remains unconfirmed without a reviewed baseline.
+
+Canary compatibility assessment: [CANARY-ASSESSMENT.md](CANARY-ASSESSMENT.md).
 
 ## Local preview with real data
 
@@ -71,7 +90,7 @@ Redis, Rust indexer or chain RPC change is required. The source deployment unit
 must be reconciled with live service settings before installation.
 
 Verify `GET /api/network/attestations` on the API host, and the public page's raw
-HTML, metadata and displayed timestamps. Mainnet returns four endpoints; testnet
+HTML, metadata and displayed timestamps. Mainnet returns two endpoints; testnet
 returns one. Unknown endpoint IDs return 404, as do mainnet IDs on testnet.
 Crosslink returns an empty API registry and the public page returns 404/noindex.
 The mainnet core sitemap includes the page; testnet sitemaps remain homepage-only.
@@ -107,7 +126,10 @@ an explicit unavailable response with the configured registry still present.
   is logged; the document digest allows comparing observations without pretending
   that the public API is itself a cryptographic attestation.
 - Public API: `success`, `network`, `generatedAt`, `servedAt`, `available`,
-  `freshForMs`, `pollIntervalMs`, `endpoints`. The detail route replaces
+  `freshForMs`, `pollIntervalMs`, `endpoints`. Each endpoint may include
+  `baseline.tag`, `baseline.tagReferenceUrl` and `hubConfiguration` (hostname,
+  dial address, reproduced authority and immutable evidence reference). These are
+  reviewed metadata, not unconditional claims about the current runtime. The detail route replaces
   `endpoints` with `endpoint`. Missing/corrupt storage is HTTP 200 with
   `available:false`, null observations and the registry. A connection failure is
   separate from evidence failure. API is no-store and X-Robots-Tag noindex.
@@ -126,8 +148,8 @@ number or an unqualified CLI success line.
 The monitor already compares all three PCRs. The build tooling below produces a
 **candidate**, not an active baseline. It never copies measurements from the live
 endpoint into a trusted release. `server/data/attestation-build-inputs.json` pins
-four public source mappings and complete unsigned build manifests as reproduction
-inputs; they are not independently established measurements. Caution's hub is
+the two active Zec.rocks source mappings plus two archived Shielded Labs
+input records, with complete unsigned build manifests as reproduction inputs; they are not independently established measurements. Caution's hub is
 excluded until its operator provides the source mapping.
 
 ### Published values
@@ -136,13 +158,13 @@ Obtain an operator's release record through a trusted channel, with this shape:
 
 ```json
 {
-  "sourceUrl": "https://github.com/ShieldedLabs/zero-hub",
+  "sourceUrl": "https://github.com/zecrocks/zeronym-shim-mainnet-deploy",
   "commit": "<exact 40-character source commit>",
   "pcrs": { "PCR0": "<96 lowercase hex>", "PCR1": "<96 lowercase hex>", "PCR2": "<96 lowercase hex>" }
 }
 ```
 
-Run `npm run attestations:baseline -- published shieldedlabs-hub release.json
+Run `npm run attestations:baseline -- published zecrocks-mainnet release.json
 https://operator.example/release candidate.json` (one command). It validates the
 record and requires fresh Nitro evidence/TLS and all PCRs to match. The reference
 must identify the independently obtained release record, never this monitor's API
@@ -169,8 +191,8 @@ On a separate disposable Linux machine with Docker and the CLI built from the
 exact `cautionCommit` in the build-inputs file, the equivalent command is:
 
 ```sh
-npm run attestations:baseline -- reproduce shieldedlabs-hub /path/to/caution \
-  /path/to/zero-hub /tmp/new-build-result https://example.com/durable-build-evidence
+npm run attestations:baseline -- reproduce zecrocks-mainnet /path/to/caution \
+  /path/to/zeronym-shim-mainnet-deploy /tmp/new-build-result https://example.com/durable-build-evidence
 ```
 
 The output directory must not already exist. The application checkout must
@@ -184,7 +206,7 @@ it establishes a reproducible link to the reviewed source/build configuration.
 To inspect a changed manifest without executing it:
 
 ```sh
-npm run attestations:baseline -- inspect shieldedlabs-hub /tmp/unsigned-inputs.json
+npm run attestations:baseline -- inspect zecrocks-mainnet /tmp/unsigned-inputs.json
 ```
 
 Review new source/configuration/framework/EnclaveOS pins before updating the
@@ -202,3 +224,7 @@ the registry. The next collector run validates the new baseline automatically.
 The registry identity change invalidates earlier observations. Keep prior
 baseline/evidence records in Git history for rollback. A deployment update that
 changes PCRs remains a mismatch until its replacement baseline is established.
+
+When rotating a baseline, re-review its optional tag and hub configuration too.
+Never carry a previous tag or hub setting onto new measurements without checking
+the replacement source and preserved rebuilt manifest.
