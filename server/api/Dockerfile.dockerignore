@@ -8,3 +8,7 @@
 server/api/.env
 server/api/.env.*
 !server/api/.env.example
+!server/data/
+!server/data/attestation-endpoints.json
+!lib/
+!lib/attestation-status.js

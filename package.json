@@ -29,8 +29,8 @@
     "test:ttfb-probe": "node --test server/tests/ttfb-probe.test.js",
     "test:isr-warmup": "node --test server/tests/isr-warmup.test.js",
     "test:route-cache-build": "node --test server/tests/next-route-cache-build.test.js",
-    "test:frontend": "npm run test:sitemap-security && npm run test:performance && npm run test:ttfb-probe && npm run test:isr-warmup && npm run test:revalidate-security && NODE_PATH=$PWD/server/api/node_modules node --test server/tests/address-labels-resilience.test.js && npm run test:brand && npm run test:v1-frontend && node --test server/tests/address-connections.test.js",
-    "test:server-regressions": "NODE_PATH=$PWD/server/api/node_modules node --test server/tests/blocks-orphan-batch.test.js server/tests/tx-detail-parallel.test.js server/tests/tx-mempool-cache.test.js server/tests/migration-activity-summary.test.js server/tests/blend-check-batch.test.js server/tests/db-pool-deadlines.test.js server/tests/error-message-leakage.test.js server/tests/safe-log.test.js server/tests/ironwood-accounting.test.js server/tests/exposure-consumers.test.js server/tests/network-halving.test.js server/tests/peer-client.test.js server/tests/privacy-score.test.js server/tests/privacy-stats-snapshot.test.js",
+    "test:frontend": "npm run test:sitemap-security && npm run test:performance && npm run test:ttfb-probe && npm run test:isr-warmup && npm run test:revalidate-security && NODE_PATH=$PWD/server/api/node_modules node --test server/tests/address-labels-resilience.test.js && npm run test:brand && npm run test:v1-frontend && node --test server/tests/address-connections.test.js && npm run test:attestations",
+    "test:server-regressions": "NODE_PATH=$PWD/server/api/node_modules node --test server/tests/blocks-orphan-batch.test.js server/tests/tx-detail-parallel.test.js server/tests/tx-mempool-cache.test.js server/tests/migration-activity-summary.test.js server/tests/blend-check-batch.test.js server/tests/db-pool-deadlines.test.js server/tests/error-message-leakage.test.js server/tests/safe-log.test.js server/tests/ironwood-accounting.test.js server/tests/exposure-consumers.test.js server/tests/network-halving.test.js server/tests/peer-client.test.js server/tests/privacy-score.test.js server/tests/privacy-stats-snapshot.test.js server/tests/utxo-age.test.js server/tests/signal-telegram.test.js",
     "verify:fast": "npm run lint && tsc --noEmit",
     "verify:frontend": "npm run verify:fast && npm run test:frontend && CIPHERSCAN_ALLOW_BUILD_UPSTREAM_FALLBACK=1 npm run build && npm run test:route-cache-build",
     "perf:analyze": "node scripts/perf/analyze-slow-pages.mjs",
@@ -43,12 +43,15 @@
     "privacy:backtest": "node server/scripts/backtest-privacy-linkage.js",
     "test:brand": "node --test server/tests/zecblock-design.test.js server/tests/typography-contrast.test.js",
     "test:v1-frontend": "node --test server/tests/v1-frontend-contract.test.js server/tests/docs-reference.test.js",
-    "test:v1-postgres": "V1_TEST_POSTGRES=1 NODE_PATH=$PWD/server/api/node_modules node --test server/tests/v1-postgres-pagination.test.js"
+    "test:v1-postgres": "V1_TEST_POSTGRES=1 NODE_PATH=$PWD/server/api/node_modules node --test server/tests/v1-postgres-pagination.test.js",
+    "attestations:collect": "node server/jobs/check-attestations.mjs",
+    "test:attestations": "node --test server/tests/attestations*.test.mjs",
+    "attestations:baseline": "node server/scripts/attestation-baseline.mjs"
   },
   "overrides": {
     "axios": "1.14.0",
-    "postcss": "8.5.19",
-    "sharp": "0.35.3"
+    "postcss": "8.5.28",
+    "sharp": "0.35.4"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.7",
@@ -79,10 +82,10 @@
     "geist": "^1.7.0",
     "gray-matter": "^4.0.3",
     "html-to-image": "^1.11.13",
-    "next": "^16.2.7",
+    "next": "^16.3.4",
     "node-fetch": "^3.3.2",
     "pg": "^8.16.3",
-    "postcss": "8.5.19",
+    "postcss": "8.5.28",
     "qrcode.react": "^4.2.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",

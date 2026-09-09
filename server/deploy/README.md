@@ -91,3 +91,9 @@ sudo -u postgres pg_restore \
 ```
 
 Never treat an upload as verified until a restore drill succeeds.
+
+## Zero Indexer attestation monitor
+
+See [ATTESTATIONS.md](./ATTESTATIONS.md) for the isolated public-endpoint observer,
+its read-only API contract, and deployment/rollback instructions. This feature
+does not operate a shim or hub and requires no database migration.

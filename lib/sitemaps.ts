@@ -5,6 +5,8 @@ export const BLOCK_SITEMAP_SHARD_SIZE = 50_000;
 
 export interface SitemapUrlEntry {
   url: string;
+  changeFrequency?: 'hourly' | 'daily' | 'weekly';
+  priority?: number;
   lastModified?: Date | string;
 }
 
@@ -27,6 +29,7 @@ export const CORE_PATHS = [
   '/mempool',
   '/network',
   '/network/nodes',
+  '/network/attestations',
   '/privacy',
   '/privacy-risks',
   '/privacy/wallets',
@@ -108,6 +111,8 @@ export function serializeUrlSet(entries: SitemapUrlEntry[]): string {
       '  <url>',
       `    <loc>${escapeXml(entry.url)}</loc>`,
       ...(lastModified ? [`    <lastmod>${lastModified}</lastmod>`] : []),
+      ...(entry.changeFrequency ? [`    <changefreq>${escapeXml(entry.changeFrequency)}</changefreq>`] : []),
+      ...(entry.priority !== undefined ? [`    <priority>${Math.min(1, Math.max(0, entry.priority))}</priority>`] : []),
       '  </url>',
     ].join('\n');
   });
@@ -204,7 +209,7 @@ export function getStaticSitemapEntries(
   newsletters: NewsletterIssue[],
 ): SitemapUrlEntry[] | null {
   if (slug === 'core') {
-    return CORE_PATHS.map((path) => ({ url: absoluteUrl(baseUrl, path) }));
+    return CORE_PATHS.map((path) => ({ url: absoluteUrl(baseUrl, path), ...(path === '/network/attestations' ? { lastModified: '2026-09-09', changeFrequency: 'hourly' as const, priority: 0.6 } : {}) }));
   }
 
   if (slug === 'tools') {

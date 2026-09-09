@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { readApiData } from '@/lib/api-client';
 import NetworkClient, { type NetworkPageInitialData } from './NetworkClient';
 import { getApiUrl, getNetwork, getBaseUrl } from '@/lib/seo';
@@ -44,6 +45,9 @@ export default async function NetworkPage() {
   };
   return <>
     <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(pageSchema).replace(/</g, '\\u003c') }} />
+    {network !== 'crosslink-testnet' ? <nav aria-label="Network monitoring" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
+      <Link href="/network/attestations" className="text-sm text-cipher-gold hover:underline">Zero Indexer attestation monitor →</Link>
+    </nav> : null}
     <NetworkClient initialData={{ fetchedAt, stats, health, nodeLocations, nodeStats, recentBlocks, feeDistribution }} />
     <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
       <div className="border-t border-cipher-border pt-6 max-w-3xl text-sm text-muted space-y-2">

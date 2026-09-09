@@ -1,0 +1,26 @@
+{
+  "app_source": {
+    "branch": "main",
+    "commit": "5b98e661be90180433bea09533a4c096d4e7f203",
+    "urls": [
+      "https://github.com/ShieldedLabs/zero-hub"
+    ]
+  },
+  "bootproof_commit": "b03721957e3850931f5b53627e7c3d1c302a06fe",
+  "enclave_source": {
+    "commit": "9582e25239430070667fdd0a6b64d887f1c308df",
+    "type": "git_archive",
+    "urls": [
+      "https://git.distrust.co/public/enclaveos/archive/9582e25239430070667fdd0a6b64d887f1c308df.tar.gz"
+    ]
+  },
+  "enclaveos_commit": "9582e25239430070667fdd0a6b64d887f1c308df",
+  "framework_source": {
+    "commit": "ecd876be560cb61d683c250a064acca658111411",
+    "type": "git_archive",
+    "url": "https://codeberg.org/caution/platform/archive/ecd876be560cb61d683c250a064acca658111411.tar.gz"
+  },
+  "powered_by": "https://caution.co",
+  "run_command": "export ZIH_HTTP_SUBMIT=true\nexport ZIH_INDEXERS=66.241.124.200:443\nexport ZIH_INDEXER_TLS=na.zec.rocks\nexport ZIH_LISTEN=0.0.0.0:8083\n/zero-indexer-hub",
+  "version": "1.0"
+}

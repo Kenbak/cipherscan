@@ -15,8 +15,12 @@ function buildQueryInventory() {
     let handler;
     function visit(node) {
       if (ts.isCallExpression(node) && ts.isPropertyAccessExpression(node.expression)
-          && node.expression.name.text === entry.method.toLowerCase()
-          && ts.isStringLiteral(node.arguments[0] || {}) && node.arguments[0].text === (entry.domain === 'signals' ? entry.legacyPath.replace('/api/signals', '') : entry.legacyPath)) handler = node.arguments.at(-1);
+          && node.expression.name.text === entry.method.toLowerCase()) {
+        const route = node.arguments[0];
+        const paths = route && ts.isArrayLiteralExpression(route) ? route.elements : [route];
+        const expected = entry.domain === 'signals' ? entry.legacyPath.replace('/api/signals', '') : entry.legacyPath;
+        if (paths.some(value => value && ts.isStringLiteral(value) && value.text === expected)) handler = node.arguments.at(-1);
+      }
       ts.forEachChild(node, visit);
     }
     visit(ast);

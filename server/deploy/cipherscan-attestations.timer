@@ -1,0 +1,11 @@
+[Unit]
+Description=Check Zero Indexer attestations every five minutes
+
+[Timer]
+OnBootSec=30s
+OnUnitActiveSec=5min
+RandomizedDelaySec=30s
+Unit=cipherscan-attestations.service
+
+[Install]
+WantedBy=timers.target

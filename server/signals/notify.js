@@ -8,11 +8,10 @@
 
 const { loadEnv } = require('../lib/job-utils');
 const { getReadPool } = require('../lib/db-pool');
+const { telegramConfig, sendSignalReport, checkSignalTelegram } = require('../lib/signal-telegram');
 
 loadEnv(__dirname);
 
-const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
-const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 
 // This job only reads the latest signals and pushes a Telegram message —
 // it never writes to the database, so it runs entirely against the replica.
@@ -26,24 +25,9 @@ const SIGNAL_EMOJI = {
   STRONG_SELL: '🔴🔴',
 };
 
-async function sendTelegram(message) {
-  const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      chat_id: TELEGRAM_CHAT_ID,
-      text: message,
-      parse_mode: 'Markdown',
-      disable_web_page_preview: true,
-    }),
-  });
-  if (!res.ok) throw new Error(`Telegram API ${res.status}: ${await res.text()}`);
-}
-
 async function fetchLivePrice() {
   try {
-    const res = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=zcash&vs_currencies=usd&include_24hr_change=true');
+    const res = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=zcash&vs_currencies=usd&include_24hr_change=true', { signal: AbortSignal.timeout(10000) });
     if (!res.ok) return null;
     const data = await res.json();
     return {
@@ -56,6 +40,12 @@ async function fetchLivePrice() {
 }
 
 async function main() {
+  telegramConfig();
+  if (process.argv.includes('--check')) {
+    await checkSignalTelegram();
+    console.log('[notify] Bot and destination verified; no message sent.');
+    return;
+  }
   const result = await pool.query(`
     SELECT signal_date, composite_score, signal, svr_7d, svr_30d,
            pool_momentum, miner_pressure, crosschain_flow,
@@ -67,7 +57,6 @@ async function main() {
 
   if (result.rows.length === 0) {
     console.log('[notify] No signals to report.');
-    await pool.end();
     return;
   }
 
@@ -108,10 +97,9 @@ async function main() {
     `_${latest.signal_date.toISOString().split('T')[0]}_`,
   ].join('\n');
 
-  await sendTelegram(message);
+  await sendSignalReport(message);
   console.log(`[notify] Sent: ${latest.signal} (${score})`);
 
-  await pool.end();
 }
 
-main().catch(err => { console.error(err); process.exit(1); });
+if (require.main === module) main().catch(err => { console.error(err.message); process.exitCode = 1; }).finally(() => pool.end());

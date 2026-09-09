@@ -126,12 +126,13 @@ router.get('/api/valuation/hodl-waves', async (req, res) => {
 
     const data = await cached(cacheKey, 600, async () => {
       const { rows } = await pool.query(`
-        SELECT date,
+        SELECT date::text AS date,
                lt_1m_zat, b_1_3m_zat, b_3_6m_zat,
                b_6_12m_zat, b_1_2y_zat, gt_2y_zat,
                total_unspent_zat, utxo_count
         FROM utxo_age_daily
-        WHERE date >= CURRENT_DATE - $1::int
+        WHERE date >= (NOW() AT TIME ZONE 'UTC')::date - $1::int
+          AND date < (NOW() AT TIME ZONE 'UTC')::date
         ORDER BY date ASC
       `, [days]);
 
@@ -164,9 +165,10 @@ router.get('/api/valuation/dormancy', async (req, res) => {
 
     const data = await cached(cacheKey, 600, async () => {
       const { rows } = await pool.query(`
-        SELECT date, cdd, avg_dormancy_days, spent_count
+        SELECT date::text AS date, cdd, avg_dormancy_days, spent_count
         FROM utxo_age_daily
-        WHERE date >= CURRENT_DATE - $1::int
+        WHERE date >= (NOW() AT TIME ZONE 'UTC')::date - $1::int
+          AND date < (NOW() AT TIME ZONE 'UTC')::date
         ORDER BY date ASC
       `, [days]);
 

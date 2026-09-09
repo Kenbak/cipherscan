@@ -36,6 +36,8 @@
 /** @typedef {{ next: (pagination: object) => object|null, prev: (pagination: object) => object|null }} CursorMap */
 
 const MANIFEST = [
+  { method: 'GET', legacyPath: '/api/network/attestations', file: 'server/api/routes/attestations.js', classification: 'public', domain: 'network', auth: 'none', description: 'Curated Zero Indexer endpoints with periodic enclave, TLS binding and release observations. Per-observation freshness and release status remain separate.', v1: { path: '/v1/network/attestations', status: 'adapter', shape: 'passthrough' } },
+  { method: 'GET', legacyPath: '/api/network/attestations/:id', file: 'server/api/routes/attestations.js', classification: 'public', domain: 'network', auth: 'none', description: 'One registered Zero Indexer endpoint and its latest observation. Unknown registry IDs return 404.', v1: { path: '/v1/network/attestations/:id', status: 'adapter', shape: 'passthrough' } },
   { method: 'GET', legacyPath: '/api/grpc-status', file: 'server/api/server.js', classification: 'ops', domain: 'network', auth: 'none', description: 'Observed stream and WebSocket service status.', v1: { path: '/v1/network/grpc-status', status: 'adapter', shape: 'passthrough' } },
   { method: 'GET', legacyPath: '/api/names/status', file: 'server/api/v1/routes/names.js', classification: 'public', domain: 'names', auth: 'none', description: 'Name registry status and pricing.', v1: { path: '/v1/names/status', status: 'native', nativeKey: 'nameStatus' } },
   { method: 'GET', legacyPath: '/api/names', file: 'server/api/v1/routes/names.js', classification: 'public', domain: 'names', auth: 'none', description: 'Cursor-paginated registered names.', v1: { path: '/v1/names', status: 'native', nativeKey: 'names' } },

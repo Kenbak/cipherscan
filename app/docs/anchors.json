@@ -130,5 +130,7 @@
   "POST /v1/transactions/raw/batch": "post-transactions-raw-batch",
   "GET /v1/transactions/:txid": "tx-by-txid",
   "POST /v1/scan/orchard": "post-scan-orchard",
-  "POST /v1/scan/lightwalletd": "post-scan-lightwalletd"
+  "POST /v1/scan/lightwalletd": "post-scan-lightwalletd",
+  "GET /v1/network/attestations": "network-attestations",
+  "GET /v1/network/attestations/:id": "network-attestation"
 }

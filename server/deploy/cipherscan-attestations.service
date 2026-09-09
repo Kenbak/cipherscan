@@ -1,0 +1,30 @@
+[Unit]
+Description=Observe public Zero Indexer attestations
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+DynamicUser=true
+WorkingDirectory=/opt/cipherscan-attestations
+ExecStart=/usr/bin/node server/jobs/check-attestations.mjs
+Environment=NODE_ENV=production
+Environment=PATH=/usr/bin:/bin
+Environment=ATTESTATION_SNAPSHOT_PATH=/var/lib/cipherscan/attestations/snapshot.json
+StateDirectory=cipherscan/attestations
+StateDirectoryMode=0750
+UMask=0027
+TimeoutStartSec=120
+MemoryMax=256M
+CPUQuota=25%
+LimitNOFILE=128
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+LockPersonality=true

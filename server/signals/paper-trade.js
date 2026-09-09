@@ -26,6 +26,7 @@
 
 const { loadEnv } = require('../lib/job-utils');
 const { getPool, getReadPool } = require('../lib/db-pool');
+const { sendSignalReport } = require('../lib/signal-telegram');
 
 loadEnv(__dirname);
 
@@ -293,24 +294,8 @@ async function generateReport() {
 
   console.log(report);
 
-  // Send to Telegram if configured
-  if (process.env.TELEGRAM_BOT_TOKEN && process.env.TELEGRAM_CHAT_ID) {
-    const url = `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`;
-    try {
-      await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          chat_id: process.env.TELEGRAM_CHAT_ID,
-          text: report,
-          parse_mode: 'Markdown',
-        }),
-      });
-      console.log('\n✅ Sent to Telegram');
-    } catch (err) {
-      console.error(`Telegram send failed: ${err.message}`);
-    }
-  }
+  await sendSignalReport(report);
+  console.log('\nSent to Telegram');
 
   return report;
 }

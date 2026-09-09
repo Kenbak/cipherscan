@@ -1,6 +1,43 @@
 [
   {
     "method": "GET",
+    "path": "/v1/network/attestations",
+    "description": "Curated Zero Indexer endpoints with periodic enclave, TLS binding and release observations. Per-observation freshness and release status remain separate.",
+    "category": "network",
+    "query": [],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": null,
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [],
+    "requestBody": null
+  },
+  {
+    "method": "GET",
+    "path": "/v1/network/attestations/:id",
+    "description": "One registered Zero Indexer endpoint and its latest observation. Unknown registry IDs return 404.",
+    "category": "network",
+    "query": [],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": null,
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [
+      {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      }
+    ],
+    "requestBody": null
+  },
+  {
+    "method": "GET",
     "path": "/v1/names/status",
     "description": "Name registry status and pricing.",
     "category": "names",
