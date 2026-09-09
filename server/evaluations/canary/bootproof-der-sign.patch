@@ -1,0 +1,32 @@
+diff --git a/crates/bootproof-sdk/src/format/nitro.rs b/crates/bootproof-sdk/src/format/nitro.rs
+index 94c4e29..0867fa7 100644
+--- a/crates/bootproof-sdk/src/format/nitro.rs
++++ b/crates/bootproof-sdk/src/format/nitro.rs
+@@ -124,6 +124,10 @@ fn verify_cert_and_bundle_with_root(
+ 
+ // TODO: error handling
+ fn asn1_encode_int(value: &[u8]) -> Vec<u8> {
++    // COSE integers are fixed-width unsigned values. Strip width padding before
++    // deciding whether DER needs a sign-protection octet (e.g. 00 d2 -> 00 d2).
++    let start = value.iter().position(|byte| *byte != 0).unwrap_or(value.len());
++    let value = &value[start..];
+     let mut result = vec![0x02];
+ 
+     if value.first().is_some_and(|v| v & 0x80 != 0) {
+@@ -319,6 +323,16 @@ mod tests {
+         HashMap::from_iter([(0, hex0), (1, hex1), (2, hex2)])
+     });
+ 
++    #[test]
++    fn der_integer_preserves_unsigned_sign_after_trimming_cose_padding() {
++        assert_eq!(asn1_encode_int(&[0x00, 0xd2]), vec![0x02, 0x02, 0x00, 0xd2]);
++        assert_eq!(asn1_encode_int(&[0x00, 0x00, 0x80]), vec![0x02, 0x02, 0x00, 0x80]);
++        assert_eq!(asn1_encode_int(&[0x80]), vec![0x02, 0x02, 0x00, 0x80]);
++        assert_eq!(asn1_encode_int(&[0x00, 0x7f]), vec![0x02, 0x01, 0x7f]);
++        assert_eq!(asn1_encode_int(&[0x00, 0x00]), vec![0x02, 0x01, 0x00]);
++        assert_eq!(asn1_encode_int(&[]), vec![0x02, 0x01, 0x00]);
++    }
++
+     #[test]
+     fn it_works() {
+         let nitro = Nitro::new(CBOR_DATA, PCRS.clone()).unwrap();
