@@ -83,8 +83,9 @@ function publicSnapshot(snapshot, network, now = Date.now()) {
     return { id: endpoint.id, name: endpoint.name, network: endpoint.network, role: endpoint.role,
       hostname: endpoint.hostname, attestationUrl: `https://${endpoint.hostname}/attestation`,
       sourceUrl: endpoint.sourceUrl, referenceUrl: endpoint.referenceUrl,
-      hubId: endpoint.hubId, experimental: true, configurationAuthority: 'Published configuration; not reproduced',
-      baseline: endpoint.baseline ? { authority: endpoint.baseline.authority, commit: endpoint.baseline.commit, referenceUrl: endpoint.baseline.referenceUrl } : null,
+      hubId: endpoint.hubId, experimental: true, configurationAuthority: endpoint.baseline?.hubConfiguration ? 'Reproduced build configuration; current match required' : 'Published configuration; not reproduced',
+      hubConfiguration: endpoint.baseline?.hubConfiguration ? { ...endpoint.baseline.hubConfiguration, authority: 'reproduced' } : null,
+      baseline: endpoint.baseline ? { authority: endpoint.baseline.authority, commit: endpoint.baseline.commit, referenceUrl: endpoint.baseline.referenceUrl, tag: endpoint.baseline.tag ?? null, tagReferenceUrl: endpoint.baseline.tagReferenceUrl ?? null } : null,
       latest: entry?.latest ?? null, lastSuccessful: entry?.lastSuccessful ?? null,
       status: attestationStatus(entry?.latest, now) };
   });

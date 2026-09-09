@@ -93,3 +93,24 @@ test('core sitemap has the canonical monitor with a meaningful publication date'
   assert.equal(entry.changeFrequency, 'hourly');
   assert.ok(sitemap.serializeUrlSet([entry]).includes('<priority>0.6</priority>'));
 });
+
+test('running tag and hub confirmation require a fresh reproduced match, while hub status is separate', () => {
+  const now = Date.now();
+  const render = (change = {}, age = 0) => {
+    const data = store.publicSnapshot(null, 'mainnet'); data.available = true;
+    const shim = data.endpoints.find(e => e.id === 'zecrocks-mainnet');
+    shim.latest = { checkedAt: new Date(now - age).toISOString(), reachable: true, evidence: 'verified', tlsBinding: 'matched', release: 'reproduced_match', ...change };
+    return renderToStaticMarkup(React.createElement(Client, {initialData:data, initialNow:now, network:'mainnet',apiUrl:'https://api.mainnet.cipherscan.app'}));
+  };
+  const fresh = render();
+  assert.match(fresh,/deploy-fdb613db-a606726/);
+  assert.match(fresh,/Running build · reproduced match/);
+  assert.match(fresh,/Confirmed by matching reproduced build/);
+  assert.match(fresh,/Hub’s own check: Not checked yet/);
+  assert.ok(!fresh.includes('shieldedinfra.net'));
+  for(const html of [render({},16*60_000),render({release:'mismatch'}),render({reachable:false}),render({tlsBinding:'mismatch'})]) {
+    assert.ok(!html.includes('Running build · reproduced match'));
+    assert.ok(!html.includes('Confirmed by matching reproduced build'));
+    assert.match(html,/current match unconfirmed/);
+  }
+});

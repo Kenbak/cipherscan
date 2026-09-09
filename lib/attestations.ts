@@ -24,7 +24,8 @@ export interface AttestationEndpoint {
   hubId: string | null;
   experimental: boolean;
   configurationAuthority: string;
-  baseline: { authority: string; commit: string; referenceUrl: string } | null;
+  baseline: { authority: string; commit: string; referenceUrl: string; tag?: string | null; tagReferenceUrl?: string | null } | null;
+  hubConfiguration?: { authority: 'reproduced'; hostname: string; address: string; referenceUrl: string } | null;
   latest: AttestationCheck | null;
   lastSuccessful: AttestationCheck | null;
   status: string;

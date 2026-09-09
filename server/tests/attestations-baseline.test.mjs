@@ -3,8 +3,9 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { canonical, assertRecipe, baselineFromPublished, baselineFromReproduction } from '../scripts/attestation-baseline.mjs';
 import store from '../lib/attestation-store.js';
+const retired = JSON.parse(await readFile(new URL('../data/attestation-retired-endpoints.json', import.meta.url)));
 const recipes = JSON.parse(await readFile(new URL('../data/attestation-build-inputs.json', import.meta.url)));
-const endpoint = store.registry.find((entry) => entry.id === 'shieldedlabs-hub');
+const endpoint = store.registry.find((entry) => entry.id === 'zecrocks-mainnet');
 const manifest = recipes.endpoints[endpoint.id];
 const pcrs = { PCR0: '1'.repeat(96), PCR1: '2'.repeat(96), PCR2: '3'.repeat(96) };
 const record = { sourceUrl: endpoint.sourceUrl, commit: manifest.app_source.commit, pcrs };
@@ -14,7 +15,7 @@ const trusted = { pcr0: pcrs.PCR0, pcr1: pcrs.PCR1, pcr2: pcrs.PCR2, verified_at
 
 test('all reproduction recipes pin the registered source; a manifest is not a release baseline', () => {
   for (const [id, recipe] of Object.entries(recipes.endpoints)) {
-    const registered = store.registry.find((entry) => entry.id === id);
+    const registered = [...store.registry, ...retired].find((entry) => entry.id === id);
     assertRecipe(registered, recipe);
     assert.ok(!Object.hasOwn(recipe, 'pcrs'));
   }
@@ -71,5 +72,20 @@ test('activated reproduced baselines match preserved measurements and provenance
     assert.equal(sha256(trustedRaw), candidate.evidence.trustedStateSha256);
     assert.equal(candidate.observation.release, 'reproduced_match');
     assert.equal(candidate.observation.tlsBinding, 'matched');
+  }
+});
+
+test('reviewed hub configuration comes from the same preserved build as the active measurements', async () => {
+  const entry = store.registry.find((item) => item.id === 'zecrocks-mainnet');
+  const manifest = JSON.parse(await readFile(new URL('../data/attestation-builds/zecrocks-mainnet-34327234175/built-manifest.json', import.meta.url)));
+  assert.equal(manifest.app_source.commit, entry.baseline.commit);
+  assert.ok(manifest.run_command.split('\n').includes(`export ZIS_HUB=${entry.baseline.hubConfiguration.address}`));
+  assert.ok(manifest.run_command.split('\n').includes(`export ZIS_HUB_TLS=${entry.baseline.hubConfiguration.hostname}`));
+  assert.equal(store.registry.find(item => item.id === entry.hubId).hostname, entry.baseline.hubConfiguration.hostname);
+  assert.equal(entry.baseline.hubConfiguration.referenceUrl, entry.baseline.referenceUrl);
+  for (const endpoint of store.registry.filter(item => item.baseline?.tag)) {
+    assert.match(endpoint.baseline.tag, /^deploy-[a-z0-9-]+$/);
+    assert.equal(endpoint.baseline.tagReviewedAt, '2026-09-10');
+    assert.equal(endpoint.baseline.tagReferenceUrl, `${endpoint.sourceUrl}/tree/${endpoint.baseline.commit}`);
   }
 });

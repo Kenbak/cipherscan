@@ -52,7 +52,7 @@ export default async function AttestationsPage() {
         <div><h3 className="font-medium text-primary mb-2">02 · A matching connection</h3><p>The domain and certificate fingerprint inside the signed evidence must match the HTTPS connection used by our observer.</p></div>
         <div><h3 className="font-medium text-primary mb-2">03 · A separate software check</h3><p>Release verification needs independently established build measurements. Valid evidence alone does not confirm the expected software or prove that the software is safe.</p></div>
       </div>
-      <p className="text-sm text-muted mt-6 max-w-4xl">These are periodic observations from ZecBlock, not verification of your wallet’s connection. A passing shim does not establish its hub’s status. The monitor does not measure transaction privacy, batching or wallet service uptime.</p>
+      <p className="text-sm text-muted mt-6 max-w-4xl">These are periodic observations from ZecBlock, not verification of your wallet’s connection. A passing shim does not establish its hub’s status. Build tags identify reviewed source commits. A matching reproduced configuration can confirm a shim’s configured hub, but does not prove live routing or hub availability. The monitor does not measure transaction privacy, batching or wallet service uptime.</p>
       <div className="flex flex-wrap gap-x-6 gap-y-3 mt-5 text-sm">
         <a className="text-cipher-gold hover:underline" href="https://docs.caution.co/concepts/attestation/" target="_blank" rel="noopener noreferrer">Attestation methodology ↗</a>
         <a className="text-cipher-gold hover:underline" href="https://docs.caution.co/guides/verify-an-app/" target="_blank" rel="noopener noreferrer">Verify a build yourself ↗</a>

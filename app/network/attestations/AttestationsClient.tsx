@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useApiQuery } from '@/hooks/useApiQuery';
 import type { AttestationData, AttestationEndpoint } from '@/lib/attestations';
-import { attestationStatus } from '@/lib/attestation-status';
+import { attestationStatus, matchesReproducedBuild } from '@/lib/attestation-status';
 
 const STATES: Record<string, { label: string; color: string }> = {
   verified: { label: 'Evidence verified', color: 'text-cipher-green' },
@@ -38,6 +38,7 @@ function CheckValue({ label, value, color = 'text-secondary' }: { label: string;
 }
 function EndpointCard({ endpoint, endpoints, now, apiUrl }: { endpoint: AttestationEndpoint; endpoints: AttestationEndpoint[]; now: number; apiUrl: string }) {
   const check = endpoint.latest;
+  const buildMatches = matchesReproducedBuild(endpoint, now);
   const status = attestationStatus(check, now);
   const state = STATES[status] ?? STATES.unavailable;
   const current = !['stale', 'unavailable', 'not_checked'].includes(status);
@@ -55,17 +56,42 @@ function EndpointCard({ endpoint, endpoints, now, apiUrl }: { endpoint: Attestat
         <CheckValue label="TLS certificate" value={current ? (check?.tlsBinding === 'matched' ? 'Matched' : check?.tlsBinding === 'mismatch' ? 'Mismatch' : 'Not checked') : status === 'stale' ? 'Stale' : 'Not checked'} color={current && check?.tlsBinding === 'matched' ? 'text-cipher-green' : 'text-secondary'} />
         <CheckValue label="Software release" value={current && check ? releaseLabels[check.release] : 'Unconfirmed'} color="text-secondary" />
       </dl>
+      <dl className="mt-5 grid gap-5 sm:grid-cols-2 border-t border-cipher-border pt-4">
+        <div>
+          <dt className="text-xs text-muted mb-1.5">{buildMatches ? 'Running build · reproduced match' : 'Reviewed build · current match unconfirmed'}</dt>
+          <dd className="text-sm text-secondary break-all">
+            {endpoint.baseline ? <>
+              {endpoint.baseline.tag && endpoint.baseline.tagReferenceUrl
+                ? <a href={endpoint.baseline.tagReferenceUrl} target="_blank" rel="noopener noreferrer" className="text-cipher-gold hover:underline">{endpoint.baseline.tag}</a>
+                : <span>No tagged release identified</span>}
+              <span className="block font-mono text-xs mt-2">Commit: {endpoint.baseline.commit}</span>
+              <span className="block text-xs text-muted mt-2">Deployment source tag; pinned to the reviewed commit.</span>
+            </> : 'Source/build version not confirmed'}
+          </dd>
+        </div>
+        {endpoint.role === 'shim' ? <div>
+          <dt className="text-xs text-muted mb-1.5">Configured hub</dt>
+          <dd className="text-sm text-secondary break-all">
+            {endpoint.hubConfiguration ? <>
+              <span className="font-mono">{endpoint.hubConfiguration.hostname}</span>
+              <span className="block text-xs mt-2">{buildMatches ? 'Confirmed by matching reproduced build' : 'Reviewed configuration · current match unconfirmed'}</span>
+              <a href={endpoint.hubConfiguration.referenceUrl} target="_blank" rel="noopener noreferrer" className="block text-xs text-cipher-gold hover:underline mt-2">Configuration evidence ↗</a>
+            </> : hub ? <><span>{hub.hostname}</span><span className="block text-xs mt-2">Published configuration · not build-confirmed</span></> : 'Not confirmed'}
+            {hub ? <a href={`#${hub.id}`} className="block text-xs hover:text-cipher-gold mt-2">Hub’s own check: {STATES[attestationStatus(hub.latest, now)]?.label} ↓</a> : null}
+          </dd>
+        </div> : null}
+      </dl>
       {check?.errorCode ? <p className="mt-4 text-sm text-secondary" role="status">{ERRORS[check.errorCode] ?? 'The check could not be completed.'}</p> : null}
       {check?.release === 'mismatch' ? <p className="mt-4 text-sm text-danger">The measurements differ from the configured release baseline.</p> : null}
       <div className="mt-5 text-xs text-muted flex flex-wrap justify-between gap-x-4 gap-y-2">
         <span>Last attempt <time dateTime={check?.checkedAt}>{timestamp(check?.checkedAt)}</time></span>
-        {hub ? <a href={`#${hub.id}`} className="hover:text-cipher-gold">Configured hub: {hub.name} · {STATES[attestationStatus(hub.latest, now)]?.label.toLowerCase()} ↓</a> : <span>{endpoint.role === 'shim' ? 'Hub configuration not confirmed' : 'Hub observed independently'}</span>}
+        <span>{endpoint.role === 'shim' ? 'Configuration does not prove live routing or hub availability' : 'Hub observed independently'}</span>
       </div>
     </div>
     <details className="border-t border-cipher-border">
       <summary className="cursor-pointer px-5 sm:px-6 py-3 text-xs text-secondary hover:text-cipher-gold focus-visible:outline focus-visible:outline-2 focus-visible:outline-cipher-gold">Measurements &amp; source</summary>
       <div className="px-5 sm:px-6 pb-5 text-xs space-y-4">
-        <p className="text-muted">Measurements below describe the last attempt. Source claims and hub relationships have not been confirmed by reproducing the deployment.</p>
+        <p className="text-muted">Measurements below describe the last attempt. Unsigned source claims are separate from the reviewed build and configuration evidence above.</p>
         <dl className="space-y-3">
           {['PCR0', 'PCR1', 'PCR2'].map((key) => <div key={key}><dt className="text-muted mb-1">{key}</dt><dd className="text-secondary font-mono break-all">{check?.pcrs?.[key] ?? 'Not available'}</dd></div>)}
           <div><dt className="text-muted mb-1">TLS certificate SHA-256</dt><dd className="text-secondary font-mono break-all">{check?.certificateFingerprint ?? 'Not available'}</dd></div>
