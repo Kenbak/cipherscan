@@ -417,7 +417,9 @@ test('scan/lightwalletd: a valid, in-range request is proxied to legacy and the 
 // ---------------------------------------------------------------------------
 
 test('response cap: a real >10.4MB /v1/migration/scatter payload is NOT rejected under the default (50MB) cap', async () => {
-  await withServers({}, async (base) => {
+  // This verifies the byte cap, not latency. Serializing the 11 MiB fixture
+  // can exceed the helper's 500 ms deadline on a busy development machine.
+  await withServers({ V1_INTERNAL_TIMEOUT_MS: '5000' }, async (base) => {
     const minBytes = 11 * 1024 * 1024; // safely above the measured ~10.4MB
     const res = await fetch(`${base}/v1/migration/scatter`);
     assert.equal(res.status, 200);

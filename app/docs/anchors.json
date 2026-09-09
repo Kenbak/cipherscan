@@ -1,4 +1,7 @@
 {
+  "GET /v1/ask": "ask-capability",
+  "POST /v1/ask": "ask-analysis",
+  "POST /v1/ask/explain": "ask-explain",
   "GET /v1/names/status": "get-names-status",
   "GET /v1/names": "get-names",
   "GET /v1/names/:name/events": "name-events",

@@ -33,6 +33,7 @@ const categories: NavigationCategory[] = [
     { href: '/fork-monitor', label: 'Fork Monitor', desc: 'Forks across monitored nodes', networks: crosslink },
   ] },
   { id: 'analytics', label: 'Analytics', items: [
+    { href: '/ask', label: 'Ask ZecBlock', desc: 'Questions, source data and charts', networks: mainnet },
     { href: '/privacy', label: 'Privacy Score', desc: 'Index of shielded usage', networks: standard },
     { href: '/pools', label: 'Shielded Pools', desc: 'Balances, history and flows', networks: standard },
     { href: '/ironwood', label: 'Ironwood', desc: 'Adoption and migration', networks: standard },

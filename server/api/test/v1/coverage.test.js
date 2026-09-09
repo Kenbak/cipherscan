@@ -12,7 +12,7 @@ test('every adapter dispatches its declared method/path, preserves data and uses
     let raw = '';
     req.on('data', chunk => { raw += chunk; });
     req.on('end', () => {
-      const entry = MANIFEST.find(e => e.method === req.method && e.legacyPath.replace(/:[A-Za-z_][A-Za-z0-9_]*/g, 'sample') === url.pathname);
+      const entry = MANIFEST.find(e => e.method === req.method && e.legacyPath?.replace(/:[A-Za-z_][A-Za-z0-9_]*/g, 'sample') === url.pathname);
       res.setHeader('Content-Type', 'application/json');
       if (!entry) { res.statusCode = 404; return res.end(JSON.stringify({ error: 'Unexpected upstream route' })); }
       const data = {

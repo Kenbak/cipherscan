@@ -11,6 +11,7 @@
 
 const express = require('express');
 const { buildNamesHandler } = require('./names');
+const { createAskRouter } = require('./ask');
 const { MANIFEST } = require('../inventory/manifest');
 const { buildAdapterHandler, buildStubHandler } = require('../lib/build-route');
 const { createRateLimiter } = require('../lib/rate-limit');
@@ -55,10 +56,13 @@ function resolveRateLimitOptions(rateLimitKey, config) {
  * @param {ReturnType<typeof import('../lib/internal-client').createInternalClient>} internalClient
  * @param {ReturnType<typeof import('../config').loadV1Config>} config
  */
-function buildV1Routes(internalClient, config) {
+function buildV1Routes(internalClient, config, env = {}) {
   const router = express.Router();
   let mounted = 0;
   const limiters = []; // for test/shutdown cleanup (limiter._stop())
+  const askRouter = createAskRouter(env, { internalClient });
+  router.use('/ask', askRouter);
+  limiters.push({ _stop: askRouter.stop });
 
   // Literal resources such as /uncles/stats must precede /uncles/:hash.
   // Keep this independent of documentation/inventory order.
@@ -66,6 +70,7 @@ function buildV1Routes(internalClient, config) {
     (a.v1.path?.match(/:/g)?.length || 0) - (b.v1.path?.match(/:/g)?.length || 0));
   for (const entry of entries) {
     if (entry.v1.status === 'excluded') continue;
+    if (entry.v1.nativeKey === 'ask') { mounted++; continue; }
 
     const method = entry.method.toLowerCase();
     if (typeof router[method] !== 'function') {

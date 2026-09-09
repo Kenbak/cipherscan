@@ -36,6 +36,7 @@ export const CORE_PATHS = [
   '/pools',
   '/mining',
   '/charts',
+  '/ask',
   '/rich-list',
   '/reorgs',
   '/crosschain',
@@ -209,7 +210,7 @@ export function getStaticSitemapEntries(
   newsletters: NewsletterIssue[],
 ): SitemapUrlEntry[] | null {
   if (slug === 'core') {
-    return CORE_PATHS.map((path) => ({ url: absoluteUrl(baseUrl, path), ...(path === '/network/attestations' ? { lastModified: '2026-09-09', changeFrequency: 'hourly' as const, priority: 0.6 } : {}) }));
+    return CORE_PATHS.map((path) => ({ url: absoluteUrl(baseUrl, path), ...(path === '/ask' ? { lastModified: '2026-09-10', changeFrequency: 'weekly' as const, priority: 0.7 } : {}), ...(path === '/network/attestations' ? { lastModified: '2026-09-09', changeFrequency: 'hourly' as const, priority: 0.6 } : {}) }));
   }
 
   if (slug === 'tools') {

@@ -3,6 +3,7 @@ import anchors from './anchors.json';
 
 export interface Schema {
   type?: string | string[];
+  anyOf?: Schema[];
   description?: string;
   format?: string;
   minimum?: number;
@@ -41,6 +42,7 @@ export interface ApiEndpoint {
   bodyExample: string | null;
 }
 export const categoryNames: Record<string, string> = {
+  ask: 'Ask ZecBlock',
   blocks: 'Blocks', transactions: 'Transactions', address: 'Addresses', mempool: 'Mempool',
   network: 'Network', 'shielded-pools': 'Shielded pools', privacy: 'Privacy', mining: 'Mining',
   crosschain: 'Cross-chain', valuation: 'Valuation', analytics: 'Analytics', stats: 'Statistics',
@@ -66,6 +68,7 @@ export function parameterUsage(param: Parameter, path: string): string {
   return `${param.name}=${value}`;
 }
 function bodyValue(schema: Schema, name: string): unknown {
+  if (schema.type === 'null' || schema.anyOf?.some(choice => choice.type === 'null')) return null;
   if (schema.default !== undefined) return schema.default;
   if (schema.enum?.length) return schema.enum[0];
   if (schema.type === 'object') return Object.fromEntries((schema.required || []).map(key => [key, bodyValue(schema.properties?.[key] || {}, key)]));

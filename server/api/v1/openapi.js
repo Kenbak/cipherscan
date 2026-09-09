@@ -153,6 +153,12 @@ const ERROR_RESPONSES = {
 const HASH = { type: 'string', pattern: '^[a-fA-F0-9]{64}$' };
 const HEIGHT = { type: 'integer', minimum: 0, maximum: 100_000_000 };
 function requestSchema(entry) {
+  if (entry.v1.nativeKey === 'ask') {
+    const { z } = require('zod');
+    const schema = z.toJSONSchema(entry.v1.path.endsWith('/explain') ? require('./lib/ask-explanation').explainRequestSchema : require('../../../lib/ask/contract').requestSchema);
+    delete schema.$schema;
+    return schema;
+  }
   if (entry.v1.validateKey) return { type: 'object', required: ['startHeight', 'endHeight'], properties: {
     startHeight: { type: 'integer', minimum: entry.v1.validateKey === 'scanLightwalletd' ? 1 : 0 },
     endHeight: { type: 'integer', minimum: 0 },
@@ -219,6 +225,10 @@ function buildOperation(entry) {
   const finalResponses = entry.v1.rateLimitKey && !isStub
     ? { ...responses, '429': ERROR_RESPONSES['429'] }
     : responses;
+  if (entry.v1.nativeKey === 'ask') {
+    finalResponses['503'] = { description: 'AI not configured, shared limiter unavailable, or provider failure. Guided analyses remain available.', content: { 'application/problem+json': { schema: { $ref: '#/components/schemas/Problem' } } } };
+    finalResponses['429'] = { description: 'Per-IP, shared daily or concurrent request limit reached.', content: { 'application/problem+json': { schema: { $ref: '#/components/schemas/Problem' } } } };
+  }
 
   return {
     operationId: operationId(entry.method, entry.v1.path),

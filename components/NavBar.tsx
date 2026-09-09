@@ -171,6 +171,7 @@ export function NavBar() {
 
             {/* Right: utilities */}
             <div className="flex items-center gap-1.5 sm:gap-2">
+              {isMainnet ? <Link href="/ask" aria-current={pathname === '/ask' ? 'page' : undefined} className="flex items-center gap-1.5 px-1 sm:px-2.5 py-2 text-xs font-mono text-cipher-gold hover:bg-cipher-hover rounded-md"><span className="hidden sm:inline" aria-hidden="true">&gt;_</span> Ask</Link> : null}
               {/* Buy ZEC — mainnet only, desktop */}
               {isMainnet && (
                 <a

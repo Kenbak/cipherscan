@@ -36,6 +36,9 @@
 /** @typedef {{ next: (pagination: object) => object|null, prev: (pagination: object) => object|null }} CursorMap */
 
 const MANIFEST = [
+  { method: 'POST', legacyPath: null, file: 'server/api/v1/routes/ask.js', classification: 'public', domain: 'ask', auth: 'none', description: 'Explain a mainnet analysis using server-fetched public evidence. Requires configured AI and an exact fingerprint match with the chart observations. Private, no-store.', v1: { path: '/v1/ask/explain', status: 'native', nativeKey: 'ask', shape: 'passthrough' } },
+  { method: 'GET', legacyPath: null, file: 'server/api/v1/routes/ask.js', classification: 'public', domain: 'ask', auth: 'none', description: 'Mainnet Ask capability: guided starter analyses or configured AI interpretation. Private, no-store.', v1: { path: '/v1/ask', status: 'native', nativeKey: 'ask', shape: 'passthrough' } },
+  { method: 'POST', legacyPath: null, file: 'server/api/v1/routes/ask.js', classification: 'public', domain: 'ask', auth: 'none', description: 'Select a validated mainnet pool, swap, transaction-activity or Pulse analysis from a question and current context. Returns a specification, never invented observations. Free-form AI requires configured provider and shared usage limits.', v1: { path: '/v1/ask', status: 'native', nativeKey: 'ask', shape: 'passthrough' } },
   { method: 'GET', legacyPath: '/api/network/attestations', file: 'server/api/routes/attestations.js', classification: 'public', domain: 'network', auth: 'none', description: 'Curated Zero Indexer endpoints with periodic enclave, TLS binding and release observations. Per-observation freshness and release status remain separate.', v1: { path: '/v1/network/attestations', status: 'adapter', shape: 'passthrough' } },
   { method: 'GET', legacyPath: '/api/network/attestations/:id', file: 'server/api/routes/attestations.js', classification: 'public', domain: 'network', auth: 'none', description: 'One registered Zero Indexer endpoint and its latest observation. Unknown registry IDs return 404.', v1: { path: '/v1/network/attestations/:id', status: 'adapter', shape: 'passthrough' } },
   { method: 'GET', legacyPath: '/api/grpc-status', file: 'server/api/server.js', classification: 'ops', domain: 'network', auth: 'none', description: 'Observed stream and WebSocket service status.', v1: { path: '/v1/network/grpc-status', status: 'adapter', shape: 'passthrough' } },
@@ -419,7 +422,7 @@ const MANIFEST = [
 (function assertManifestIntegrity() {
   const seenV1Routes = new Set();
   for (const entry of MANIFEST) {
-    if (!entry.method || !entry.legacyPath || !entry.classification || !entry.v1) {
+    if (!entry.method || (!entry.legacyPath && entry.v1?.status !== 'native') || !entry.classification || !entry.v1) {
       throw new Error(`v1 manifest: malformed entry for ${entry.legacyPath || '<unknown>'}`);
     }
     if (['adapter', 'native'].includes(entry.v1.status)) {

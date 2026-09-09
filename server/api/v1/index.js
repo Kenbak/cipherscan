@@ -63,6 +63,15 @@ function createV1Router(envOverrides = {}) {
   // — safe to apply unconditionally since GET/DELETE requests have no body.
   router.use(createFeatureGate(config));
   router.use(createRequestContext(config, internalClient));
+  // Ask accepts only a short question and a small recipe, never file uploads.
+  // Apply before the general parser on standalone hosts; also check decoded
+  // bodies when the parent application already parsed the request.
+  router.use('/ask', express.json({ limit: '16kb' }), (req, res, next) => {
+    if (req.body && Buffer.byteLength(JSON.stringify(req.body), 'utf8') > 16384) {
+      return sendProblem(res, 'validation-error', { status: 413, detail: 'Ask request body exceeds 16 KiB.' });
+    }
+    next();
+  });
   router.use(express.json({ limit: '1mb' }));
 
   // Machine-readable contract served by the same feature gate as the preview.
@@ -71,7 +80,7 @@ function createV1Router(envOverrides = {}) {
     res.json(buildOpenApiDocument());
   });
 
-  const dataRoutes = buildV1Routes(internalClient, config);
+  const dataRoutes = buildV1Routes(internalClient, config, env);
   router.use(dataRoutes);
 
   // /v1-scoped 404 — only reached once the feature gate has already let
@@ -89,7 +98,7 @@ function createV1Router(envOverrides = {}) {
   // eslint-disable-next-line no-unused-vars
   router.use((err, req, res, next) => {
     if (err.type === 'entity.parse.failed' || err.type === 'entity.too.large') {
-      return sendProblem(res, 'validation-error', { status: err.type === 'entity.too.large' ? 413 : 400, detail: err.type === 'entity.too.large' ? 'Request body exceeds 1 MB.' : 'Request body must be valid JSON.' });
+      return sendProblem(res, 'validation-error', { status: err.type === 'entity.too.large' ? 413 : 400, detail: err.type === 'entity.too.large' ? err.limit === 16384 ? 'Ask request body exceeds 16 KiB.' : 'Request body exceeds 1 MB.' : 'Request body must be valid JSON.' });
     }
     logSafeError('[v1] unhandled router error:', err);
     sendProblem(res, 'internal-error', { instance: req.originalUrl, detail: 'Unexpected server error.' });
