@@ -58,7 +58,7 @@ function EndpointCard({ endpoint, endpoints, now, apiUrl }: { endpoint: Attestat
       </dl>
       <dl className="mt-5 grid gap-5 sm:grid-cols-2 border-t border-cipher-border pt-4">
         <div>
-          <dt className="text-xs text-muted mb-1.5">{buildMatches ? 'Running build · reproduced match' : 'Reviewed build · current match unconfirmed'}</dt>
+          <dt className="text-xs text-muted mb-1.5">{!endpoint.baseline ? 'Build version' : buildMatches ? 'Running build · reproduced match' : 'Reviewed build · current match unconfirmed'}</dt>
           <dd className="text-sm text-secondary break-all">
             {endpoint.baseline ? <>
               {endpoint.baseline.tag && endpoint.baseline.tagReferenceUrl
