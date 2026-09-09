@@ -1,4 +1,5 @@
 name: Reproduce attestation build
+run-name: Reproduce ${{ inputs.endpoint }}
 
 on:
   workflow_dispatch:

@@ -48,3 +48,28 @@ test('API Docker context includes registry and shared freshness module', async (
     assert.ok(ignores.includes(`!${path}\n`));
   }
 });
+
+test('activated reproduced baselines match preserved measurements and provenance hashes', async () => {
+  const { sha256 } = await import('../scripts/attestation-baseline.mjs');
+  for (const entry of store.registry.filter((item) => item.baseline?.authority === 'reproduced')) {
+    const match = entry.baseline.referenceUrl.match(/^https:\/\/github\.com\/Kenbak\/cipherscan\/blob\/[a-f0-9]{40}\/server\/data\/attestation-builds\/([a-z0-9-]+)\/README\.md$/);
+    assert.ok(match, 'Reproduced baseline needs an immutable preserved evidence reference');
+    const directory = new URL(`../data/attestation-builds/${match[1]}/`, import.meta.url);
+    const candidate = JSON.parse(await readFile(new URL('candidate.json', directory), 'utf8'));
+    const manifest = JSON.parse(await readFile(new URL('built-manifest.json', directory), 'utf8'));
+    const trustedRaw = await readFile(new URL('trusted_hashes.json', directory));
+    const trustedState = JSON.parse(trustedRaw);
+    assert.equal(candidate.endpointId, entry.id);
+    assert.equal(candidate.hostname, entry.hostname);
+    assert.equal(candidate.sourceUrl, entry.sourceUrl);
+    assert.equal(candidate.baseline.commit, entry.baseline.commit);
+    assert.equal(manifest.app_source.commit, entry.baseline.commit);
+    assert.deepEqual(candidate.baseline.pcrs, entry.baseline.pcrs);
+    for (const key of ['PCR0', 'PCR1', 'PCR2']) assert.equal(trustedState[key.toLowerCase()], entry.baseline.pcrs[key]);
+    assert.equal(trustedState.tls.domain, entry.hostname);
+    assert.equal(sha256(canonical(manifest)), candidate.evidence.manifestSha256);
+    assert.equal(sha256(trustedRaw), candidate.evidence.trustedStateSha256);
+    assert.equal(candidate.observation.release, 'reproduced_match');
+    assert.equal(candidate.observation.tlsBinding, 'matched');
+  }
+});

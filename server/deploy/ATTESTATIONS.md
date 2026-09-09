@@ -6,9 +6,9 @@ routing, or submit transactions. The four mainnet and one testnet endpoints in
 Names, networks and hub relationships come from published configurations and the
 linked announcement; they are not derived from cryptographic evidence. Baselines
 are activated only after reviewed published or independently reproduced evidence.
-The Shielded Labs hub baseline was independently reproduced in run 34325307813;
-its preserved evidence is under `server/data/attestation-builds/`. Other endpoints
-remain unconfirmed until their own measurements are established.
+Four baselines are independently reproduced: Shielded Labs hub/shim and Zec.rocks
+mainnet/testnet shims. Preserved evidence is under `server/data/attestation-builds/`.
+Caution hub remains unconfirmed because its app source mapping is unavailable.
 
 ## Local preview with real data
 
