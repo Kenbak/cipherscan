@@ -16,7 +16,7 @@ test('all reproduction recipes pin the registered source; a manifest is not a re
   for (const [id, recipe] of Object.entries(recipes.endpoints)) {
     const registered = store.registry.find((entry) => entry.id === id);
     assertRecipe(registered, recipe);
-    assert.equal(registered.baseline, null);
+    assert.ok(!Object.hasOwn(recipe, 'pcrs'));
   }
   assert.throws(() => assertRecipe(store.registry.find((entry) => entry.id === 'caution-hub'), {}), /No pinned source/);
   assert.equal(canonical({ b: 1, a: [2, 3] }), canonical({ a: [2, 3], b: 1 }));
