@@ -119,7 +119,7 @@ router.get('/api/privacy-stats', async (req, res) => {
     const trendDays = Math.min(Math.max(parseInt(req.query.days) || 30, 7), 1000);
     const trendsResult = await pool.query(`
       SELECT
-        date,
+        date::text AS date,
         shielded_count,
         transparent_count,
         shielded_percentage,

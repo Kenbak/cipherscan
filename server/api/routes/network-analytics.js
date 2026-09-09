@@ -393,10 +393,10 @@ function registerNetworkAnalyticsRoutes(router) {
       const hasIronwoodCol = hasPoolCols && await columnExists(pool, 'privacy_trends_daily', 'ironwood_pool_size');
 
       const cols = hasPoolCols
-        ? `date, pool_size, shielded_percentage, chain_supply,
+        ? `date::text AS date, pool_size, shielded_percentage, chain_supply,
            sprout_pool_size, sapling_pool_size, orchard_pool_size,
            ${hasIronwoodCol ? 'ironwood_pool_size,' : ''} transparent_pool_size`
-        : `date, pool_size, shielded_percentage`;
+        : `date::text AS date, pool_size, shielded_percentage`;
 
       const dateFilter =
         period === 'all'
