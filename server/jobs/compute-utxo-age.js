@@ -1,144 +1,82 @@
 #!/usr/bin/env node
-/**
- * UTXO Age / HODL Waves + Dormancy Job
- *
- * Computes daily HODL-wave buckets from unspent transparent UTXOs and
- * coin-days-destroyed (CDD) from spent UTXOs.
- *
- * HODL wave buckets: <1m, 1-3m, 3-6m, 6-12m, 1-2y, 2y+
- * CDD = sum over all spent outputs that day of (value_zec * age_days)
- *
- * Writes to utxo_age_daily table (must exist before first run).
- *
- * Modes:
- *   node compute-utxo-age.js              — today only
- *   node compute-utxo-age.js --days=30    — backfill last 30 days
- */
+'use strict';
 
+// Completed UTC-day transparent HODL waves/CDD. Default: repair the last seven
+// completed days; --days=N or --from=YYYY-MM-DD --to=YYYY-MM-DD (max 366 days).
 const { log, loadEnv, withAdvisoryLock } = require('../lib/job-utils');
-loadEnv(__dirname);
+const { selectDays, parseDay, computeDays, CURRENT_UNSPENT_SQL, RECENT_SPENDS_SQL } = require('../lib/utxo-age');
 
-const { getPool, getReadPool } = require('../lib/db-pool');
-
-const pool = getPool({ max: 3 });
-const readPool = getReadPool({ max: 3 });
-
-const LOCK_ID = 839302;
-const DAYS_FLAG = process.argv.find(a => a.startsWith('--days='));
-const BACKFILL_DAYS = DAYS_FLAG ? parseInt(DAYS_FLAG.split('=')[1]) : 1;
-
-async function computeForDate(client, dateStr) {
-  const dateEpoch = Math.floor(new Date(dateStr + 'T23:59:59Z').getTime() / 1000);
-  const dateTs = new Date(dateStr + 'T23:59:59Z');
-
-  // Heavy reads go to readPool (replica when available); writes stay on primary client
-  const hodl = await readPool.query(`
-    WITH unspent_at AS (
-      SELECT o.value,
-             ($1::bigint - t.block_time) / 86400 AS age_days
-      FROM transaction_outputs o
-      JOIN transactions t ON o.txid = t.txid
-      WHERE t.block_time <= $1::bigint
-        AND o.value > 0
-        AND (o.spent = FALSE OR o.spent_at > $2::timestamp)
-    )
-    SELECT
-      COALESCE(SUM(CASE WHEN age_days < 30  THEN value ELSE 0 END), 0) AS lt_1m,
-      COALESCE(SUM(CASE WHEN age_days >= 30  AND age_days < 90  THEN value ELSE 0 END), 0) AS b_1_3m,
-      COALESCE(SUM(CASE WHEN age_days >= 90  AND age_days < 180 THEN value ELSE 0 END), 0) AS b_3_6m,
-      COALESCE(SUM(CASE WHEN age_days >= 180 AND age_days < 365 THEN value ELSE 0 END), 0) AS b_6_12m,
-      COALESCE(SUM(CASE WHEN age_days >= 365 AND age_days < 730 THEN value ELSE 0 END), 0) AS b_1_2y,
-      COALESCE(SUM(CASE WHEN age_days >= 730 THEN value ELSE 0 END), 0) AS gt_2y,
-      COALESCE(SUM(value), 0) AS total,
-      COUNT(*) AS utxo_count
-    FROM unspent_at
-  `, [dateEpoch, dateTs]);
-
-  // CDD: coin-days destroyed by spends on this date
-  // spent_at is TIMESTAMP — use EXTRACT(EPOCH FROM ...) for arithmetic with BIGINT block_time
-  const dayStartTs = new Date(dateStr + 'T00:00:00Z');
-  const dayEndTs = new Date(dateStr + 'T23:59:59Z');
-
-  const cddResult = await readPool.query(`
-    SELECT
-      COALESCE(SUM((o.value::numeric / 1e8) *
-        ((EXTRACT(EPOCH FROM o.spent_at) - t.block_time) / 86400)), 0) AS cdd,
-      COALESCE(AVG(
-        (EXTRACT(EPOCH FROM o.spent_at) - t.block_time) / 86400), 0) AS avg_dormancy,
-      COUNT(*) AS spent_count
-    FROM transaction_outputs o
-    JOIN transactions t ON o.txid = t.txid
-    WHERE o.spent = TRUE
-      AND o.spent_at >= $1::timestamp
-      AND o.spent_at < $2::timestamp
-      AND o.value > 0
-  `, [dayStartTs, dayEndTs]);
-
-  const h = hodl.rows[0];
-  const c = cddResult.rows[0];
-
-  return {
-    lt_1m: BigInt(h.lt_1m || 0),
-    b_1_3m: BigInt(h.b_1_3m || 0),
-    b_3_6m: BigInt(h.b_3_6m || 0),
-    b_6_12m: BigInt(h.b_6_12m || 0),
-    b_1_2y: BigInt(h.b_1_2y || 0),
-    gt_2y: BigInt(h.gt_2y || 0),
-    total: BigInt(h.total || 0),
-    utxo_count: parseInt(h.utxo_count) || 0,
-    cdd: parseFloat(c.cdd) || 0,
-    avg_dormancy: parseFloat(c.avg_dormancy) || 0,
-    spent_count: parseInt(c.spent_count) || 0,
-  };
-}
-
-async function run() {
+async function run(args = process.argv.slice(2)) {
+  const dates = selectDays(args);
+  loadEnv(__dirname);
+  const { getPool, getReadPool } = require('../lib/db-pool');
+  const pool = getPool({ max: 2, statement_timeout: 180000, query_timeout: 185000 });
+  // This bounded daily analytics scan legitimately exceeds the shared 30s API
+  // budget. No global timeouts are changed. Reads use one consistent snapshot.
+  const readPool = getReadPool({ max: 1, statement_timeout: 180000, query_timeout: 185000 });
   const client = await pool.connect();
   try {
-    await withAdvisoryLock(client, LOCK_ID, async (client) => {
-      const today = new Date();
+    await withAdvisoryLock(client, 839302, async () => {
+      const reader = await readPool.connect();
+      let results, anchor;
+      const started = Date.now();
+      try {
+        await reader.query('BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY');
+        await reader.query("SET LOCAL statement_timeout = '180s'");
+        await reader.query("SET LOCAL work_mem = '64MB'");
+        await reader.query('SET LOCAL max_parallel_workers_per_gather = 2');
+        anchor = (await reader.query('SELECT height, hash, timestamp FROM blocks ORDER BY height DESC LIMIT 1')).rows[0];
+        const boundary = (parseDay(dates.at(-1)) + 1) * 86400;
+        if (!anchor || Number(anchor.timestamp) < boundary) throw new Error('Chain source has not reached the end of the requested UTC day');
+        log(`Computing ${dates[0]} through ${dates.at(-1)} at block ${anchor.height}...`);
+        const unspent = await reader.query(CURRENT_UNSPENT_SQL);
+        const spent = await reader.query(RECENT_SPENDS_SQL, [parseDay(dates[0]) * 86400]);
+        results = computeDays(dates, unspent.rows, spent.rows);
+        await reader.query('COMMIT');
+      } catch (error) {
+        await reader.query('ROLLBACK').catch(() => {});
+        throw error;
+      } finally { reader.release(); }
+      await client.query('BEGIN');
+      try {
+        await client.query("SET LOCAL statement_timeout = '30s'");
+        const canonical = await client.query('SELECT 1 FROM blocks WHERE height=$1 AND hash=$2', [anchor.height, anchor.hash]);
+        if (!canonical.rowCount) throw new Error('Source chain changed or primary is behind; no snapshots written');
+        for (const result of results) {
+          const dateStr = result.date;
+          await client.query(`
+            INSERT INTO utxo_age_daily (
+              date, lt_1m_zat, b_1_3m_zat, b_3_6m_zat, b_6_12m_zat, b_1_2y_zat, gt_2y_zat,
+              total_unspent_zat, utxo_count, cdd, avg_dormancy_days, spent_count
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+            ON CONFLICT (date) DO UPDATE SET
+              lt_1m_zat = EXCLUDED.lt_1m_zat,
+              b_1_3m_zat = EXCLUDED.b_1_3m_zat,
+              b_3_6m_zat = EXCLUDED.b_3_6m_zat,
+              b_6_12m_zat = EXCLUDED.b_6_12m_zat,
+              b_1_2y_zat = EXCLUDED.b_1_2y_zat,
+              gt_2y_zat = EXCLUDED.gt_2y_zat,
+              total_unspent_zat = EXCLUDED.total_unspent_zat,
+              utxo_count = EXCLUDED.utxo_count,
+              cdd = EXCLUDED.cdd,
+              avg_dormancy_days = EXCLUDED.avg_dormancy_days,
+              spent_count = EXCLUDED.spent_count,
+              created_at = NOW()
+          `, [
+            dateStr,
+            result.lt_1m.toString(), result.b_1_3m.toString(), result.b_3_6m.toString(),
+            result.b_6_12m.toString(), result.b_1_2y.toString(), result.gt_2y.toString(),
+            result.total.toString(), result.utxo_count,
+            result.cdd, result.avg_dormancy, result.spent_count,
+          ]);
 
-      for (let d = 0; d < BACKFILL_DAYS; d++) {
-        const target = new Date(today);
-        target.setDate(target.getDate() - d);
-        const dateStr = target.toISOString().slice(0, 10);
-
-        log(`Processing ${dateStr}...`);
-        const start = Date.now();
-        const result = await computeForDate(client, dateStr);
-        const elapsed = ((Date.now() - start) / 1000).toFixed(1);
-
-        await client.query(`
-          INSERT INTO utxo_age_daily (
-            date, lt_1m_zat, b_1_3m_zat, b_3_6m_zat, b_6_12m_zat, b_1_2y_zat, gt_2y_zat,
-            total_unspent_zat, utxo_count, cdd, avg_dormancy_days, spent_count
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-          ON CONFLICT (date) DO UPDATE SET
-            lt_1m_zat = EXCLUDED.lt_1m_zat,
-            b_1_3m_zat = EXCLUDED.b_1_3m_zat,
-            b_3_6m_zat = EXCLUDED.b_3_6m_zat,
-            b_6_12m_zat = EXCLUDED.b_6_12m_zat,
-            b_1_2y_zat = EXCLUDED.b_1_2y_zat,
-            gt_2y_zat = EXCLUDED.gt_2y_zat,
-            total_unspent_zat = EXCLUDED.total_unspent_zat,
-            utxo_count = EXCLUDED.utxo_count,
-            cdd = EXCLUDED.cdd,
-            avg_dormancy_days = EXCLUDED.avg_dormancy_days,
-            spent_count = EXCLUDED.spent_count,
-            created_at = NOW()
-        `, [
-          dateStr,
-          result.lt_1m.toString(), result.b_1_3m.toString(), result.b_3_6m.toString(),
-          result.b_6_12m.toString(), result.b_1_2y.toString(), result.gt_2y.toString(),
-          result.total.toString(), result.utxo_count,
-          result.cdd, result.avg_dormancy, result.spent_count,
-        ]);
-
-        const totalZec = Number(result.total) / 1e8;
-        log(`  ${dateStr}: ${totalZec.toFixed(0)} ZEC across ${result.utxo_count.toLocaleString()} UTXOs, CDD=${result.cdd.toFixed(0)}, ${elapsed}s`);
+        }
+        await client.query('COMMIT');
+      } catch (error) {
+        await client.query('ROLLBACK').catch(() => {});
+        throw error;
       }
-
-      log(`Done. Processed ${BACKFILL_DAYS} day(s).`);
+      log(`Done. Wrote ${results.length} completed days in ${((Date.now() - started) / 1000).toFixed(3)}s; latest ${dates.at(-1)}.`);
     });
   } finally {
     client.release();
@@ -146,8 +84,5 @@ async function run() {
     if (readPool !== pool) await readPool.end();
   }
 }
-
-run().catch(err => {
-  console.error(err);
-  process.exit(1);
-});
+if (require.main === module) run().catch(error => { console.error(error); process.exitCode = 1; });
+module.exports = { run };
