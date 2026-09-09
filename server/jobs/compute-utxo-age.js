@@ -8,12 +8,15 @@ const { selectDays, parseDay, computeDays, CURRENT_UNSPENT_SQL, RECENT_SPENDS_SQ
 
 async function run(args = process.argv.slice(2)) {
   const dates = selectDays(args);
+  // Explicit historical rebuilds may span up to 366 days. Keep the routine
+  // seven-day job at three minutes per read; bound larger rebuilds at ten.
+  const readTimeoutMs = dates.length > 7 ? 600000 : 180000;
   loadEnv(__dirname);
   const { getPool, getReadPool } = require('../lib/db-pool');
-  const pool = getPool({ max: 2, statement_timeout: 180000, query_timeout: 185000 });
+  const pool = getPool({ max: 2, statement_timeout: readTimeoutMs, query_timeout: readTimeoutMs + 5000 });
   // This bounded daily analytics scan legitimately exceeds the shared 30s API
   // budget. No global timeouts are changed. Reads use one consistent snapshot.
-  const readPool = getReadPool({ max: 1, statement_timeout: 180000, query_timeout: 185000 });
+  const readPool = getReadPool({ max: 1, statement_timeout: readTimeoutMs, query_timeout: readTimeoutMs + 5000 });
   const client = await pool.connect();
   try {
     await withAdvisoryLock(client, 839302, async () => {
@@ -22,7 +25,7 @@ async function run(args = process.argv.slice(2)) {
       const started = Date.now();
       try {
         await reader.query('BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY');
-        await reader.query("SET LOCAL statement_timeout = '180s'");
+        await reader.query("SELECT set_config('statement_timeout', $1, true)", [String(readTimeoutMs)]);
         await reader.query("SET LOCAL work_mem = '64MB'");
         await reader.query('SET LOCAL max_parallel_workers_per_gather = 2');
         anchor = (await reader.query('SELECT height, hash, timestamp FROM blocks ORDER BY height DESC LIMIT 1')).rows[0];

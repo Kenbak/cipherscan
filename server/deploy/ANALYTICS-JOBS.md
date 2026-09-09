@@ -15,7 +15,9 @@ counts as integers. Day windows are [UTC midnight, next UTC midnight); HODL ages
 are measured at the last included second. CDD is in ZEC-days; average dormancy is
 in days. No new index, table, migration or global database tuning is required.
 
-The job uses a bounded 180-second statement/185-second client deadline, 64 MB
+The routine job uses a bounded 180-second statement/185-second client deadline.
+Explicit rebuilds longer than seven days have 600/605-second read deadlines;
+use a 1,500-second process limit for those one-off rebuilds. Both use 64 MB
 work memory per operation and at most two parallel workers for reads. Primary
 snapshot writes have a 30-second statement deadline. Keep the existing external
 flock and add a 600-second process timeout to the UTXO cron command. Do not run
