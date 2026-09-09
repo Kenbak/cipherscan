@@ -1,0 +1,55 @@
+Potentially unsafe environment:
+[BUILD] Found package manager: apt-get, npm, pip
+[BUILD] Untrusted build OS: ubuntu
+  [RUN] Found package manager: apt-get, npm, pip
+  [RUN] Untrusted build OS: ubuntu
+Verifying enclave attestation...
+Learn more: https://docs.caution.co/concepts/attestation/
+
+Challenge nonce (sent): c9d0f7501c4c569ba01010f4ae992909e88c021103028ca11c2f7ca7dfa033f8
+Requesting attestation...
+
+Extracting remote attestation values...
+
+Remote PCR values (unverified until verification succeeds):
+  PCR0: fe3e29fc20d03de25a719fe42d71dbe668337ef5141e3b58cc538b5427c3111ca8f781fcc1b8d3395a704fbb0413f99b
+  PCR1: fe3e29fc20d03de25a719fe42d71dbe668337ef5141e3b58cc538b5427c3111ca8f781fcc1b8d3395a704fbb0413f99b
+  PCR2: 21b9efbc184807662e966d34f390821309eeac6802309798826296bf3e8bec7c10edb30948c90ba67310f7b964fc500a
+Remote user data (unverified): {\"tls\":{\"certfp\":\"0a2a2950b7f0595be75d87e5dacaf431a96e758ffa3a6008cc552bdc0b4a64b9\",\"domain\":\"zeronym-hub-9.shieldedinfra.net\",\"mode\":\"tls\"}}
+
+Response manifest information (unsigned):
+  App source: https://github.com/ShieldedLabs/zero-hub commit: 5b98e661be90180433bea09533a4c096d4e7f203
+    branch: main
+  Enclave source: https://git.distrust.co/public/enclaveos/archive/9582e25239430070667fdd0a6b64d887f1c308df.tar.gz commit: 9582e25239430070667fdd0a6b64d887f1c308df
+  Framework source: https://codeberg.org/caution/platform/archive/ecd876be560cb61d683c250a064acca658111411.tar.gz commit: ecd876be560cb61d683c250a064acca658111411
+
+Building from source tarball: /home/runner/work/_temp/attestation-result/source.tar.gz
+
+Checking enclave source is reachable on remote...
+  Enclave source preflight passed ✓
+
+Checking framework source is reachable on remote...
+  Framework source preflight passed ✓
+Output directory: /home/runner/work/_temp/attestation-result/build-cache/reproductions/local/tarball-5164be5e21667e3f-3d4a1c019394dd6c-config-710b6e54f458f48fb5cc0db8e0be3f10c2a4dde25b67e131b95ba84155a6c255/eif-stage/output
+Build log saved to: /home/runner/work/_temp/attestation-result/build-cache/reproductions/local/tarball-5164be5e21667e3f-3d4a1c019394dd6c-config-710b6e54f458f48fb5cc0db8e0be3f10c2a4dde25b67e131b95ba84155a6c255/eif-stage/build.log
+Docker build completed successfully
+
+Build artifacts available at: /home/runner/work/_temp/attestation-result/build-cache/reproductions/local/tarball-5164be5e21667e3f-3d4a1c019394dd6c-config-710b6e54f458f48fb5cc0db8e0be3f10c2a4dde25b67e131b95ba84155a6c255/eif-stage
+You can review everything that went into building this enclave:
+  • Containerfile.eif - The complete build recipe
+  • app/ - Your application files
+  • enclave/ - EnclaveOS source (attestation-service, init)
+  • run.sh - Generated startup script
+  • manifest.json - Build provenance information
+
+Expected PCR values:
+  PCR0: fe3e29fc20d03de25a719fe42d71dbe668337ef5141e3b58cc538b5427c3111ca8f781fcc1b8d3395a704fbb0413f99b
+  PCR1: fe3e29fc20d03de25a719fe42d71dbe668337ef5141e3b58cc538b5427c3111ca8f781fcc1b8d3395a704fbb0413f99b
+  PCR2: 21b9efbc184807662e966d34f390821309eeac6802309798826296bf3e8bec7c10edb30948c90ba67310f7b964fc500a
+
+Verifying attestation with bootproof-sdk...
+
+✓ Base Nitro attestation and expected PCR0/1/2 verified
+✓ TLS certificate binding verified
+✓ Attestation verification PASSED
+Trusted state: .caution/trusted_hashes.json
