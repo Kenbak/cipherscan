@@ -40,6 +40,8 @@ jobs:
         run: npm ci --no-audit --no-fund
       - name: Run the local/CI frontend verification contract
         run: npm run verify:frontend
+      - name: Supply-map accounting regressions
+        run: npm run test:supply-treemap
       - name: Attestation page regressions
         run: node --test server/tests/attestations-page.test.mjs
 

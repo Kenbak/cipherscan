@@ -191,8 +191,9 @@ export default function PoolsPage() {
       <section id="supply-definitions" className="scroll-mt-36 mb-14 text-sm text-secondary">
         <h2 className="mb-2 font-semibold text-primary">Supply definitions</h2>
         <p>
-          The map partitions the 21 million ZEC cap into transparent balances, shielded balances,
-          other issued value, and remaining issuance. Other issued is calculated from the same
+          The map partitions the 21 million ZEC cap into public supply, shielded balances,
+          and remaining issuance. Public supply groups transparent balances with other issued value;
+          it is a visual grouping, not the transparent pool balance. Other issued is calculated from the same
           snapshot as chain supply minus transparent and shielded balances. It includes the deferred-development
           lockbox, which contains already-issued ZEC, not unmined supply. Historical snapshots do not
           store a separate lockbox balance, so this remainder is not labelled entirely as lockbox.

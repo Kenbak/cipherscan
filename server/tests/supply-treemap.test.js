@@ -8,7 +8,7 @@ const compiled = ts.transpileModule(source, { compilerOptions: { module: ts.Modu
 const loaded = { exports: {} };
 new Function('module', 'exports', compiled)(loaded, loaded.exports);
 const { buildTopLevelSegments, layoutSupplyMap, MAX_SUPPLY_ZAT } = loaded.exports;
-const colors = { transparent: '#888', shielded: '#fa0', otherIssued: '#666', unmined: '#aaa' };
+const colors = { transparent: '#888', shielded: '#fa0', unmined: '#aaa' };
 const snapshot = {
   // Direct mainnet getblockchaininfo, height 3479100, 2026-09-11.
   transparent: 1196843012781938,
@@ -19,7 +19,8 @@ const snapshot = {
 
 test('node snapshot partitions the cap and keeps issued lockbox out of unmined', () => {
   const segments = buildTopLevelSegments(snapshot);
-  assert.equal(segments.find(s => s.key === 'otherIssued').zat, 6238143750000);
+  assert.equal(segments.length, 3);
+  assert.equal(segments.find(s => s.key === 'public').zat - snapshot.transparent, 6238143750000);
   assert.equal(segments.find(s => s.key === 'unmined').zat, MAX_SUPPLY_ZAT - snapshot.chainSupply);
   assert.equal(segments.reduce((sum, s) => sum + s.zat, 0), MAX_SUPPLY_ZAT);
   const { topLevel } = layoutSupplyMap(segments, [], 1000, 200, 0);
@@ -29,7 +30,7 @@ test('node snapshot partitions the cap and keeps issued lockbox out of unmined',
 
 test('historical supply without a remainder does not invent other issuance', () => {
   const segments = buildTopLevelSegments({ transparent: 80e8, shielded: 20e8, chainSupply: 100e8, colors });
-  assert.equal(segments.find(s => s.key === 'otherIssued').zat, 0);
+  assert.equal(segments.find(s => s.key === 'public').zat, 80e8);
   assert.equal(layoutSupplyMap(segments, [], 1000, 200).topLevel.length, 3);
 });
 
@@ -46,4 +47,11 @@ test('fully issued cap has no unmined area', () => {
   const segments = buildTopLevelSegments({ ...snapshot, chainSupply: MAX_SUPPLY_ZAT });
   assert.equal(segments.find(s => s.key === 'unmined').zat, 0);
   assert.equal(layoutSupplyMap(segments, [], 1000, 200).topLevel.some(s => s.key === 'unmined'), false);
+});
+
+// Moving issued ZEC from lockbox into transparent outputs does not issue new ZEC.
+test('lockbox payout leaves grouped public supply and unmined unchanged', () => {
+  const before = buildTopLevelSegments(snapshot);
+  const after = buildTopLevelSegments({ ...snapshot, transparent: snapshot.transparent + 10000e8 });
+  assert.deepEqual(after, before);
 });

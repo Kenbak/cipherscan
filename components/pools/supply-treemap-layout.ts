@@ -1,8 +1,8 @@
 export const MAX_SUPPLY_ZAT = 21_000_000 * 1e8;
 
-export type TopLevelKey = 'transparent' | 'shielded' | 'otherIssued' | 'unmined';
+export type TopLevelKey = 'public' | 'shielded' | 'unmined';
 export type ShieldedPoolKey = 'sprout' | 'sapling' | 'orchard' | 'ironwood';
-export type SupplyPoolKey = TopLevelKey | ShieldedPoolKey;
+export type SupplyPoolKey = TopLevelKey | ShieldedPoolKey | 'transparent' | 'otherIssued';
 
 export const SHIELDED_POOL_KEYS: ShieldedPoolKey[] = ['sprout', 'sapling', 'orchard', 'ironwood'];
 
@@ -86,22 +86,21 @@ export function buildTopLevelSegments(input: SupplyTotals & {
   colors: {
     transparent: string;
     shielded: string;
-    otherIssued: string;
     unmined: string;
   };
 }): SupplySegmentInput[] {
   // Do not hide invalid/missing supply by clamping it into a plausible map.
   if (!hasValidSupplyTotals(input)) return [];
   const unmined = MAX_SUPPLY_ZAT - input.chainSupply;
-  // Historical snapshots omit lockbox. Keep the residual explicit instead of
-  // labelling it all lockbox or treating already-issued value as unmined.
-  const otherIssued = input.chainSupply - input.transparent - input.shielded;
+  // Public supply groups transparent balances with the issued residual
+  // (including lockbox), without redefining the transparent value pool.
+  const publicSupply = input.chainSupply - input.shielded;
 
   return [
     {
-      key: 'transparent',
-      label: 'Transparent',
-      zat: input.transparent,
+      key: 'public',
+      label: 'Public supply',
+      zat: publicSupply,
       color: input.colors.transparent,
     },
     {
@@ -109,12 +108,6 @@ export function buildTopLevelSegments(input: SupplyTotals & {
       label: 'Shielded',
       zat: input.shielded,
       color: input.colors.shielded,
-    },
-    {
-      key: 'otherIssued',
-      label: 'Other issued',
-      zat: otherIssued,
-      color: input.colors.otherIssued,
     },
     {
       key: 'unmined',

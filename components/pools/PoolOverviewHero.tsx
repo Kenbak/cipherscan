@@ -208,7 +208,6 @@ export function PoolOverviewHero({ data }: { data: PoolOverviewData }) {
         colors: {
           transparent: colors.transparent,
           shielded: colors.yellow,
-          otherIssued: colors.axis,
           unmined: colors.transparent,
         },
       }),
@@ -243,6 +242,7 @@ export function PoolOverviewHero({ data }: { data: PoolOverviewData }) {
   const poolMeta = useMemo(
     () =>
       ({
+        public: { label: 'Public supply', color: colors.transparent, zat: snapshot.chainSupply - snapshot.shielded },
         transparent: { label: 'Transparent', color: colors.transparent, zat: snapshot.transparent },
         shielded: { label: 'Shielded', color: colors.yellow, zat: snapshot.shielded },
         otherIssued: { label: 'Other issued', color: colors.axis, zat: snapshot.chainSupply - snapshot.transparent - snapshot.shielded },
@@ -295,7 +295,7 @@ export function PoolOverviewHero({ data }: { data: PoolOverviewData }) {
       };
     }
 
-    if (hoveredKey === 'transparent' || hoveredKey === 'unmined' || hoveredKey === 'otherIssued') {
+    if (hoveredKey === 'public' || hoveredKey === 'unmined') {
       const meta = poolMeta[hoveredKey];
       const zec = zatToZec(meta.zat);
       return {
@@ -381,7 +381,7 @@ export function PoolOverviewHero({ data }: { data: PoolOverviewData }) {
       }
     >
       <p className="mb-4 max-w-2xl text-xs leading-relaxed text-secondary font-sans">
-        Transparent, shielded, other issued, and unmined ZEC — mapped against the 21M cap. Hover{' '}
+        Public supply, shielded supply, and unmined ZEC — mapped against the 21M cap. Hover{' '}
         <span className="text-cipher-yellow">shielded</span> for the pool split · click to pin · hover a pool to
         isolate.
       </p>
@@ -408,8 +408,12 @@ export function PoolOverviewHero({ data }: { data: PoolOverviewData }) {
           </span>
         ))}
       </div>
+      <p className="mt-2 text-xs text-secondary" aria-label="Public supply breakdown">
+        Inside public supply: transparent balances {formatZecCompact(transparentZec)} ZEC
+        {' + '}other issued {formatZecCompact(zatToZec(poolMeta.otherIssued.zat))} ZEC (includes lockbox).
+      </p>
       <p className="mt-2 text-xs text-muted">
-        Other issued is chain supply minus transparent and shielded balances; it includes the deferred-development lockbox.
+        Public supply groups transparent balances with other issued value, including the separate deferred-development lockbox.
         Unmined is 21M minus chain supply. <a href="#supply-definitions" className="underline">Supply definitions</a>
       </p>
 
@@ -433,7 +437,7 @@ export function PoolOverviewHero({ data }: { data: PoolOverviewData }) {
             <span style={{ color: readout.color }}>{readout.label}</span>
             {' · '}
             {readout.capPct.toFixed(1)}% of the 21M cap
-            {readout.label === 'Unmined' ? ' · not yet issued' : readout.label === 'Transparent' ? ' · public addresses' : readout.label === 'Other issued' ? ' · includes the lockbox' : null}
+            {readout.label === 'Unmined' ? ' · not yet issued' : readout.label === 'Public supply' ? ' · transparent balances + other issued, including lockbox' : null}
           </p>
         ) : null}
 

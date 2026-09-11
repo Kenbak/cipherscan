@@ -62,7 +62,7 @@ function BandLabel({
 
 function segmentUsesDarkLabel(segment: SupplySegmentInput, isDark: boolean): boolean {
   if (segment.hatch) return isDark;
-  if (segment.key === 'transparent' || segment.key === 'otherIssued') return isDark;
+  if (segment.key === 'public') return isDark;
   return true;
 }
 
@@ -120,7 +120,7 @@ function TopSegment({
           className={`absolute inset-0 rounded-[5px] ring-1 ring-inset ${active ? ringActive : ringIdle}`}
           style={{
             backgroundColor: segment.color,
-            opacity: segment.key === 'transparent' ? (isDark ? 0.32 : 0.55) : 0.9,
+            opacity: segment.key === 'public' ? (isDark ? 0.32 : 0.55) : 0.9,
           }}
         />
       )}
@@ -231,7 +231,7 @@ export function SupplyTreemap({
     <div
       className="flex h-[220px] w-full gap-0.5 p-0.5 sm:h-[280px]"
       role="img"
-      aria-label="Zcash supply map: transparent, shielded, other issued, and unmined portions of the 21 million cap"
+      aria-label="Zcash supply map: public supply (transparent balances and other issued value, including lockbox), shielded, and unmined portions of the 21 million cap"
       onMouseLeave={handleMapLeave}
     >
       {topLevel.filter((segment) => segment.zat > 0).map((segment) => {

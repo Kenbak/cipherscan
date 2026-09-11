@@ -17,7 +17,7 @@ export default function PoolsLayout({ children }: { children: React.ReactNode })
     '@id': `${url}#webpage`,
     url,
     name: 'Zcash Shielded Pool Statistics',
-    description: 'Transparent, shielded, other issued and unmined ZEC against the 21 million cap, with pool history and public flows.',
+    description: 'Public supply (transparent balances and other issued value), shielded and unmined ZEC against the 21 million cap, with pool history and public flows.',
     isPartOf: { '@id': `${getBaseUrl()}/#website` },
     publisher: { '@id': 'https://cipherscan.app/#organization' },
   };
