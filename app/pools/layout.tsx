@@ -14,7 +14,7 @@ export default function PoolsLayout({ children }: { children: React.ReactNode })
   const schema = {
     '@context': 'https://schema.org', '@type': 'WebPage', '@id': `${url}#webpage`,
     url, name: 'Zcash Shielded Pools',
-    description: 'Supply held in shielded pools, its history, and public shielding and deshielding flows.',
+    description: 'Public supply, shielded pools and remaining issuance against the 21 million ZEC cap, with pool history and public flows.',
     isPartOf: { '@id': `${getBaseUrl()}/#website` },
     publisher: { '@id': 'https://zecblock.com/#organization' },
   };

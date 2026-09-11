@@ -1,8 +1,8 @@
 export const MAX_SUPPLY_ZAT = 21_000_000 * 1e8;
 
-export type TopLevelKey = 'transparent' | 'shielded' | 'unmined';
+export type TopLevelKey = 'public' | 'shielded' | 'unmined';
 export type ShieldedPoolKey = 'sprout' | 'sapling' | 'orchard' | 'ironwood';
-export type SupplyPoolKey = TopLevelKey | ShieldedPoolKey;
+export type SupplyPoolKey = TopLevelKey | ShieldedPoolKey | 'transparent' | 'otherIssued';
 
 export const SHIELDED_POOL_KEYS: ShieldedPoolKey[] = ['sprout', 'sapling', 'orchard', 'ironwood'];
 
@@ -69,24 +69,38 @@ function layoutHorizontalBands(
   });
 }
 
-export function buildTopLevelSegments(input: {
+export interface SupplyTotals {
   transparent: number;
   shielded: number;
   chainSupply: number;
+}
+
+export function hasValidSupplyTotals(input: SupplyTotals): boolean {
+  return [input.transparent, input.shielded, input.chainSupply].every(
+    (value) => Number.isSafeInteger(value) && value >= 0,
+  ) && input.chainSupply > 0 && input.chainSupply <= MAX_SUPPLY_ZAT
+    && input.transparent + input.shielded <= input.chainSupply;
+}
+
+export function buildTopLevelSegments(input: SupplyTotals & {
   colors: {
     transparent: string;
     shielded: string;
     unmined: string;
   };
 }): SupplySegmentInput[] {
-  const chainSupply = input.chainSupply > 0 ? input.chainSupply : 0;
-  const unmined = Math.max(0, MAX_SUPPLY_ZAT - chainSupply);
+  // Do not hide invalid/missing supply by clamping it into a plausible map.
+  if (!hasValidSupplyTotals(input)) return [];
+  const unmined = MAX_SUPPLY_ZAT - input.chainSupply;
+  // Public supply groups transparent balances with the issued residual
+  // (including lockbox), without redefining the transparent value pool.
+  const publicSupply = input.chainSupply - input.shielded;
 
   return [
     {
-      key: 'transparent',
-      label: 'Transparent',
-      zat: input.transparent,
+      key: 'public',
+      label: 'Public supply',
+      zat: publicSupply,
       color: input.colors.transparent,
     },
     {

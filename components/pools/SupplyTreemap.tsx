@@ -63,7 +63,7 @@ function BandLabel({
 
 function segmentUsesLightLabel(segment: SupplySegmentInput, isDark: boolean): boolean {
   if (segment.hatch) return isDark;
-  if (segment.key === 'transparent') return isDark;
+  if (segment.key === 'public') return isDark;
   // Aggregate shielded uses gold fills with a dark label in either theme.
   return false;
 }
@@ -123,7 +123,7 @@ function TopSegment({
           className={`absolute inset-0 rounded-[5px] ring-1 ring-inset ${active ? ringActive : ringIdle}`}
           style={{
             backgroundColor: segment.color,
-            opacity: segment.key === 'transparent' ? (isDark ? 0.32 : 0.28) : (isDark ? 0.9 : 1),
+            opacity: segment.key === 'public' ? (isDark ? 0.32 : 0.28) : (isDark ? 0.9 : 1),
           }}
         />
       )}
@@ -227,10 +227,10 @@ export function SupplyTreemap({
     <div
       className="flex h-[132px] w-full gap-0.5 p-0.5 sm:h-[156px]"
       role="group"
-      aria-label="Zcash supply map: transparent, shielded, and unmined portions of the 21 million cap"
+      aria-label="Zcash supply map: public supply, shielded, and unmined portions of the 21 million cap"
       onMouseLeave={handleMapLeave}
     >
-      {topLevel.map((segment) => {
+      {topLevel.filter(segment => segment.zat > 0).map((segment) => {
         const weight = flexWeight(segment.zat);
         const flexStyle = { flex: `${weight} 1 0` };
         const active = hoveredKey === segment.key;

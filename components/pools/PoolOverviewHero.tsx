@@ -61,12 +61,16 @@ export function PoolOverviewHero({ data }: { data: PoolOverviewData }) {
   const dateLabel = snapshotDate(snapshot.updatedAt, !point);
   const toggleSplit = () => { setSplit(value => !value); setHoveredKey(null); };
 
+  if (!topLevel.length) return <p className="py-12 text-center text-caption text-muted" role="status">
+    Supply map unavailable: this snapshot has missing or inconsistent supply totals.
+  </p>;
+
   return <ShareableCard title="Where every ZEC lives" sourceHeight={0} isLive={false}
     shareText={`${share == null ? '—' : share.toFixed(1) + '%'} of issued ZEC is held in shielded pools. Snapshot: ${dateLabel}.\n\nhttps://zecblock.com/pools`}
     fileName="zecblock-pools.png" className=""
     footerNote={`${point ? 'Historical' : 'Latest available'} snapshot · ${dateLabel}`}>
     <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-5">
-      <p className="max-w-2xl text-xs leading-relaxed text-secondary">Transparent balances, shielded pools and remaining issuance. Map labels show each share of the 21 million ZEC cap.</p>
+      <p className="max-w-2xl text-xs leading-relaxed text-secondary">Public supply, shielded pools and remaining issuance. Map labels show each share of the 21 million ZEC cap.</p>
       <div className="flex flex-wrap shrink-0 items-center gap-2"><PoolCurrencyToggle />
       <button type="button" aria-pressed={split} onClick={toggleSplit} className="shrink-0 self-start rounded-md border border-cipher-border px-3 py-2 text-caption font-mono text-secondary hover:bg-glass-3 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cipher-gold">
         {split ? 'Hide pool split' : 'Show pool split'}

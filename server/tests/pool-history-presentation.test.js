@@ -10,7 +10,7 @@ new Function('exports', compiled)(loaded.exports);
 const { completeSupplyHistory } = loaded.exports;
 const valid = { date: '2020-01-01', sprout: 1, sapling: 2, orchard: 0, ironwood: 0, transparent: 97, shielded: 3, chainSupply: 100, hasPoolBreakdown: true };
 test('historical maps skip missing totals or breakdowns instead of using present-day supply', () => {
-  for (const invalid of [{ chainSupply: null }, { chainSupply: 0 }, { chainSupply: NaN }, { hasPoolBreakdown: false }, { transparent: undefined }, { shielded: -1 }, { date: 'invalid' }]) {
+  for (const invalid of [{ chainSupply: null }, { chainSupply: 21_000_001 }, { chainSupply: 99 }, { hasPoolBreakdown: undefined }, { chainSupply: 0 }, { chainSupply: NaN }, { hasPoolBreakdown: false }, { transparent: undefined }, { shielded: -1 }, { date: 'invalid' }]) {
     assert.deepEqual(completeSupplyHistory([{ ...valid, ...invalid }, valid]), [valid]);
   }
 });
