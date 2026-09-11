@@ -24,7 +24,7 @@ export default function AskChart({ points, evidence, view }: { points: EvidenceP
         <CartesianGrid vertical={false} stroke={colors.grid} strokeDasharray="2 5" />
         {ranking ? <>
           <XAxis type="number" tickLine={false} axisLine={false} tick={{ fill: colors.axis, fontSize: 12 }} tickFormatter={value => Intl.NumberFormat('en-US', { notation: 'compact' }).format(value)} />
-          <YAxis type="category" dataKey="date" width={90} tickLine={false} axisLine={false} interval={0} tick={{ fill: colors.axis, fontSize: 11 }} tickFormatter={formatChain} />
+          <YAxis type="category" dataKey="date" width={90} tickLine={false} axisLine={false} interval={0} tick={{ fill: colors.axis, fontSize: 12 }} tickFormatter={formatChain} />
         </> : <>
           <XAxis dataKey="date" tickLine={false} axisLine={false} tick={{ fill: colors.axis, fontSize: 12 }} minTickGap={45} tickFormatter={date => String(date).slice(5)} />
           <YAxis domain={evidence.unit === '%' ? [0, 100] : undefined} allowDecimals={['ZEC', 'USD', '%'].includes(evidence.unit)} tickLine={false} axisLine={false} width={60} tick={{ fill: colors.axis, fontSize: 12 }} tickFormatter={value => `${Intl.NumberFormat('en-US', { notation: 'compact' }).format(value)}${evidence.unit === '%' ? '%' : ''}`} />
