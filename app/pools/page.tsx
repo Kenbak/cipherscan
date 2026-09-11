@@ -188,6 +188,24 @@ export default function PoolsPage() {
         )}
       </section>
 
+      <section id="supply-definitions" className="scroll-mt-36 mb-14 text-sm text-secondary">
+        <h2 className="mb-2 font-semibold text-primary">Supply definitions</h2>
+        <p>
+          The map partitions the 21 million ZEC cap into transparent balances, shielded balances,
+          other issued value, and remaining issuance. Other issued is calculated from the same
+          snapshot as chain supply minus transparent and shielded balances. It includes the deferred-development
+          lockbox, which contains already-issued ZEC, not unmined supply. Historical snapshots do not
+          store a separate lockbox balance, so this remainder is not labelled entirely as lockbox.
+          Unmined is the cap minus issued chain supply. Percentages use the 21M cap and may differ
+          slightly from 100% after display rounding. The shielded-supply statistic instead uses issued supply.
+        </p>
+        <p className="mt-2">
+          Balances come from stored node snapshots and are not refreshed on every block. The timeline
+          excludes records with missing or inconsistent supply totals; it does not substitute current
+          supply for historical data. Public pool aggregates do not reveal individual shielded balances.
+        </p>
+      </section>
+
       <section id="supply" className="scroll-mt-36 mb-14">
         <PoolDistributionChart />
       </section>

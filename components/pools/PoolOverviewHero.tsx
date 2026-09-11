@@ -13,6 +13,7 @@ import {
   buildShieldedPoolSegments,
   buildTopLevelSegments,
   isShieldedPoolKey,
+  hasValidSupplyTotals,
   SHIELDED_POOL_KEYS,
   type ShieldedPoolKey,
   type SupplyPoolKey,
@@ -44,6 +45,7 @@ interface HistoryPoint {
   shielded: number;
   chainSupply: number | null;
   shieldedSupplyPct: number | null;
+  hasPoolBreakdown?: boolean;
 }
 
 type ScrubMode = 'live' | 'scrub';
@@ -151,7 +153,16 @@ export function PoolOverviewHero({ data }: { data: PoolOverviewData }) {
     '/api/network/pool-history',
     { period: 'all' },
   );
-  const history = historyRes?.points ?? EMPTY_HISTORY;
+  const history = useMemo(() => (historyRes?.points ?? EMPTY_HISTORY).filter((point) =>
+    point.hasPoolBreakdown === true && Number.isFinite(Date.parse(point.date)) &&
+    point.chainSupply != null &&
+    [point.transparent, point.shielded, point.sprout, point.sapling, point.orchard, point.ironwood]
+      .every((value) => typeof value === 'number' && Number.isFinite(value) && value >= 0) &&
+    hasValidSupplyTotals({
+      transparent: zatFromHistory(point.transparent), shielded: zatFromHistory(point.shielded),
+      chainSupply: zatFromHistory(point.chainSupply),
+    }),
+  ), [historyRes]);
   const coverageStart = historyRes?.coverageStart ?? null;
 
   useEffect(() => {
@@ -175,7 +186,7 @@ export function PoolOverviewHero({ data }: { data: PoolOverviewData }) {
   const snapshot = useMemo(() => {
     if (mode === 'live' || history.length === 0) return liveSnapshot;
     const point = history[Math.min(scrubIndex, history.length - 1)];
-    const chainSupply = point.chainSupply ? zatFromHistory(point.chainSupply) : liveSnapshot.chainSupply;
+    const chainSupply = zatFromHistory(point.chainSupply!);
     return {
       sprout: zatFromHistory(point.sprout),
       sapling: zatFromHistory(point.sapling),
@@ -197,6 +208,7 @@ export function PoolOverviewHero({ data }: { data: PoolOverviewData }) {
         colors: {
           transparent: colors.transparent,
           shielded: colors.yellow,
+          otherIssued: colors.axis,
           unmined: colors.transparent,
         },
       }),
@@ -233,6 +245,7 @@ export function PoolOverviewHero({ data }: { data: PoolOverviewData }) {
       ({
         transparent: { label: 'Transparent', color: colors.transparent, zat: snapshot.transparent },
         shielded: { label: 'Shielded', color: colors.yellow, zat: snapshot.shielded },
+        otherIssued: { label: 'Other issued', color: colors.axis, zat: snapshot.chainSupply - snapshot.transparent - snapshot.shielded },
         unmined: { label: 'Unmined', color: colors.transparent, zat: MAX_SUPPLY_ZAT - snapshot.chainSupply },
         sprout: { label: 'Sprout', color: colors.sprout, zat: snapshot.sprout },
         sapling: { label: 'Sapling', color: colors.sapling, zat: snapshot.sapling },
@@ -272,7 +285,7 @@ export function PoolOverviewHero({ data }: { data: PoolOverviewData }) {
     pinnedShielded || hoveredKey === 'shielded' || focusedPoolKey != null;
 
   const readout = useMemo(() => {
-    const scrubDate = mode === 'scrub' && history.length ? formatHistoryDate(history[scrubIndex].date) : null;
+    const scrubDate = mode === 'scrub' && history.length ? formatHistoryDate(history[Math.min(scrubIndex, history.length - 1)].date) : null;
 
     if (showShieldedReadout) {
       return {
@@ -282,7 +295,7 @@ export function PoolOverviewHero({ data }: { data: PoolOverviewData }) {
       };
     }
 
-    if (hoveredKey === 'transparent' || hoveredKey === 'unmined') {
+    if (hoveredKey === 'transparent' || hoveredKey === 'unmined' || hoveredKey === 'otherIssued') {
       const meta = poolMeta[hoveredKey];
       const zec = zatToZec(meta.zat);
       return {
@@ -323,7 +336,7 @@ export function PoolOverviewHero({ data }: { data: PoolOverviewData }) {
 
   const maxIndex = Math.max(0, history.length - 1);
   const scrubDate =
-    mode === 'scrub' && history.length ? formatHistoryDate(history[scrubIndex].date) : null;
+    mode === 'scrub' && history.length ? formatHistoryDate(history[Math.min(scrubIndex, history.length - 1)].date) : null;
   const historyDates = useMemo(() => history.map((p) => p.date), [history]);
 
   const handleScrub = useCallback((index: number) => {
@@ -344,25 +357,31 @@ export function PoolOverviewHero({ data }: { data: PoolOverviewData }) {
     [pinnedShielded],
   );
 
-  const shareText = `${shieldedPctOfMined.toFixed(1)}% of mined ZEC is shielded (${formatZecCompact(shieldedZec)}). See the live supply map on CipherScan.\n\nhttps://cipherscan.app/pools`;
+  if (!topLevel.length) {
+    return <p className="py-12 text-center text-xs text-muted font-mono" role="status">
+      Supply map unavailable: this snapshot has missing or inconsistent supply totals.
+    </p>;
+  }
+
+  const shareText = `${shieldedPctOfMined.toFixed(1)}% of issued ZEC is shielded (${formatZecCompact(shieldedZec)}). See the supply map on CipherScan.\n\nhttps://cipherscan.app/pools`;
 
   return (
     <ShareableCard
       title="Where every ZEC lives"
       sourceHeight={0}
-      isLive={mode === 'live'}
+      isLive={false}
       shareText={shareText}
       fileName="cipherscan-pools.png"
       watermark={false}
       className=""
       footerNote={
         updatedLabel
-          ? `${mode === 'live' ? 'LIVE' : scrubDate ?? 'SNAPSHOT'} · updated ${updatedLabel}`
+          ? `${mode === 'live' ? 'LATEST SNAPSHOT' : scrubDate ?? 'SNAPSHOT'} · updated ${updatedLabel}`
           : undefined
       }
     >
       <p className="mb-4 max-w-2xl text-xs leading-relaxed text-secondary font-sans">
-        Public, private, and still unmined — mapped against the 21M cap. Hover{' '}
+        Transparent, shielded, other issued, and unmined ZEC — mapped against the 21M cap. Hover{' '}
         <span className="text-cipher-yellow">shielded</span> for the pool split · click to pin · hover a pool to
         isolate.
       </p>
@@ -381,6 +400,19 @@ export function PoolOverviewHero({ data }: { data: PoolOverviewData }) {
         />
       </div>
 
+      <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-xs font-mono text-secondary" aria-label="Supply map legend">
+        {topLevel.filter((segment) => segment.zat > 0).map((segment) => (
+          <span key={segment.key}>
+            {segment.label}: {formatZecCompact(zatToZec(segment.zat))} ZEC
+            {' · '}{(segment.zat / MAX_SUPPLY_ZAT * 100).toFixed(1)}%
+          </span>
+        ))}
+      </div>
+      <p className="mt-2 text-xs text-muted">
+        Other issued is chain supply minus transparent and shielded balances; it includes the deferred-development lockbox.
+        Unmined is 21M minus chain supply. <a href="#supply-definitions" className="underline">Supply definitions</a>
+      </p>
+
       <div className="mt-3 min-h-[1.25rem]">
         {readout.kind === 'idle' ? (
           mode === 'live' && shieldedDelta7d ? (
@@ -389,7 +421,7 @@ export function PoolOverviewHero({ data }: { data: PoolOverviewData }) {
                 {shieldedDelta7d.text}
               </span>
               {' shielded over 7 days · '}
-              {shieldedPctOfMined.toFixed(1)}% of mined supply is private
+              {shieldedPctOfMined.toFixed(1)}% of issued supply is shielded
             </p>
           ) : readout.scrubDate ? (
             <p className="text-[11px] font-mono text-muted">Snapshot · {readout.scrubDate}</p>
@@ -400,8 +432,8 @@ export function PoolOverviewHero({ data }: { data: PoolOverviewData }) {
           <p className="text-sm font-mono tabular-nums text-secondary">
             <span style={{ color: readout.color }}>{readout.label}</span>
             {' · '}
-            {readout.minedPct.toFixed(1)}% of mined supply
-            {readout.label === 'Unmined' ? ' · not yet issued' : readout.label === 'Transparent' ? ' · public addresses' : null}
+            {readout.capPct.toFixed(1)}% of the 21M cap
+            {readout.label === 'Unmined' ? ' · not yet issued' : readout.label === 'Transparent' ? ' · public addresses' : readout.label === 'Other issued' ? ' · includes the lockbox' : null}
           </p>
         ) : null}
 

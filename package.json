@@ -20,6 +20,7 @@
     "test:migration-activity-summary": "NODE_PATH=$PWD/server/api/node_modules node --test server/tests/migration-activity-summary.test.js",
     "test:blend-check-batch": "NODE_PATH=$PWD/server/api/node_modules node --test server/tests/blend-check-batch.test.js",
     "test:db-pool-deadlines": "NODE_PATH=$PWD/server/api/node_modules node --test server/tests/db-pool-deadlines.test.js",
+    "test:supply-treemap": "node --test server/tests/supply-treemap.test.js",
     "test:peer-client": "node --test server/tests/peer-client.test.js",
     "test:sitemap-security": "node --test server/tests/sitemap-security.test.js",
     "test:revalidate-security": "node --test server/tests/revalidate-security.test.js",

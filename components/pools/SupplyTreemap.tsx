@@ -62,7 +62,7 @@ function BandLabel({
 
 function segmentUsesDarkLabel(segment: SupplySegmentInput, isDark: boolean): boolean {
   if (segment.hatch) return isDark;
-  if (segment.key === 'transparent') return isDark;
+  if (segment.key === 'transparent' || segment.key === 'otherIssued') return isDark;
   return true;
 }
 
@@ -100,6 +100,8 @@ function TopSegment({
       style={style}
       onMouseEnter={() => onHover(segment.key)}
       onMouseLeave={() => onHover(null)}
+      onFocus={() => onHover(segment.key)}
+      onBlur={() => onHover(null)}
       onClick={onClick}
       aria-label={`${segment.label}, ${formatZecCompact(segment.zat / 1e8)} ZEC, ${capPct.toFixed(1)} percent of cap`}
     >
@@ -229,10 +231,10 @@ export function SupplyTreemap({
     <div
       className="flex h-[220px] w-full gap-0.5 p-0.5 sm:h-[280px]"
       role="img"
-      aria-label="Zcash supply map: transparent, shielded, and unmined portions of the 21 million cap"
+      aria-label="Zcash supply map: transparent, shielded, other issued, and unmined portions of the 21 million cap"
       onMouseLeave={handleMapLeave}
     >
-      {topLevel.map((segment) => {
+      {topLevel.filter((segment) => segment.zat > 0).map((segment) => {
         const weight = flexWeight(segment.zat);
         const flexStyle = { flex: `${weight} 1 0` };
         const active = hoveredKey === segment.key;

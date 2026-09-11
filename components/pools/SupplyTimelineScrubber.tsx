@@ -218,16 +218,16 @@ export function SupplyTimelineScrubber({
         >
           <span
             className={`mr-1 inline-block h-1.5 w-1.5 rounded-full ${
-              mode === 'live' ? 'bg-emerald-400 animate-pulse' : isDark ? 'bg-white/30' : 'bg-black/25'
+              mode === 'live' ? 'bg-emerald-400' : isDark ? 'bg-white/30' : 'bg-black/25'
             }`}
           />
-          Live
+          Latest
         </button>
       </div>
 
       <div className="flex items-center justify-between text-[10px] font-mono text-muted">
         <span>2016</span>
-        <span>{mode === 'live' ? 'Today' : scrubDateLabel ?? 'Snapshot'}</span>
+        <span>{mode === 'live' ? 'Latest snapshot' : scrubDateLabel ?? 'Snapshot'}</span>
       </div>
 
       {coverageStart && dataStartPct > 2 ? (
