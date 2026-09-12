@@ -1,3 +1,6 @@
+const { createListCache } = require('../list-cache');
+const softwareCacheFallback = createListCache({enabled:false});
+const { softwareHistory, SoftwareQueryError } = require('../lib/mining-software');
 /**
  * Mining Routes
  * /api/mining/pool-distribution, /api/mining/pool-ranking,
@@ -57,6 +60,22 @@ function resolvePoolName(address) {
 // GET /api/mining/pool-distribution
 // Returns block counts per pool for a time period (for pie/donut chart)
 // ============================================================================
+router.get('/api/mining/software', async (req,res) => {
+  try {
+    const { period, from, to, bucket } = req.query;
+    const data = await (req.app.locals.listCache || softwareCacheFallback).getOrLoad({
+      family:'mining-software-v1',params:{period:period??'30d',from:from??null,to:to??null,bucket:bucket??'auto',tipHeight:req.app.locals.chainTip?.height??0,tipHash:req.app.locals.chainTip?.hash??''},
+      freshTtlSeconds:60,staleTtlSeconds:61,cacheable:true,shouldCache:value=>value?.success===true,
+      load:()=>softwareHistory(pool,{period,from,to,bucket}),
+    });
+    res.json(data.value);
+  } catch(error) {
+    if(error instanceof SoftwareQueryError) return res.status(error.status).json({success:false,error:error.message});
+    logSafeError('Mining software history failed:',error);
+    res.status(500).json({success:false,error:'Mining software history unavailable'});
+  }
+});
+
 router.get('/api/mining/pool-distribution', async (req, res) => {
   try {
     const period = req.query.period || '7d';

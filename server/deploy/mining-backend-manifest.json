@@ -1,0 +1,51 @@
+{
+  "baseline_commit": "bf623604e5f02954a207be80dcedddcf4e0c703d",
+  "feature_source_commit": "22ddccc1243006df99e170b7c809f972d1b6c3bf",
+  "migration_source_commit": "0d24060",
+  "deployment_status": "prepared_not_deployed",
+  "runtime_files": [
+    {
+      "path": "server/api/routes/blocks.js",
+      "baseline_sha256": "ce4bdcbff6b296fb822fecc979dbb1561750389f3e864ecddb0a8aa7d98b5cb7",
+      "release_sha256": "af686d66e9e52f2ee83760d0640e0cb471f181845dde595416e89fd69fdbbcbd"
+    },
+    {
+      "path": "server/api/routes/mining.js",
+      "baseline_sha256": "41e31a411e914f42c6a5d1ab937702416c5c51a757e0a84c1e3267e56a718597",
+      "release_sha256": "66bf73b20e423a15aa9713eabc670760478ed9fb09582736890308439b54f720"
+    },
+    {
+      "path": "server/api/lib/mining-software.js",
+      "baseline_sha256": null,
+      "release_sha256": "ab39e5a59b55b2eece3309da3c21d98bb93bc484bf12d2ab06ab51ddc47df869"
+    },
+    {
+      "path": "lib/mining-software.js",
+      "baseline_sha256": null,
+      "release_sha256": "d5ca54e37eb169107c918c58001021e737979c37b51c0e79893a41d0955aaa34"
+    },
+    {
+      "path": "server/scripts/backfill-mining-software.js",
+      "baseline_sha256": null,
+      "release_sha256": "4a90d4994874a410c30a0ae7dd45cdf8ffaba9765be67c6b2215e346d76144c3"
+    },
+    {
+      "path": "server/deploy/migrations/023_mining_software.sql",
+      "baseline_sha256": null,
+      "release_sha256": "806796ff68954a48b20ae21f7ce2d06d3ed2f027d08b3cb9b0a673ca79a9bccf"
+    }
+  ],
+  "unchanged": [
+    "server/api/server.js",
+    "server/api/package.json",
+    "server/api/package-lock.json",
+    "server/api/mining-pools.js",
+    "server/api/list-cache.js",
+    "server/api/v1/",
+    "app/",
+    "next.config.ts",
+    "environment",
+    "DNS",
+    "proxy configuration"
+  ]
+}
