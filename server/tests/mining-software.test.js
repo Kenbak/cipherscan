@@ -41,6 +41,7 @@ test("block filters validate date, height, software, pool and sorting", () => {
       end: 1788307200,
       min: 0,
       max: null,
+      metrics: {},
     },
   );
   for (const q of [
@@ -56,3 +57,8 @@ test("block filters validate date, height, software, pool and sorting", () => {
     assert.throws(() => parseBlockFilters(q));
 });
 module.exports = { fixtures };
+
+test('metric filters preserve zatoshi precision and reject invalid ranges', () => {
+ assert.deepEqual(parseBlockFilters({min_fees:'0.00000001',max_fees:'1.23456789',min_interval:'120',max_size:'100000',max_txs:'1'}).metrics,{min_interval:120,max_size:100000,min_fees:'1',max_fees:'123456789',max_txs:1});
+ for(const query of [{min_fees:'0.000000001'},{min_fees:'1e3'},{min_size:'-1'},{min_txs:['2']},{min_interval:'300',max_interval:'120'},{min_fees:'2',max_fees:'1'},{min_size:'2147483648'}])assert.throws(()=>parseBlockFilters(query));
+});

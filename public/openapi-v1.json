@@ -2163,6 +2163,18 @@
             "description": "Inclusive UTC date, YYYY-MM-DD. Mining software history requires period=custom."
           },
           {
+            "name": "max_fees",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 21000000,
+              "description": "Inclusive maximum total transaction fees in ZEC (up to 8 decimal places)."
+            },
+            "description": "Inclusive maximum total transaction fees in ZEC (up to 8 decimal places)."
+          },
+          {
             "name": "max_height",
             "in": "query",
             "required": false,
@@ -2175,6 +2187,54 @@
             "description": "Inclusive maximum canonical block height."
           },
           {
+            "name": "max_interval",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 2147483647,
+              "description": "Inclusive maximum difference from the canonical parent timestamp in seconds."
+            },
+            "description": "Inclusive maximum difference from the canonical parent timestamp in seconds."
+          },
+          {
+            "name": "max_size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 2147483647,
+              "description": "Inclusive maximum indexed block size in bytes."
+            },
+            "description": "Inclusive maximum indexed block size in bytes."
+          },
+          {
+            "name": "max_txs",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 2147483647,
+              "description": "Inclusive maximum transaction count including coinbase."
+            },
+            "description": "Inclusive maximum transaction count including coinbase."
+          },
+          {
+            "name": "min_fees",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 21000000,
+              "description": "Inclusive minimum total transaction fees in ZEC (up to 8 decimal places)."
+            },
+            "description": "Inclusive minimum total transaction fees in ZEC (up to 8 decimal places)."
+          },
+          {
             "name": "min_height",
             "in": "query",
             "required": false,
@@ -2185,6 +2245,42 @@
               "description": "Inclusive minimum canonical block height."
             },
             "description": "Inclusive minimum canonical block height."
+          },
+          {
+            "name": "min_interval",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 2147483647,
+              "description": "Inclusive minimum difference from the canonical parent timestamp in seconds."
+            },
+            "description": "Inclusive minimum difference from the canonical parent timestamp in seconds."
+          },
+          {
+            "name": "min_size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 2147483647,
+              "description": "Inclusive minimum indexed block size in bytes."
+            },
+            "description": "Inclusive minimum indexed block size in bytes."
+          },
+          {
+            "name": "min_txs",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 2147483647,
+              "description": "Inclusive minimum transaction count including coinbase."
+            },
+            "description": "Inclusive minimum transaction count including coinbase."
           },
           {
             "name": "order",
@@ -2219,6 +2315,7 @@
                 "Mining Dutch",
                 "NiceHash",
                 "Private Miner B",
+                "Sluicey Pool",
                 "Unidentified #5",
                 "ViaBTC",
                 "ViaBTC-Solo",

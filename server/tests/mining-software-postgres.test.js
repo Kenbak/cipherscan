@@ -236,6 +236,23 @@ test(
     assert.equal(taggedBody.data[0].miner_pool,'Sluicey Pool');
     const untagged = await fetch(`${origin}/v1/blocks?pool=unattributed&min_height=523&max_height=523`);
     assert.equal((await untagged.json()).data.length,0);
+    await t.test('metric bounds filter the dataset and bind pagination', async () => {
+      await db.query("UPDATE blocks SET size=25000,total_fees=123456789,transaction_count=7 WHERE height IN (501,511,521)");
+      const query = 'software=zebra&min_interval=75&max_interval=75&min_size=25000&max_size=25000&min_fees=1.23456789&max_fees=1.23456789&min_txs=7&max_txs=7&limit=1';
+      const first = await fetch(`${origin}/v1/blocks?${query}`);
+      const result = await first.json();
+      assert.equal(first.status,200,JSON.stringify(result));
+      assert.equal(result.meta.page.total,3);
+      assert.deepEqual(result.data.map(b=>b.height),[521]);
+      assert.equal(result.data[0].intervalSeconds,75);
+      const next = await fetch(`${origin}/v1/blocks?${query}&cursor=${encodeURIComponent(result.meta.page.nextCursor)}`);
+      assert.deepEqual((await next.json()).data.map(b=>b.height),[511]);
+      assert.equal((await fetch(`${origin}/v1/blocks?${query.replace('min_size=25000','min_size=24000')}&cursor=${encodeURIComponent(result.meta.page.nextCursor)}`)).status,400);
+      const outside = await fetch(`${origin}/v1/blocks?min_fees=1.23456790`);
+      assert.equal((await outside.json()).meta.page.total,0);
+      for (const invalid of ['min_size=2&max_size=1','min_fees=0.000000001','min_txs=-1','min_interval=1.5'])
+        assert.equal((await fetch(`${origin}/v1/blocks?${invalid}`)).status,400,invalid);
+    });
     // Larger synthetic range for query-plan and bounded-aggregate smoke checks.
     await db.query(
       `INSERT INTO blocks(height,hash,timestamp,coinbase_hex) SELECT i,'synthetic-'||i,1788220800+i*75,CASE WHEN i%100=0 THEN 'f09fa693' ELSE '00' END FROM generate_series(526,100525) i`,

@@ -82,6 +82,7 @@ function captureBlockApiRoute() {
     get(route, callback) { handlers.set(route, callback); },
   };
   loadJavaScriptModule('server/api/routes/blocks.js', {
+    '../lib/mining-software': require('../api/lib/mining-software'),
     express: { Router: () => router },
     '../mining-pools': {
       getPoolName: () => null,
@@ -569,7 +570,7 @@ test('legacy migration and swap routes permanently consolidate authority', async
   assert.deepEqual(rewrites.fallback, []);
 
   const latestRoutes = [
-    ['/blocks', '/blocks/latest', ['cursor', 'direction', 'page']],
+    ['/blocks', '/blocks/latest', ['cursor', 'direction', 'page', 'software', 'pool', 'order', 'from', 'to', 'min_height', 'max_height', 'min_interval', 'max_interval', 'min_size', 'max_size', 'min_fees', 'max_fees', 'min_txs', 'max_txs']],
     ['/txs', '/txs/latest', ['cursor', 'cursor_idx', 'cursor_id', 'direction', 'page', 'type', 'flow_type', 'pool', 'min_zec']],
   ];
   for (const [source, destination, queryKeys] of latestRoutes) {

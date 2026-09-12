@@ -38,7 +38,7 @@ function parsePositiveInteger(value: string | undefined): number | null {
 }
 
 function parseBlocksRequest(searchParams: SearchParams): BlocksRequest {
-  const filters: BlockFilterValues = Object.fromEntries(['software','pool','order','from','to','min_height','max_height'].flatMap(key => {
+  const filters: BlockFilterValues = Object.fromEntries(['software','pool','order','from','to','min_height','max_height','min_interval','max_interval','min_size','max_size','min_fees','max_fees','min_txs','max_txs'].flatMap(key => {
     const value=firstValue(searchParams[key]);
     return value ? [[key,value]] : [];
   }));
@@ -78,7 +78,7 @@ export async function generateMetadata({ searchParams }: BlocksPageProps): Promi
   return buildPageMetadata({
     title: `${request.filtered ? 'Zcash Blocks' : 'Latest Zcash Blocks'}${pageSuffix} | ZecBlock`,
     description: request.filtered
-      ? 'Browse canonical Zcash blocks by software marker, mining pool, date and height, with transaction counts and actual parent intervals.'
+      ? 'Filter canonical Zcash blocks by software, mining pool, date, height, size, fees, transaction count and parent-block interval.'
       : request.page > 1
       ? `Browse Zcash block archive page ${request.page}, including block heights, hashes, transaction counts, sizes, miners, and timestamps.`
       : 'Browse the latest Zcash blocks with transaction counts, sizes, mining rewards, and timestamps. Real-time block explorer data.',

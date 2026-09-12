@@ -317,7 +317,7 @@ export default function BlocksClient({
       <PageHeader
         eyebrow="ALL_BLOCKS"
         title={page > 1 ? `Zcash Blocks - Page ${page}` : Object.keys(filters).length ? 'Zcash Blocks' : 'Latest Zcash Blocks'}
-        subtitle="Browse canonical blocks by software marker, mining pool, date or height."
+        subtitle="Browse canonical blocks by software, pool, date, size, fees and more."
         actions={
           <span className="text-xs font-mono text-muted">
             {!dataAvailable && blocks.length === 0
