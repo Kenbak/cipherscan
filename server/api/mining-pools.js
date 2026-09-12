@@ -93,9 +93,8 @@ const POOL_BY_ADDRESS = {
 
   // --- NiceHash ---
   // Coinbase tag: "/NiceHash/"
-  // Some NiceHash miners use fully shielded payouts (miner_address resolves
-  // to dev fund address). Those blocks have coinbase "Get Sluicey Yall
-  // sluicey.xyz" — can't attribute by address alone, would need coinbase matching.
+  // Sluicey is a separate shielded-payout pool; its coinbase tag is handled
+  // independently below and must not be attributed to NiceHash.
   't1eBv4a3wBhVaFgWYjXrFYTU7pruCWaBpLW': {
     name: 'NiceHash',
     url: 'https://www.nicehash.com',
@@ -202,15 +201,29 @@ const POOL_BY_ADDRESS = {
   },
 };
 
-function getPoolName(address) {
-  if (!address) return null;
-  const pool = POOL_BY_ADDRESS[address];
-  return pool && !pool.isFundingStream ? pool.name : null;
+// Public pool marker corroborated by https://sluicey.xyz/ and its reported
+// block 3480541. Identifies the pool, never the shielded payout recipient.
+const POOL_BY_TAG = {
+  sluicey: { name: 'Sluicey Pool', url: 'https://sluicey.xyz/', region: null, attribution: 'coinbase-tag' },
+};
+const SLUICEY_TAG_HEX = Buffer.from('Get Sluicey Yall sluicey.xyz').toString('hex');
+const SLUICEY_TAG_PATTERN = `^(?:[0-9a-f]{2})*${SLUICEY_TAG_HEX}(?:[0-9a-f]{2})*$`;
+function getPoolTag(coinbaseHex) {
+  return typeof coinbaseHex === 'string' && new RegExp(SLUICEY_TAG_PATTERN, 'i').test(coinbaseHex) ? 'sluicey' : null;
+}
+// Identifiers are internal call-site constants, never request input.
+function getPoolTagSql(column = 'coinbase_hex') {
+  if (!/^[a-z_]+(?:\.[a-z_]+)?$/.test(column)) throw new Error('Invalid coinbase SQL column');
+  return `CASE WHEN ${column} ~* '${SLUICEY_TAG_PATTERN}' THEN 'sluicey' ELSE NULL END`;
+}
+function getPoolName(address, coinbaseHex) {
+  const pool = address ? POOL_BY_ADDRESS[address] : null;
+  if (pool && !pool.isFundingStream) return pool.name;
+  return POOL_BY_TAG[getPoolTag(coinbaseHex)]?.name || null;
 }
 
-function getPoolInfo(address) {
-  if (!address) return null;
-  return POOL_BY_ADDRESS[address] || null;
+function getPoolInfo(address, coinbaseHex) {
+  return (address ? POOL_BY_ADDRESS[address] : null) || POOL_BY_TAG[getPoolTag(coinbaseHex)] || null;
 }
 
-module.exports = { POOL_BY_ADDRESS, getPoolName, getPoolInfo };
+module.exports = { POOL_BY_ADDRESS, POOL_BY_TAG, getPoolName, getPoolInfo, getPoolTag, getPoolTagSql };

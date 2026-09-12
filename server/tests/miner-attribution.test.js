@@ -13,3 +13,15 @@ test('real mining pool identities and unknown recipients are preserved', () => {
   assert.equal(getPoolName(null), null);
   assert.equal(getPoolName('unrecognized'), null);
 });
+
+test('Sluicey coinbase tag identifies a pool without inventing a payout address', () => {
+  const { getPoolTag } = require('../api/mining-pools');
+  const tag = Buffer.from('Get Sluicey Yall sluicey.xyz').toString('hex');
+  assert.equal(getPoolName(null, `1d00${tag}`), 'Sluicey Pool');
+  assert.equal(getPoolInfo(null, tag).url, 'https://sluicey.xyz/');
+  assert.equal(getPoolTag(tag.toUpperCase()), 'sluicey');
+  for (const invalid of [`a${tag}0`, tag+'z', null, Buffer.from('sluicey.xyz').toString('hex')]) {
+    assert.equal(getPoolTag(invalid), null);
+  }
+  assert.equal(getPoolName('t1MKn34KBa8Xh4g8qU8psibBXvURafphVn7', tag), 'ViaBTC');
+});

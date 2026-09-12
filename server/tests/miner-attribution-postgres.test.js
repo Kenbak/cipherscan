@@ -35,6 +35,26 @@ test('migration repairs attribution and guards old writers without changing paym
     for (const table of ['mining_behavior_daily','miner_destination_daily']) {
       assert.deepEqual((await db.query(`SELECT pool_name FROM ${table}`)).rows,[{pool_name:'ViaBTC'}]);
     }
+    // Exercise the actual statistics queries against PostgreSQL: tag grouping
+    // must retain unknown blocks and never group funding outputs as a pool.
+    await db.query(`ALTER TABLE blocks ADD COLUMN timestamp bigint DEFAULT EXTRACT(EPOCH FROM now()), ADD COLUMN total_fees bigint DEFAULT 0, ADD COLUMN coinbase_hex text;`);
+    const tag = Buffer.from('Get Sluicey Yall sluicey.xyz').toString('hex');
+    await db.query('UPDATE blocks SET coinbase_hex=$1 WHERE height=4',[tag]);
+    const {getPoolTagSql} = require('../api/mining-pools');
+    assert.equal((await db.query(`SELECT ${getPoolTagSql()} AS tag FROM blocks WHERE height=4`)).rows[0].tag,'sluicey');
+    const express = require('express');
+    const app = express(); app.locals.pool = db;
+    app.use(require('../api/routes/mining'));
+    const server = await new Promise(resolve => { const srv=app.listen(0,'127.0.0.1',()=>resolve(srv)); });
+    try {
+      for (const route of ['pool-distribution','pool-ranking','hashrate-share']) {
+        const response = await fetch(`http://127.0.0.1:${server.address().port}/api/mining/${route}?period=7d`);
+        assert.equal(response.status,200,route);
+        const body=await response.json();
+        assert.match(JSON.stringify(body),/Sluicey Pool/,route);
+        assert.doesNotMatch(JSON.stringify(body),/Dev Fund|FPF/,route);
+      }
+    } finally { server.closeAllConnections(); await new Promise(resolve=>server.close(resolve)); }
     await db.query('DROP TABLE mining_behavior_daily, miner_destination_daily');
     await db.query(migration); // Minimal networks need no snapshot tables.
   } finally {
