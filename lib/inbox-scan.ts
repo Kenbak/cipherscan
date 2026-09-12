@@ -56,6 +56,16 @@ export async function scanInbox(options: {
   let matches = 0;
   const messages: ScanMemo[] = [];
   const seen = new Set<string>();
+  let lastPublish = -Infinity;
+  let dirty = false;
+  const flushMessages = () => {
+    if (!dirty) return;
+    signal.throwIfAborted();
+    messages.sort((a, b) => b.height - a.height || a.txid.localeCompare(b.txid) || a.output_index - b.output_index);
+    onMessages([...messages]);
+    lastPublish = Date.now();
+    dirty = false;
+  };
   for (let start = startHeight; start <= endHeight; start = rangeEnd(start) + 1) {
     options.onPhase?.('fetching');
     const range = start === startHeight ? (await first)[0] : await pending;
@@ -93,8 +103,9 @@ export async function scanInbox(options: {
         published.add(tx.txid);
         if (!tx.outputs.length) return;
         for (const output of tx.outputs) messages.push({ ...source, ...output });
-        messages.sort((a, b) => b.height - a.height || a.txid.localeCompare(b.txid) || a.output_index - b.output_index);
-        onMessages([...messages]);
+        dirty = true;
+        // Show the first memo immediately, then coalesce UI work during bursts.
+        if (Date.now() - lastPublish >= 50) flushMessages();
       };
       options.onPhase?.('decrypting');
       const decrypted = await scanner.decryptMemos(batch.map(tx => ({ txid: tx.txid, hex: byId.get(tx.txid)! })), publish);
@@ -102,6 +113,7 @@ export async function scanInbox(options: {
       // Support scanners without streaming callbacks and never publish an output twice.
       for (const tx of decrypted) publish(tx);
       if (published.size !== batch.length) throw new Error('Incomplete memo decryption results');
+      flushMessages();
     }
     onProgress(rangeEnd(start) - startHeight + 1, matches);
   }
