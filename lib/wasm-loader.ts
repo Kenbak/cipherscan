@@ -205,6 +205,7 @@ export async function filterCompactOutputsBatch(
       for (const tx of block.vtx || []) {
         for (const action of tx.actions || []) {
           allOutputs.push({
+            pool: action.pool,
             nullifier: action.nullifier,
             cmx: action.cmx,
             ephemeral_key: action.ephemeralKey,

@@ -18,14 +18,12 @@ cd wasm
 echo "📦 Compiling Rust to WASM..."
 wasm-pack build --target web --release
 
-# Create public/wasm directory if it doesn't exist
-mkdir -p ../public/wasm
-
-# Copy WASM files to public
-echo "📁 Copying WASM files to public/wasm/..."
-cp pkg/zcash_wasm.js ../public/wasm/
-cp pkg/zcash_wasm_bg.wasm ../public/wasm/
-cp pkg/zcash_wasm.d.ts ../public/wasm/
+# Keep the web application and published decoder bundle on the same ABI.
+echo "📁 Copying WASM files to web and decoder bundles..."
+for output_dir in ../public/wasm ../packages/zcash-decoder/wasm; do
+  mkdir -p "$output_dir"
+  cp pkg/zcash_wasm.js pkg/zcash_wasm_bg.wasm pkg/zcash_wasm.d.ts pkg/zcash_wasm_bg.wasm.d.ts "$output_dir/"
+done
 
 # Get file sizes
 WASM_SIZE=$(du -h ../public/wasm/zcash_wasm_bg.wasm | cut -f1)

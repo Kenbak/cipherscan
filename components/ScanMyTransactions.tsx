@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useRef } from 'react';
-import Link from 'next/link';
+import { useState, useRef, useEffect } from 'react';
+import { scanInbox } from '@/lib/inbox-scan';
+import type { ScanMemo } from '@/lib/scan-records';
 import { useWasmWorkerPool } from '@/hooks/useWasmWorkerPool';
 import { getApiUrl } from '@/lib/api-config';
 import { CURRENCY, isMainnet } from '@/lib/config';
@@ -79,13 +80,7 @@ function formatTime(timestamp: number): string {
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
-interface ScanResult {
-  txid: string;
-  height: number;
-  timestamp: number;
-  memo: string;
-  amount: number; // Amount in ZEC
-}
+type ScanResult = ScanMemo;
 
 export function ScanMyTransactions() {
   const [viewingKey, setViewingKey] = useState('');
@@ -94,7 +89,6 @@ export function ScanMyTransactions() {
   const [scanning, setScanning] = useState(false);
   const [scanProgress, setScanProgress] = useState(0);
   const [totalBlocks, setTotalBlocks] = useState(0);
-  const [currentBlock, setCurrentBlock] = useState(0);
   const [scanResults, setScanResults] = useState<ScanResult[]>([]);
   const [scanError, setScanError] = useState<string | null>(null);
   const [scanPhase, setScanPhase] = useState<'fetching' | 'filtering' | 'decrypting' | ''>('');
@@ -108,217 +102,61 @@ export function ScanMyTransactions() {
   // AbortController for cancelling fetch requests
   const abortControllerRef = useRef<AbortController | null>(null);
 
+  useEffect(() => () => { abortControllerRef.current?.abort(); }, []);
+
   // Ref to scroll to results
   const resultsRef = useRef<HTMLDivElement>(null);
 
-  // Birthday scan using Lightwalletd + Web Worker (FAST + SMOOTH!)
-  const scanFromBirthday = async (sanitizedKey: string, birthdayHeight: number) => {
-    // Create AbortController for this scan
-    abortControllerRef.current = new AbortController();
-
+  // Bounded download/filter/decrypt pipeline; viewing keys remain in workers.
+  const scanFromBirthday = async (sanitizedKey: string, birthdayHeight: number | null, blocksToScan = 48) => {
+    if (abortControllerRef.current) return;
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
     setScanning(true);
     setScanError(null);
     setScanResults([]);
     setScanProgress(0);
     setTotalBlocks(0);
-    setCurrentBlock(0);
     setScanPhase('fetching');
     setCancelRequested(false);
     setBlocksProcessed(0);
     setMatchesFound(0);
-
-    const startTime = Date.now();
-    const minScanTime = 1500;
-
     try {
-      const { decryptMemo } = await import('@/lib/wasm-loader');
       const apiUrl = getApiUrl();
-
-      // Check for cancellation
-      if (cancelRequested) {
-        setScanResults([]);
-        return;
-      }
-
-      // Get current block height
-      setScanPhase('fetching');
-      const infoRes = await fetch(`${apiUrl}/api/info`, {
-        signal: abortControllerRef.current.signal
-      });
-      if (!infoRes.ok) {
-        throw new Error(`Failed to fetch blockchain info: ${infoRes.status}`);
-      }
-      const infoData = await infoRes.json();
-      const currentHeight = parseInt(infoData.blocks || infoData.height || 0);
-
-      const totalBlocks = currentHeight - birthdayHeight;
-      setTotalBlocks(totalBlocks);
-
-      // Check for cancellation
-      if (cancelRequested) {
-        setScanResults([]);
-        return;
-      }
-
-      // Step 1: Fetch compact blocks from Lightwalletd
-      setScanProgress(10);
-      const compactRes = await fetch(`${apiUrl}/api/lightwalletd/scan`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json'},
-        body: JSON.stringify({
-          startHeight: birthdayHeight,
-          endHeight: currentHeight,
-        }),
-        signal: abortControllerRef.current.signal
-      });
-
-      if (!compactRes.ok) {
-        throw new Error(`Failed to fetch compact blocks: ${compactRes.status}`);
-      }
-
-      const compactData = await compactRes.json();
-      setScanProgress(30);
-
-      // Check for cancellation
-      if (cancelRequested) {
-        setScanResults([]);
-        return;
-      }
-
-      // Step 2: Filter compact outputs to find matching TXs (Multi-threaded Workers!)
+      const infoRes = await fetch(`${apiUrl}/api/info`, { signal: controller.signal });
+      if (!infoRes.ok) throw new Error(`Failed to fetch blockchain info: ${infoRes.status}`);
+      const info = await infoRes.json();
+      const endHeight = Number(info.blocks ?? info.height);
+      const startHeight = Math.max(1, birthdayHeight ?? endHeight - blocksToScan + 1);
+      if (!Number.isSafeInteger(endHeight) || startHeight > endHeight) throw new Error('Birthday block is above the current chain height');
+      const total = endHeight - startHeight + 1;
+      setTotalBlocks(total);
+      controller.signal.throwIfAborted();
+      await wasmWorkerPool.begin(sanitizedKey);
+      controller.signal.throwIfAborted();
       setScanPhase('filtering');
-      setBlocksProcessed(0);
-
-      const matchingTxs = await wasmWorkerPool.filterCompactBlocks(
-        compactData.blocks,
-        sanitizedKey,
-        (progress) => {
-          // Update progress from 30% to 50% during filtering
-          const filterProgress = Math.round(30 + (progress.blocksProcessed / progress.totalBlocks) * 20);
-          setScanProgress(filterProgress);
-          setCurrentBlock(birthdayHeight + progress.blocksProcessed);
-          setBlocksProcessed(progress.blocksProcessed);
-          setMatchesFound(progress.matchesFound);
-        }
-      );
-
-      setScanProgress(50);
-      setMatchesFound(matchingTxs.length);
-
-      // Check for cancellation
-      if (cancelRequested) {
-        setScanResults([]);
-        return;
-      }
-
-      if (matchingTxs.length === 0) {
-        setScanError(`Scanned ${totalBlocks.toLocaleString()} blocks but found no transactions matching your viewing key.`);
-        const elapsedTime = Date.now() - startTime;
-        if (elapsedTime < minScanTime) {
-          await new Promise(resolve => setTimeout(resolve, minScanTime - elapsedTime));
-        }
-        setScanPhase('');
-        setScanning(false);
-        return;
-      }
-
-      // Step 3: Fetch raw hex for matching TXs (batch)
-      setScanPhase('decrypting');
-      const txids = matchingTxs.map(tx => tx.txid);
-      const batchSize = 100;
-      const allRawTxs = new Map<string, string>();
-
-      for (let i = 0; i < txids.length; i += batchSize) {
-        // Check for cancellation
-        if (cancelRequested) {
-          setScanError('Scan cancelled by user');
-          return;
-        }
-
-        const batch = txids.slice(i, i + batchSize);
-        const batchRes = await fetch(`${apiUrl}/api/tx/raw/batch`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ txids: batch }),
-        });
-
-        if (!batchRes.ok) {
-          throw new Error(`Failed to fetch raw transactions: ${batchRes.status}`);
-        }
-
-        const batchData = await batchRes.json();
-        batchData.transactions.forEach((tx: any) => {
-          allRawTxs.set(tx.txid, tx.hex);
-        });
-
-        setScanProgress(50 + Math.round((i / txids.length) * 30));
-      }
-
-      // Step 4: Decrypt memos with WASM
-      const foundMessages: ScanResult[] = [];
-      let processed = 0;
-
-      for (const matchingTx of matchingTxs) {
-        // Check for cancellation
-        if (cancelRequested) {
-          setScanError('Scan cancelled by user');
-          return;
-        }
-
-        try {
-          const rawHex = allRawTxs.get(matchingTx.txid);
-          if (rawHex) {
-            const decrypted = await decryptMemo(rawHex, sanitizedKey);
-            foundMessages.push({
-              txid: matchingTx.txid,
-              height: matchingTx.height,
-              timestamp: matchingTx.timestamp,
-              memo: decrypted.memo,
-              amount: decrypted.amount,
-            });
-          }
-        } catch (err) {
-          // Failed to decrypt this TX (empty memo or change output)
-        }
-
-        processed++;
-        setScanProgress(80 + Math.round((processed / matchingTxs.length) * 20));
-      }
-
+      const result = await scanInbox({
+        apiUrl, startHeight, endHeight, signal: controller.signal, scanner: wasmWorkerPool,
+        onProgress: (processed, matches) => {
+          setBlocksProcessed(processed);
+          setMatchesFound(matches);
+          setScanProgress(Math.round(processed / total * 100));
+        },
+        onMessages: setScanResults,
+      });
       setScanProgress(100);
-      await new Promise(resolve => setTimeout(resolve, 200));
-
-      if (foundMessages.length === 0) {
-        setScanError(`Found ${matchingTxs.length} matching transactions but none had readable memos.`);
-      } else {
-        setScanResults(foundMessages);
-        setTimeout(() => {
-          resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }, 300);
-      }
-
-      const elapsedTime = Date.now() - startTime;
-      if (elapsedTime < minScanTime) {
-        await new Promise(resolve => setTimeout(resolve, minScanTime - elapsedTime));
-      }
-    } catch (err: any) {
-      // Check if it's an abort error (user cancelled)
-      if (err.name === 'AbortError' || err.message.includes('cancelled')) {
-        setScanResults([]);
-        // Silent cancellation - no error message
-      } else {
-        // Real error - log and show
-        console.error('Scan error:', err);
-        setScanProgress(100);
-        await new Promise(resolve => setTimeout(resolve, 200));
-        setScanError(err.message || 'Failed to scan from birthday');
-      }
-
-      const elapsedTime = Date.now() - startTime;
-      if (elapsedTime < minScanTime) {
-        await new Promise(resolve => setTimeout(resolve, minScanTime - elapsedTime));
+      if (!result.matches) setScanError(`Scanned ${total.toLocaleString()} blocks but found no transactions matching your viewing key.`);
+      else if (!result.messages.length) setScanError(`Found ${result.matches} matching transactions but none had readable memos.`);
+      else resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } catch (error: unknown) {
+      controller.abort();
+      // A failed or cancelled range must never look like a complete inbox.
+      setScanResults([]);
+      if (!(error instanceof DOMException && error.name === 'AbortError')) {
+        setScanError(error instanceof Error ? error.message : 'Unable to scan transactions');
       }
     } finally {
+      wasmWorkerPool.cancel();
       setScanPhase('');
       setCancelRequested(false);
       setScanning(false);
@@ -341,40 +179,16 @@ export function ScanMyTransactions() {
 
     // Validate birthday block if birthday mode
     if (scanPeriod === 'birthday') {
-      const birthday = parseInt(birthdayBlock);
-      if (!birthdayBlock || isNaN(birthday) || birthday < 0) {
+      const birthday = Number(birthdayBlock);
+      if (!birthdayBlock || !Number.isSafeInteger(birthday) || birthday < 0) {
         setScanError('Please enter a valid birthday block number.');
         return;
       }
       return scanFromBirthday(sanitizedKey, birthday);
     }
 
-    // Period scan: calculate start height and use the same filter-first
-    // architecture as birthday scan (compact blocks + worker pool + batch
-    // filtering, then full-decrypt only matches).
-    try {
-      const apiUrl = getApiUrl();
-      const infoRes = await fetch(`${apiUrl}/api/info`);
-      if (!infoRes.ok) {
-        throw new Error(`Failed to fetch blockchain info: ${infoRes.status}`);
-      }
-      const infoData = await infoRes.json();
-      const currentHeight = parseInt(infoData.blocks || infoData.height || 0);
-
-      const periodToBlocks: Record<string, number> = {
-        '1h': 48,     // ~1 hour (75s per block)
-        '6h': 288,    // ~6 hours
-        '24h': 1152,  // ~24 hours
-        '7d': 8064,   // ~7 days
-      };
-
-      const blocksToScan = periodToBlocks[scanPeriod] || 48;
-      const startHeight = Math.max(0, currentHeight - blocksToScan);
-
-      return scanFromBirthday(sanitizedKey, startHeight);
-    } catch (err: any) {
-      setScanError(err.message || 'Failed to start scan');
-    }
+    const periodToBlocks = { '1h': 48, '6h': 288, '24h': 1152, '7d': 8064 };
+    return scanFromBirthday(sanitizedKey, null, periodToBlocks[scanPeriod]);
   };
 
   const resetScan = () => {
@@ -382,7 +196,6 @@ export function ScanMyTransactions() {
     setScanError(null);
     setScanProgress(0);
     setTotalBlocks(0);
-    setCurrentBlock(0);
     setScanPhase('');
     setCancelRequested(false);
     setBlocksProcessed(0);
@@ -557,7 +370,7 @@ export function ScanMyTransactions() {
               <div className="alert alert-error">
                 <Icons.X />
                 <div>
-                  <p className="font-medium">No Messages Found</p>
+                  <p className="font-medium">Scan Result</p>
                   <p className="text-sm text-secondary mt-1 leading-relaxed">
                     {scanError}
                   </p>
@@ -612,7 +425,7 @@ export function ScanMyTransactions() {
           <div className="inbox-body p-4 space-y-3">
             {scanResults.map((result, idx) => (
               <div
-                key={idx}
+                key={`${result.txid}:${result.output_index}`}
                 className="inbox-message border border-cipher-cyan/20 rounded-xl overflow-hidden hover:border-cipher-cyan/50 transition-colors duration-200 animate-fade-in"
                 style={{ animationDelay: `${idx * 100}ms` }}
               >

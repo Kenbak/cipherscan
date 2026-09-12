@@ -157,6 +157,7 @@ export class ZcashWASM {
                     // Orchard actions
                     for (const action of tx.actions || []) {
                         allOutputs.push({
+                            pool: action.pool,
                             nullifier: action.nullifier,
                             cmx: action.cmx,
                             ephemeral_key: action.ephemeralKey,

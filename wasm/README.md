@@ -6,7 +6,7 @@ WebAssembly module for decrypting Zcash shielded transaction memos **entirely in
 
 - ✅ **100% Client-Side** - Viewing keys never leave your device
 - ✅ **Orchard Support** - Decrypt Orchard shielded memos
-- ✅ **Ironwood Support** - Decrypt Ironwood shielded memos (same domain/keys as Orchard)
+- ✅ **Ironwood Support** - Decrypt Ironwood shielded memos (shared key material, distinct note-encryption domain)
 - ❌ **No Sapling Support** - Sapling decryption needs `zcash_primitives`/`sapling-crypto`, which pull in `secp256k1` (C code) via `zcash_transparent` and cannot compile to `wasm32`. This crate deliberately depends on `zakura-orchard` only (see `Cargo.toml`) to keep the wasm32 build lean.
 - ✅ **Unified Viewing Keys** - Support for UFVK (Orchard component)
 - ✅ **Privacy-Preserving** - Zero server-side processing
@@ -76,3 +76,14 @@ MIT
 
 Built with [librustzcash](https://github.com/zcash/librustzcash) by the Zcash Foundation.
 
+
+## Scan sessions
+
+`new ScanSession(ufvk)` prepares external and internal keys once. Use
+`filter_compact(Uint8Array)` for 149-byte compact records and
+`decrypt_memos(txHex)` for every readable memo in a transaction. Call `free()`
+when finished. Browser inbox workers are terminated on completion or cancellation.
+The existing `decrypt_memo` API retains its first-memo return shape.
+
+See `BUILD.md` for the ABI/build benchmark and run `npm run test:inbox-scan`
+from the repository root for regression coverage.

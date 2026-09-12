@@ -28,6 +28,7 @@ export interface CompactTransaction {
  * Orchard compact action
  */
 export interface CompactAction {
+    pool?: 'orchard' | 'ironwood';
     nullifier: string;
     cmx: string;
     ephemeralKey: string;

@@ -47,14 +47,14 @@ wasm-pack build --target web --release
 ```
 
 **Optimizations:**
-- ✅ Size optimization (`opt-level = "z"`)
+- ✅ Scan throughput optimization (`opt-level = 3`)
 - ✅ Link Time Optimization (LTO)
 - ✅ Dead code elimination
 - ✅ Single codegen unit
 
 **Expected size:**
-- WASM: ~200-400 KB (gzipped: ~100-200 KB)
-- JS: ~10 KB
+- WASM: 547,786 bytes (gzip: 256,117 bytes for the measured scanner build)
+- JS: generated wasm-bindgen wrapper (size varies with exports)
 
 ---
 
@@ -194,3 +194,36 @@ After building:
 2. ✅ Integrate with Next.js
 3. ✅ Deploy to production
 4. ✅ Monitor bundle size
+
+## Scanner benchmark (2026-09-12)
+
+The release profile favors throughput (`opt-level = 3`). A local Node 22.22.1
+x64/Rosetta run on macOS, using 512 repetitions of a synthetic matching Orchard
+action, one warmup and the median of five runs, measured:
+
+| Build/path | Median ms | WASM bytes | gzip bytes |
+| --- | ---: | ---: | ---: |
+| Original bundled JSON API | 1620.669 | 326714 | 182838 |
+| New size build, binary tagged session | 1437.390 | 333281 | 185704 |
+| New speed build, binary tagged session | 1297.521 | 547786 | 256117 |
+
+These are all-matching synthetic microbenchmarks, not wallet-download or mobile
+measurements. The browser/API transport remains JSON. Known pool tags avoid the
+second domain; old untagged data still uses both. The new speed build's untagged
+binary path measured 1449.048 ms in this run. Performance varies by action mix
+and device. Cold module initialization was sequential and is not a fair
+cross-build startup comparison.
+
+Reproduce without saving a real viewing key:
+
+```sh
+SCAN_FIXTURE_PATH=/tmp/scan-fixture.json cargo test --manifest-path wasm/Cargo.toml export_public_synthetic_fixture_when_requested
+node server/scripts/benchmark-wasm.mjs /tmp/scan-fixture.json public/wasm
+```
+
+Run this from the repository root. For a size comparison, build from `wasm/`
+with `CARGO_PROFILE_RELEASE_OPT_LEVEL=z wasm-pack build --target web --release --out-dir /tmp/wasm-size`.
+Rebuild and copy the same generated artifacts to both `public/wasm/` and
+`packages/zcash-decoder/wasm/` before shipping. The legacy decoder API remains
+compatible; `ScanSession` adds scan-scoped prepared keys, fixed 149-byte records
+and an all-memo API.

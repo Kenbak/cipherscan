@@ -1,3 +1,4 @@
+import type { MemoOutput } from '../lib/scan-records';
 // Web Worker for WASM batch filtering (runs off main thread for 0% UI freeze)
 // This keeps the UI responsive during large birthday scans (500k+ blocks)
 
@@ -55,6 +56,7 @@ async function loadWasm() {
 
     wasmModule = {
       batch_filter_compact_outputs: wasmInit.batch_filter_compact_outputs,
+      ScanSession: wasmInit.ScanSession,
     };
 
     return wasmModule;
@@ -93,6 +95,7 @@ async function filterCompactBlocks(
       for (const tx of block.vtx || []) {
         for (const action of tx.actions || []) {
           allOutputs.push({
+            pool: action.pool,
             nullifier: action.nullifier,
             cmx: action.cmx,
             ephemeral_key: action.ephemeralKey,
@@ -151,8 +154,34 @@ async function filterCompactBlocks(
 }
 
 // Handle messages from main thread
-self.addEventListener('message', async (e: MessageEvent<WorkerMessage>) => {
+let scanSession: { filter_compact: (bytes: Uint8Array) => Uint32Array; decrypt_memos: (hex: string) => string; free: () => void } | null = null;
+self.addEventListener('message', async (e: MessageEvent) => {
   const message = e.data;
+  if (message?.type === 'session') {
+    try {
+      let result: unknown = null;
+      if (message.operation === 'init') {
+        const wasm = await loadWasm();
+        scanSession?.free();
+        scanSession = new wasm.ScanSession(message.viewingKey);
+      } else {
+        if (!scanSession) throw new Error('Scan session not initialized');
+        if (message.operation === 'filter') {
+          result = Array.from(scanSession.filter_compact(message.bytes));
+        } else if (message.operation === 'memos') {
+          result = message.transactions.map((tx: { txid: string; hex: string }) => ({
+            txid: tx.txid,
+            outputs: JSON.parse(scanSession!.decrypt_memos(tx.hex)) as MemoOutput[],
+          }));
+        } else throw new Error('Unknown scan operation');
+      }
+      self.postMessage({ type: 'session-result', id: message.id, result });
+    } catch {
+      // Never echo keys, transaction contents, or WASM parse inputs in errors.
+      self.postMessage({ type: 'session-error', id: message.id, error: 'Unable to process scan data' });
+    }
+    return;
+  }
 
   // Validate message structure
   if (!message || typeof message !== 'object') {
