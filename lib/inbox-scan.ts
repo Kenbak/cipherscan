@@ -10,6 +10,7 @@ interface Scanner {
 export async function scanInbox(options: {
   apiUrl: string; startHeight: number; endHeight: number; signal: AbortSignal; scanner: Scanner;
   fetcher?: typeof fetch;
+  initialize?: () => Promise<void>;
   onProgress: (processed: number, matches: number) => void;
   onMessages: (messages: ScanMemo[]) => void;
 }): Promise<{ matches: number; messages: ScanMemo[] }> {
@@ -41,11 +42,14 @@ export async function scanInbox(options: {
       }).catch((error: unknown) => ({ blocks: null, error }));
   }
   let pending = fetchRange(startHeight);
+  // Download the first range while workers load WASM and prepare their keys.
+  // Attach both rejection handlers immediately, including initialization failures.
+  const first = Promise.all([pending, options.initialize?.() ?? Promise.resolve()]);
   let matches = 0;
   const messages: ScanMemo[] = [];
   const seen = new Set<string>();
   for (let start = startHeight; start <= endHeight; start = rangeEnd(start) + 1) {
-    const range = await pending;
+    const range = start === startHeight ? (await first)[0] : await pending;
     signal.throwIfAborted();
     if (!range.blocks) throw range.error;
     const nextStart = rangeEnd(start) + 1;

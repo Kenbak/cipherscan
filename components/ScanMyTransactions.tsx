@@ -132,11 +132,10 @@ export function ScanMyTransactions() {
       const total = endHeight - startHeight + 1;
       setTotalBlocks(total);
       controller.signal.throwIfAborted();
-      await wasmWorkerPool.begin(sanitizedKey);
-      controller.signal.throwIfAborted();
       setScanPhase('filtering');
       const result = await scanInbox({
         apiUrl, startHeight, endHeight, signal: controller.signal, scanner: wasmWorkerPool,
+        initialize: () => wasmWorkerPool.begin(sanitizedKey),
         onProgress: (processed, matches) => {
           setBlocksProcessed(processed);
           setMatchesFound(matches);

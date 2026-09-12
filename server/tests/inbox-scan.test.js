@@ -63,6 +63,23 @@ test('missing blocks cannot silently complete a scan', async () => {
   options.fetcher = async () => ({ ok: true, json: async () => ({ blocks: [{ height: 1 }] }) });
   await assert.rejects(scanInbox(options), /Incomplete compact/);
 });
+test('first download overlaps initialization but filtering waits for prepared keys', async () => {
+  const { options, events } = setup(1);
+  let ready;
+  options.initialize = () => new Promise(resolve => { ready = resolve; });
+  const scan = scanInbox(options);
+  await new Promise(resolve => setImmediate(resolve));
+  assert.deepEqual(events, ['fetch:1']);
+  ready();
+  await scan;
+  assert.ok(events.includes('filter:1'));
+});
+test('initialization failure rejects promptly even with an outstanding download', async () => {
+  const { options } = setup(1);
+  options.fetcher = () => new Promise(() => {});
+  options.initialize = async () => { throw new Error('invalid viewing key'); };
+  await assert.rejects(scanInbox(options), /invalid viewing key/);
+});
 test('missing raw transactions fail visibly', async () => {
   const { options } = setup(1); const original = options.fetcher;
   options.fetcher = async (url, init) => url.includes('/raw/') ? { ok: true, json: async () => ({ transactions: [] }) } : original(url, init);
