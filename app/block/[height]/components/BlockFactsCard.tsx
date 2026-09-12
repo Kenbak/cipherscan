@@ -234,9 +234,13 @@ export function BlockFactsCard({
             />
           )}
 
-          {data.coinbaseHex && (
+          {data.coinbaseHex != null && (
             <FactBox label="Coinbase Tag" tooltip="Arbitrary data embedded by the miner in the coinbase transaction — decoded client-side from the raw bytes">
-              <CoinbaseTagValue hex={data.coinbaseHex} clientEmoji={coinbaseClientEmoji} clientInfo={coinbaseClientInfo} />
+              {data.coinbaseHex === "" ? (
+                <p className="text-sm text-muted">No optional tag included by the miner.</p>
+              ) : (
+                <CoinbaseTagValue hex={data.coinbaseHex} clientEmoji={coinbaseClientEmoji} clientInfo={coinbaseClientInfo} />
+              )}
             </FactBox>
           )}
         </div>

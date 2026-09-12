@@ -32,11 +32,18 @@ export function BlockFilters({ values }: { values: BlockFilterValues }) {
             className={field}
           >
             <option value="all">All markers</option>
-            {Object.entries(SOFTWARE_LABELS).map(([key, label]) => (
+            {(["zebra", "zakura", "unknown"] as MiningSoftware[]).map((key) => (
               <option key={key} value={key}>
-                {getMiningSoftwareEmoji(key as MiningSoftware)} {label}
+                {getMiningSoftwareEmoji(key)} {SOFTWARE_LABELS[key]}
               </option>
             ))}
+            <optgroup label="Other software">
+              <option value="other">{SOFTWARE_LABELS.other}</option>
+            </optgroup>
+            <optgroup label="Data checks">
+              <option value="conflicting">{SOFTWARE_LABELS.conflicting}</option>
+              <option value="missing">{SOFTWARE_LABELS.missing}</option>
+            </optgroup>
           </select>
         </label>
         <label className="space-y-1.5 text-xs text-muted">
@@ -130,8 +137,7 @@ export function BlockFilters({ values }: { values: BlockFilterValues }) {
         </div>
       </details>
       <p className="mt-3 text-xs text-muted">
-        Coinbase markers are self-reported. Unmarked blocks do not reveal their
-        mining software.{" "}
+        Software tags are optional and self-reported. Every block still has a coinbase transaction.{" "}
         <Link
           href="/mining#software"
           className="underline underline-offset-4 hover:text-primary"

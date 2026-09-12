@@ -115,7 +115,7 @@ export function transformExpressBlockData(blockData: any): BlockData {
     orphanSource: blockData.orphanSource || null,
     orphanDetectedAt: blockData.orphanDetectedAt || null,
     canonicalBlock,
-    coinbaseHex: blockData.coinbase_hex || null,
+    coinbaseHex: blockData.coinbase_hex ?? null,
     coinbaseText: blockData.coinbase_text || null,
   };
 }

@@ -218,8 +218,7 @@ export function MiningSoftwareSection() {
         }
       >
         <p className="mb-4 text-xs text-muted">
-          Self-reported markers. Unmarked, conflicting and unavailable
-          observations stay in the total.
+          Software tags are self-reported. Blocks without a tag stay in the total.
         </p>
         {loading ? (
           <div
@@ -249,7 +248,7 @@ export function MiningSoftwareSection() {
               </div>
               <div>
                 <span className="text-xs text-muted">
-                  Coinbase data available
+                  Tag data available
                 </span>
                 <p className="mt-1 font-mono text-xl tabular-nums">
                   {(
@@ -322,7 +321,7 @@ export function MiningSoftwareSection() {
                       SOFTWARE_LABELS[name as MiningSoftware] ?? name,
                     ]}
                   />
-                  {(Object.keys(SOFTWARE_LABELS) as MiningSoftware[]).map(
+                  {data.categories.filter((category) => category.blocks > 0).map((category) => category.software).map(
                     (software) => (
                       <Bar
                         key={software}
@@ -352,7 +351,7 @@ export function MiningSoftwareSection() {
                   </tr>
                 </thead>
                 <tbody>
-                  {data.categories.map((category) => (
+                  {data.categories.filter((category) => category.blocks > 0).map((category) => (
                     <tr
                       key={category.software}
                       className="border-t border-cipher-border/50"
@@ -400,7 +399,7 @@ export function MiningSoftwareSection() {
           <div className="mt-2 space-y-2">
             <p>
               Shares use block counts across the selected range, including
-              unmarked blocks and missing coinbase data. They are neither node
+              blocks without software tags and any unavailable tag data. They are neither node
               counts nor measured hashrate. Empty chart buckets indicate no
               indexed blocks.
             </p>
@@ -411,8 +410,9 @@ export function MiningSoftwareSection() {
               launch date.
             </p>
             <p>
-              Other identified currently means a zcashd version tag.
-              Contradictory known markers are grouped separately. Mining-pool
+              The zcashd category requires an explicit version tag. Multiple software
+              tags and unavailable tag data are tracked separately; an empty
+              optional tag simply means no software tag. Mining-pool
               attribution and software markers are independent observations.
             </p>
             {data && (

@@ -46,6 +46,18 @@ test(
       .replaceAll("public.", `${schema}.`)
       .replaceAll("CONCURRENTLY ", "");
     await db.query(migration);
+    // An empty optional tag was incorrectly classified as missing by 023.
+    await db.query("UPDATE blocks SET coinbase_hex='' WHERE height=523");
+    assert.equal((await db.query('SELECT software FROM block_software WHERE height=523')).rows[0].software,'missing');
+    await backfill(db,50);
+    const correction = fs.readFileSync(path.resolve(__dirname,'../deploy/migrations/025_empty_coinbase_tags_are_unmarked.sql'),'utf8').replaceAll('public.', `${schema}.`);
+    const beforeCorrection = await db.query('SELECT sum(blocks)::int AS n FROM block_software_daily');
+    await db.query(correction);
+    await db.query(correction);
+    assert.equal((await db.query('SELECT software FROM block_software WHERE height=523')).rows[0].software,'unknown');
+    assert.equal((await db.query('SELECT sum(blocks)::int AS n FROM block_software_daily')).rows[0].n,beforeCorrection.rows[0].n);
+    // Restore readiness for the existing incomplete-read regression below.
+    await db.query('UPDATE block_software_state SET ready=false');
     for (const [value, expected] of fixtures) {
       const result = await db.query(
         "SELECT classify_mining_software_v1($1) AS software",
