@@ -1,4 +1,4 @@
-import { classifyMiningSoftware } from './mining-software';
+import { classifyMiningSoftware, type MiningSoftware } from './mining-software';
 const COINBASE_CLIENT_MARKERS = [
   { hex: 'f09f8cb8', emoji: '🌸', name: 'Zakura' },
   { hex: 'f09fa693', emoji: '🦓', name: 'Zebra' },
@@ -10,6 +10,10 @@ export interface CoinbaseClientInfo {
   emoji: CoinbaseClientEmoji | null;
   name: string | null;
   version: string | null;
+}
+
+export function getMiningSoftwareEmoji(software: MiningSoftware): CoinbaseClientEmoji | null {
+  return software === 'zebra' ? '🦓' : software === 'zakura' ? '🌸' : null;
 }
 
 /**
@@ -27,8 +31,7 @@ export function getCoinbaseClientEmoji(
     return null;
   }
 
-  const software = classifyMiningSoftware(coinbaseHex);
-  return software === 'zebra' ? '🦓' : software === 'zakura' ? '🌸' : null;
+  return getMiningSoftwareEmoji(classifyMiningSoftware(coinbaseHex));
 }
 
 const VERSION_PATTERN = /\/(Zakura|Zebra|zcashd)[:\s]?v?(\d+\.\d+(?:\.\d+)?(?:-[a-zA-Z0-9.]+)?)\//i;

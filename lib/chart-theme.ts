@@ -22,6 +22,7 @@ export function getChartColors(theme: 'dark' | 'light') {
     ironwood: privacy.ironwood,
     orchard: iris,
     sapling: sage,
+    zakura: dark ? '#E8A1C4' : '#A63871',
     sprout: stone,
     transparent: steel,
     shielded: privacy.shielded,

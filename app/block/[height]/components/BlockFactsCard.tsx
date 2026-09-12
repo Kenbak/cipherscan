@@ -82,6 +82,12 @@ function BlockRewardBreakdown({
 
   return (
     <FactBox label="Coinbase Outputs" tooltip="The visible outputs created by this block's coinbase transaction. Deferred-development-lockbox accrual is part of the subsidy but is not a transaction output.">
+      {minerPool && !data.minerAddress && (
+        <p className="mb-2 text-caption text-muted" title="Pool identified from the public coinbase tag; payout recipient remains shielded">
+          Pool · {minerPoolUrl ? <a href={minerPoolUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{minerPool}</a> : minerPool}
+          <span className="ml-1.5">(coinbase tag)</span>
+        </p>
+      )}
       <BoldZec value={total} />
       <div className="mt-2 space-y-1">
         {recipients.map((r, i) => (

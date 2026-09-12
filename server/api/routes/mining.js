@@ -9,7 +9,7 @@ const { softwareHistory, SoftwareQueryError } = require('../lib/mining-software'
 
 const express = require('express');
 const router = express.Router();
-const { POOL_BY_ADDRESS, getPoolName } = require('../mining-pools');
+const { POOL_BY_ADDRESS, POOL_BY_TAG, getPoolTagSql, getPoolName } = require('../mining-pools');
 const { logSafeError } = require('../lib/safe-log');
 
 let pool;
@@ -52,8 +52,8 @@ function parsePeriod(period) {
   return map[period] || map['7d'];
 }
 
-function resolvePoolName(address) {
-  return getPoolName(address) || 'Unknown';
+function resolvePoolName(address, tag) {
+  return getPoolName(address) || POOL_BY_TAG[tag]?.name || 'Unknown';
 }
 
 // ============================================================================
@@ -92,11 +92,12 @@ router.get('/api/mining/pool-distribution', async (req, res) => {
     const result = await pool.query(`
       SELECT
         miner_address,
+        ${getPoolTagSql()} AS pool_tag,
         COUNT(*) as block_count,
         SUM(total_fees) as total_fees_zat
       FROM blocks
       ${whereClause}
-      GROUP BY miner_address
+      GROUP BY miner_address, pool_tag
       ORDER BY block_count DESC
     `);
 
@@ -105,7 +106,7 @@ router.get('/api/mining/pool-distribution', async (req, res) => {
     // Aggregate multiple addresses per pool
     const poolAgg = {};
     for (const row of result.rows) {
-      const name = resolvePoolName(row.miner_address);
+      const name = resolvePoolName(row.miner_address, row.pool_tag);
       if (!poolAgg[name]) {
         poolAgg[name] = { address: row.miner_address, name, blocks: 0, totalFeesZat: BigInt(0) };
       }
@@ -159,16 +160,18 @@ router.get('/api/mining/pool-ranking', async (req, res) => {
       WITH pool_blocks AS (
         SELECT
           miner_address,
+          ${getPoolTagSql()} AS pool_tag,
           COUNT(*) as block_count,
           SUM(total_fees) as total_fees_zat,
           MIN(timestamp) as first_block_ts,
           MAX(timestamp) as last_block_ts
         FROM blocks
         ${whereClause}
-        GROUP BY miner_address
+        GROUP BY miner_address, pool_tag
       )
       SELECT
         miner_address,
+        pool_tag,
         block_count,
         total_fees_zat,
         first_block_ts,
@@ -186,8 +189,8 @@ router.get('/api/mining/pool-ranking', async (req, res) => {
     // Aggregate multiple addresses per pool
     const poolAgg = {};
     for (const row of result.rows) {
-      const name = resolvePoolName(row.miner_address);
-      const poolInfo = POOL_BY_ADDRESS[row.miner_address];
+      const name = resolvePoolName(row.miner_address, row.pool_tag);
+      const poolInfo = POOL_BY_ADDRESS[row.miner_address] || POOL_BY_TAG[row.pool_tag];
       if (!poolAgg[name]) {
         poolAgg[name] = {
           address: row.miner_address,
@@ -255,10 +258,11 @@ router.get('/api/mining/hashrate-share', async (req, res) => {
       SELECT
         date_trunc('day', to_timestamp(timestamp)) as day,
         miner_address,
+        ${getPoolTagSql()} AS pool_tag,
         COUNT(*) as block_count
       FROM blocks
       ${whereClause}
-      GROUP BY day, miner_address
+      GROUP BY day, miner_address, pool_tag
       ORDER BY day
     `);
 
@@ -267,7 +271,7 @@ router.get('/api/mining/hashrate-share', async (req, res) => {
     for (const row of result.rows) {
       const dayKey = row.day.toISOString().slice(0, 10);
       if (!dayMap.has(dayKey)) dayMap.set(dayKey, {});
-      const poolName = resolvePoolName(row.miner_address);
+      const poolName = resolvePoolName(row.miner_address, row.pool_tag);
       const dayPools = dayMap.get(dayKey);
       dayPools[poolName] = (dayPools[poolName] || 0) + parseInt(row.block_count);
     }

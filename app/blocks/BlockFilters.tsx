@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
-import { SOFTWARE_LABELS } from "@/lib/mining-software";
+import { getMiningSoftwareEmoji } from "@/lib/coinbase-client";
+import { SOFTWARE_LABELS, type MiningSoftware } from "@/lib/mining-software";
 import pools from "@/lib/generated/mining-pools.json";
 export const BLOCK_FILTER_KEYS = [
   "software",
@@ -33,7 +34,7 @@ export function BlockFilters({ values }: { values: BlockFilterValues }) {
             <option value="all">All markers</option>
             {Object.entries(SOFTWARE_LABELS).map(([key, label]) => (
               <option key={key} value={key}>
-                {label}
+                {getMiningSoftwareEmoji(key as MiningSoftware)} {label}
               </option>
             ))}
           </select>

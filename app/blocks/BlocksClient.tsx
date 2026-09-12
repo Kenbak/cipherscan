@@ -11,6 +11,7 @@ import { Pagination } from '@/components/Pagination';
 import { usePaginatedList, type BasePaginationState } from '@/hooks/usePaginatedList';
 import { BlockFilters, type BlockFilterValues } from './BlockFilters';
 import { SOFTWARE_LABELS, classifyMiningSoftware, type MiningSoftware } from '@/lib/mining-software';
+import { getMiningSoftwareEmoji } from '@/lib/coinbase-client';
 import { CURRENCY } from '@/lib/config';
 
 interface Block {
@@ -92,7 +93,7 @@ function blockColumns(blocks: Block[], trailingBlock: Block | null): DataTableCo
             {block.miner_pool ? (
               <span className="text-xs font-mono text-primary">{block.miner_pool}</span>
             ) : (
-              <span className="text-xs font-mono text-muted">—</span>
+              <span className="text-xs font-mono text-muted" title="No identified mining pool; the payout may be shielded">Unattributed</span>
             )}
           </div>
         );
@@ -100,7 +101,15 @@ function blockColumns(blocks: Block[], trailingBlock: Block | null): DataTableCo
     },
     {
       id:'software', header:'Software marker', className:'hidden md:table-cell',
-      cell:block=><span className="font-mono text-xs text-secondary" title="Self-reported coinbase marker; not authenticated software identity">{SOFTWARE_LABELS[block.software ?? classifyMiningSoftware(block.coinbase_hex)]}</span>,
+      cell: (block) => {
+        const software = block.software ?? classifyMiningSoftware(block.coinbase_hex);
+        return (
+          <span className="inline-flex items-center gap-1.5 whitespace-nowrap font-mono text-xs text-secondary" title="Self-reported coinbase marker; not authenticated software identity">
+            <span aria-hidden>{getMiningSoftwareEmoji(software)}</span>
+            {SOFTWARE_LABELS[software]}
+          </span>
+        );
+      },
     },
     {
       id: 'txs',

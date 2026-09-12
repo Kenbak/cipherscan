@@ -215,6 +215,15 @@ test(
     );
     assert.equal(history.status, 200);
     assert.equal((await history.json()).data.totalBlocks, 525);
+    const sluiceyTag = Buffer.from('Get Sluicey Yall sluicey.xyz').toString('hex');
+    await db.query('UPDATE blocks SET coinbase_hex=$1 WHERE height IN (522,523)',[sluiceyTag]);
+    const tagged = await fetch(`${origin}/v1/blocks?pool=Sluicey%20Pool&min_height=520&max_height=524`);
+    const taggedBody = await tagged.json();
+    assert.equal(tagged.status,200,JSON.stringify(taggedBody));
+    assert.deepEqual(taggedBody.data.map(b=>b.height),[523]);
+    assert.equal(taggedBody.data[0].miner_pool,'Sluicey Pool');
+    const untagged = await fetch(`${origin}/v1/blocks?pool=unattributed&min_height=523&max_height=523`);
+    assert.equal((await untagged.json()).data.length,0);
     // Larger synthetic range for query-plan and bounded-aggregate smoke checks.
     await db.query(
       `INSERT INTO blocks(height,hash,timestamp,coinbase_hex) SELECT i,'synthetic-'||i,1788220800+i*75,CASE WHEN i%100=0 THEN 'f09fa693' ELSE '00' END FROM generate_series(526,100525) i`,

@@ -13,6 +13,7 @@ import { ChartTooltip } from "@/components/charts/ChartTooltip";
 import { ShareableCard } from "@/components/ShareableCard";
 import { getApiUrl } from "@/lib/api-config";
 import { ApiError, readApiData } from "@/lib/api-client";
+import { getMiningSoftwareEmoji } from "@/lib/coinbase-client";
 import { SOFTWARE_LABELS, type MiningSoftware } from "@/lib/mining-software";
 import { getChartColors, getChartTooltipStyle } from "@/lib/chart-theme";
 import { useTheme } from "@/contexts/ThemeContext";
@@ -63,7 +64,7 @@ export function MiningSoftwareSection() {
   const colors = getChartColors(theme);
   const palette: Record<MiningSoftware, string> = {
     zebra: colors.axis,
-    zakura: colors.sapling,
+    zakura: colors.zakura,
     other: colors.orchard,
     unknown: colors.referenceLine,
     conflicting: colors.distinctive,
@@ -367,7 +368,7 @@ export function MiningSoftwareSection() {
                               backgroundColor: palette[category.software],
                             }}
                           />
-                          {category.label} <span aria-hidden>↗</span>
+                          <span aria-hidden>{getMiningSoftwareEmoji(category.software)}</span>{category.label} <span aria-hidden>↗</span>
                         </Link>
                       </th>
                       <td className="text-right font-mono tabular-nums">

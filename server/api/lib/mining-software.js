@@ -1,8 +1,8 @@
 const { SOFTWARE_LABELS } = require("../../../lib/mining-software");
-const { POOL_BY_ADDRESS } = require("../mining-pools");
+const { POOL_BY_ADDRESS, POOL_BY_TAG, getPoolTagSql } = require("../mining-pools");
 const pools = [
   ...new Set(
-    Object.values(POOL_BY_ADDRESS)
+    [...Object.values(POOL_BY_ADDRESS), ...Object.values(POOL_BY_TAG)]
       .filter((p) => p.name && !p.isFundingStream)
       .map((p) => p.name),
   ),
@@ -113,11 +113,15 @@ function whereFilters(filters) {
           (filters.poolName === "unattributed" || p.name === filters.poolName),
       )
       .map(([a]) => a);
-    clauses.push(
-      filters.poolName === "unattributed"
-        ? `(b.miner_address IS NULL OR NOT (b.miner_address=ANY(${bind(addresses)}::text[])))`
-        : `b.miner_address=ANY(${bind(addresses)}::text[])`,
-    );
+    const knownAddresses = Object.entries(POOL_BY_ADDRESS)
+      .filter(([, p]) => p.name && !p.isFundingStream).map(([a]) => a);
+    const tag = Object.entries(POOL_BY_TAG).find(([, p]) => p.name === filters.poolName)?.[0];
+    if (filters.poolName === "unattributed" || tag) {
+      clauses.push(`(b.miner_address IS NULL OR NOT (b.miner_address=ANY(${bind(knownAddresses)}::text[])))`);
+      clauses.push(tag ? `(${getPoolTagSql('b.coinbase_hex')})=${bind(tag)}` : `(${getPoolTagSql('b.coinbase_hex')}) IS NULL`);
+    } else {
+      clauses.push(`b.miner_address=ANY(${bind(addresses)}::text[])`);
+    }
   }
   return { values, clauses };
 }

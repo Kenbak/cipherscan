@@ -60,7 +60,6 @@ const POOL_MAP = {
   't1Na7ykQ6vE4CbxBPuUDUQx5n6aEWXu1VQq': 'Binance Pool',
   't1K79TgQbqu74d6rBmsMu2oFEXEwAmdYiT7': 'Unidentified #5',
   't1fpcZ2Dbwn4oj35oWBTUhtmUciSq7HG7LU': 'Private Miner B',
-  't3cFfPt1Bcvgez9ZbMBFWeZsskxTkPzGCow': 'Dev Fund',
 };
 
 function getPoolNameForAddress(address) {
@@ -82,6 +81,7 @@ async function computeDay(client, dateStr) {
       JOIN transactions t ON t.block_height = b.height AND t.is_coinbase = true
       WHERE b.timestamp >= $1 AND b.timestamp < $2
         AND b.miner_address IS NOT NULL
+        AND b.miner_address NOT IN ('t3cFfPt1Bcvgez9ZbMBFWeZsskxTkPzGCow', 't2HifwjUj9uyxr9bknR8LFuQbc98c3vkXtu')
     ),
     all_cb_outputs AS MATERIALIZED (
       SELECT txo.txid, txo.vout_index, txo.value, txo.address
@@ -108,6 +108,7 @@ async function computeDay(client, dateStr) {
     FROM blocks
     WHERE timestamp >= $1 AND timestamp < $2
       AND miner_address IS NOT NULL
+      AND miner_address NOT IN ('t3cFfPt1Bcvgez9ZbMBFWeZsskxTkPzGCow', 't2HifwjUj9uyxr9bknR8LFuQbc98c3vkXtu')
     GROUP BY miner_address
   `, [dayStart, dayEnd]);
 
