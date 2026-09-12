@@ -128,11 +128,11 @@ export function MiningSoftwareSection() {
       <div className="mb-4 flex flex-wrap items-end justify-between gap-4">
         <div>
           <h2 className="text-lg font-semibold text-primary">
-            Mining software
+            Mining software tags
           </h2>
           <p className="mt-1 text-sm text-muted">
-            Software markers in canonical blocks. Compare adoption alongside
-            mining pools.
+            Share of blocks carrying a software tag, rather than a census of
+            the software miners run.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -220,6 +220,25 @@ export function MiningSoftwareSection() {
         <p className="mb-4 text-xs text-muted">
           Software tags are self-reported. Blocks without a tag stay in the total.
         </p>
+        <details className="mb-4 text-xs text-muted">
+          <summary className="cursor-pointer hover:text-primary">
+            Why can older blocks have no software tag?
+          </summary>
+          <p className="mt-2 max-w-3xl leading-relaxed">
+            Software tags are optional. Zebra added automatic 🦓 tagging in its{" "}
+            <a
+              href="https://zfnd.org/zebra-6-0-0-rc-0-release/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-secondary underline underline-offset-4"
+            >
+              July 2026 release candidate
+            </a>
+            ; earlier tags also exist. A gap means no recognized tag was found,
+            not that Zebra or zcashd was unused. Available coinbase data does not
+            necessarily include a software tag.
+          </p>
+        </details>
         {loading ? (
           <div
             role="status"
