@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { LiveRefreshStatus } from '@/components/LiveRefreshStatus';
 import Link from 'next/link';
 import { PageHeader, MetricCard, DataTable, HashLink, type DataTableColumn } from '@/components/ui';
 import { formatRelativeTime, formatBlockInterval } from '@/lib/utils';
@@ -222,6 +223,8 @@ export default function BlocksClient({
     pagination,
     loading,
     dataAvailable,
+    lastCheckedAt,
+    refreshFailed,
     extra: trailingBlock,
     firstHref,
     prevHref,
@@ -231,7 +234,7 @@ export default function BlocksClient({
     pageSize: PAGE_SIZE,
     archiveBasePath: '/blocks',
     getItemsFromResponse: (json) => (json.blocks as Block[]) || [],
-    getLatestKey: (block) => Number(block.height),
+    getLatestKey: (block) => block.hash,
     buildCursors: (visibleItems) => ({
       nextCursor: visibleItems.length > 0
         ? Number(visibleItems[visibleItems.length - 1].height)
@@ -241,14 +244,6 @@ export default function BlocksClient({
     processExtra: (all, _visible, direction) => {
       if (direction === 'prev') return null;
       return all.length > PAGE_SIZE ? all[PAGE_SIZE] : null;
-    },
-    shouldWsRefresh: (msg, latestKey) => {
-      const data = msg.data as { height?: number } | undefined;
-      const height = data?.height ?? 0;
-      return (
-        (msg.type === 'new_block' && height > Number(latestKey)) ||
-        (msg.type === 'chain_tip' && height > Number(latestKey))
-      );
     },
     buildArchiveHref: (cursor, _secondary, direction, targetPage) => {
       if (targetPage <= 1 || cursor === null) return '/blocks';
@@ -324,6 +319,8 @@ export default function BlocksClient({
           </span>
         }
       />
+
+      {initialCursor === null && page === 1 && <LiveRefreshStatus lastCheckedAt={lastCheckedAt} failed={refreshFailed} />}
 
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-6">
         <MetricCard size="compact"
