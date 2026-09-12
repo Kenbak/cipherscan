@@ -48,7 +48,7 @@ test('response backpressure bounds upstream consumption; disconnect cancels upst
   res.write = text => !text.includes('"type":"blocks"');
   const streaming = streamInbox(res, Client, grpc, 1, 1000);
   await new Promise(resolve => setImmediate(resolve));
-  assert.ok(produced >= 128 && produced < 200);
+  assert.ok(produced >= 32 && produced < 64);
   res.destroyed = true; res.emit('close'); await streaming;
   assert.ok(cancelled && closed); assert.equal(res.listenerCount('drain'), 0);
 });

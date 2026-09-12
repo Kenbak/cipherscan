@@ -24,7 +24,7 @@ async function streamInbox(res, Client, grpc, start, end) {
     res.setHeader('Cache-Control', 'no-store');
     res.setHeader('X-Accel-Buffering', 'no');
     await write({ type: 'start', format: 'inbox-stream-v1', startHeight: start, endHeight: end });
-    let expected = start; let previous; let batch = []; let bytes = 0;
+    let expected = start; let previous; let batch = []; let bytes = 0; let batchLimit = 32;
     for await (const raw of call) {
       const block = compactBlockToJSON(raw);
       const prevHash = Buffer.from(raw.prevHash || []).toString('hex');
@@ -34,9 +34,9 @@ async function streamInbox(res, Client, grpc, start, end) {
       }
       const packed = { ...compactBlockToInbox(block), hash: block.hash, prevHash };
       const size = Buffer.byteLength(JSON.stringify(packed));
-      if (batch.length && bytes + size > 256 * 1024) { await write({ type: 'blocks', blocks: batch }); batch = []; bytes = 0; }
+      if (batch.length && bytes + size > 256 * 1024) { await write({ type: 'blocks', blocks: batch }); batch = []; bytes = 0; batchLimit = 128; }
       batch.push(packed); bytes += size; previous = block.hash; expected++;
-      if (batch.length >= 128 || bytes >= 256 * 1024) { await write({ type: 'blocks', blocks: batch }); batch = []; bytes = 0; }
+      if (batch.length >= batchLimit || bytes >= 256 * 1024) { await write({ type: 'blocks', blocks: batch }); batch = []; bytes = 0; batchLimit = 128; }
     }
     if (expected !== end + 1) throw new Error('Incomplete compact range');
     if (batch.length) await write({ type: 'blocks', blocks: batch });
