@@ -236,14 +236,14 @@ router.get('/api/info', async (req, res) => {
 router.get('/api/blocks/list', async (req, res) => {
   try {
     // Explicit query fields also drive the v1/OpenAPI inventory.
-    const { software, pool: poolFilter, order, from, to, min_height, max_height } = req.query;
-    const filters = parseBlockFilters({ software, pool: poolFilter, order, from, to, min_height, max_height });
+    const { software, pool: poolFilter, order, from, to, min_height, max_height, min_interval, max_interval, min_size, max_size, min_fees, max_fees, min_txs, max_txs } = req.query;
+    const filters = parseBlockFilters({ software, pool: poolFilter, order, from, to, min_height, max_height, min_interval, max_interval, min_size, max_size, min_fees, max_fees, min_txs, max_txs });
     const limit = Math.min(Math.max(parseInt(req.query.limit) || 50, 1), 100);
     const cursor = req.query.cursor ? parseInt(req.query.cursor) : null;
     const direction = req.query.direction || 'next'; // 'next' = older, 'prev' = newer
     const normalizedDirection = direction === 'prev' ? 'prev' : 'next';
     const isLatest = cursor === null;
-    if ([software,poolFilter,order,from,to,min_height,max_height].some(value=>value!==undefined)) {
+    if ([software,poolFilter,order,from,to,min_height,max_height,min_interval,max_interval,min_size,max_size,min_fees,max_fees,min_txs,max_txs].some(value=>value!==undefined)) {
       const cached = await listCache.getOrLoad({
         family: 'blocks-software-v1', params:{...filters,limit,cursor,direction:normalizedDirection,tipHeight:chainTip.height,tipHash:chainTip.hash || ''},
         freshTtlSeconds:15,staleTtlSeconds:16,cacheable:true,shouldCache:value=>value?.success===true,

@@ -34,6 +34,25 @@ function integer(value, name) {
     throw new SoftwareQueryError(`${name} must be a non-negative block height`);
   return Number(value);
 }
+const metricColumns = {
+  interval: '(b.timestamp-parent.timestamp)',
+  size: 'b.size',
+  fees: 'b.total_fees',
+  txs: 'b.transaction_count',
+};
+function metricValue(value, name, fees) {
+  if (typeof value !== 'string' || !(fees ? /^\d{1,8}(?:\.\d{1,8})?$/ : /^\d{1,10}$/).test(value))
+    throw new SoftwareQueryError(`${name} must be a non-negative ${fees ? 'ZEC amount with at most 8 decimals' : 'integer'}`);
+  if (fees) {
+    const [whole, fraction = ''] = value.split('.');
+    const zats = BigInt(whole) * 100000000n + BigInt(fraction.padEnd(8, '0'));
+    if (zats > 2100000000000000n) throw new SoftwareQueryError(`${name} exceeds 21 million ZEC`);
+    return zats.toString();
+  }
+  const n = Number(value);
+  if (n > 2147483647) throw new SoftwareQueryError(`${name} is too large`);
+  return n;
+}
 function parseBlockFilters(query) {
   const {
     software = "all",
@@ -68,7 +87,16 @@ function parseBlockFilters(query) {
     throw new SoftwareQueryError("from must not be after to");
   if (min !== null && max !== null && min > max)
     throw new SoftwareQueryError("min_height must not exceed max_height");
-  return { software, poolName, order, start, end, min, max };
+  const metrics = {};
+  for (const metric of Object.keys(metricColumns)) {
+    for (const bound of ['min', 'max']) {
+      const key = `${bound}_${metric}`;
+      if (query[key] !== undefined && query[key] !== '') metrics[key] = metricValue(query[key], key, metric === 'fees');
+    }
+    if (metrics[`min_${metric}`] !== undefined && metrics[`max_${metric}`] !== undefined && BigInt(metrics[`min_${metric}`]) > BigInt(metrics[`max_${metric}`]))
+      throw new SoftwareQueryError(`min_${metric} must not exceed max_${metric}`);
+  }
+  return { software, poolName, order, start, end, min, max, metrics };
 }
 async function requireReady(pool) {
   let result;
@@ -123,15 +151,26 @@ function whereFilters(filters) {
       clauses.push(`b.miner_address=ANY(${bind(addresses)}::text[])`);
     }
   }
+  for (const [metric, column] of Object.entries(metricColumns)) {
+    for (const [bound, operator] of [['min', '>='], ['max', '<=']]) {
+      const value = filters.metrics?.[`${bound}_${metric}`];
+      if (value !== undefined) clauses.push(`${column}${operator}${bind(value)}`);
+    }
+  }
   return { values, clauses };
 }
 async function filteredBlocks(pool, filters, { limit, cursor, direction }) {
   await requireReady(pool);
   const { values, clauses } = whereFilters(filters);
   const baseWhere = clauses.length ? `WHERE ${clauses.join(" AND ")}` : "";
-  let countSql = `SELECT count(*)::int AS count FROM block_software s ${filters.poolName === "all" ? "" : "JOIN blocks b USING(height)"} ${baseWhere}`;
+  const hasMetrics = Object.keys(filters.metrics || {}).length > 0;
+  const hasInterval = filters.metrics?.min_interval !== undefined || filters.metrics?.max_interval !== undefined;
+  const countJoin = filters.poolName !== 'all' || hasMetrics ? 'JOIN blocks b USING(height)' : '';
+  const parentJoin = hasInterval ? 'LEFT JOIN blocks parent ON parent.height=b.height-1' : '';
+  let countSql = `SELECT count(*)::int AS count FROM block_software s ${countJoin} ${parentJoin} ${baseWhere}`;
   if (
     filters.poolName === "all" &&
+    !hasMetrics &&
     filters.min === null &&
     filters.max === null
   ) {
