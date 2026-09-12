@@ -71,8 +71,8 @@ function parseBlockFilters(query) {
     !pools.includes(poolName)
   )
     throw new SoftwareQueryError("Invalid pool filter");
-  if (!["newest", "oldest"].includes(order))
-    throw new SoftwareQueryError("order must be newest or oldest");
+  if (!["newest", "oldest", ...Object.keys(metricColumns).flatMap(key => [`${key}_asc`, `${key}_desc`])].includes(order))
+    throw new SoftwareQueryError("Invalid block sort order");
   const start = from ? dateDay(from, "from") * 86400 : null;
   const end = to ? (dateDay(to, "to") + 1) * 86400 : null;
   const min =
@@ -182,27 +182,38 @@ async function filteredBlocks(pool, filters, { limit, cursor, direction }) {
     );
     countSql = `SELECT COALESCE(sum(blocks),0)::int AS count FROM block_software_daily ${dailyWhere.length ? `WHERE ${dailyWhere.join(" AND ")}` : ""}`;
   }
-  const ascending = filters.order === "oldest";
+  const sortMetric = Object.keys(metricColumns).find(key => filters.order.startsWith(`${key}_`));
+  const ascending = filters.order === "oldest" || filters.order.endsWith('_asc');
+  // Keep unavailable values last in either direction; height breaks metric ties.
+  const sortExpression = sortMetric ? `COALESCE(${metricColumns[sortMetric]},'${ascending ? '9223372036854775807' : '-9223372036854775808'}'::bigint)` : 's.height';
+  const displayOrder = `${sortMetric ? '_sort ' + (ascending ? 'ASC' : 'DESC') + ',' : ''}height ${ascending ? 'ASC' : 'DESC'}`;
+  let anchorCte = '';
+  let anchorCheck = 'true';
   const backwards = direction === "prev";
   const scanAscending = ascending !== backwards;
   if (cursor !== null) {
     values.push(cursor);
-    clauses.push(`s.height ${scanAscending ? ">" : "<"} $${values.length}`);
+    if (sortMetric) {
+      anchorCte = `anchor AS (SELECT ${sortExpression} AS value FROM blocks b LEFT JOIN blocks parent ON parent.height=b.height-1 WHERE b.height=$${values.length}),`;
+      anchorCheck = 'EXISTS(SELECT 1 FROM anchor)';
+      clauses.push(`(${sortExpression},s.height) ${scanAscending ? '>' : '<'} ((SELECT value FROM anchor),$${values.length})`);
+    } else clauses.push(`s.height ${scanAscending ? ">" : "<"} $${values.length}`);
   }
   const where = clauses.length ? `WHERE ${clauses.join(" AND ")}` : "";
   // The count and page use one snapshot. Parent lookup uses the unfiltered chain.
   const result = await pool.query(
-    `WITH total AS (
+    `WITH ${anchorCte}total AS (
     ${countSql}
   ), page AS (
     SELECT b.height,b.hash,b.timestamp,b.transaction_count,b.size,b.difficulty,b.miner_address,b.coinbase_hex,b.total_fees,
-      s.software,(b.timestamp-parent.timestamp)::int AS "intervalSeconds"
+      s.software,(b.timestamp-parent.timestamp)::int AS "intervalSeconds",${sortExpression} AS _sort
     FROM block_software s JOIN blocks b USING(height) LEFT JOIN blocks parent ON parent.height=b.height-1
-    ${where} ORDER BY s.height ${scanAscending ? "ASC" : "DESC"} LIMIT $${values.length + 1}
-  ) SELECT total.count, COALESCE((SELECT json_agg(page ORDER BY height ${ascending ? "ASC" : "DESC"}) FROM page),'[]'::json) AS blocks FROM total`,
+    ${where} ORDER BY ${sortExpression} ${scanAscending ? "ASC" : "DESC"},s.height ${scanAscending ? "ASC" : "DESC"} LIMIT $${values.length + 1}
+  ) SELECT ${anchorCheck} AS anchor_available,total.count, COALESCE((SELECT json_agg(page ORDER BY ${displayOrder}) FROM page),'[]'::json) AS blocks FROM total`,
     [...values, limit],
   );
-  const rows = result.rows[0].blocks;
+  if (!result.rows[0].anchor_available) throw new SoftwareQueryError('The cursor block is no longer available; restart pagination.');
+  const rows = result.rows[0].blocks.map(({_sort, ...block}) => block);
   return {
     success: true,
     blocks: rows,
