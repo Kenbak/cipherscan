@@ -11,6 +11,7 @@ const router = express.Router();
 const fs = require('fs');
 const path = require('path');
 const { logSafeError } = require('../lib/safe-log');
+const { streamInbox } = require('../lib/scan-stream');
 const { compactBlockToJSON, isCompleteRange, compactBlockToInbox } = require('../lib/compact-blocks');
 
 // Dependencies injected via app.locals
@@ -235,7 +236,7 @@ async function fetchBlockRange(CompactTxStreamer, grpc, start, end) {
 router.post('/api/lightwalletd/scan', async (req, res) => {
   try {
     const { startHeight: rawStart, endHeight: rawEnd, format } = req.body;
-    if (format !== undefined && format !== 'inbox-v1') return res.status(400).json({ error: 'Unsupported scan format' });
+    if (format !== undefined && format !== 'inbox-v1' && format !== 'inbox-stream-v1') return res.status(400).json({ error: 'Unsupported scan format' });
     const startHeight = Number(rawStart);
     const endHeight = rawEnd == null ? undefined : Number(rawEnd);
 
@@ -289,6 +290,8 @@ router.post('/api/lightwalletd/scan', async (req, res) => {
         error: `Range too large (max ${MAX_LIGHTWALLETD_SCAN_RANGE} blocks per request)`,
       });
     }
+
+    if (format === 'inbox-stream-v1') return await streamInbox(res, CompactTxStreamer, grpc, startHeight, finalEndHeight);
 
     // Check cache first
     const startTime = Date.now();
