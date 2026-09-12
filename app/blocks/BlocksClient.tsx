@@ -322,7 +322,7 @@ export default function BlocksClient({
           <span className="text-xs font-mono text-muted">
             {!dataAvailable && blocks.length === 0
               ? 'Block data temporarily unavailable'
-              : blocks.length > 0
+              : blocks.length > 0 && (!filters.order || ['newest', 'oldest'].includes(filters.order))
               ? `Block #${blocks[0].height.toLocaleString()} to #${blocks[blocks.length - 1].height.toLocaleString()} · ${pagination.total.toLocaleString()} blocks`
               : `${pagination.total.toLocaleString()} blocks`}
           </span>
@@ -360,7 +360,23 @@ export default function BlocksClient({
       <BlockFilters values={filters} />
       {!dataAvailable && <p role="status" className="mb-4 text-sm text-muted">Block data is unavailable for this selection. Software filters require the completed history index; please try again later.</p>}
       <DataTable
-        columns={blockColumns(blocks, trailingBlock ?? null)}
+        columns={blockColumns(blocks, trailingBlock ?? null).map((column) => {
+          if (!['height', 'txs', 'size', 'fees', 'interval'].includes(column.id)) return column;
+          const order = filters.order || 'newest';
+          const active = column.id === 'height' ? ['newest', 'oldest'].includes(order) : order.startsWith(`${column.id}_`);
+          const ascending = order === 'oldest' || order.endsWith('_asc');
+          const nextAscending = active && !ascending;
+          const nextOrder = column.id === 'height' ? (nextAscending ? 'oldest' : 'newest') : `${column.id}_${nextAscending ? 'asc' : 'desc'}`;
+          const params = new URLSearchParams({ ...filters, order: nextOrder });
+          const label = column.id === 'height' ? (nextAscending ? 'oldest first' : 'newest first') : (nextAscending ? 'lowest first' : 'highest first');
+          return {
+            ...column,
+            sortDirection: active ? (ascending ? 'ascending' as const : 'descending' as const) : undefined,
+            header: <Link href={`/blocks?${params}`} scroll={false} className={`inline-flex min-h-6 items-center gap-1.5 whitespace-nowrap hover:text-primary ${active ? 'text-primary' : ''}`} aria-label={`Sort ${column.id === 'txs' ? 'transactions' : column.id}: ${label}`}>
+              {column.header}<span aria-hidden="true" className={active ? 'text-primary' : 'text-muted'}>{active ? (ascending ? '↑' : '↓') : '↕'}</span>
+            </Link>,
+          };
+        })}
         rows={blocks}
         rowKey={(block) => block.height}
         loading={loading}

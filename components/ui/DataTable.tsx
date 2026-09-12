@@ -5,6 +5,7 @@ export interface DataTableColumn<T> {
   /** Stable column id */
   id: string;
   header: ReactNode;
+  sortDirection?: 'ascending' | 'descending';
   /** Cell renderer */
   cell: (row: T, index: number) => ReactNode;
   align?: 'left' | 'right' | 'center';
@@ -77,6 +78,7 @@ export function DataTable<T>({
               {columns.map((col) => (
                 <th
                   key={col.id}
+                  aria-sort={col.sortDirection}
                   className={`px-4 py-3 ${ALIGN[col.align ?? 'left']} text-caption font-semibold uppercase tracking-wider text-muted border-b border-cipher-border ${col.className ?? ''}`}
                 >
                   {col.header}

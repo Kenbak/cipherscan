@@ -557,12 +557,20 @@
           "type": "string",
           "enum": [
             "newest",
-            "oldest"
+            "oldest",
+            "interval_asc",
+            "interval_desc",
+            "size_asc",
+            "size_desc",
+            "fees_asc",
+            "fees_desc",
+            "txs_asc",
+            "txs_desc"
           ],
           "default": "newest",
-          "description": "Canonical block-height order. Cursor remains bound to all filters."
+          "description": "Sort the complete filtered dataset by height, parent interval, indexed size, fees or transaction count. Metric ties use height; unavailable values sort last. Cursor remains bound to every filter and order."
         },
-        "description": "Canonical block-height order. Cursor remains bound to all filters."
+        "description": "Sort the complete filtered dataset by height, parent interval, indexed size, fees or transaction count. Metric ties use height; unavailable values sort last. Cursor remains bound to every filter and order."
       },
       {
         "name": "pool",

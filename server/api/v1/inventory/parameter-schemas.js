@@ -18,7 +18,7 @@ const routeSchemas = {
 const softwareFilters = {
   software: {type:'string',enum:['all','zebra','zakura','other','unknown','conflicting','missing'],default:'all',description:'Self-reported coinbase marker; unknown means unmarked, other means zcashd, missing means unavailable coinbase data.'},
   pool: {type:'string',enum:['all',...require('../../lib/mining-software').pools,'unattributed'],default:'all',description:'Mining-pool payout-address attribution, independent of software markers.'},
-  order: {type:'string',enum:['newest','oldest'],default:'newest',description:'Canonical block-height order. Cursor remains bound to all filters.'},
+  order: {type:'string',enum:['newest','oldest','interval_asc','interval_desc','size_asc','size_desc','fees_asc','fees_desc','txs_asc','txs_desc'],default:'newest',description:'Sort the complete filtered dataset by height, parent interval, indexed size, fees or transaction count. Metric ties use height; unavailable values sort last. Cursor remains bound to every filter and order.'},
   from: {type:'string',format:'date',description:'Inclusive UTC date, YYYY-MM-DD. Mining software history requires period=custom.'},
   to: {type:'string',format:'date',description:'Inclusive UTC end date, YYYY-MM-DD. Mining software history requires period=custom.'},
   min_height: {type:'integer',minimum:0,maximum:2147483647,description:'Inclusive minimum canonical block height.'},

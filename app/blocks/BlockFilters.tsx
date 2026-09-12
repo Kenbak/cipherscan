@@ -78,6 +78,7 @@ export function BlockFilters({ values }: { values: BlockFilterValues }) {
       <fieldset disabled={pending} className="min-w-0 disabled:opacity-60">
         <legend className="sr-only">Filter blocks</legend>
         <input type="hidden" name="software" value={software} />
+        <input type="hidden" name="order" value={values.order || "newest"} />
         <div className="flex flex-wrap items-center gap-3">
           <div role="group" aria-label="Software marker" className="max-w-full overflow-x-auto">
             <FilterGroup inline className="h-10 p-0">
@@ -97,13 +98,6 @@ export function BlockFilters({ values }: { values: BlockFilterValues }) {
               <option value="all">All pools</option>
               {pools.map((name) => <option key={name}>{name}</option>)}
               <option value="unattributed">Unattributed</option>
-            </select>
-          </label>
-          <label className="flex items-center gap-2 text-xs text-muted">
-            Order
-            <select name="order" defaultValue={values.order || "newest"} className={field} onChange={(event) => navigate({ ...values, order: event.target.value })}>
-              <option value="newest">Newest first</option>
-              <option value="oldest">Oldest first</option>
             </select>
           </label>
           <button type="button" aria-expanded={expanded} aria-controls={panelId} onClick={() => setExpanded(!expanded)} className={`${field} inline-flex items-center gap-2 hover:text-primary ${activeCount ? 'border-brand-gold/50' : ''}`}>

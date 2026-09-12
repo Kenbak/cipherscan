@@ -253,6 +253,27 @@ test(
       for (const invalid of ['min_size=2&max_size=1','min_fees=0.000000001','min_txs=-1','min_interval=1.5'])
         assert.equal((await fetch(`${origin}/v1/blocks?${invalid}`)).status,400,invalid);
     });
+    await t.test('metric sorting traverses ties and missing values in both directions', async () => {
+      await db.query('UPDATE blocks SET size=CASE WHEN height=4 THEN NULL ELSE (height%3)*100 END,total_fees=CASE WHEN height=4 THEN NULL ELSE (height%3)*100000000 END,transaction_count=CASE WHEN height=4 THEN NULL ELSE height%3+1 END WHERE height<=12');
+      const expressions = {size:'b.size',fees:'b.total_fees',txs:'b.transaction_count',interval:'b.timestamp-parent.timestamp'};
+      for (const [metric,expression] of Object.entries(expressions)) for (const direction of ['asc','desc']) {
+        const query = `min_height=0&max_height=12&order=${metric}_${direction}&limit=4`;
+        const expected = (await db.query(`SELECT b.height FROM blocks b LEFT JOIN blocks parent ON parent.height=b.height-1 WHERE b.height<=12 ORDER BY ${expression} ${direction} NULLS LAST,b.height ${direction}`)).rows.map(b=>b.height);
+        const pages=[];let cursor=null;
+        do {
+          const response=await fetch(`${origin}/v1/blocks?${query}${cursor ? '&cursor='+encodeURIComponent(cursor) : ''}`);
+          const body=await response.json();assert.equal(response.status,200,JSON.stringify(body));
+          assert.equal(body.meta.page.total,13);assert(body.data.every(b=>!('_sort' in b)));
+          pages.push(body);cursor=body.meta.page.nextCursor;assert(pages.length<6);
+        } while(cursor);
+        assert.deepEqual(pages.flatMap(p=>p.data.map(b=>b.height)),expected,`${metric}_${direction}`);
+        for(let i=pages.length-1;i>0;i--){
+          const response=await fetch(`${origin}/v1/blocks?${query}&cursor=${encodeURIComponent(pages[i].meta.page.prevCursor)}`);
+          const body=await response.json();assert.equal(response.status,200,JSON.stringify(body));
+          assert.deepEqual(body.data.map(b=>b.height),pages[i-1].data.map(b=>b.height));
+        }
+      }
+    });
     // Larger synthetic range for query-plan and bounded-aggregate smoke checks.
     await db.query(
       `INSERT INTO blocks(height,hash,timestamp,coinbase_hex) SELECT i,'synthetic-'||i,1788220800+i*75,CASE WHEN i%100=0 THEN 'f09fa693' ELSE '00' END FROM generate_series(526,100525) i`,
