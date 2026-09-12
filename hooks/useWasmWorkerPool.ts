@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { packActions, type CompactAction, type CompactBlock, type MemoOutput, type ScanTransaction } from '@/lib/scan-records';
+import { compactJobs, type CompactBlock, type MemoOutput, type ScanTransaction } from '@/lib/scan-records';
 
 interface WorkerClient {
   worker: Worker;
@@ -67,14 +67,7 @@ export function useWasmWorkerPool() {
     const active = clients.current;
     if (!active.length) throw abortError();
     // Bound crypto batches by action count, rather than unpredictable block density.
-    const jobs: { actions: CompactAction[]; transactions: ScanTransaction[] }[] = [];
-    let job = { actions: [] as CompactAction[], transactions: [] as ScanTransaction[] };
-    for (const block of blocks) for (const tx of block.vtx || []) for (const action of tx.actions || []) {
-      job.actions.push(action);
-      job.transactions.push({ txid: tx.hash, height: Number(block.height), timestamp: block.time });
-      if (job.actions.length === 512) { jobs.push(job); job = { actions: [], transactions: [] }; }
-    }
-    if (job.actions.length) jobs.push(job);
+    const jobs = compactJobs(blocks);
     let cursor = 0;
     let completed = 0;
     const matches = new Map<string, ScanTransaction>();
@@ -82,7 +75,7 @@ export function useWasmWorkerPool() {
       while (cursor < jobs.length) {
         if (clients.current !== active) throw abortError();
         const current = jobs[cursor++];
-        const bytes = packActions(current.actions);
+        const bytes = current.bytes;
         const indices: number[] = await request(client, { operation: 'filter', bytes }, [bytes.buffer]);
         for (const index of indices) {
           const tx = current.transactions[index];

@@ -11,7 +11,7 @@ export interface ScanTransaction { txid: string; height: number; timestamp: numb
 export interface CompactBlock {
   height: number | string;
   time: number;
-  vtx?: { hash: string; actions?: CompactAction[] }[];
+  vtx?: { hash: string; actions?: CompactAction[]; records?: string }[];
 }
 export interface MemoOutput {
   memo: string;
@@ -38,4 +38,34 @@ export function packActions(actions: CompactAction[]): Uint8Array {
     }
   });
   return bytes;
+}
+
+/** Decode only the binary representation selected by the versioned response. */
+export function compactJobs(blocks: CompactBlock[]) {
+  const jobs: { bytes: Uint8Array; transactions: ScanTransaction[] }[] = [];
+  let bytes = new Uint8Array(512 * COMPACT_RECORD_SIZE);
+  let transactions: ScanTransaction[] = [];
+  const flush = () => {
+    if (transactions.length) jobs.push({ bytes: bytes.slice(0, transactions.length * COMPACT_RECORD_SIZE), transactions });
+    bytes = new Uint8Array(512 * COMPACT_RECORD_SIZE); transactions = [];
+  };
+  for (const block of blocks) for (const tx of block.vtx || []) {
+    let packed: Uint8Array;
+    if (tx.records !== undefined) {
+      if (tx.actions !== undefined || typeof tx.records !== 'string' || !/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(tx.records)) throw new Error('Invalid compact records');
+      const decoded = atob(tx.records);
+      packed = new Uint8Array(decoded.length);
+      for (let i = 0; i < decoded.length; i++) packed[i] = decoded.charCodeAt(i);
+      if (packed.length % COMPACT_RECORD_SIZE) throw new Error('Invalid compact record length');
+    } else packed = packActions(tx.actions || []);
+    const metadata = { txid: tx.hash, height: Number(block.height), timestamp: block.time };
+    for (let offset = 0; offset < packed.length; offset += COMPACT_RECORD_SIZE) {
+      if (packed[offset] > 2) throw new Error('Unsupported compact pool');
+      bytes.set(packed.subarray(offset, offset + COMPACT_RECORD_SIZE), transactions.length * COMPACT_RECORD_SIZE);
+      transactions.push(metadata);
+      if (transactions.length === 512) flush();
+    }
+  }
+  flush();
+  return jobs;
 }

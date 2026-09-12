@@ -10,7 +10,7 @@ function load(file) {
   return module.exports;
 }
 const { scanInbox } = load('lib/inbox-scan.ts');
-const { packActions } = load('lib/scan-records.ts');
+const { packActions, compactJobs } = load('lib/scan-records.ts');
 const action = { nullifier: '00'.repeat(32), cmx: '01'.repeat(32), ephemeralKey: '02'.repeat(32), ciphertext: '03'.repeat(52) };
 
 test('binary records preserve pool, exact field boundaries and reject malformed input', () => {
@@ -50,9 +50,9 @@ test('long ranges are contiguous, bounded and prefetched; all memos delivered pr
   const result = await scanInbox(options);
   const ranges = requests.filter(r => r.startHeight);
   assert.equal(ranges.length, 6);
-  assert.deepEqual(ranges[0], { startHeight: 1, endHeight: 9999 });
-  assert.deepEqual(ranges[1], { startHeight: 10000, endHeight: 19999 });
-  assert.deepEqual(ranges.at(-1), { startHeight: 50000, endHeight: 50001 });
+  assert.deepEqual(ranges[0], { startHeight: 1, endHeight: 9999, format: 'inbox-v1' });
+  assert.deepEqual(ranges[1], { startHeight: 10000, endHeight: 19999, format: 'inbox-v1' });
+  assert.deepEqual(ranges.at(-1), { startHeight: 50000, endHeight: 50001, format: 'inbox-v1' });
   assert.ok(ranges.every(r => r.endHeight - r.startHeight + 1 <= 10000));
   assert.ok(events.indexOf('fetch:10000') < events.indexOf('filter:1'));
   assert.deepEqual(counts, [2, 4, 6, 8, 10, 12]);
@@ -96,4 +96,16 @@ test('a failed prefetch rejects the scan without an unhandled rejection', async 
   const { options } = setup(); const original = options.fetcher;
   options.fetcher = async (url, init) => JSON.parse(init.body).startHeight === 10000 ? Promise.reject(new Error('offline')) : original(url, init);
   await assert.rejects(scanInbox(options), /offline/);
+});
+
+test('packed transport preserves exact legacy bytes, metadata and 512-action boundaries', () => {
+  const { compactBlockToInbox } = require('../api/lib/compact-blocks');
+  const blocks = [{ height: 1, time: 7, vtx: [{ hash: 'first', actions: Array.from({ length: 513 }, (_, i) => ({ ...action, pool: i % 2 ? 'orchard' : 'ironwood' })) }, { hash: 'second', actions: [action] }] }, { height: 2, time: 8, vtx: [] }];
+  const packed = blocks.map(compactBlockToInbox);
+  assert.deepEqual(compactJobs(packed), compactJobs(blocks));
+  assert.deepEqual(compactJobs(packed).map(j => j.transactions.length), [512, 2]);
+  for (const records of ['!', 'AA==', Buffer.from([3, ...new Array(148).fill(0)]).toString('base64')]) {
+    assert.throws(() => compactJobs([{ height: 1, time: 0, vtx: [{ hash: 'bad', records }] }]));
+  }
+  assert.throws(() => compactBlockToInbox({ vtx: [{ actions: [{ ...action, ciphertext: 'ff' }] }] }));
 });

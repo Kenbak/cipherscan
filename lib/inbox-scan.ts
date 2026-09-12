@@ -31,9 +31,14 @@ export async function scanInbox(options: {
   const rangeEnd = (start: number) => Math.min(endHeight, (Math.floor(start / RANGE_SIZE) + 1) * RANGE_SIZE - 1);
   function fetchRange(start: number) {
     const end = rangeEnd(start);
-    return post('/api/lightwalletd/scan', { startHeight: start, endHeight: end })
+    return post('/api/lightwalletd/scan', { startHeight: start, endHeight: end, format: 'inbox-v1' })
       .then(data => {
+        if (data.format !== undefined && data.format !== 'inbox-v1') throw new Error('Unsupported scan response format');
         const blocks: CompactBlock[] = data.blocks;
+        if (data.format === 'inbox-v1' && Array.isArray(blocks) && blocks.some(block =>
+          !Array.isArray(block.vtx) || block.vtx.some(tx => typeof tx.records !== 'string' || tx.actions !== undefined))) {
+          throw new Error('Invalid packed scan response');
+        }
         if (!Array.isArray(blocks) || blocks.length !== end - start + 1 ||
             blocks.some((block, i) => Number(block.height) !== start + i)) {
           throw new Error('Incomplete compact block range; retry the scan');
