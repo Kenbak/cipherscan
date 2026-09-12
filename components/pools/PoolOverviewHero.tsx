@@ -408,14 +408,6 @@ export function PoolOverviewHero({ data }: { data: PoolOverviewData }) {
           </span>
         ))}
       </div>
-      <p className="mt-2 text-xs text-secondary" aria-label="Public supply breakdown">
-        Inside public supply: transparent balances {formatZecCompact(transparentZec)} ZEC
-        {' + '}other issued {formatZecCompact(zatToZec(poolMeta.otherIssued.zat))} ZEC (includes lockbox).
-      </p>
-      <p className="mt-2 text-xs text-muted">
-        Public supply groups transparent balances with other issued value, including the separate deferred-development lockbox.
-        Unmined is 21M minus chain supply. <a href="#supply-definitions" className="underline">Supply definitions</a>
-      </p>
 
       <div className="mt-3 min-h-[1.25rem]">
         {readout.kind === 'idle' ? (
