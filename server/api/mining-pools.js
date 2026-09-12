@@ -178,8 +178,8 @@ const POOL_BY_ADDRESS = {
   // the actual miner reward is deposited entirely into a shielded pool and
   // this is the only transparent coinbase output left — isFundingStream lets
   // callers detect and correctly relabel that case instead of showing "Miner".
-  // NOTE: ~48 blocks/week attributed here are actually NiceHash/Sluicey miners
-  // with coinbase "Get Sluicey Yall sluicey.xyz" using fully shielded payouts.
+  // A coinbase tag alone does not establish the miner identity. Never return
+  // a funding-stream recipient as a mining pool.
   't3cFfPt1Bcvgez9ZbMBFWeZsskxTkPzGCow': {
     name: 'FPF / Zcash Community Grants',
     url: null,
@@ -205,7 +205,7 @@ const POOL_BY_ADDRESS = {
 function getPoolName(address) {
   if (!address) return null;
   const pool = POOL_BY_ADDRESS[address];
-  return pool ? pool.name : null;
+  return pool && !pool.isFundingStream ? pool.name : null;
 }
 
 function getPoolInfo(address) {
