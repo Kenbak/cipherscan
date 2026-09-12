@@ -138,7 +138,7 @@ export function ScanMyTransactions() {
         onProgress: (processed, matches) => {
           setBlocksProcessed(processed);
           setMatchesFound(matches);
-          setScanProgress(Math.round(processed / total * 100));
+          setScanProgress(Math.min(99, Math.round(processed / total * 100)));
         },
         onMessages: setScanResults,
         onPhase: setScanPhase,

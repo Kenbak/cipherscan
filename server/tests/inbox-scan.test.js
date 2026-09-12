@@ -4,9 +4,9 @@ const fs = require('node:fs');
 const ts = require('typescript');
 function load(file) {
   const module = { exports: {} };
-  new Function('module', 'exports', ts.transpileModule(fs.readFileSync(file, 'utf8'), {
+  new Function('require', 'module', 'exports', ts.transpileModule(fs.readFileSync(file, 'utf8'), {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
-  }).outputText)(module, module.exports);
+  }).outputText)(name => load('lib/' + name.replace('./', '') + '.ts'), module, module.exports);
   return module.exports;
 }
 const { scanInbox } = load('lib/inbox-scan.ts');
@@ -29,7 +29,7 @@ function setup(endHeight = 20003) {
   const options = {
     apiUrl: '', startHeight: 1, endHeight, signal: controller.signal,
     fetcher: async (url, init) => {
-      const body = JSON.parse(init.body); requests.push(body); assert.equal(init.signal, controller.signal);
+      const body = JSON.parse(init.body); requests.push(body); assert.ok(init.signal instanceof AbortSignal);
       if (url.includes('lightwalletd')) {
         events.push(`fetch:${body.startHeight}`);
         return { ok: true, json: async () => ({ blocks: Array.from({ length: body.endHeight - body.startHeight + 1 }, (_, i) => ({ height: body.startHeight + i, time: 0 })) }) };
@@ -46,15 +46,17 @@ function setup(endHeight = 20003) {
 }
 test('long ranges are contiguous, bounded and prefetched; all memos delivered progressively', async () => {
   const { options, requests, events } = setup(50001);
+  const filter = options.scanner.filterCompactBlocks;
+  options.scanner.filterCompactBlocks = async blocks => { const result = await filter(blocks); await new Promise(resolve => setImmediate(resolve)); events.push(`filtered:${blocks[0].height}`); return result; };
   const counts = []; options.onMessages = messages => counts.push(messages.length);
   const result = await scanInbox(options);
   const ranges = requests.filter(r => r.startHeight);
   assert.equal(ranges.length, 6);
-  assert.deepEqual(ranges[0], { startHeight: 1, endHeight: 9999, format: 'inbox-v1' });
-  assert.deepEqual(ranges[1], { startHeight: 10000, endHeight: 19999, format: 'inbox-v1' });
-  assert.deepEqual(ranges.at(-1), { startHeight: 50000, endHeight: 50001, format: 'inbox-v1' });
+  assert.deepEqual(ranges[0], { startHeight: 1, endHeight: 9999, format: 'inbox-stream-v1' });
+  assert.deepEqual(ranges[1], { startHeight: 10000, endHeight: 19999, format: 'inbox-stream-v1' });
+  assert.deepEqual(ranges.at(-1), { startHeight: 50000, endHeight: 50001, format: 'inbox-stream-v1' });
   assert.ok(ranges.every(r => r.endHeight - r.startHeight + 1 <= 10000));
-  assert.ok(events.indexOf('fetch:10000') < events.indexOf('filter:1'));
+  assert.ok(events.indexOf('fetch:10000') < events.indexOf('filtered:1'));
   assert.deepEqual(counts, [2, 4, 6, 8, 10, 12]);
   assert.equal(result.matches, 6); assert.equal(result.messages.length, 12);
 });
@@ -158,4 +160,43 @@ test('a missing decryption result cannot silently hide a matching transaction', 
   const { options } = setup(1);
   options.scanner.decryptMemos = async () => [];
   await assert.rejects(scanInbox(options), /Incomplete memo decryption/);
+});
+
+const { readCompactRange } = load('lib/scan-stream.ts');
+const chainHash = n => n.toString(16).padStart(64, '0');
+const streamBlock = height => ({ height, time: 1, hash: chainHash(height), prevHash: chainHash(height - 1), vtx: [] });
+function frames(start = 1, end = 2) {
+  return [{ type: 'start', format: 'inbox-stream-v1', startHeight: start, endHeight: end }, { type: 'blocks', blocks: Array.from({ length: end - start + 1 }, (_, i) => streamBlock(start + i)) }, { type: 'end', endHeight: end, blocksScanned: end - start + 1, hash: chainHash(end) }];
+}
+function streamResponse(records, fragment = false) {
+  const text = records.map(r => JSON.stringify(r) + '\n').join('');
+  return new Response(new ReadableStream({ start(c) { const bytes = new TextEncoder().encode(text); if (fragment) for (const byte of bytes) c.enqueue(Uint8Array.of(byte)); else c.enqueue(bytes); c.close(); } }), { headers: { 'Content-Type': 'application/x-ndjson' } });
+}
+async function consume(response, start = 1, end = 2, previous) {
+  const all = []; for await (const blocks of readCompactRange(response, start, end, new AbortController().signal, previous)) all.push(...blocks); return all;
+}
+test('stream parser handles arbitrary framing and validates cross-range ancestry', async () => {
+  assert.deepEqual(await consume(streamResponse(frames(), true)), [streamBlock(1), streamBlock(2)]);
+  await assert.rejects(consume(streamResponse(frames()), 1, 2, chainHash(99)), /disconnected/);
+});
+test('stream parser rejects missing trailers, gaps, forks, incorrect counts and trailing data', async () => {
+  const cases = [];
+  cases.push(frames().slice(0, 2));
+  let r = frames(); r[1].blocks[1].height = 3; cases.push(r);
+  r = frames(); r[1].blocks[1].prevHash = chainHash(7); cases.push(r);
+  r = frames(); r[2].blocksScanned = 1; cases.push(r);
+  r = frames(); r.push({ type: 'blocks', blocks: [streamBlock(3)] }); cases.push(r);
+  r = frames(); r[2] = { type: 'error' }; cases.push(r);
+  for (const records of cases) await assert.rejects(consume(streamResponse(records)));
+});
+test('filtering starts before stream completion and cancellation closes the reader', async () => {
+  const { options, controller } = setup(2); let source; let closed = false;
+  options.fetcher = async () => new Response(new ReadableStream({ start(c) { source = c; for (const r of [frames()[0], { type: 'blocks', blocks: [streamBlock(1)] }]) c.enqueue(new TextEncoder().encode(JSON.stringify(r) + '\n')); }, cancel() { closed = true; } }), { headers: { 'Content-Type': 'application/x-ndjson' } });
+  let filtered = false;
+  options.scanner.filterCompactBlocks = async () => { filtered = true; return []; };
+  const scan = scanInbox(options); const rejected = assert.rejects(scan, { name: 'AbortError' });
+  await new Promise(resolve => setImmediate(resolve));
+  assert.ok(filtered); // The second block and trailer have never arrived.
+  controller.abort(); await rejected; await new Promise(resolve => setImmediate(resolve));
+  assert.ok(closed);
 });
