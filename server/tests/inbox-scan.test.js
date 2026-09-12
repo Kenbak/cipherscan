@@ -109,3 +109,53 @@ test('packed transport preserves exact legacy bytes, metadata and 512-action bou
   }
   assert.throws(() => compactBlockToInbox({ vtx: [{ actions: [{ ...action, ciphertext: 'ff' }] }] }));
 });
+
+test('memo download is one batch ahead, publishes completed transactions early and avoids duplicates', async () => {
+  const { options, requests } = setup(1);
+  options.scanner.filterCompactBlocks = async () => Array.from({ length: 201 }, (_, i) => ({ txid: `tx${i}`, height: 1, timestamp: 0 }));
+  const snapshots = []; options.onMessages = messages => snapshots.push(messages.length);
+  const phases = []; options.onPhase = phase => phases.push(phase);
+  let release; const held = new Promise(resolve => { release = resolve; });
+  let batches = 0;
+  options.scanner.decryptMemos = async (txs, publish) => {
+    batches++;
+    const results = txs.map(tx => ({ txid: tx.txid, outputs: [{ memo: 'fixture', output_index: 0 }] }));
+    publish(results[0]);
+    if (batches === 1) await held;
+    return results;
+  };
+  const scan = scanInbox(options);
+  await new Promise(resolve => setImmediate(resolve));
+  assert.deepEqual(requests.filter(r => r.txids).map(r => r.txids.length), [100, 100]);
+  assert.deepEqual(snapshots, [1]); // First memo appears before the batch finishes.
+  release();
+  const result = await scan;
+  assert.equal(result.messages.length, 201);
+  assert.equal(new Set(result.messages.map(m => m.txid)).size, 201);
+  assert.deepEqual(requests.filter(r => r.txids).map(r => r.txids.length), [100, 100, 1]);
+  assert.deepEqual(phases.slice(0, 4), ['fetching', 'filtering', 'memos', 'decrypting']);
+});
+
+test('a failed raw prefetch is handled and fails the scan instead of skipping notes', async () => {
+  const { options } = setup(1); const original = options.fetcher;
+  options.scanner.filterCompactBlocks = async () => Array.from({ length: 101 }, (_, i) => ({ txid: `tx${i}`, height: 1, timestamp: 0 }));
+  options.fetcher = async (url, init) => JSON.parse(init.body).txids?.[0] === 'tx100' ? Promise.reject(new Error('raw offline')) : original(url, init);
+  await assert.rejects(scanInbox(options), /raw offline/);
+});
+
+test('cancellation prevents late memo callbacks from publishing', async () => {
+  const { options, controller } = setup(1);
+  options.onMessages = () => assert.fail('published cancelled memo');
+  options.scanner.decryptMemos = async (txs, publish) => {
+    controller.abort();
+    publish({ txid: txs[0].txid, outputs: [{ memo: 'fixture' }] });
+    return [];
+  };
+  await assert.rejects(scanInbox(options), { name: 'AbortError' });
+});
+
+test('a missing decryption result cannot silently hide a matching transaction', async () => {
+  const { options } = setup(1);
+  options.scanner.decryptMemos = async () => [];
+  await assert.rejects(scanInbox(options), /Incomplete memo decryption/);
+});

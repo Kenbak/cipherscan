@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { scanInbox } from '@/lib/inbox-scan';
+import { scanInbox, type ScanPhase } from '@/lib/inbox-scan';
 import type { ScanMemo } from '@/lib/scan-records';
 import { useWasmWorkerPool } from '@/hooks/useWasmWorkerPool';
 import { getApiUrl } from '@/lib/api-config';
@@ -91,7 +91,7 @@ export function ScanMyTransactions() {
   const [totalBlocks, setTotalBlocks] = useState(0);
   const [scanResults, setScanResults] = useState<ScanResult[]>([]);
   const [scanError, setScanError] = useState<string | null>(null);
-  const [scanPhase, setScanPhase] = useState<'fetching' | 'filtering' | 'decrypting' | ''>('');
+  const [scanPhase, setScanPhase] = useState<ScanPhase | ''>('');
   const [cancelRequested, setCancelRequested] = useState(false);
   const [blocksProcessed, setBlocksProcessed] = useState(0);
   const [matchesFound, setMatchesFound] = useState(0);
@@ -132,7 +132,6 @@ export function ScanMyTransactions() {
       const total = endHeight - startHeight + 1;
       setTotalBlocks(total);
       controller.signal.throwIfAborted();
-      setScanPhase('filtering');
       const result = await scanInbox({
         apiUrl, startHeight, endHeight, signal: controller.signal, scanner: wasmWorkerPool,
         initialize: () => wasmWorkerPool.begin(sanitizedKey),
@@ -142,6 +141,7 @@ export function ScanMyTransactions() {
           setScanProgress(Math.round(processed / total * 100));
         },
         onMessages: setScanResults,
+        onPhase: setScanPhase,
       });
       setScanProgress(100);
       if (!result.matches) setScanError(`Scanned ${total.toLocaleString()} blocks but found no transactions matching your viewing key.`);
@@ -313,8 +313,11 @@ export function ScanMyTransactions() {
                               <AnimatedDots />
                             </>
                           )}
+                          {scanPhase === 'memos' && (
+                            <>Downloading matching transactions<AnimatedDots /></>
+                          )}
                           {scanPhase === 'decrypting' && (
-                            <>Decrypting {matchesFound} {matchesFound === 1 ? 'memo' : 'memos'}<AnimatedDots /></>
+                            <>Decrypting memos<AnimatedDots /></>
                           )}
                           {!scanPhase && (
                             <>Scanning<AnimatedDots /></>

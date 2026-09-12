@@ -89,7 +89,7 @@ export function useWasmWorkerPool() {
     return [...matches.values()].sort((a, b) => b.height - a.height);
   }, [request]);
 
-  const decryptMemos = useCallback(async (transactions: { txid: string; hex: string }[]): Promise<{ txid: string; outputs: MemoOutput[] }[]> => {
+  const decryptMemos = useCallback(async (transactions: { txid: string; hex: string }[], onTransaction?: (transaction: { txid: string; outputs: MemoOutput[] }) => void): Promise<{ txid: string; outputs: MemoOutput[] }[]> => {
     const active = clients.current;
     if (!active.length) throw abortError();
     let cursor = 0;
@@ -98,7 +98,9 @@ export function useWasmWorkerPool() {
       while (cursor < transactions.length) {
         if (clients.current !== active) throw abortError();
         const tx = transactions[cursor++];
-        results.push(...await request(client, { operation: 'memos', transactions: [tx] }));
+        const decrypted: { txid: string; outputs: MemoOutput[] }[] = await request(client, { operation: 'memos', transactions: [tx] });
+        if (clients.current !== active) throw abortError();
+        for (const result of decrypted) { results.push(result); onTransaction?.(result); }
       }
     }));
     return results;
