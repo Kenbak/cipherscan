@@ -22,7 +22,7 @@ test('server delivers initial blocks before upstream completes and rejects incom
   const server = app.listen(0, '127.0.0.1'); await new Promise(r => server.once('listening', r));
   t.after(() => server.close());
   const url = `http://127.0.0.1:${server.address().port}/`;
-  const response = await fetch(url); const reader = response.body.getReader(); let text = '';
+  const response = await fetch(url); assert.equal(response.headers.get('content-encoding'), 'gzip'); const reader = response.body.getReader(); let text = '';
   while (!text.includes('"type":"blocks"')) text += Buffer.from((await reader.read()).value).toString();
   assert.ok(!text.includes('"type":"end"'));
   release();

@@ -1,4 +1,5 @@
 'use strict';
+const { createGzip, constants } = require('node:zlib');
 const { compactBlockToJSON, compactBlockToInbox } = require('./compact-blocks');
 
 // Bound projection/output buffering; gRPC's Readable iterator supplies backpressure.
@@ -7,16 +8,24 @@ async function streamInbox(res, Client, grpc, start, end) {
   const call = client.GetBlockRange({ start: { height: start }, end: { height: end } });
   const close = () => call.cancel();
   res.once('close', close);
+  const gzip = res.req?.acceptsEncodings('gzip') ? createGzip({ flush: constants.Z_SYNC_FLUSH }) : null;
+  const output = gzip || res;
+  if (gzip) {
+    res.setHeader('Content-Encoding', 'gzip');
+    gzip.on('error', () => res.destroy());
+    gzip.pipe(res);
+  }
+  res.vary?.('Accept-Encoding');
   async function write(value) {
     if (res.destroyed) throw new Error('Scan client disconnected');
     const line = JSON.stringify(value) + '\n';
     if (Buffer.byteLength(line) > 16 * 1024 * 1024) throw new Error('Compact stream record too large');
-    if (res.write(line)) return;
+    if (output.write(line)) return;
     await new Promise((resolve, reject) => {
-      const clean = () => { res.off('drain', drain); res.off('close', closed); };
+      const clean = () => { output.off('drain', drain); res.off('close', closed); };
       const drain = () => { clean(); resolve(); };
       const closed = () => { clean(); reject(new Error('Scan client disconnected')); };
-      res.once('drain', drain); res.once('close', closed);
+      output.once('drain', drain); res.once('close', closed);
     });
   }
   try {
@@ -41,12 +50,13 @@ async function streamInbox(res, Client, grpc, start, end) {
     if (expected !== end + 1) throw new Error('Incomplete compact range');
     if (batch.length) await write({ type: 'blocks', blocks: batch });
     await write({ type: 'end', blocksScanned: end - start + 1, endHeight: end, hash: previous });
-    res.end();
+    output.end();
   } catch (_error) {
     // HTTP status may already be committed. A terminal error is never a success trailer.
-    if (!res.destroyed) { await write({ type: 'error', error: 'Compact stream failed; retry the scan' }).catch(() => {}); res.end(); }
+    if (!res.destroyed) { await write({ type: 'error', error: 'Compact stream failed; retry the scan' }).catch(() => {}); output.end(); }
   } finally {
     res.off('close', close);
+    if (res.destroyed) gzip?.destroy();
     call.cancel();
     client.close();
   }
