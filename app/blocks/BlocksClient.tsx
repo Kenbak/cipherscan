@@ -8,11 +8,13 @@ import { formatRelativeTime, formatBlockInterval } from '@/lib/utils';
 import { zatToZec } from '@/lib/format-numbers';
 import { getApiUrl } from '@/lib/api-config';
 import { Pagination } from '@/components/Pagination';
-import { getCoinbaseClientInfo } from '@/lib/coinbase-client';
 import { usePaginatedList, type BasePaginationState } from '@/hooks/usePaginatedList';
+import { BlockFilters, type BlockFilterValues } from './BlockFilters';
+import { SOFTWARE_LABELS, classifyMiningSoftware, type MiningSoftware } from '@/lib/mining-software';
 import { CURRENCY } from '@/lib/config';
 
 interface Block {
+  software?: MiningSoftware;
   intervalSeconds?: number | null;
   height: number;
   hash: string;
@@ -85,15 +87,8 @@ function blockColumns(blocks: Block[], trailingBlock: Block | null): DataTableCo
       className: 'hidden lg:table-cell',
       skeletonWidth: 'w-16',
       cell: (block) => {
-        const clientInfo = getCoinbaseClientInfo(block.coinbase_hex);
-        const tooltip = clientInfo.name
-          ? `${clientInfo.name}${clientInfo.version ? ' ' + clientInfo.version : ''}`
-          : undefined;
         return (
           <div className="flex items-center gap-1.5">
-            {clientInfo.emoji && (
-              <span className="text-sm leading-none" title={tooltip}>{clientInfo.emoji}</span>
-            )}
             {block.miner_pool ? (
               <span className="text-xs font-mono text-primary">{block.miner_pool}</span>
             ) : (
@@ -102,6 +97,10 @@ function blockColumns(blocks: Block[], trailingBlock: Block | null): DataTableCo
           </div>
         );
       },
+    },
+    {
+      id:'software', header:'Software marker', className:'hidden md:table-cell',
+      cell:block=><span className="font-mono text-xs text-secondary" title="Self-reported coinbase marker; not authenticated software identity">{SOFTWARE_LABELS[block.software ?? classifyMiningSoftware(block.coinbase_hex)]}</span>,
     },
     {
       id: 'txs',
@@ -157,14 +156,14 @@ function blockColumns(blocks: Block[], trailingBlock: Block | null): DataTableCo
       skeletonWidth: 'w-12',
       cell: (block, idx) => {
         const nextBlock = blocks[idx + 1] ?? (idx === blocks.length - 1 ? trailingBlock : null);
-        const gap = block.intervalSeconds ?? (nextBlock ? block.timestamp - nextBlock.timestamp : null);
+        const gap = block.intervalSeconds ?? (nextBlock?.height === block.height - 1 ? block.timestamp - nextBlock.timestamp : null);
         const interval = gap !== null && gap >= 0 ? formatBlockInterval(gap) : null;
         const barPct = gap !== null ? Math.min(100, (gap / 300) * 100) : 0;
-        if (!interval || !nextBlock) {
+        if (!interval) {
           return <span className="font-mono text-xs text-muted">--</span>;
         }
         return (
-          <div className="flex items-center justify-end gap-2" title={`${gap}s between block ${nextBlock.height.toLocaleString()} and ${block.height.toLocaleString()}`}>
+          <div className="flex items-center justify-end gap-2" title={`${gap}s between block ${(block.height - 1).toLocaleString()} and ${block.height.toLocaleString()}`}>
             <div className="w-12 h-1 rounded-full bg-cipher-border-alpha/40 overflow-hidden">
               <div
                 className={`h-full rounded-full ${INTERVAL_BAR_COLORS[interval.level]} transition-colors`}
@@ -200,6 +199,7 @@ function blockColumns(blocks: Block[], trailingBlock: Block | null): DataTableCo
 }
 
 interface BlocksClientProps {
+  filters?: BlockFilterValues;
   initialBlocks?: Block[];
   initialTrailingBlock?: Block | null;
   initialPagination?: Partial<BasePaginationState> | null;
@@ -210,6 +210,7 @@ interface BlocksClientProps {
 }
 
 export default function BlocksClient({
+  filters = {},
   initialBlocks = [],
   initialTrailingBlock = null,
   initialPagination = null,
@@ -230,6 +231,7 @@ export default function BlocksClient({
     nextHref,
   } = usePaginatedList<Block, BasePaginationState, Block | null>({
     endpoint: '/v1/blocks',
+    buildParams: () => filters as Record<string,string>,
     pageSize: PAGE_SIZE,
     archiveBasePath: '/blocks',
     getLatestKey: (block) => Number(block.height),
@@ -242,8 +244,9 @@ export default function BlocksClient({
       );
     },
     buildArchiveHref: (cursor, _secondary, direction, targetPage) => {
-      if (targetPage <= 1 || cursor === null) return '/blocks';
+      if (targetPage <= 1 || cursor === null) return Object.keys(filters).length ? `/blocks?${new URLSearchParams(filters)}` : '/blocks';
       const params = new URLSearchParams({
+        ...filters,
         cursor: String(cursor),
         direction,
         page: String(targetPage),
@@ -296,7 +299,7 @@ export default function BlocksClient({
   // for "is there a newer block than what summary last saw", so take
   // whichever is higher; on page 2+ blocks[0] is a historical block, not the
   // tip, so summary.height (the actual network tip) is used untouched.
-  const liveHeight = page === 1 && blocks[0]?.height
+  const liveHeight = Object.keys(filters).length === 0 && page === 1 && blocks[0]?.height
     ? Math.max(summary.height ?? 0, blocks[0].height) || null
     : summary.height;
 
@@ -304,7 +307,8 @@ export default function BlocksClient({
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-12 animate-fade-in">
       <PageHeader
         eyebrow="ALL_BLOCKS"
-        title={page > 1 ? `Zcash Blocks - Page ${page}` : 'Latest Zcash Blocks'}
+        title={page > 1 ? `Zcash Blocks - Page ${page}` : Object.keys(filters).length ? 'Zcash Blocks' : 'Latest Zcash Blocks'}
+        subtitle="Browse canonical blocks by software marker, mining pool, date or height."
         actions={
           <span className="text-xs font-mono text-muted">
             {!dataAvailable && blocks.length === 0
@@ -344,6 +348,8 @@ export default function BlocksClient({
         />
       </div>
 
+      <BlockFilters values={filters} />
+      {!dataAvailable && <p role="status" className="mb-4 text-sm text-muted">Block data is unavailable for this selection. Software filters require the completed history index; please try again later.</p>}
       <DataTable
         columns={blockColumns(blocks, trailingBlock ?? null)}
         rows={blocks}

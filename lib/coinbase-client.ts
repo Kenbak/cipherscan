@@ -1,3 +1,4 @@
+import { classifyMiningSoftware } from './mining-software';
 const COINBASE_CLIENT_MARKERS = [
   { hex: 'f09f8cb8', emoji: '🌸', name: 'Zakura' },
   { hex: 'f09fa693', emoji: '🦓', name: 'Zebra' },
@@ -26,8 +27,8 @@ export function getCoinbaseClientEmoji(
     return null;
   }
 
-  const normalizedHex = coinbaseHex.toLowerCase();
-  return COINBASE_CLIENT_MARKERS.find(({ hex }) => normalizedHex.includes(hex))?.emoji ?? null;
+  const software = classifyMiningSoftware(coinbaseHex);
+  return software === 'zebra' ? '🦓' : software === 'zakura' ? '🌸' : null;
 }
 
 const VERSION_PATTERN = /\/(Zakura|Zebra|zcashd)[:\s]?v?(\d+\.\d+(?:\.\d+)?(?:-[a-zA-Z0-9.]+)?)\//i;
@@ -59,6 +60,7 @@ export function getCoinbaseClientInfo(
     return { emoji, name: null, version: null };
   }
 
+  if (classifyMiningSoftware(coinbaseHex) === 'conflicting') return {emoji:null,name:'Conflicting markers',version:null};
   const text = hexToAscii(coinbaseHex);
   const match = text.match(VERSION_PATTERN);
 
@@ -67,9 +69,7 @@ export function getCoinbaseClientInfo(
   }
 
   // Fall back to emoji-based name detection
-  const marker = COINBASE_CLIENT_MARKERS.find(({ hex }) =>
-    coinbaseHex.toLowerCase().includes(hex),
-  );
+  const marker = COINBASE_CLIENT_MARKERS.find(marker => marker.emoji === emoji);
 
   return { emoji, name: marker?.name ?? null, version: null };
 }

@@ -1,3 +1,4 @@
+const { parseBlockFilters, filteredBlocks, SoftwareQueryError } = require('../lib/mining-software');
 /**
  * Block Routes
  * /health, /health/deep, /api/info, /api/blocks, /api/block/:height
@@ -234,11 +235,28 @@ router.get('/api/info', async (req, res) => {
 
 router.get('/api/blocks/list', async (req, res) => {
   try {
+    // Explicit query fields also drive the v1/OpenAPI inventory.
+    const { software, pool: poolFilter, order, from, to, min_height, max_height } = req.query;
+    const filters = parseBlockFilters({ software, pool: poolFilter, order, from, to, min_height, max_height });
     const limit = Math.min(Math.max(parseInt(req.query.limit) || 50, 1), 100);
     const cursor = req.query.cursor ? parseInt(req.query.cursor) : null;
     const direction = req.query.direction || 'next'; // 'next' = older, 'prev' = newer
     const normalizedDirection = direction === 'prev' ? 'prev' : 'next';
     const isLatest = cursor === null;
+    if ([software,poolFilter,order,from,to,min_height,max_height].some(value=>value!==undefined)) {
+      const cached = await listCache.getOrLoad({
+        family: 'blocks-software-v1', params:{...filters,limit,cursor,direction:normalizedDirection,tipHeight:chainTip.height,tipHash:chainTip.hash || ''},
+        freshTtlSeconds:15,staleTtlSeconds:16,cacheable:true,shouldCache:value=>value?.success===true,
+        load:async()=>{
+          const data=await filteredBlocks(pool,filters,{limit,cursor,direction:normalizedDirection});
+          data.blocks.forEach(b=>{b.miner_pool=getPoolName(b.miner_address);});
+          return data;
+        },
+      });
+      applyListCacheHeaders(res,cached);
+      return res.json(cached.value);
+    }
+
     const cacheable = isCanonicalIntegerQuery(req.query.limit)
       && isCanonicalIntegerQuery(req.query.cursor)
       && isKnownDirection(req.query.direction);
@@ -328,6 +346,7 @@ router.get('/api/blocks/list', async (req, res) => {
     applyListCacheHeaders(res, cached);
     res.json(cached.value);
   } catch (error) {
+    if (error instanceof SoftwareQueryError) return res.status(error.status).json({success:false,error:error.message});
     logSafeError('Error fetching blocks list:', error);
     res.status(500).json({ success: false, error: 'Failed to fetch blocks' });
   }

@@ -1,4 +1,5 @@
 'use client';
+import { MiningSoftwareSection } from '@/components/mining/MiningSoftwareSection';
 import { readApiData } from '@/lib/api-client';
 import { ChartWatermark } from '@/components/ChartWatermark';
 import { ChartSkeleton } from '@/components/ui/Skeleton';
@@ -27,6 +28,7 @@ const SECTIONS = [
   { id: 'metrics', label: 'Network' },
   { id: 'distribution', label: 'Distribution' },
   { id: 'ranking', label: 'Ranking' },
+  { id: 'software', label: 'Mining software' },
   { id: 'hashrate', label: 'Share history' },
   { id: 'economics', label: 'Block economics' },
   { id: 'behavior', label: 'Reward spending' },
@@ -668,7 +670,7 @@ export default function MiningPage() {
       <PageHeader
         eyebrow="MINING"
         title="Zcash Mining"
-        subtitle="Hashrate, difficulty, block economics, pool distribution, and miner behavior."
+        subtitle="Hashrate, difficulty, block economics, pool distribution, software markers, and miner behavior."
       />
 
       <PageSectionNav sections={SECTIONS} ariaLabel="Mining pool sections" />
@@ -679,6 +681,7 @@ export default function MiningPage() {
 
       <DistributionSection />
       <RankingSection />
+      <MiningSoftwareSection />
       <HashrateShareSection />
       <section id="economics" className="scroll-mt-36 mb-12"><MiningMetricsChart /></section>
       <MinerBehaviorSection />

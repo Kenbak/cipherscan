@@ -393,7 +393,14 @@
     "category": "blocks",
     "query": [
       "cursor",
-      "limit"
+      "from",
+      "limit",
+      "max_height",
+      "min_height",
+      "order",
+      "pool",
+      "software",
+      "to"
     ],
     "listKey": "blocks",
     "zatoshiFields": [
@@ -403,6 +410,116 @@
     "ownershipToken": false,
     "pagination": "cursor",
     "parameters": [
+      {
+        "name": "from",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string",
+          "format": "date",
+          "description": "Inclusive UTC date, YYYY-MM-DD. Mining software history requires period=custom."
+        },
+        "description": "Inclusive UTC date, YYYY-MM-DD. Mining software history requires period=custom."
+      },
+      {
+        "name": "max_height",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647,
+          "description": "Inclusive maximum canonical block height."
+        },
+        "description": "Inclusive maximum canonical block height."
+      },
+      {
+        "name": "min_height",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647,
+          "description": "Inclusive minimum canonical block height."
+        },
+        "description": "Inclusive minimum canonical block height."
+      },
+      {
+        "name": "order",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string",
+          "enum": [
+            "newest",
+            "oldest"
+          ],
+          "default": "newest",
+          "description": "Canonical block-height order. Cursor remains bound to all filters."
+        },
+        "description": "Canonical block-height order. Cursor remains bound to all filters."
+      },
+      {
+        "name": "pool",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string",
+          "enum": [
+            "all",
+            "2Miners",
+            "AntPool",
+            "Binance Pool",
+            "F2Pool",
+            "Foundry USA",
+            "Kryptex",
+            "Luxor",
+            "Mining Dutch",
+            "NiceHash",
+            "Private Miner B",
+            "Unidentified #5",
+            "ViaBTC",
+            "ViaBTC-Solo",
+            "ZEC Mining Pool",
+            "unattributed"
+          ],
+          "default": "all",
+          "description": "Mining-pool payout-address attribution, independent of software markers."
+        },
+        "description": "Mining-pool payout-address attribution, independent of software markers."
+      },
+      {
+        "name": "software",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string",
+          "enum": [
+            "all",
+            "zebra",
+            "zakura",
+            "other",
+            "unknown",
+            "conflicting",
+            "missing"
+          ],
+          "default": "all",
+          "description": "Self-reported coinbase marker; unknown means unmarked, other means zcashd, missing means unavailable coinbase data."
+        },
+        "description": "Self-reported coinbase marker; unknown means unmarked, other means zcashd, missing means unavailable coinbase data."
+      },
+      {
+        "name": "to",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string",
+          "format": "date",
+          "description": "Inclusive UTC end date, YYYY-MM-DD. Mining software history requires period=custom."
+        },
+        "description": "Inclusive UTC end date, YYYY-MM-DD. Mining software history requires period=custom."
+      },
       {
         "name": "limit",
         "in": "query",
@@ -2411,6 +2528,85 @@
           "type": "string"
         },
         "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      }
+    ],
+    "requestBody": null
+  },
+  {
+    "method": "GET",
+    "path": "/v1/mining/software",
+    "description": "Self-reported mining software markers: block-weighted shares, daily or weekly history, and indexed coverage.",
+    "category": "mining",
+    "query": [
+      "bucket",
+      "from",
+      "period",
+      "to"
+    ],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": "Requires completed marker backfill. Unknown and missing observations remain in the denominator; markers do not authenticate software identity.",
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [
+      {
+        "name": "bucket",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "day",
+            "week"
+          ],
+          "default": "auto",
+          "description": "Auto selects weekly for ranges longer than 121 days. Weekly buckets start Monday; boundary weeks contain only requested days."
+        },
+        "description": "Auto selects weekly for ranges longer than 121 days. Weekly buckets start Monday; boundary weeks contain only requested days."
+      },
+      {
+        "name": "from",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string",
+          "format": "date",
+          "description": "Inclusive UTC date, YYYY-MM-DD. Mining software history requires period=custom."
+        },
+        "description": "Inclusive UTC date, YYYY-MM-DD. Mining software history requires period=custom."
+      },
+      {
+        "name": "period",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string",
+          "enum": [
+            "7d",
+            "30d",
+            "90d",
+            "1y",
+            "all",
+            "custom",
+            "since-zebra",
+            "since-zakura"
+          ],
+          "default": "30d",
+          "description": "UTC calendar-day range. Since presets begin on the first observed marker day, not the software launch."
+        },
+        "description": "UTC calendar-day range. Since presets begin on the first observed marker day, not the software launch."
+      },
+      {
+        "name": "to",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string",
+          "format": "date",
+          "description": "Inclusive UTC end date, YYYY-MM-DD. Mining software history requires period=custom."
+        },
+        "description": "Inclusive UTC end date, YYYY-MM-DD. Mining software history requires period=custom."
       }
     ],
     "requestBody": null

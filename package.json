@@ -47,7 +47,10 @@
     "test:v1-postgres": "V1_TEST_POSTGRES=1 NODE_PATH=$PWD/server/api/node_modules node --test server/tests/v1-postgres-pagination.test.js",
     "attestations:collect": "node server/jobs/check-attestations.mjs",
     "test:attestations": "node --test server/tests/attestations*.test.mjs",
-    "attestations:baseline": "node server/scripts/attestation-baseline.mjs"
+    "attestations:baseline": "node server/scripts/attestation-baseline.mjs",
+    "test:mining-software": "NODE_PATH=$PWD/server/api/node_modules node --test server/tests/mining-software.test.js",
+    "test:mining-software-postgres": "V1_TEST_POSTGRES=1 NODE_PATH=$PWD/server/api/node_modules node --test server/tests/mining-software-postgres.test.js",
+    "mining:backfill": "node server/scripts/backfill-mining-software.js"
   },
   "overrides": {
     "axios": "1.14.0",

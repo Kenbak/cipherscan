@@ -198,7 +198,7 @@ function buildOperation(entry) {
     const constraint = getQueryConstraint(entry.v1.path, name);
     parameters.push({ name, in: 'query', required: constraint?.required ?? (requiredAmount || requiredDate || requiredSince),
       schema: constraint?.schema || (requiredAmount ? { type: 'number', exclusiveMinimum: 0, maximum: 21000000 } : requiredDate || requiredSince ? { type: 'string', format: 'date' } : { type: 'string' }),
-      description: requiredSince ? 'Start date (YYYY-MM-DD).' : requiredAmount ? 'Amount in ZEC, greater than zero and at most 21 million.' : requiredDate ? 'UTC calendar date (YYYY-MM-DD). The response indicates when an earlier available price is used.' : name === 'format' && entry.legacyPath === '/api/circulating-supply' ? 'Compatibility parameter; v1 always returns JSON.' : 'Endpoint-specific filter or range; accepted values follow this endpoint’s data source.' });
+      description: constraint?.description || (requiredSince ? 'Start date (YYYY-MM-DD).' : requiredAmount ? 'Amount in ZEC, greater than zero and at most 21 million.' : requiredDate ? 'UTC calendar date (YYYY-MM-DD). The response indicates when an earlier available price is used.' : name === 'format' && entry.legacyPath === '/api/circulating-supply' ? 'Compatibility parameter; v1 always returns JSON.' : 'Endpoint-specific filter or range; accepted values follow this endpoint’s data source.') });
   }
   if (isList) {
     parameters.push(

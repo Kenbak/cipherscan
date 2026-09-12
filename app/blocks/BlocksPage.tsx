@@ -5,6 +5,7 @@ import { retainLastGoodOrBuildFallback } from '@/lib/isr-fallback';
 import { buildPageMetadata, getBaseUrl } from '@/lib/seo';
 import { fetchWithDeadline, isServerRenderDeadlineError } from '@/lib/server-fetch';
 import BlocksClient from './BlocksClient';
+import type { BlockFilterValues } from './BlockFilters';
 
 const API_URL = getApiUrl();
 const PAGE_SIZE = 25;
@@ -18,6 +19,8 @@ interface BlocksPageProps {
 }
 
 interface BlocksRequest {
+  filters: BlockFilterValues;
+  filtered: boolean;
   cursor: string | null;
   direction: 'next' | 'prev';
   page: number;
@@ -35,13 +38,18 @@ function parsePositiveInteger(value: string | undefined): number | null {
 }
 
 function parseBlocksRequest(searchParams: SearchParams): BlocksRequest {
+  const filters: BlockFilterValues = Object.fromEntries(['software','pool','order','from','to','min_height','max_height'].flatMap(key => {
+    const value=firstValue(searchParams[key]);
+    return value ? [[key,value]] : [];
+  }));
+  const filtered=Object.keys(filters).length>0;
   const cursor = parseApiCursor(firstValue(searchParams.cursor));
   const rawPage = firstValue(searchParams.page);
   const requestedPage = parsePositiveInteger(rawPage);
   const direction = cursor && firstValue(searchParams.direction) === 'prev' ? 'prev' : 'next';
 
   return {
-    cursor,
+    filters, filtered, cursor,
     direction,
     page: cursor ? Math.max(2, requestedPage ?? 2) : 1,
     // `page` is only a UI label; the cursor identifies the result slice. Keep
@@ -53,7 +61,7 @@ function parseBlocksRequest(searchParams: SearchParams): BlocksRequest {
 }
 
 function getArchiveCanonicalPath(request: BlocksRequest): string {
-  if (!request.cursor) return '/blocks';
+  if (request.filtered || !request.cursor) return '/blocks';
   const params = new URLSearchParams({
     cursor: String(request.cursor),
     direction: request.direction,
@@ -68,12 +76,14 @@ export async function generateMetadata({ searchParams }: BlocksPageProps): Promi
   const pageSuffix = request.page > 1 ? ` - Page ${request.page}` : '';
 
   return buildPageMetadata({
-    title: `Latest Zcash Blocks${pageSuffix} | ZecBlock`,
-    description: request.page > 1
+    title: `${request.filtered ? 'Zcash Blocks' : 'Latest Zcash Blocks'}${pageSuffix} | ZecBlock`,
+    description: request.filtered
+      ? 'Browse canonical Zcash blocks by software marker, mining pool, date and height, with transaction counts and actual parent intervals.'
+      : request.page > 1
       ? `Browse Zcash block archive page ${request.page}, including block heights, hashes, transaction counts, sizes, miners, and timestamps.`
       : 'Browse the latest Zcash blocks with transaction counts, sizes, mining rewards, and timestamps. Real-time block explorer data.',
     path: isForwardArchive ? getArchiveCanonicalPath(request) : '/blocks',
-    index: isForwardArchive && request.page === 1,
+    index: isForwardArchive && request.page === 1 && !request.filtered,
     keywords: ['zcash blocks', 'zcash block explorer', 'zcash latest blocks', 'ZEC blocks', 'zcash block height'],
   });
 }
@@ -88,7 +98,7 @@ function unavailableBlocks(policy: UnavailablePolicy, error: unknown) {
 async function getInitialBlocks(request: BlocksRequest, unavailablePolicy: UnavailablePolicy) {
   let res: Response;
   try {
-    const params = new URLSearchParams({ limit: String(PAGE_SIZE) });
+    const params = new URLSearchParams({ limit: String(PAGE_SIZE), ...request.filters });
     if (request.cursor !== null) {
       params.set('cursor', String(request.cursor));
     }
@@ -133,10 +143,11 @@ export default async function BlocksPage({
     request,
     unavailablePolicy,
   );
-  const archiveKey = `${request.cursor ?? 'first'}:${request.direction}:${request.page}`;
+  const archiveKey = `${request.cursor ?? 'first'}:${request.direction}:${request.page}:${JSON.stringify(request.filters)}`;
   const collectionUrl = new URL(getArchiveCanonicalPath(request), `${getBaseUrl()}/`).toString();
   const collectionJsonLd = request.pageParamConsistent
     && request.direction === 'next'
+    && !request.filtered
     && blocks.length > 0
     ? {
         '@context': 'https://schema.org',
@@ -167,6 +178,7 @@ export default async function BlocksPage({
       )}
       <BlocksClient
         key={archiveKey}
+        filters={request.filters}
         initialBlocks={blocks}
         initialTrailingBlock={trailingBlock}
         initialPagination={pagination}
@@ -187,7 +199,7 @@ export default async function BlocksPage({
               Zcash produces a new block roughly every 75 seconds. Each block bundles
               transparent and shielded transactions, a coinbase reward for the miner, and a
               commitment to the current state of the shielded pools. ZecBlock indexes every
-              block directly from a Zebra full node, so heights, hashes, sizes, and intervals
+              block from a Zcash full node, so heights, hashes, sizes, and intervals
               on this page reflect the canonical chain in real time.
             </p>
             <p>

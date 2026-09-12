@@ -10,6 +10,8 @@ const { injectDependencies } = require('./routes/transactions/_helpers');
 const txLists = require('./routes/transactions/tx-lists');
 const addresses = require('./routes/address');
 const valuation = require('./routes/valuation');
+const blocks = require('./routes/blocks');
+const mining = require('./routes/mining');
 const app = express();
 const pool = new Pool({ host: process.env.DB_HOST || 'localhost', port: Number(process.env.DB_PORT || 5432),
   database: process.env.DB_NAME, user: process.env.DB_USER, password: process.env.DB_PASSWORD,
@@ -29,6 +31,10 @@ app.get('/__preview',async(req,res)=>{
   catch {res.status(503).json({error:'Read-only database unavailable'});}
 });
 app.use(injectDependencies,txLists,addresses);
+// Exercise the new software routes against the same read-only mainnet source.
+// Migration 023/backfill are operator work; these routes never write the database.
+app.use((req,res,next)=>req.path==='/api/blocks/list' ? blocks(req,res,next) : next());
+app.use((req,res,next)=>req.path==='/api/mining/software' ? mining(req,res,next) : next());
 app.use((req,res,next)=>req.path==='/api/valuation/search-interest' ? valuation(req,res,next) : next());
 app.use(async(req,res)=>{
   if(!req.path.startsWith('/api/') && req.path!='/health')return res.status(404).json({error:'Not found'});

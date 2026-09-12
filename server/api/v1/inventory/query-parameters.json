@@ -7,7 +7,14 @@
   "GET /v1/network/info": [],
   "GET /v1/blocks": [
     "cursor",
-    "limit"
+    "from",
+    "limit",
+    "max_height",
+    "min_height",
+    "order",
+    "pool",
+    "software",
+    "to"
   ],
   "GET /v1/blocks/:heightOrHash": [
     "summary"
@@ -190,6 +197,12 @@
   ],
   "GET /v1/shielded-pools/turnstile": [
     "since"
+  ],
+  "GET /v1/mining/software": [
+    "bucket",
+    "from",
+    "period",
+    "to"
   ],
   "GET /v1/mining/pool-distribution": [
     "period"

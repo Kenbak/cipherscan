@@ -14,7 +14,7 @@ const nextConfig: NextConfig = {
         {
           source: '/blocks',
           destination: '/blocks/latest',
-          missing: ['cursor', 'direction', 'page'].map((key) => ({
+          missing: ['cursor', 'direction', 'page', 'software', 'pool', 'order', 'from', 'to', 'min_height', 'max_height'].map((key) => ({
             type: 'query' as const,
             key,
           })),

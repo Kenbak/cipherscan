@@ -2,8 +2,9 @@ import { buildPageMetadata, getBaseUrl } from '@/lib/seo';
 
 export const metadata = buildPageMetadata({
   title: 'Zcash Mining Statistics & Pool Distribution | ZecBlock',
-  description: 'Explore Zcash hashrate, mining pool distribution, block production, miner rankings, fees, and miner reward flows.',
+  description: 'Explore Zcash hashrate, mining pool distribution, software-marker shares, block production, miner rankings, fees, and miner reward flows.',
   path: '/mining',
+  index: true,
   networks: ['mainnet'],
   imageAlt: 'ZecBlock Zcash mining statistics and pool distribution',
 });

@@ -1679,6 +1679,96 @@ paths:
       tags:
         - blocks
       parameters:
+        - name: from
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+            description: Inclusive UTC date, YYYY-MM-DD. Mining software history requires period=custom.
+          description: Inclusive UTC date, YYYY-MM-DD. Mining software history requires period=custom.
+        - name: max_height
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            maximum: 2147483647
+            description: Inclusive maximum canonical block height.
+          description: Inclusive maximum canonical block height.
+        - name: min_height
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            maximum: 2147483647
+            description: Inclusive minimum canonical block height.
+          description: Inclusive minimum canonical block height.
+        - name: order
+          in: query
+          required: false
+          schema:
+            type: string
+            enum:
+              - newest
+              - oldest
+            default: newest
+            description: Canonical block-height order. Cursor remains bound to all filters.
+          description: Canonical block-height order. Cursor remains bound to all filters.
+        - name: pool
+          in: query
+          required: false
+          schema:
+            type: string
+            enum:
+              - all
+              - 2Miners
+              - AntPool
+              - Binance Pool
+              - F2Pool
+              - Foundry USA
+              - Kryptex
+              - Luxor
+              - Mining Dutch
+              - NiceHash
+              - Private Miner B
+              - 'Unidentified #5'
+              - ViaBTC
+              - ViaBTC-Solo
+              - ZEC Mining Pool
+              - unattributed
+            default: all
+            description: Mining-pool payout-address attribution, independent of software markers.
+          description: Mining-pool payout-address attribution, independent of software markers.
+        - name: software
+          in: query
+          required: false
+          schema:
+            type: string
+            enum:
+              - all
+              - zebra
+              - zakura
+              - other
+              - unknown
+              - conflicting
+              - missing
+            default: all
+            description: >-
+              Self-reported coinbase marker; unknown means unmarked, other means zcashd, missing
+              means unavailable coinbase data.
+          description: >-
+            Self-reported coinbase marker; unknown means unmarked, other means zcashd, missing means
+            unavailable coinbase data.
+        - name: to
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+            description: Inclusive UTC end date, YYYY-MM-DD. Mining software history requires period=custom.
+          description: Inclusive UTC end date, YYYY-MM-DD. Mining software history requires period=custom.
         - name: limit
           in: query
           required: false
@@ -8620,6 +8710,160 @@ paths:
       responses:
         '200':
           description: Public deshielding cohorts and subsequent observed destinations.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                  - meta
+                properties:
+                  data:
+                    oneOf:
+                      - type: object
+                      - type: array
+                        items: {}
+                  meta:
+                    $ref: '#/components/schemas/Meta'
+        '400':
+          description: Validation error.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '401':
+          description: Preview or endpoint authentication required.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '402':
+          description: >-
+            Payment required. Protocol challenges remain in Payment-Required / WWW-Authenticate; the
+            original challenge is also in problem.paymentRequired.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '403':
+          description: Origin or ownership authorization denied.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '404':
+          description: Resource not found.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '413':
+          description: JSON body exceeds 1 MB.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '429':
+          description: Rate limited (enforced by the legacy endpoint this proxies to).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '500':
+          description: Internal error.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '502':
+          description: Upstream (legacy API) error.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '503':
+          description: Source temporarily unavailable or still building.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '504':
+          description: Upstream (legacy API) timeout.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+  /v1/mining/software:
+    get:
+      operationId: get_mining_Software
+      summary: >-
+        Self-reported mining software markers: block-weighted shares, daily or weekly history, and
+        indexed coverage.
+      tags:
+        - mining
+      parameters:
+        - name: bucket
+          in: query
+          required: false
+          schema:
+            type: string
+            enum:
+              - auto
+              - day
+              - week
+            default: auto
+            description: >-
+              Auto selects weekly for ranges longer than 121 days. Weekly buckets start Monday;
+              boundary weeks contain only requested days.
+          description: >-
+            Auto selects weekly for ranges longer than 121 days. Weekly buckets start Monday;
+            boundary weeks contain only requested days.
+        - name: from
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+            description: Inclusive UTC date, YYYY-MM-DD. Mining software history requires period=custom.
+          description: Inclusive UTC date, YYYY-MM-DD. Mining software history requires period=custom.
+        - name: period
+          in: query
+          required: false
+          schema:
+            type: string
+            enum:
+              - 7d
+              - 30d
+              - 90d
+              - 1y
+              - all
+              - custom
+              - since-zebra
+              - since-zakura
+            default: 30d
+            description: >-
+              UTC calendar-day range. Since presets begin on the first observed marker day, not the
+              software launch.
+          description: >-
+            UTC calendar-day range. Since presets begin on the first observed marker day, not the
+            software launch.
+        - name: to
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+            description: Inclusive UTC end date, YYYY-MM-DD. Mining software history requires period=custom.
+          description: Inclusive UTC end date, YYYY-MM-DD. Mining software history requires period=custom.
+      x-cipherscan-legacy-path: /api/mining/software
+      x-cipherscan-legacy-method: GET
+      x-cipherscan-classification: public
+      x-cipherscan-v1-status: adapter
+      responses:
+        '200':
+          description: >-
+            Self-reported mining software markers: block-weighted shares, daily or weekly history,
+            and indexed coverage.
           content:
             application/json:
               schema:

@@ -243,7 +243,7 @@ function buildAdapterHandler(entry, internalClient, config) {
       if (listKey === 'blocks') {
         for (let i = 0; i < convertedItems.length; i++) {
           const next = items[i + 1] || (pageDirection === 'next' ? all[pageLimit] : null);
-          convertedItems[i] = { ...convertedItems[i], intervalSeconds: next && Number.isFinite(Number(items[i].timestamp)) && Number.isFinite(Number(next.timestamp)) ? Number(items[i].timestamp) - Number(next.timestamp) : null };
+          convertedItems[i] = { ...convertedItems[i], intervalSeconds: Object.hasOwn(items[i], 'intervalSeconds') ? items[i].intervalSeconds : next && Number(next.height) === Number(items[i].height) - 1 && Number.isFinite(Number(items[i].timestamp)) && Number.isFinite(Number(next.timestamp)) ? Number(items[i].timestamp) - Number(next.timestamp) : null };
         }
       }
       const page = buildPageMeta({
