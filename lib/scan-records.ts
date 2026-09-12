@@ -7,6 +7,7 @@ export interface CompactAction {
   ephemeralKey: string;
   ciphertext: string;
 }
+// Internal compact transaction IDs retain protobuf byte order for GetTransaction.
 export interface ScanTransaction { txid: string; height: number; timestamp: number }
 export interface CompactBlock {
   height: number | string;
@@ -20,7 +21,13 @@ export interface MemoOutput {
   output_index: number;
   pool: 'orchard' | 'ironwood';
 }
+// Published memo IDs use the conventional explorer/RPC display byte order.
 export interface ScanMemo extends ScanTransaction, MemoOutput {}
+
+export function compactTxIdToDisplay(hash: string): string {
+  if (!/^[0-9a-f]{64}$/i.test(hash)) throw new Error('Invalid compact transaction hash');
+  return hash.match(/../g)!.reverse().join('').toLowerCase();
+}
 
 export function packActions(actions: CompactAction[]): Uint8Array {
   const bytes = new Uint8Array(actions.length * COMPACT_RECORD_SIZE);

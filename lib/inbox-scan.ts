@@ -1,3 +1,4 @@
+import { compactTxIdToDisplay } from './scan-records';
 import { readCompactRange } from './scan-stream';
 import type { CompactBlock, ScanMemo, ScanTransaction, MemoOutput } from './scan-records';
 
@@ -70,17 +71,74 @@ export async function scanInbox(options: {
     lastPublish = Date.now();
     dirty = false;
   };
+  // Memo I/O must not pause compact filtering at each stream frame. Keep at
+  // most 200 queued IDs, one active raw batch and one prefetched raw batch.
+  const memoQueue: ScanTransaction[] = [];
+  const waiters = new Set<() => void>();
+  const notify = () => { for (const wake of waiters) wake(); waiters.clear(); };
+  const changed = () => new Promise<void>(resolve => waiters.add(resolve));
+  signal.addEventListener('abort', notify);
+  let compactDone = false;
+  let memoError: unknown;
+  const nextMemos = () => (async () => {
+    while (!memoQueue.length && !compactDone) { signal.throwIfAborted(); await changed(); }
+    signal.throwIfAborted();
+    if (!memoQueue.length) return null;
+    const batch = memoQueue.splice(0, 100);
+    notify();
+    const raw = await post('/api/tx/raw/batch', { txids: batch.map(tx => tx.txid) });
+    return { batch, raw };
+  })().then(value => ({ value, error: null })).catch((error: unknown) => ({ value: null, error }));
+  const consumeMemos = async () => {
+    let pendingMemos = nextMemos();
+    while (true) {
+      if (compactDone) options.onPhase?.('memos');
+      const item = await pendingMemos;
+      signal.throwIfAborted();
+      if (item.error) throw item.error;
+      if (!item.value) break;
+      const downloaded = item.value;
+      const { batch } = downloaded;
+      pendingMemos = nextMemos();
+      const byId = new Map<string, string>();
+      for (const tx of downloaded.raw.transactions || []) if (typeof tx.hex === 'string' && tx.hex) byId.set(tx.txid, tx.hex);
+      if (batch.some(tx => !byId.has(tx.txid))) throw new Error('Some matching transactions are unavailable; retry the scan');
+      const metadata = new Map(batch.map(tx => [tx.txid, tx]));
+      const published = new Set<string>();
+      const publish = (tx: DecryptedTransaction) => {
+        signal.throwIfAborted();
+        const source = metadata.get(tx.txid);
+        if (!source) throw new Error('Unexpected decrypted transaction');
+        if (published.has(tx.txid)) return;
+        published.add(tx.txid);
+        if (!tx.outputs.length) return;
+        for (const output of tx.outputs) messages.push({ ...source, ...output, txid: compactTxIdToDisplay(source.txid) });
+        dirty = true;
+        // Show the first memo immediately, then coalesce UI work during bursts.
+        if (Date.now() - lastPublish >= 50) flushMessages();
+      };
+      if (compactDone) options.onPhase?.('decrypting');
+      const decrypted = await scanner.decryptMemos(batch.map(tx => ({ txid: tx.txid, hex: byId.get(tx.txid)! })), publish);
+      signal.throwIfAborted();
+      // Support scanners without streaming callbacks and never publish an output twice.
+      for (const tx of decrypted) publish(tx);
+      if (published.size !== batch.length) throw new Error('Incomplete memo decryption results');
+      flushMessages();
+    }
+  };
+  // Capture background failures immediately; abort both pipelines and wake
+  // producers waiting for queue capacity. The foreground rethrows the cause.
+  const memoTask = consumeMemos().catch(error => { memoError = error; controller.abort(); notify(); });
   try {
     while (true) {
       options.onPhase?.('fetching');
-      const range = initialized ? await pending : (await Promise.all([pending, options.initialize?.() ?? Promise.resolve()]))[0];
+      const range = initialized ? await pending : await Promise.all([pending, options.initialize?.()]).then(([result]) => result);
       initialized = true;
       signal.throwIfAborted();
       if (!range.value) throw range.error;
       if (range.value.done) break;
       const blocks = range.value.value;
       const start = Number(blocks[0].height);
-      // Pull only one following batch while filtering/decrypting this one.
       pending = next();
       options.onPhase?.('filtering');
       const matching = await scanner.filterCompactBlocks(blocks);
@@ -88,47 +146,33 @@ export async function scanInbox(options: {
       const fresh = matching.filter(tx => { if (seen.has(tx.txid)) return false; seen.add(tx.txid); return true; });
       matches += fresh.length;
       onProgress(start - startHeight, matches);
-      const fetchMemos = (offset: number) => post('/api/tx/raw/batch', { txids: fresh.slice(offset, offset + 100).map(tx => tx.txid) })
-        .then(raw => ({ raw, error: null })).catch((error: unknown) => ({ raw: null, error }));
-      let pendingMemos = fresh.length ? fetchMemos(0) : null;
-      for (let offset = 0; offset < fresh.length; offset += 100) {
-        options.onPhase?.('memos');
-        const downloaded = await pendingMemos!;
-        signal.throwIfAborted();
-        if (!downloaded.raw) throw downloaded.error;
-        const batch = fresh.slice(offset, offset + 100);
-        const byId = new Map<string, string>();
-        for (const tx of downloaded.raw.transactions || []) if (typeof tx.hex === 'string' && tx.hex) byId.set(tx.txid, tx.hex);
-        if (batch.some(tx => !byId.has(tx.txid))) throw new Error('Some matching transactions are unavailable; retry the scan');
-        // At most one next raw batch is downloading while this batch decrypts.
-        pendingMemos = offset + 100 < fresh.length ? fetchMemos(offset + 100) : null;
-        const metadata = new Map(batch.map(tx => [tx.txid, tx]));
-        const published = new Set<string>();
-        const publish = (tx: DecryptedTransaction) => {
+      for (let offset = 0; offset < fresh.length;) {
+        while (memoQueue.length >= 200) {
+          options.onPhase?.('memos');
           signal.throwIfAborted();
-          const source = metadata.get(tx.txid);
-          if (!source) throw new Error('Unexpected decrypted transaction');
-          if (published.has(tx.txid)) return;
-          published.add(tx.txid);
-          if (!tx.outputs.length) return;
-          for (const output of tx.outputs) messages.push({ ...source, ...output });
-          dirty = true;
-          // Show the first memo immediately, then coalesce UI work during bursts.
-          if (Date.now() - lastPublish >= 50) flushMessages();
-        };
-        options.onPhase?.('decrypting');
-        const decrypted = await scanner.decryptMemos(batch.map(tx => ({ txid: tx.txid, hex: byId.get(tx.txid)! })), publish);
+          await changed();
+        }
         signal.throwIfAborted();
-        // Support scanners without streaming callbacks and never publish an output twice.
-        for (const tx of decrypted) publish(tx);
-        if (published.size !== batch.length) throw new Error('Incomplete memo decryption results');
-        flushMessages();
+        const count = Math.min(200 - memoQueue.length, fresh.length - offset);
+        memoQueue.push(...fresh.slice(offset, offset + count));
+        offset += count;
+        notify();
       }
       onProgress(Number(blocks.at(-1)!.height) - startHeight + 1, matches);
     }
+    compactDone = true;
+    options.onPhase?.('memos');
+    notify();
+    await memoTask;
+    if (memoError) throw memoError;
+    signal.throwIfAborted();
     return { matches, messages };
+  } catch (error) {
+    throw memoError || error;
   } finally {
     controller.abort();
+    notify();
+    signal.removeEventListener('abort', notify);
     options.signal.removeEventListener('abort', abort);
     // A failing initializer must not wait for an unresponsive network read.
     void iterator.return(undefined).catch(() => {});

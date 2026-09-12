@@ -10,7 +10,8 @@ function load(file) {
   return module.exports;
 }
 const { scanInbox } = load('lib/inbox-scan.ts');
-const { packActions, compactJobs } = load('lib/scan-records.ts');
+const { packActions, compactJobs, compactTxIdToDisplay } = load('lib/scan-records.ts');
+const fixtureId = n => n.toString(16).padStart(64, '0');
 const action = { nullifier: '00'.repeat(32), cmx: '01'.repeat(32), ephemeralKey: '02'.repeat(32), ciphertext: '03'.repeat(52) };
 
 test('binary records preserve pool, exact field boundaries and reject malformed input', () => {
@@ -37,7 +38,7 @@ function setup(endHeight = 20003) {
       return { ok: true, json: async () => ({ transactions: body.txids.map(txid => ({ txid, hex: '00' })) }) };
     },
     scanner: {
-      filterCompactBlocks: async blocks => { events.push(`filter:${blocks[0].height}`); return [{ txid: `tx${blocks[0].height}`, height: blocks[0].height, timestamp: 0 }]; },
+      filterCompactBlocks: async blocks => { events.push(`filter:${blocks[0].height}`); return [{ txid: fixtureId(blocks[0].height), height: blocks[0].height, timestamp: 0 }]; },
       decryptMemos: async txs => txs.map(tx => ({ txid: tx.txid, outputs: [0, 1].map(output_index => ({ output_index, memo: 'fixture', amount: 0, amount_zatoshis: 0, pool: 'orchard' })) })),
     },
     onProgress: () => {}, onMessages: () => {},
@@ -57,7 +58,8 @@ test('long ranges are contiguous, bounded and prefetched; all memos delivered pr
   assert.deepEqual(ranges.at(-1), { startHeight: 50000, endHeight: 50001, format: 'inbox-stream-v1' });
   assert.ok(ranges.every(r => r.endHeight - r.startHeight + 1 <= 10000));
   assert.ok(events.indexOf('fetch:10000') < events.indexOf('filtered:1'));
-  assert.deepEqual(counts, [2, 4, 6, 8, 10, 12]);
+  assert.equal(counts[0], 2); assert.equal(counts.at(-1), 12);
+  assert.ok(counts.every((n, i) => !i || n > counts[i - 1]));
   assert.equal(result.matches, 6); assert.equal(result.messages.length, 12);
 });
 test('missing blocks cannot silently complete a scan', async () => {
@@ -114,7 +116,7 @@ test('packed transport preserves exact legacy bytes, metadata and 512-action bou
 
 test('memo download is one batch ahead, publishes completed transactions early and avoids duplicates', async () => {
   const { options, requests } = setup(1);
-  options.scanner.filterCompactBlocks = async () => Array.from({ length: 201 }, (_, i) => ({ txid: `tx${i}`, height: 1, timestamp: 0 }));
+  options.scanner.filterCompactBlocks = async () => Array.from({ length: 201 }, (_, i) => ({ txid: fixtureId(i), height: 1, timestamp: 0 }));
   const snapshots = []; options.onMessages = messages => snapshots.push(messages.length);
   const phases = []; options.onPhase = phase => phases.push(phase);
   let release; const held = new Promise(resolve => { release = resolve; });
@@ -135,13 +137,13 @@ test('memo download is one batch ahead, publishes completed transactions early a
   assert.equal(result.messages.length, 201);
   assert.equal(new Set(result.messages.map(m => m.txid)).size, 201);
   assert.deepEqual(requests.filter(r => r.txids).map(r => r.txids.length), [100, 100, 1]);
-  assert.deepEqual(phases.slice(0, 4), ['fetching', 'filtering', 'memos', 'decrypting']);
+  assert.ok(phases.includes('filtering')); assert.ok(phases.includes('decrypting'));
 });
 
 test('a failed raw prefetch is handled and fails the scan instead of skipping notes', async () => {
   const { options } = setup(1); const original = options.fetcher;
-  options.scanner.filterCompactBlocks = async () => Array.from({ length: 101 }, (_, i) => ({ txid: `tx${i}`, height: 1, timestamp: 0 }));
-  options.fetcher = async (url, init) => JSON.parse(init.body).txids?.[0] === 'tx100' ? Promise.reject(new Error('raw offline')) : original(url, init);
+  options.scanner.filterCompactBlocks = async () => Array.from({ length: 101 }, (_, i) => ({ txid: fixtureId(i), height: 1, timestamp: 0 }));
+  options.fetcher = async (url, init) => JSON.parse(init.body).txids?.[0] === fixtureId(100) ? Promise.reject(new Error('raw offline')) : original(url, init);
   await assert.rejects(scanInbox(options), /raw offline/);
 });
 
@@ -199,4 +201,46 @@ test('filtering starts before stream completion and cancellation closes the read
   assert.ok(filtered); // The second block and trailer have never arrived.
   controller.abort(); await rejected; await new Promise(resolve => setImmediate(resolve));
   assert.ok(closed);
+});
+
+test('memo links use display-order IDs while raw retrieval retains compact wire IDs', async () => {
+  const { options, requests } = setup(1);
+  const wire = '0123456789abcdef'.repeat(4);
+  const display = 'efcdab8967452301'.repeat(4);
+  assert.equal(compactTxIdToDisplay(wire), display);
+  assert.throws(() => compactTxIdToDisplay('bad'));
+  options.scanner.filterCompactBlocks = async () => [{ txid: wire, height: 1, timestamp: 0 }];
+  const result = await scanInbox(options);
+  assert.deepEqual(requests.find(r => r.txids).txids, [wire]);
+  assert.ok(result.messages.every(m => m.txid === display));
+});
+
+test('compact filtering continues during a stalled memo download; completion waits for memos', async () => {
+  const { options, events } = setup(50001); const original = options.fetcher;
+  let release; const held = new Promise(resolve => { release = resolve; });
+  let completed = false;
+  options.fetcher = async (url, init) => { if (url.includes('/raw/')) await held; return original(url, init); };
+  const scan = scanInbox(options).then(result => { completed = true; return result; });
+  await new Promise(resolve => setImmediate(resolve));
+  assert.ok(events.includes('filter:50000'));
+  assert.equal(completed, false);
+  release();
+  assert.equal((await scan).messages.length, 12);
+});
+
+test('slow memo decryption bounds discovery backlog and cancellation wakes the blocked producer', async () => {
+  const { options, controller, requests } = setup(90000);
+  let filtered = 0;
+  options.scanner.filterCompactBlocks = async blocks => { filtered++; return Array.from({ length: 100 }, (_, i) => ({ txid: fixtureId(blocks[0].height + i), height: blocks[0].height, timestamp: 0 })); };
+  let release; const held = new Promise(resolve => { release = resolve; });
+  options.scanner.decryptMemos = async () => { await held; return []; };
+  const scan = scanInbox(options);
+  const rejection = assert.rejects(scan, { name: 'AbortError' });
+  await new Promise(resolve => setImmediate(resolve));
+  // 100 decrypting, 100 prefetched, 200 queued and one just-filtered frame.
+  assert.equal(filtered, 5);
+  assert.deepEqual(requests.filter(r => r.txids).map(r => r.txids.length), [100, 100]);
+  controller.abort();
+  await rejection;
+  release();
 });
