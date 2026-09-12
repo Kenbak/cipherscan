@@ -40,8 +40,8 @@ test('cache boundary, partial cache and incomplete upstream regression', async t
   const server = app.listen(0, '127.0.0.1');
   await new Promise(resolve => server.once('listening', resolve));
   t.after(() => { server.close(); fs.rmSync(cacheDir, { recursive: true, force: true }); });
-  const post = (startHeight, endHeight) => fetch(`http://127.0.0.1:${server.address().port}/api/lightwalletd/scan`, {
-    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ startHeight, endHeight }),
+  const post = (startHeight, endHeight, format) => fetch(`http://127.0.0.1:${server.address().port}/api/lightwalletd/scan`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ startHeight, endHeight, format }),
   });
   fs.writeFileSync(path.join(cacheDir, 'blocks_10000_19999.json'), JSON.stringify({ blocks: Array.from({ length: 9000 }, (_, i) => ({ height: 10000 + i })) }));
   const partial = await post(10000, 19999);
@@ -53,6 +53,13 @@ test('cache boundary, partial cache and incomplete upstream regression', async t
   assert.equal(boundary.status, 200);
   assert.deepEqual((await boundary.json()).blocks.map(b => Number(b.height)), [19999, 20000, 20001]);
   assert.deepEqual(calls, [[20000, 20001]]);
+  const packed = await post(10000, 10002, 'inbox-v1');
+  assert.equal(packed.status, 200);
+  const body = await packed.json();
+  assert.equal(body.format, 'inbox-v1');
+  assert.deepEqual(body.blocks.map(b => b.height), [10000, 10001, 10002]);
+  assert.ok(body.blocks.every(b => Array.isArray(b.vtx)));
+  assert.equal((await post(10000, 10002, 'unknown')).status, 400);
   incomplete = true;
   assert.equal((await post(30000, 30002)).status, 502);
   assert.equal((await post(1, 50001)).status, 400);

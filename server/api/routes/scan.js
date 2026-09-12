@@ -11,7 +11,7 @@ const router = express.Router();
 const fs = require('fs');
 const path = require('path');
 const { logSafeError } = require('../lib/safe-log');
-const { compactBlockToJSON, isCompleteRange } = require('../lib/compact-blocks');
+const { compactBlockToJSON, isCompleteRange, compactBlockToInbox } = require('../lib/compact-blocks');
 
 // Dependencies injected via app.locals
 let pool;
@@ -234,7 +234,8 @@ async function fetchBlockRange(CompactTxStreamer, grpc, start, end) {
  */
 router.post('/api/lightwalletd/scan', async (req, res) => {
   try {
-    const { startHeight: rawStart, endHeight: rawEnd } = req.body;
+    const { startHeight: rawStart, endHeight: rawEnd, format } = req.body;
+    if (format !== undefined && format !== 'inbox-v1') return res.status(400).json({ error: 'Unsupported scan format' });
     const startHeight = Number(rawStart);
     const endHeight = rawEnd == null ? undefined : Number(rawEnd);
 
@@ -356,7 +357,8 @@ router.post('/api/lightwalletd/scan', async (req, res) => {
       cachedBlocks: cachedBlocks.length,
       fetchedBlocks: fetchedBlocks.length,
       fetchTimeMs: fetchTime,
-      blocks,
+      ...(format ? { format } : {}),
+      blocks: format === 'inbox-v1' ? blocks.map(compactBlockToInbox) : blocks,
     });
 
   } catch (error) {
