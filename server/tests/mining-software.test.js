@@ -5,7 +5,7 @@ const { parseBlockFilters } = require("../api/lib/mining-software");
 const hex = (text) => Buffer.from(text).toString("hex");
 const fixtures = [
   [null, "missing"],
-  ["", "missing"],
+  ["", "unknown"],
   ["0", "missing"],
   ["zz", "missing"],
   ["00ff", "unknown"],
