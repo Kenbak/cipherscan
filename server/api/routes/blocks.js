@@ -346,7 +346,7 @@ router.get('/api/blocks/list', async (req, res) => {
     applyListCacheHeaders(res, cached);
     res.json(cached.value);
   } catch (error) {
-    if (error instanceof SoftwareQueryError) return res.status(error.status).json({success:false,error:error.message});
+    if (error instanceof SoftwareQueryError) return res.status(error.status).json({success:false,error:error.status === 400 ? 'Invalid block filters' : 'Mining data temporarily unavailable'});
     logSafeError('Error fetching blocks list:', error);
     res.status(500).json({ success: false, error: 'Failed to fetch blocks' });
   }
