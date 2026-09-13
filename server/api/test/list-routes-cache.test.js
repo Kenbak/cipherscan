@@ -1,3 +1,4 @@
+const miningPools = require('../mining-pools');
 const assert = require('node:assert/strict');
 const path = require('node:path');
 const Module = require('node:module');
@@ -253,7 +254,7 @@ test('shielded list preserves its payload and skips PostgreSQL on a cache hit', 
 
 test('block list caches the exact response, including finalized state', async () => {
   const captured = captureRoutes('routes/blocks.js', {
-    '../mining-pools': {
+    '../mining-pools': { ...miningPools, POOL_BY_ADDRESS: {},
       getPoolName: () => 'Example Pool',
       getPoolInfo: () => ({ name: 'Example Pool' }),
     },
@@ -371,7 +372,7 @@ test('rich list preserves calculations and skips all three queries on a cache hi
 test('all cursor-based list routes use the archive TTL policy', async () => {
   const transactions = captureRoutes('routes/transactions.js');
   const blocks = captureRoutes('routes/blocks.js', {
-    '../mining-pools': { getPoolName: () => null, getPoolInfo: () => null },
+    '../mining-pools': { ...miningPools, POOL_BY_ADDRESS: {}, getPoolName: () => null, getPoolInfo: () => null },
     '../coinbase-data': { decodeCoinbaseText: () => null },
   });
   const listCache = recordingListCache();
@@ -401,7 +402,7 @@ test('all cursor-based list routes use the archive TTL policy', async () => {
 test('malformed list identities are normalized safely and marked uncacheable', async () => {
   const transactions = captureRoutes('routes/transactions.js');
   const blocks = captureRoutes('routes/blocks.js', {
-    '../mining-pools': { getPoolName: () => null, getPoolInfo: () => null },
+    '../mining-pools': { ...miningPools, POOL_BY_ADDRESS: {}, getPoolName: () => null, getPoolInfo: () => null },
     '../coinbase-data': { decodeCoinbaseText: () => null },
   });
   const addresses = captureRoutes('routes/address.js');

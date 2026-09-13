@@ -1,3 +1,4 @@
+const { parseBlockFilters, filteredBlocks, SoftwareQueryError } = require('../lib/mining-software');
 /**
  * Block Routes
  * /health, /health/deep, /api/info, /api/blocks, /api/block/:height
@@ -234,11 +235,28 @@ router.get('/api/info', async (req, res) => {
 
 router.get('/api/blocks/list', async (req, res) => {
   try {
+    // Explicit query fields also drive the v1/OpenAPI inventory.
+    const { software, pool: poolFilter, order, from, to, min_height, max_height, min_interval, max_interval, min_size, max_size, min_fees, max_fees, min_txs, max_txs } = req.query;
+    const filters = parseBlockFilters({ software, pool: poolFilter, order, from, to, min_height, max_height, min_interval, max_interval, min_size, max_size, min_fees, max_fees, min_txs, max_txs });
     const limit = Math.min(Math.max(parseInt(req.query.limit) || 50, 1), 100);
     const cursor = req.query.cursor ? parseInt(req.query.cursor) : null;
     const direction = req.query.direction || 'next'; // 'next' = older, 'prev' = newer
     const normalizedDirection = direction === 'prev' ? 'prev' : 'next';
     const isLatest = cursor === null;
+    if ([software,poolFilter,order,from,to,min_height,max_height,min_interval,max_interval,min_size,max_size,min_fees,max_fees,min_txs,max_txs].some(value=>value!==undefined)) {
+      const cached = await listCache.getOrLoad({
+        family: 'blocks-software-v1', params:{...filters,limit,cursor,direction:normalizedDirection,tipHeight:chainTip.height,tipHash:chainTip.hash || ''},
+        freshTtlSeconds:15,staleTtlSeconds:16,cacheable:true,shouldCache:value=>value?.success===true,
+        load:async()=>{
+          const data=await filteredBlocks(pool,filters,{limit,cursor,direction:normalizedDirection});
+          data.blocks.forEach(b=>{b.miner_pool=getPoolName(b.miner_address, b.coinbase_hex);});
+          return data;
+        },
+      });
+      applyListCacheHeaders(res,cached);
+      return res.json(cached.value);
+    }
+
     const cacheable = isCanonicalIntegerQuery(req.query.limit)
       && isCanonicalIntegerQuery(req.query.cursor)
       && isKnownDirection(req.query.direction);
@@ -299,7 +317,7 @@ router.get('/api/blocks/list', async (req, res) => {
           if (finalizedHeight !== null) {
             b.finality_status = parseInt(b.height) <= finalizedHeight ? 'Finalized' : 'NotYetFinalized';
           }
-          b.miner_pool = getPoolName(b.miner_address);
+          b.miner_pool = getPoolName(b.miner_address, b.coinbase_hex);
           return b;
         });
         const firstHeight = rows.length > 0 ? parseInt(rows[0].height) : null;
@@ -328,6 +346,7 @@ router.get('/api/blocks/list', async (req, res) => {
     applyListCacheHeaders(res, cached);
     res.json(cached.value);
   } catch (error) {
+    if (error instanceof SoftwareQueryError) return res.status(error.status).json({success:false,error:error.message});
     logSafeError('Error fetching blocks list:', error);
     res.status(500).json({ success: false, error: 'Failed to fetch blocks' });
   }
@@ -380,7 +399,7 @@ router.get('/api/blocks', async (req, res) => {
       if (finalizedHeight !== null) {
         b.finality_status = parseInt(b.height) <= finalizedHeight ? 'Finalized' : 'NotYetFinalized';
       }
-      b.miner_pool = getPoolName(b.miner_address);
+      b.miner_pool = getPoolName(b.miner_address, b.coinbase_hex);
       return b;
     });
 
@@ -424,7 +443,7 @@ async function fetchCanonicalBlockSummary(blockHeight) {
   );
   if (result.rows.length === 0) return null;
   const row = result.rows[0];
-  const poolInfo = getPoolInfo(row.miner_address);
+  const poolInfo = getPoolInfo(row.miner_address, row.coinbase_hex);
   return {
     height: parseInt(row.height),
     hash: row.hash,
@@ -443,7 +462,7 @@ async function buildOrphanedBlockResponse(orphanRow) {
   const blockHeight = parseInt(orphanRow.height);
   const blockHash = orphanRow.hash;
   const canonicalBlock = await fetchCanonicalBlockSummary(blockHeight);
-  const poolInfo = getPoolInfo(orphanRow.miner_address);
+  const poolInfo = getPoolInfo(orphanRow.miner_address, orphanRow.coinbase_hex);
 
   let transactions = [];
   try {
@@ -635,7 +654,7 @@ router.get('/api/block/:heightOrHash', async (req, res) => {
     // queries and caused historical block pages to time out under concurrent
     // crawling. Keep the full response as the default for API consumers.
     if (req.query.summary === '1') {
-      const poolInfo = getPoolInfo(block.miner_address);
+      const poolInfo = getPoolInfo(block.miner_address, block.coinbase_hex);
       const transactionCount = Number(block.transaction_count) || 0;
 
       res.set('Cache-Control', 'public, s-maxage=30, stale-while-revalidate=300');
@@ -728,7 +747,7 @@ router.get('/api/block/:heightOrHash', async (req, res) => {
     const currentHeight = currentHeightResult.rows[0]?.max_height || blockHeight;
     const confirmations = currentHeight - blockHeight + 1;
 
-    const poolInfo = getPoolInfo(block.miner_address);
+    const poolInfo = getPoolInfo(block.miner_address, block.coinbase_hex);
     const coinbaseText = decodeCoinbaseText(block.coinbase_hex);
 
     let nextBlockHash = null;
@@ -831,7 +850,7 @@ router.get('/api/search/anchor/:root', async (req, res) => {
       timestamp: parseInt(row.timestamp),
       matchedField: matchedPoolField(row),
       minerAddress: row.miner_address,
-      minerPool: getPoolName(row.miner_address),
+      minerPool: getPoolName(row.miner_address, row.coinbase_hex),
       chain: 'canonical',
     }));
 
@@ -841,7 +860,7 @@ router.get('/api/search/anchor/:root', async (req, res) => {
       timestamp: row.timestamp ? parseInt(row.timestamp) : null,
       matchedField: matchedPoolField(row),
       minerAddress: row.miner_address,
-      minerPool: getPoolName(row.miner_address),
+      minerPool: getPoolName(row.miner_address, row.coinbase_hex),
       chain: 'orphaned',
       detectedAt: row.detected_at,
     }));
