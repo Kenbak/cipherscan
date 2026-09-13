@@ -67,7 +67,7 @@ export function useWasmWorkerPool() {
     const active = clients.current;
     if (!active.length) throw abortError();
     // Bound crypto batches by action count, rather than unpredictable block density.
-    const jobs = compactJobs(blocks);
+    const jobs = compactJobs(blocks, active.length);
     let cursor = 0;
     let completed = 0;
     const matches = new Map<string, ScanTransaction>();

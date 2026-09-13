@@ -48,13 +48,24 @@ export function packActions(actions: CompactAction[]): Uint8Array {
 }
 
 /** Decode only the binary representation selected by the versioned response. */
-export function compactJobs(blocks: CompactBlock[]) {
+export function compactJobs(blocks: CompactBlock[], workerCount = 1) {
+  if (!Number.isSafeInteger(workerCount) || workerCount < 1) throw new Error('Invalid worker count');
+  // Small streamed frames must still distribute crypto across the available
+  // workers. Estimate size without decoding records twice; validation below
+  // remains authoritative. Keep 32-action granularity and the 512-action cap.
+  let actionCount = 0;
+  for (const block of blocks) for (const tx of block.vtx || []) {
+    actionCount += typeof tx.records === 'string'
+      ? Math.floor((tx.records.length * 3 / 4 - (tx.records.endsWith('==') ? 2 : tx.records.endsWith('=') ? 1 : 0)) / COMPACT_RECORD_SIZE)
+      : tx.actions?.length || 0;
+  }
+  const jobSize = Math.max(32, Math.min(512, Math.ceil(actionCount / workerCount)));
   const jobs: { bytes: Uint8Array; transactions: ScanTransaction[] }[] = [];
-  let bytes = new Uint8Array(512 * COMPACT_RECORD_SIZE);
+  let bytes = new Uint8Array(jobSize * COMPACT_RECORD_SIZE);
   let transactions: ScanTransaction[] = [];
   const flush = () => {
     if (transactions.length) jobs.push({ bytes: bytes.slice(0, transactions.length * COMPACT_RECORD_SIZE), transactions });
-    bytes = new Uint8Array(512 * COMPACT_RECORD_SIZE); transactions = [];
+    bytes = new Uint8Array(jobSize * COMPACT_RECORD_SIZE); transactions = [];
   };
   for (const block of blocks) for (const tx of block.vtx || []) {
     let packed: Uint8Array;
@@ -70,7 +81,7 @@ export function compactJobs(blocks: CompactBlock[]) {
       if (packed[offset] > 2) throw new Error('Unsupported compact pool');
       bytes.set(packed.subarray(offset, offset + COMPACT_RECORD_SIZE), transactions.length * COMPACT_RECORD_SIZE);
       transactions.push(metadata);
-      if (transactions.length === 512) flush();
+      if (transactions.length === jobSize) flush();
     }
   }
   flush();

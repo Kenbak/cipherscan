@@ -244,3 +244,15 @@ test('slow memo decryption bounds discovery backlog and cancellation wakes the b
   await rejection;
   release();
 });
+
+test('small streamed frames distribute across workers without changing records or transaction identity', () => {
+  const { compactBlockToInbox } = require('../api/lib/compact-blocks');
+  const blocks = [{ height: 1, time: 7, vtx: [{ hash: fixtureId(1), actions: Array.from({ length: 514 }, () => action) }] }];
+  const original = compactJobs(blocks);
+  const parallel = compactJobs(blocks, 8);
+  assert.deepEqual(parallel.map(j => j.transactions.length), [65, 65, 65, 65, 65, 65, 65, 59]);
+  assert.deepEqual(Buffer.concat(parallel.map(j => Buffer.from(j.bytes))), Buffer.concat(original.map(j => Buffer.from(j.bytes))));
+  assert.deepEqual(parallel.flatMap(j => j.transactions), original.flatMap(j => j.transactions));
+  assert.deepEqual(compactJobs(blocks.map(compactBlockToInbox), 8), parallel);
+  assert.throws(() => compactJobs(blocks, 0));
+});
