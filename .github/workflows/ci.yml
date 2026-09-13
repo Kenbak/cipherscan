@@ -40,6 +40,8 @@ jobs:
         run: npm ci --no-audit --no-fund
       - name: Run the local/CI frontend verification contract
         run: npm run verify:frontend
+      - name: Inbox orchestration and worker lifecycle regressions
+        run: node --test server/tests/inbox-scan.test.js server/tests/scan-worker-pool.test.js
       - name: Supply-map accounting regressions
         run: npm run test:supply-treemap
       - name: Attestation page regressions
@@ -164,6 +166,8 @@ jobs:
         run: command -v wasm-pack >/dev/null || cargo install wasm-pack --version 0.13.1 --locked
       - name: Clippy
         run: cargo clippy --target wasm32-unknown-unknown -- -D warnings
+      - name: Scanner cryptography regressions
+        run: cargo test --lib
       - name: Build (wasm-pack)
         run: wasm-pack build --target web --release
 

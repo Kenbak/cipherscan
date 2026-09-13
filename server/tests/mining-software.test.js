@@ -41,6 +41,7 @@ test("block filters validate date, height, software, pool and sorting", () => {
       end: 1788307200,
       min: 0,
       max: null,
+      metrics: {},
     },
   );
   for (const q of [

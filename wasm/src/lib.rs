@@ -382,7 +382,7 @@ impl ScanSession {
 
     fn filter_records(&self, bytes: &[u8]) -> Result<Vec<(usize, usize)>, String> {
         const RECORD_SIZE: usize = 149;
-        if bytes.len() % RECORD_SIZE != 0 { return Err("Invalid compact record length".into()); }
+        if !bytes.len().is_multiple_of(RECORD_SIZE) { return Err("Invalid compact record length".into()); }
         let mut orchard = Vec::new();
         let mut ironwood = Vec::new();
         let mut orchard_indices = Vec::new();
