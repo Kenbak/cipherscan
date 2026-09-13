@@ -11,6 +11,8 @@ const router = express.Router();
 const fs = require('fs');
 const path = require('path');
 const { logSafeError } = require('../lib/safe-log');
+const { streamInbox } = require('../lib/scan-stream');
+const { compactBlockToJSON, isCompleteRange, compactBlockToInbox } = require('../lib/compact-blocks');
 
 // Dependencies injected via app.locals
 let pool;
@@ -59,39 +61,27 @@ function loadCachedBlocks(startHeight, endHeight) {
   const missingRanges = [];
   let currentMissingStart = null;
 
-  for (let height = startHeight; height <= endHeight; height += CACHE_CHUNK_SIZE) {
-    const chunkStart = Math.floor(height / CACHE_CHUNK_SIZE) * CACHE_CHUNK_SIZE;
-    const cacheFile = getCacheFilePath(chunkStart);
-
-    if (fs.existsSync(cacheFile)) {
-      // Found cached chunk
+  for (let chunkStart = Math.floor(startHeight / CACHE_CHUNK_SIZE) * CACHE_CHUNK_SIZE;
+       chunkStart <= endHeight; chunkStart += CACHE_CHUNK_SIZE) {
+    const rangeStart = Math.max(startHeight, chunkStart);
+    const rangeEnd = Math.min(endHeight, chunkStart + CACHE_CHUNK_SIZE - 1);
+    let blocks = null;
+    try {
+      const data = JSON.parse(fs.readFileSync(getCacheFilePath(chunkStart), 'utf8'));
+      // Older cache files may contain only 90% of a chunk. Never trust those as complete.
+      if (isCompleteRange(data.blocks, chunkStart, chunkStart + CACHE_CHUNK_SIZE - 1)) {
+        blocks = data.blocks.filter(block => Number(block.height) >= rangeStart && Number(block.height) <= rangeEnd);
+      }
+    } catch (err) {
+      if (err.code !== 'ENOENT') logSafeError('Unable to read compact cache chunk', err);
+    }
+    if (blocks) {
       if (currentMissingStart !== null) {
-        // End the current missing range
-        missingRanges.push({ start: currentMissingStart, end: chunkStart - 1 });
+        missingRanges.push({ start: currentMissingStart, end: rangeStart - 1 });
         currentMissingStart = null;
       }
-
-      try {
-        const data = JSON.parse(fs.readFileSync(cacheFile, 'utf8'));
-        // Filter blocks within our requested range
-        const relevantBlocks = data.blocks.filter(b => {
-          const h = parseInt(b.height);
-          return h >= startHeight && h <= endHeight;
-        });
-        cachedBlocks.push(...relevantBlocks);
-      } catch (err) {
-        logSafeError(`⚠️ [CACHE] Failed to read cache file ${cacheFile}:`, err);
-        // Treat as missing
-        if (currentMissingStart === null) {
-          currentMissingStart = chunkStart;
-        }
-      }
-    } else {
-      // Chunk not cached
-      if (currentMissingStart === null) {
-        currentMissingStart = Math.max(chunkStart, startHeight);
-      }
-    }
+      cachedBlocks.push(...blocks);
+    } else if (currentMissingStart === null) currentMissingStart = rangeStart;
   }
 
   // Close any remaining missing range
@@ -123,12 +113,10 @@ function saveToCache(blocks) {
 
   // Save each complete chunk
   for (const [chunkId, chunkBlocks] of chunks) {
-    // Only save if we have the full chunk (or it's the latest incomplete chunk)
-    if (chunkBlocks.length >= CACHE_CHUNK_SIZE * 0.9) { // 90% threshold
+    chunkBlocks.sort((a, b) => Number(a.height) - Number(b.height));
+    if (isCompleteRange(chunkBlocks, chunkId, chunkId + CACHE_CHUNK_SIZE - 1)) {
       const cacheFile = getCacheFilePath(chunkId);
       try {
-        // Sort by height before saving
-        chunkBlocks.sort((a, b) => parseInt(a.height) - parseInt(b.height));
         fs.writeFileSync(cacheFile, JSON.stringify({ blocks: chunkBlocks }));
         console.log(`💾 [CACHE] Saved ${chunkBlocks.length} blocks to ${path.basename(cacheFile)}`);
       } catch (err) {
@@ -247,14 +235,18 @@ async function fetchBlockRange(CompactTxStreamer, grpc, start, end) {
  */
 router.post('/api/lightwalletd/scan', async (req, res) => {
   try {
-    const { startHeight, endHeight } = req.body;
+    const { startHeight: rawStart, endHeight: rawEnd, format } = req.body;
+    if (format !== undefined && format !== 'inbox-v1' && format !== 'inbox-stream-v1') return res.status(400).json({ error: 'Unsupported scan format' });
+    const startHeight = Number(rawStart);
+    const endHeight = rawEnd == null ? undefined : Number(rawEnd);
 
     // Validate inputs
     if (!startHeight) {
       return res.status(400).json({ error: 'startHeight is required' });
     }
 
-    if (isNaN(startHeight) || (endHeight && isNaN(endHeight))) {
+    if (!['number', 'string'].includes(typeof rawStart) || !Number.isSafeInteger(startHeight) ||
+        (rawEnd != null && (!['number', 'string'].includes(typeof rawEnd) || !Number.isSafeInteger(endHeight) || endHeight < 1))) {
       return res.status(400).json({ error: 'Invalid block heights' });
     }
 
@@ -299,7 +291,7 @@ router.post('/api/lightwalletd/scan', async (req, res) => {
       });
     }
 
-    const totalBlocks = finalEndHeight - startHeight + 1;
+    if (format === 'inbox-stream-v1') return await streamInbox(res, CompactTxStreamer, grpc, startHeight, finalEndHeight);
 
     // Check cache first
     const startTime = Date.now();
@@ -336,76 +328,26 @@ router.post('/api/lightwalletd/scan', async (req, res) => {
 
       // Fetch all missing chunks in parallel
       const blockChunks = await Promise.all(fetchPromises);
-      fetchedBlocks = blockChunks.flat();
+      fetchedBlocks = blockChunks.flat().map(compactBlockToJSON);
 
       // Save newly fetched blocks to cache
       if (fetchedBlocks.length > 0) {
-        // Convert to cacheable format before saving
-        const cacheableBlocks = fetchedBlocks.map((block) => ({
-          height: block.height,
-          hash: block.hash ? Buffer.from(block.hash).toString('hex') : null,
-          time: block.time,
-          vtx: block.vtx ? block.vtx.map((tx) => {
-            const convertAction = (action) => ({
-              nullifier: action.nullifier ? Buffer.from(action.nullifier).toString('hex') : null,
-              cmx: action.cmx ? Buffer.from(action.cmx).toString('hex') : null,
-              ephemeralKey: action.ephemeralKey ? Buffer.from(action.ephemeralKey).toString('hex') : null,
-              ciphertext: action.ciphertext ? Buffer.from(action.ciphertext).toString('hex') : null,
-            });
-            const orchardActions = tx.actions ? tx.actions.map(convertAction) : [];
-            const ironwoodActions = tx.ironwoodActions ? tx.ironwoodActions.map(convertAction) : [];
-            return {
-              index: tx.index,
-              hash: tx.hash ? Buffer.from(tx.hash).toString('hex') : null,
-              outputs: tx.outputs ? tx.outputs.map((output) => ({
-                cmu: output.cmu ? Buffer.from(output.cmu).toString('hex') : null,
-                ephemeralKey: output.epk ? Buffer.from(output.epk).toString('hex') : null,
-                ciphertext: output.ciphertext ? Buffer.from(output.ciphertext).toString('hex') : null,
-              })) : [],
-              actions: [...orchardActions, ...ironwoodActions],
-            };
-          }) : [],
-        }));
-        saveToCache(cacheableBlocks);
+        saveToCache(fetchedBlocks);
       }
     }
 
     // Merge cached and fetched blocks
     const allBlocks = [...cachedBlocks];
 
-    // Convert fetched blocks to response format (if not already converted for cache)
-    for (const block of fetchedBlocks) {
-      const toHex = (v) => v ? (typeof v === 'string' ? v : Buffer.from(v).toString('hex')) : null;
-      allBlocks.push({
-        height: block.height,
-        hash: toHex(block.hash),
-        time: block.time,
-        vtx: block.vtx ? block.vtx.map((tx) => {
-          const convertAction = (action) => ({
-            nullifier: toHex(action.nullifier),
-            cmx: toHex(action.cmx),
-            ephemeralKey: toHex(action.ephemeralKey),
-            ciphertext: toHex(action.ciphertext),
-          });
-          const orchardActions = tx.actions ? tx.actions.map(convertAction) : [];
-          const ironwoodActions = tx.ironwoodActions ? tx.ironwoodActions.map(convertAction) : [];
-          return {
-            index: tx.index,
-            hash: toHex(tx.hash),
-            outputs: tx.outputs ? tx.outputs.map((output) => ({
-              cmu: toHex(output.cmu),
-              ephemeralKey: toHex(output.epk),
-              ciphertext: toHex(output.ciphertext),
-            })) : [],
-            actions: [...orchardActions, ...ironwoodActions],
-          };
-        }) : [],
-      });
-    }
+    // Reuse the same conversion for both cache and response.
+    allBlocks.push(...fetchedBlocks);
 
     // Sort by height
     const blocks = allBlocks.sort((a, b) => parseInt(a.height) - parseInt(b.height));
 
+    if (!isCompleteRange(blocks, Number(startHeight), Number(finalEndHeight))) {
+      return res.status(502).json({ error: 'Incomplete compact block range from upstream' });
+    }
     const fetchTime = Date.now() - startTime;
     console.log(`✅ [SCAN] Total ${blocks.length} blocks in ${fetchTime}ms (${cachedBlocks.length} cached, ${fetchedBlocks.length} fetched)`);
 
@@ -418,7 +360,8 @@ router.post('/api/lightwalletd/scan', async (req, res) => {
       cachedBlocks: cachedBlocks.length,
       fetchedBlocks: fetchedBlocks.length,
       fetchTimeMs: fetchTime,
-      blocks,
+      ...(format ? { format } : {}),
+      blocks: format === 'inbox-v1' ? blocks.map(compactBlockToInbox) : blocks,
     });
 
   } catch (error) {

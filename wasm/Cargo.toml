@@ -39,6 +39,6 @@ version = "0.3"
 features = ["console"]
 
 [profile.release]
-opt-level = "z"     # Optimize for size
+opt-level = 3       # Favor repeated scan throughput; see BUILD.md benchmark
 lto = true          # Enable Link Time Optimization
 codegen-units = 1   # Reduce parallel codegen units

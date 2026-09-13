@@ -2,6 +2,7 @@
 
 import { readApiCollection } from '@/lib/api-client';
 import { useState, useEffect, useCallback, useRef, type Dispatch, type SetStateAction } from 'react';
+import { fetchLiveResponse, startLiveRefresh } from '@/lib/live-refresh';
 import { getApiUrl } from '@/lib/api-config';
 import { useWebSocket } from '@/hooks/useWebSocket';
 
@@ -82,6 +83,8 @@ export interface UsePaginatedListResult<
    * `items`/`pagination` are retained on screen during a silent refresh. */
   isRefreshing: boolean;
   dataAvailable: boolean;
+  lastCheckedAt: number | null;
+  refreshFailed: boolean;
   extra: E | undefined;
   isFirstPage: boolean;
   firstHref: string;
@@ -111,21 +114,6 @@ function defaultShouldWsRefresh(
   _latestKey: string | number,
 ): boolean {
   return msg.type === 'new_block' || msg.type === 'chain_tip';
-}
-
-const DEFAULT_TIMEOUT_MS = 15000;
-const MAX_BACKOFF_MS = 5 * 60 * 1000;
-
-/** fetch() with a request timeout — a hung list/silent-refresh request
- * should never block the next poll tick indefinitely. */
-async function fetchWithTimeout(url: string, timeoutMs = DEFAULT_TIMEOUT_MS): Promise<Response> {
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-  try {
-    return await fetch(url, { signal: controller.signal });
-  } finally {
-    clearTimeout(timeoutId);
-  }
 }
 
 export function usePaginatedList<
@@ -162,6 +150,8 @@ export function usePaginatedList<
   );
   const silentRefreshRef = useRef<() => Promise<void>>(async () => {});
 
+  const [lastCheckedAt, setLastCheckedAt] = useState<number | null>(null);
+  const [refreshFailed, setRefreshFailed] = useState(false);
   const [items, setItems] = useState<T[]>(initialItems);
   const [page, setPage] = useState(initialPage);
   const [loading, setLoading] = useState(!hasInitialData);
@@ -193,9 +183,7 @@ export function usePaginatedList<
         params.set('cursor', String(cursor));
       }
 
-      const res = await fetchWithTimeout(`${base}${endpoint}?${params}`);
-      if (!res.ok) throw new Error(`${endpoint} returned ${res.status}`);
-      const { items: visibleItems, page: apiPage } = await readApiCollection<T>(res);
+      const { items: visibleItems, page: apiPage } = await fetchLiveResponse(`${base}${endpoint}?${params}`, readApiCollection<T>);
       const total = apiPage.total ?? 0;
       setItems(visibleItems);
       setPage(targetPage);
@@ -234,7 +222,6 @@ export function usePaginatedList<
 
   const [isRefreshing, setIsRefreshing] = useState(false);
   const refreshInFlightRef = useRef(false);
-  const refreshFailureCountRef = useRef(0);
 
   const silentRefresh = useCallback(async () => {
     if (!isFirstPage || page !== 1 || !enabled) return;
@@ -249,12 +236,12 @@ export function usePaginatedList<
         limit: String(pageSize),
         ...(buildParams?.() ?? {}),
       });
-      const res = await fetchWithTimeout(`${base}${endpoint}?${params}`);
-      if (!res.ok) throw new Error(`${endpoint} returned ${res.status}`);
-      const { items: visibleItems, page: apiPage } = await readApiCollection<T>(res);
+      const { items: visibleItems, page: apiPage } = await fetchLiveResponse(`${base}${endpoint}?${params}`, readApiCollection<T>);
+      setLastCheckedAt(Date.now());
+      setRefreshFailed(false);
+      setDataAvailable(true);
       const topKey = visibleItems[0] ? getLatestKey(visibleItems[0]) : '';
       if (topKey === latestKeyRef.current) {
-        refreshFailureCountRef.current = 0;
         return;
       }
       latestKeyRef.current = topKey;
@@ -264,11 +251,8 @@ export function usePaginatedList<
       setPagination({ ...apiPage, page: 1, total, totalPages: Math.ceil(total / pageSize) } as unknown as P);
       if (processExtra) setExtra(processExtra(visibleItems, visibleItems));
       setDataAvailable(true);
-      refreshFailureCountRef.current = 0;
     } catch {
-      // Silent by design (background refresh) — but tracked so the poll
-      // loop below can back off instead of hammering a struggling endpoint.
-      refreshFailureCountRef.current += 1;
+      setRefreshFailed(true);
     } finally {
       refreshInFlightRef.current = false;
       setIsRefreshing(false);
@@ -293,53 +277,15 @@ export function usePaginatedList<
     }
   }, [isFirstPage, page, shouldWsRefresh]);
 
-  const { isConnected: wsConnected } = useWebSocket(
-    isFirstPage ? { onMessage: handleWsMessage } : {},
-  );
+  useWebSocket(isFirstPage ? {
+    onMessage: handleWsMessage,
+    onConnect: () => { void silentRefreshRef.current(); },
+  } : {});
 
-  // Self-rescheduling timeout chain (rather than setInterval) so the delay
-  // can back off on repeated failures and pause entirely while the tab is
-  // hidden — a backgrounded tab polling a list nobody can see wastes both
-  // battery and API quota. Resumes (with an immediate refresh if stale)
-  // the moment the tab becomes visible again.
   useEffect(() => {
-    if (!isFirstPage || page !== 1) return;
-
-    let cancelled = false;
-    let timer: ReturnType<typeof setTimeout> | null = null;
-    const baseDelay = wsConnected ? 60000 : 15000;
-
-    const scheduleNext = () => {
-      if (cancelled || typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
-      const delay = refreshFailureCountRef.current > 0
-        ? Math.min(baseDelay * 2 ** refreshFailureCountRef.current, MAX_BACKOFF_MS)
-        : baseDelay;
-      timer = setTimeout(async () => {
-        await silentRefreshRef.current();
-        scheduleNext();
-      }, delay);
-    };
-
-    scheduleNext();
-
-    const onVisibility = () => {
-      if (document.visibilityState !== 'visible') {
-        if (timer) clearTimeout(timer);
-        timer = null;
-        return;
-      }
-      if (!timer) {
-        silentRefreshRef.current().finally(scheduleNext);
-      }
-    };
-    document.addEventListener('visibilitychange', onVisibility);
-
-    return () => {
-      cancelled = true;
-      if (timer) clearTimeout(timer);
-      document.removeEventListener('visibilitychange', onVisibility);
-    };
-  }, [isFirstPage, page, wsConnected]);
+    if (!isFirstPage || page !== 1 || !enabled) return;
+    return startLiveRefresh(() => silentRefreshRef.current());
+  }, [isFirstPage, page, enabled]);
 
   const pagRecord = pagination as Record<string, unknown>;
   const nextSecondaryCursor = secondaryCursorFields
@@ -367,6 +313,8 @@ export function usePaginatedList<
     loading,
     isRefreshing,
     dataAvailable,
+    lastCheckedAt,
+    refreshFailed,
     extra,
     isFirstPage,
     firstHref,

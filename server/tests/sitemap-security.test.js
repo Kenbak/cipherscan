@@ -3,6 +3,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const test = require('node:test');
 const ts = require('typescript');
+const { createRequire } = require('node:module');
 
 const repositoryRoot = path.resolve(__dirname, '../..');
 
@@ -24,7 +25,7 @@ function loadTypeScriptModule(relativePath, imports = {}) {
       return imports[specifier];
     }
     if (specifier === '@/lib/api-client') return loadTypeScriptModule('lib/api-client.ts');
-    return require(specifier);
+    return createRequire(filename)(specifier);
   };
   const evaluate = new Function('exports', 'require', 'module', '__filename', '__dirname', output);
   evaluate(module.exports, localRequire, module, filename, path.dirname(filename));
@@ -39,7 +40,7 @@ function loadJavaScriptModule(relativePath, imports = {}) {
     if (Object.prototype.hasOwnProperty.call(imports, specifier)) {
       return imports[specifier];
     }
-    return require(specifier);
+    return createRequire(filename)(specifier);
   };
   const evaluate = new Function('exports', 'require', 'module', '__filename', '__dirname', source);
   evaluate(module.exports, localRequire, module, filename, path.dirname(filename));

@@ -2,6 +2,8 @@
 
 import { readApiData } from '@/lib/api-client';
 import { useState, useEffect, useRef, memo, useCallback, type ReactNode } from 'react';
+import { fetchLiveResponse, startLiveRefresh } from '@/lib/live-refresh';
+import { LiveRefreshStatus } from '@/components/LiveRefreshStatus';
 import Link from 'next/link';
 import { formatBytesCompact } from '@/lib/format-numbers';
 import { RelativeTime } from '@/components/RelativeTime';
@@ -37,26 +39,30 @@ function parseBlock(b: any): Block {
 export const RecentBlocks = memo(function RecentBlocks({ initialBlocks = [], footer }: RecentBlocksProps) {
   const [blocks, setBlocks] = useState<Block[]>(initialBlocks);
   const [loading, setLoading] = useState(initialBlocks.length === 0);
-  const latestKey = useRef(initialBlocks[0]?.height ?? 0);
+  const inFlight = useRef(false);
+  const [lastCheckedAt, setLastCheckedAt] = useState<number | null>(null);
+  const [refreshFailed, setRefreshFailed] = useState(false);
   const loadedOnce = useRef(initialBlocks.length > 0);
   const fetchRef = useRef<() => void>(() => {});
 
   const fetchLatest = useCallback(async () => {
+    if (inFlight.current) return;
+    inFlight.current = true;
     try {
       const apiUrl = `${getApiUrl()}/v1/blocks?limit=5`;
 
-      const response = await fetch(apiUrl);
-      const data = await readApiData(response);
-      if (data?.length) {
-        const newTopHeight = parseInt(data[0]?.height ?? data[0]?.block_height);
-        if (newTopHeight !== latestKey.current) {
-          latestKey.current = newTopHeight;
-          setBlocks(data.map(parseBlock));
-        }
+      const data = await fetchLiveResponse(apiUrl, readApiData<any[]>);
+      if (!Array.isArray(data) || !data.length) {
+        throw new Error('Block data unavailable');
       }
+      setBlocks(data.map(parseBlock));
+      setLastCheckedAt(Date.now());
+      setRefreshFailed(false);
     } catch (error) {
+      setRefreshFailed(true);
       console.error('Error fetching blocks:', error);
     } finally {
+      inFlight.current = false;
       if (!loadedOnce.current) {
         loadedOnce.current = true;
         setLoading(false);
@@ -67,30 +73,14 @@ export const RecentBlocks = memo(function RecentBlocks({ initialBlocks = [], foo
   fetchRef.current = fetchLatest;
 
   const handleWsMessage = useCallback((msg: any) => {
-    if (msg.type === 'new_block' && msg.data?.height) {
-      const newBlock = parseBlock(msg.data);
-      if (newBlock.height > latestKey.current) {
-        latestKey.current = newBlock.height;
-        setBlocks(prev => [newBlock, ...prev].slice(0, 5));
-        setLoading(false);
-      }
-    } else if (msg.type === 'chain_tip' && msg.data?.height) {
-      if (msg.data.height > latestKey.current) {
-        fetchRef.current();
-      }
+    if (msg.type === 'new_block' || msg.type === 'chain_tip') {
+      void fetchRef.current();
     }
   }, []);
 
-  const { isConnected: wsConnected } = useWebSocket({ onMessage: handleWsMessage });
+  useWebSocket({ onMessage: handleWsMessage, onConnect: fetchLatest });
 
-  useEffect(() => {
-    if (initialBlocks.length === 0) {
-      fetchLatest();
-    }
-
-    const interval = setInterval(fetchLatest, wsConnected ? 60000 : 10000);
-    return () => clearInterval(interval);
-  }, [initialBlocks.length, wsConnected, fetchLatest]);
+  useEffect(() => startLiveRefresh(fetchLatest), [fetchLatest]);
 
   if (loading) {
     return (
@@ -103,6 +93,7 @@ export const RecentBlocks = memo(function RecentBlocks({ initialBlocks = [], foo
 
   return (
     <div className="card p-0 overflow-hidden">
+      <LiveRefreshStatus lastCheckedAt={lastCheckedAt} failed={refreshFailed} />
       {/* overflow-x-auto, not overflow-hidden: never silently clip a column, scroll instead */}
       <div className="overflow-x-auto no-scrollbar">
         {/* Live-row animations — DataTable lacks per-row classes; classes mirror its conventions */}

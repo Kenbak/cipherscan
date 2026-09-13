@@ -11,7 +11,7 @@ function load(file, imports = {}) {
   return module.exports;
 }
 const api = load('lib/api-client.ts');
-const { fetchCompactScan } = load('lib/scan-api.ts', { '@/lib/api-client': api });
+const { fetchCompactScan, fetchInboxData } = load('lib/scan-api.ts', { '@/lib/api-client': api });
 const response = data => new Response(JSON.stringify({ data, meta: { requestId: 'test', network: 'mainnet' } }));
 test('scanner divides a 50k block window without gaps and transmits only heights', async t => {
   const original = global.fetch; t.after(()=>{global.fetch=original;});
@@ -68,4 +68,26 @@ test('unified address metadata never advertises an aggregate public balance', as
   assert.equal(result.state, 'found');
   assert.equal(result.meta.type, 'unified');
   assert.equal(result.meta.isShielded, true);
+});
+
+
+test('inbox keeps compact responses streaming and validates v1 raw transaction envelopes', async t => {
+  const original = global.fetch; t.after(() => { global.fetch = original; });
+  const controller = new AbortController();
+  const stream = new Response(new ReadableStream({ start() {} }), { headers: { 'Content-Type': 'application/x-ndjson' } });
+  const requests = [];
+  global.fetch = async (url, init) => {
+    requests.push({ url, init });
+    return url.endsWith('/api/lightwalletd/scan') ? stream : response({ transactions: [] });
+  };
+  const options = { method: 'POST', signal: controller.signal, body: '{}' };
+  assert.equal(await fetchInboxData('https://api.invalid/api/lightwalletd/scan', options), stream);
+  assert.equal(stream.bodyUsed, false, 'the compatibility bridge must not buffer compact blocks');
+  const raw = await fetchInboxData('https://api.invalid/api/tx/raw/batch', options);
+  assert.deepEqual(await raw.json(), { transactions: [] });
+  assert.equal(requests[1].url, 'https://api.invalid/v1/transactions/raw/batch');
+  assert.equal(requests[1].init.signal, controller.signal);
+  global.fetch = async () => new Response(JSON.stringify({ transactions: [] }));
+  await assert.rejects(fetchInboxData('https://api.invalid/api/tx/raw/batch', options), /incompatible/);
+  await stream.body.cancel();
 });

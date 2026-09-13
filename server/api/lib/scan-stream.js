@@ -1,0 +1,64 @@
+'use strict';
+const { createGzip, constants } = require('node:zlib');
+const { compactBlockToJSON, compactBlockToInbox } = require('./compact-blocks');
+
+// Bound projection/output buffering; gRPC's Readable iterator supplies backpressure.
+async function streamInbox(res, Client, grpc, start, end) {
+  const client = new Client('127.0.0.1:9067', grpc.credentials.createInsecure());
+  const call = client.GetBlockRange({ start: { height: start }, end: { height: end } });
+  const close = () => call.cancel();
+  res.once('close', close);
+  const gzip = res.req?.acceptsEncodings('gzip') ? createGzip({ flush: constants.Z_SYNC_FLUSH }) : null;
+  const output = gzip || res;
+  if (gzip) {
+    res.setHeader('Content-Encoding', 'gzip');
+    gzip.on('error', () => res.destroy());
+    gzip.pipe(res);
+  }
+  res.vary?.('Accept-Encoding');
+  async function write(value) {
+    if (res.destroyed) throw new Error('Scan client disconnected');
+    const line = JSON.stringify(value) + '\n';
+    if (Buffer.byteLength(line) > 16 * 1024 * 1024) throw new Error('Compact stream record too large');
+    if (output.write(line)) return;
+    await new Promise((resolve, reject) => {
+      const clean = () => { output.off('drain', drain); res.off('close', closed); };
+      const drain = () => { clean(); resolve(); };
+      const closed = () => { clean(); reject(new Error('Scan client disconnected')); };
+      output.once('drain', drain); res.once('close', closed);
+    });
+  }
+  try {
+    res.setHeader('Content-Type', 'application/x-ndjson');
+    res.setHeader('Cache-Control', 'no-store');
+    res.setHeader('X-Accel-Buffering', 'no');
+    await write({ type: 'start', format: 'inbox-stream-v1', startHeight: start, endHeight: end });
+    let expected = start; let previous; let batch = []; let bytes = 0; let batchLimit = 32;
+    for await (const raw of call) {
+      const block = compactBlockToJSON(raw);
+      const prevHash = Buffer.from(raw.prevHash || []).toString('hex');
+      if (Number(block.height) !== expected || expected > end || !/^[0-9a-f]{64}$/.test(block.hash || '') ||
+          !/^[0-9a-f]{64}$/.test(prevHash) || (previous && previous !== prevHash)) {
+        throw new Error('Incomplete or disconnected compact chain');
+      }
+      const packed = { ...compactBlockToInbox(block), hash: block.hash, prevHash };
+      const size = Buffer.byteLength(JSON.stringify(packed));
+      if (batch.length && bytes + size > 256 * 1024) { await write({ type: 'blocks', blocks: batch }); batch = []; bytes = 0; batchLimit = 128; }
+      batch.push(packed); bytes += size; previous = block.hash; expected++;
+      if (batch.length >= batchLimit || bytes >= 256 * 1024) { await write({ type: 'blocks', blocks: batch }); batch = []; bytes = 0; batchLimit = 128; }
+    }
+    if (expected !== end + 1) throw new Error('Incomplete compact range');
+    if (batch.length) await write({ type: 'blocks', blocks: batch });
+    await write({ type: 'end', blocksScanned: end - start + 1, endHeight: end, hash: previous });
+    output.end();
+  } catch (_error) {
+    // HTTP status may already be committed. A terminal error is never a success trailer.
+    if (!res.destroyed) { await write({ type: 'error', error: 'Compact stream failed; retry the scan' }).catch(() => {}); output.end(); }
+  } finally {
+    res.off('close', close);
+    if (res.destroyed) gzip?.destroy();
+    call.cancel();
+    client.close();
+  }
+}
+module.exports = { streamInbox };

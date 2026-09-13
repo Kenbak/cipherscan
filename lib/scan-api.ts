@@ -44,3 +44,14 @@ export async function fetchCompactScan<T>(
   }
   return { blocks };
 }
+
+/** Keep the compact stream on its streaming endpoint until v1 supports NDJSON.
+ * Network info and matched-transaction retrieval retain v1 envelope validation.
+ */
+export const fetchInboxData: typeof fetch = async (input, init) => {
+  if (typeof input === 'string' && input.endsWith('/api/tx/raw/batch')) {
+    const response = await fetch(input.replace(/\/api\/tx\/raw\/batch$/, '/v1/transactions/raw/batch'), init);
+    return Response.json(await readApiData(response));
+  }
+  return fetch(input, init);
+};

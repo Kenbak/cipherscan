@@ -2,6 +2,7 @@
 
 import { readApiData } from '@/lib/api-client';
 import { useState, useEffect } from 'react';
+import { LiveRefreshStatus } from '@/components/LiveRefreshStatus';
 import Link from 'next/link';
 import { PageHeader, MetricCard, DataTable, HashLink, type DataTableColumn } from '@/components/ui';
 import { formatRelativeTime, formatBlockInterval } from '@/lib/utils';
@@ -234,6 +235,8 @@ export default function BlocksClient({
     pagination,
     loading,
     dataAvailable,
+    lastCheckedAt,
+    refreshFailed,
     extra: trailingBlock,
     firstHref,
     prevHref,
@@ -243,14 +246,9 @@ export default function BlocksClient({
     buildParams: () => filters as Record<string,string>,
     pageSize: PAGE_SIZE,
     archiveBasePath: '/blocks',
-    getLatestKey: (block) => Number(block.height),
-    shouldWsRefresh: (msg, latestKey) => {
-      const data = msg.data as { height?: number } | undefined;
-      const height = data?.height ?? 0;
-      return (
-        (msg.type === 'new_block' && height > Number(latestKey)) ||
-        (msg.type === 'chain_tip' && height > Number(latestKey))
-      );
+    getLatestKey: (block) => block.hash,
+    shouldWsRefresh: (msg) => {
+      return msg.type === 'new_block' || msg.type === 'chain_tip';
     },
     buildArchiveHref: (cursor, _secondary, direction, targetPage) => {
       if (targetPage <= 1 || cursor === null) return Object.keys(filters).length ? `/blocks?${new URLSearchParams(filters)}` : '/blocks';
@@ -328,6 +326,8 @@ export default function BlocksClient({
           </span>
         }
       />
+
+      {initialCursor === null && page === 1 && <LiveRefreshStatus lastCheckedAt={lastCheckedAt} failed={refreshFailed} />}
 
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-6">
         <MetricCard size="compact"

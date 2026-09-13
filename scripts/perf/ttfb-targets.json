@@ -188,6 +188,12 @@
       "routeGroup": "/address/[address]",
       "path": "/address/t1NV4euoqYjnutzS9Lr9VvjBD2LLNuXtXXZ",
       "core": true
+    },
+    {
+      "id": "ask",
+      "routeGroup": "/ask",
+      "path": "/ask",
+      "core": true
     }
   ]
 }
