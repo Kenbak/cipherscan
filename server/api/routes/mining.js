@@ -70,7 +70,7 @@ router.get('/api/mining/software', async (req,res) => {
     });
     res.json(data.value);
   } catch(error) {
-    if(error instanceof SoftwareQueryError) return res.status(error.status).json({success:false,error:error.message});
+    if(error instanceof SoftwareQueryError) return res.status(error.status).json({success:false,error:error.status === 400 ? 'Invalid mining software query' : 'Mining data temporarily unavailable'});
     logSafeError('Mining software history failed:',error);
     res.status(500).json({success:false,error:'Mining software history unavailable'});
   }
