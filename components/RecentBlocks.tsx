@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef, memo, useCallback, type ReactNode } from 'react';
 import { fetchLiveJson, startLiveRefresh } from '@/lib/live-refresh';
-import { LiveRefreshStatus } from '@/components/LiveRefreshStatus';
 import Link from 'next/link';
 import { formatBytesCompact } from '@/lib/format-numbers';
 import { RelativeTime } from '@/components/RelativeTime';
@@ -39,8 +38,6 @@ export const RecentBlocks = memo(function RecentBlocks({ initialBlocks = [], foo
   const [blocks, setBlocks] = useState<Block[]>(initialBlocks);
   const [loading, setLoading] = useState(initialBlocks.length === 0);
   const inFlight = useRef(false);
-  const [lastCheckedAt, setLastCheckedAt] = useState<number | null>(null);
-  const [refreshFailed, setRefreshFailed] = useState(false);
   const loadedOnce = useRef(initialBlocks.length > 0);
   const fetchRef = useRef<() => void>(() => {});
 
@@ -55,10 +52,7 @@ export const RecentBlocks = memo(function RecentBlocks({ initialBlocks = [], foo
         throw new Error('Block data unavailable');
       }
       setBlocks(data.blocks.map(parseBlock));
-      setLastCheckedAt(Date.now());
-      setRefreshFailed(false);
     } catch (error) {
-      setRefreshFailed(true);
       console.error('Error fetching blocks:', error);
     } finally {
       inFlight.current = false;
@@ -91,7 +85,6 @@ export const RecentBlocks = memo(function RecentBlocks({ initialBlocks = [], foo
 
   return (
     <div className="card p-0 overflow-hidden">
-      <LiveRefreshStatus lastCheckedAt={lastCheckedAt} failed={refreshFailed} />
       {/* overflow-x-auto, not overflow-hidden: never silently clip a column, scroll instead */}
       <div className="overflow-x-auto no-scrollbar">
         {/* Live-row animations — DataTable lacks per-row classes; classes mirror its conventions */}
