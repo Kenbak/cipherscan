@@ -22,6 +22,7 @@ const Link = ({ href, children, ...props }) => React.createElement('a', { href, 
 const Header = loadTs('components/ui/SectionHeader.tsx');
 const Client = loadTs('app/network/attestations/AttestationsClient.tsx', {
   '@/hooks/useApiQuery': { useApiQuery: (_path, _params, options) => ({ data: options.initialData ?? null, loading: false, error: null }) },
+  '@/lib/canary-status': require('../../lib/canary-status'),
   '@/lib/attestation-status': require('../../lib/attestation-status'),
 }).default;
 function loadPage(network, data) {
@@ -107,4 +108,15 @@ test('running tag and hub confirmation require a fresh reproduced match, while h
     assert.ok(!html.includes('Confirmed by matching reproduced build'));
     assert.match(html,/current match unconfirmed/);
   }
+});
+
+test('Canary has its own expiry and ordinary-host trust wording in server HTML', () => {
+  const data = store.publicSnapshot(null, 'mainnet');
+  const now = Date.now();
+  data.endpoints[0].canary = { checkedAt: new Date(now).toISOString(), verified: true, status: 'VERIFIED', observedAt: new Date(now).toISOString(), expiresAt: new Date(now - 1).toISOString(), transportWarning: null };
+  const html = renderToStaticMarkup(React.createElement(Client, { initialData: data, initialNow: now, network: 'mainnet', apiUrl: 'https://api.mainnet.cipherscan.app' }));
+  assert.match(html, /Observation expired/);
+  assert.doesNotMatch(html, /Signed checks verified/);
+  assert.match(html, /monitor itself is not enclave-attested/);
+  assert.match(html, /Signed statement/);
 });

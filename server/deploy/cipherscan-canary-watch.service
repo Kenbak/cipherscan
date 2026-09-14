@@ -1,0 +1,29 @@
+[Unit]
+Description=Deliver verified Canary state changes to configured operator webhooks
+After=cipherscan-canary.service network-online.target
+ConditionPathExists=/etc/cipherscan-canary/watch.json
+ConditionPathExists=/etc/cipherscan-canary/webhooks.env
+
+[Service]
+Type=simple
+DynamicUser=true
+ExecStart=/opt/cipherscan-canary/canaryctl watch --config /etc/cipherscan-canary/watch.json --skip-canary-attestation --allow-http-canary
+EnvironmentFile=/etc/cipherscan-canary/webhooks.env
+Restart=on-failure
+RestartSec=15
+MemoryMax=256M
+CPUQuota=25%
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+LockPersonality=true
+
+[Install]
+WantedBy=multi-user.target

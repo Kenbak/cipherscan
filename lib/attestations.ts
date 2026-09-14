@@ -12,7 +12,18 @@ export interface AttestationCheck {
   claimedCommit: string | null;
   verifier: string;
 }
+export interface CanaryCheck {
+  checkedAt: string | null;
+  verified: boolean;
+  status: string;
+  reason?: string;
+  observedAt: string | null;
+  expiresAt: string | null;
+  transportWarning: string | null;
+  displayStatus?: string;
+}
 export interface AttestationEndpoint {
+  canary?: CanaryCheck | null;
   id: string;
   name: string;
   role: 'shim' | 'hub';
