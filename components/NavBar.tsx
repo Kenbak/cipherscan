@@ -28,7 +28,6 @@ export function NavBar() {
   const [mobileAccordion, setMobileAccordion] = useState<string | null>(null);
   const navRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
-  const isHomePage = pathname === '/';
   const { theme } = useTheme();
 
   const closeAll = useCallback(() => {
@@ -73,7 +72,7 @@ export function NavBar() {
     const observer = new ResizeObserver(syncNavHeight);
     observer.observe(nav);
     return () => observer.disconnect();
-  }, [pathname, isHomePage]);
+  }, [pathname]);
 
   // Build category arrays (network-aware)
   const exploreItems: MenuItem[] = [
@@ -210,12 +209,10 @@ export function NavBar() {
 
             </div>
 
-            {/* Desktop: Search (non-home) */}
-            {!isHomePage && (
-              <div className="hidden md:block flex-1 max-w-xs nav-search-compact">
-                <SearchBar compact />
-              </div>
-            )}
+            {/* Keep SSR/client structure identical; homepage CSS hides compact search. */}
+            <div className="hidden md:block flex-1 max-w-xs nav-search-compact">
+              <SearchBar compact />
+            </div>
 
             {/* Right: utilities */}
             <div className="flex items-center gap-1.5 sm:gap-2">
@@ -302,12 +299,10 @@ export function NavBar() {
             </div>
           </div>
 
-          {/* Mobile Search (only on non-home pages) */}
-          {!isHomePage && (
-            <div className="md:hidden pb-3 nav-search-compact">
-              <SearchBar compact />
-            </div>
-          )}
+          {/* The same homepage CSS controls the mobile search. */}
+          <div className="md:hidden pb-3 nav-search-compact">
+            <SearchBar compact />
+          </div>
         </div>
       </nav>
 

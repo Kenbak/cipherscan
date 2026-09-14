@@ -86,3 +86,23 @@ test('callers without a server clock retain a deterministic UTC server fallback'
   const html = renderToStaticMarkup(React.createElement(RelativeTime, { timestamp }));
   assert.match(html, />[^<]+ UTC<\/time>/);
 });
+
+test('navbar markup stays identical when server pathname is unavailable or rewritten', () => {
+  let pathname = null;
+  const { NavBar } = load('components/NavBar.tsx', {
+    'next/navigation': { usePathname: () => pathname },
+    'next/link': { default: ({ children, ...props }) => React.createElement('a', props, children) },
+    'next/image': { default: () => null },
+    '@/components/SearchBar': { SearchBar: () => React.createElement('input', { 'aria-label': 'Search' }) },
+    '@/components/DonateButton': { DonateButton: () => null },
+    '@/components/ThemeToggle': { ThemeToggle: () => null },
+    '@/contexts/ThemeContext': { useTheme: () => ({ theme: 'dark' }) },
+    '@/lib/config': { NETWORK_LABEL: 'MAINNET', NETWORK_COLOR: '', isMainnet: true, isCrosslink: false },
+  });
+  const server = renderToStaticMarkup(React.createElement(NavBar));
+  for (const route of ['/', '/txs', '/txs/latest']) {
+    pathname = route;
+    assert.equal(renderToStaticMarkup(React.createElement(NavBar)), server);
+  }
+  assert.equal((server.match(/nav-search-compact/g) || []).length, 2);
+});

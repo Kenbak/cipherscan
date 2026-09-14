@@ -35,8 +35,15 @@ try {
     assert.equal(await time.getAttribute('datetime'), new Date(Number(wire.block_time) * 1000).toISOString());
     assert.match(await time.textContent(), /ago|Just now/);
   }
+  for (const search of await page.locator('.nav-search-compact').all()) assert.equal(await search.isVisible(), false);
+  await page.goto(new URL('/txs', url).href, { waitUntil: 'domcontentloaded' });
+  await page.locator('h1').filter({ hasText: 'Latest Zcash Transactions' }).waitFor();
+  assert.equal(await page.locator('h1').count(), 1);
+  assert.equal(await page.locator('.nav-search-compact').first().isVisible(), true);
+  await page.setViewportSize({ width: 390, height: 844 });
+  assert.equal(await page.locator('.nav-search-compact').last().isVisible(), true);
   assert.deepEqual(errors, []);
-  console.log(`PASS: ${wireRows.length} displayed transaction ages match the real API; wire timestamp type: ${typeof wireRows[0].block_time}`);
+  console.log(`PASS: ${wireRows.length} displayed transaction ages match the real API; navbar visibility and archive H1 pass; wire timestamp type: ${typeof wireRows[0].block_time}`);
 } finally {
   await browser.close();
 }

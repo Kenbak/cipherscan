@@ -1032,7 +1032,7 @@
     transition-duration: var(--duration-normal);
   }
 
-  /* Hide compact nav search on the homepage (CSS-level defense against hydration flash) */
+  /* Keep navbar markup stable across SSR/hydration; page content controls search visibility. */
   body:has(.home-page) .nav-search-compact {
     display: none !important;
   }

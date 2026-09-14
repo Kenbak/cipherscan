@@ -26,6 +26,12 @@ Authority: `server/api/routes/transactions/tx-lists.js` returns `result.rows`; `
 
 Captured production fixtures retain the real JSON types. Regression tests cover numeric/string timestamps, invalid/missing timestamps, malformed records, and preservation of large monetary strings. The live browser smoke compares each displayed datetime to the actual response used by that page.
 
+## Additional confirmed hydration defect
+
+The production live-API smoke correctly verified transaction datetimes after the correction, but repeatedly caught React error 418 on mainnet. Instrumenting React's recoverable-error component stack located it at the navbar link after compact search. Raw homepage HTML included compact navbar search while `usePathname() === '/'` removed it in the browser. This is a structural mismatch even though existing `body:has(.home-page) .nav-search-compact` CSS hid the server element visually. The earlier CSS defense concealed the visible symptom without ensuring consistent DOM.
+
+The follow-up removes pathname-dependent insertion/removal of both compact navbar searches. Their markup is now stable; the existing page-content CSS solely controls homepage visibility. Pathname still handles closing menus and remeasuring navigation after route changes. A regression compares markup with null, homepage and rewritten archive paths. Browser checks also verify compact search is hidden on home, visible on the transaction archive at desktop/mobile sizes, and archive DOM has one H1. This is a confirmed additional defect, separate from missing transaction ages.
+
 ## Other findings: pre-existing risks, not explanations for this incident
 
 - **Refresh behavior differs by feed.** RecentBlocks uses `fetchLiveJson` with a 15-second deadline and `startLiveRefresh` with serialized polling, hidden-tab pause, and foreground/online catch-up. Both transaction widgets use plain fetch and independent intervals (60 seconds with WebSocket connected, 10 seconds otherwise), without equivalent deadlines or overlap control. A slow request can overlap a newer one.
@@ -49,4 +55,4 @@ This correction deliberately does not combine those lifecycle changes with the i
 
 ## Verification
 
-Typecheck, lint (existing warnings), production build, 12 live-refresh/timestamp tests, 19 sitemap-security tests, 9 performance regressions, and 4 build route-cache tests passed. Browser verification uses captured production types for delayed hydration/preferences and a separate actual-API smoke for transaction ages. The local smoke substitutes an allowed Origin/CORS header because the production API rejects localhost origins with HTTP 500; it does not modify the response data. Production verification uses the site's actual origin.
+Typecheck, lint (existing warnings), production build, 13 live-refresh/timestamp/navbar tests, 19 sitemap-security tests, 9 performance regressions, and 4 build route-cache tests passed. Browser verification uses captured production types for delayed hydration/preferences and a separate actual-API smoke for transaction ages. The local smoke substitutes an allowed Origin/CORS header because the production API rejects localhost origins with HTTP 500; it does not modify the response data. Production verification uses the site's actual origin.
