@@ -3,11 +3,12 @@
 import { useState, useEffect, useRef, memo, useCallback, type ReactNode } from 'react';
 import { RelativeTime } from '@/components/RelativeTime';
 import { formatZecPrecise } from '@/lib/format-numbers';
+import { HomeFeedTableSkeleton } from '@/components/HomeFeedTableSkeleton';
 import { getApiUrl } from '@/lib/api-config';
 import { useWebSocket } from '@/hooks/useWebSocket';
 import { ShieldFlowBadge, ShieldFlowLegend } from '@/components/ShieldFlowBadge';
 import { resolveShieldFlowType } from '@/components/icons/shield-flow';
-import { HashLink, RedactedAmount, SkeletonTable } from '@/components/ui';
+import { HashLink, RedactedAmount } from '@/components/ui';
 
 interface ShieldedTx {
   txid: string;
@@ -148,11 +149,7 @@ export const RecentShieldedTxs = memo(function RecentShieldedTxs({
   }, [initialTxs.length, wsConnected, fetchTxs]);
 
   if (loading) {
-    return (
-      <div className="card p-4">
-        <SkeletonTable rows={5} rowHeight="h-12" />
-      </div>
-    );
+    return <HomeFeedTableSkeleton rows={5} footer={footer} />;
   }
 
   return (
@@ -220,7 +217,7 @@ export const RecentShieldedTxs = memo(function RecentShieldedTxs({
         </table>
       </div>
       {showLegend && <ShieldFlowLegend />}
-      {footer && <div className="px-4 py-3 border-t border-cipher-border text-center">{footer}</div>}
+      {footer && <div className="px-4 py-3 border-t border-cipher-border flex items-center justify-center text-center">{footer}</div>}
     </div>
   );
 });

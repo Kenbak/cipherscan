@@ -7,7 +7,7 @@ import { formatBytesCompact } from '@/lib/format-numbers';
 import { RelativeTime } from '@/components/RelativeTime';
 import { getApiUrl } from '@/lib/api-config';
 import { useWebSocket } from '@/hooks/useWebSocket';
-import { SkeletonTable } from '@/components/ui';
+import { HomeFeedTableSkeleton } from '@/components/HomeFeedTableSkeleton';
 
 interface Block {
   height: number;
@@ -76,11 +76,7 @@ export const RecentBlocks = memo(function RecentBlocks({ initialBlocks = [], foo
   useEffect(() => startLiveRefresh(fetchLatest), [fetchLatest]);
 
   if (loading) {
-    return (
-      <div className="card p-4">
-        <SkeletonTable rows={5} rowHeight="h-12" />
-      </div>
-    );
+    return <HomeFeedTableSkeleton rows={5} footer={footer} />;
   }
 
   return (
@@ -123,7 +119,7 @@ export const RecentBlocks = memo(function RecentBlocks({ initialBlocks = [], foo
           </tbody>
         </table>
       </div>
-      {footer && <div className="px-4 py-3 border-t border-cipher-border text-center">{footer}</div>}
+      {footer && <div className="px-4 py-3 border-t border-cipher-border flex items-center justify-center text-center">{footer}</div>}
     </div>
   );
 });

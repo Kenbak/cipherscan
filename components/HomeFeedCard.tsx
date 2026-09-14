@@ -11,6 +11,7 @@ import { TopMiners } from '@/components/TopMiners';
 import { IronwoodProgressCard } from '@/components/IronwoodProgressCard';
 import { ShieldedPoolMiniChart } from '@/components/ShieldedPoolMiniChart';
 import { SlidersIcon } from '@/components/icons/common';
+import { HomeFeedTableSkeleton } from '@/components/HomeFeedTableSkeleton';
 
 // Mempool deliberately excluded: it renders an extra pending-count summary
 // row above its table (see RecentMempool), so it's taller than every other
@@ -43,9 +44,8 @@ const CheckIcon = () => (
  * "Customize" control on each of its Latest Blocks / Latest Transactions
  * cards), and deliberately only as a per-slot content swap, not a
  * draggable/reorderable layout: no position state to persist, no layout
- * shift risk, and the server-rendered default (`defaultType`, with real SSR
- * data) is what crawlers and first paint always see regardless of what any
- * visitor has personalized client-side.
+ * shift risk. Defaults remain in server HTML and work without JavaScript;
+ * a CSS loading state covers them until browser preferences are resolved.
  */
 export function HomeFeedCard({
   storageKey,
@@ -59,12 +59,13 @@ export function HomeFeedCard({
   initialShieldedTxs?: any[];
 }) {
   const [type, setType] = useState<HomeFeedType>(defaultType);
+  const [preferencesReady, setPreferencesReady] = useState(false);
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
   // Read the saved preference only after mount — the server (and the very
-  // first client render) always show `defaultType` so there's no
-  // hydration mismatch, then this swaps in the visitor's own choice.
+  // first client render) use `defaultType` so hydration matches. CSS shows
+  // the placeholder before JavaScript runs, without a pre-paint script.
   useEffect(() => {
     try {
       const saved = localStorage.getItem(storageKey);
@@ -73,6 +74,8 @@ export function HomeFeedCard({
       }
     } catch {
       // localStorage unavailable (private browsing, etc.) — just keep the default.
+    } finally {
+      setPreferencesReady(true);
     }
   }, [storageKey]);
 
@@ -102,57 +105,81 @@ export function HomeFeedCard({
   );
 
   return (
-    <div>
-      <SectionHeader
-        label={meta.sectionLabel}
-        size="lg"
-        actions={
-          <div className="relative" ref={menuRef}>
-            <button
-              onClick={() => setOpen((v) => !v)}
-              aria-label="Customize this card"
-              aria-expanded={open}
-              className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-mono transition-colors ${
-                open ? 'text-primary bg-cipher-hover' : 'text-muted hover:text-primary'
-              }`}
-            >
-              <SlidersIcon className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Customize</span>
-            </button>
-
-            {open && (
-              <div className="absolute right-0 mt-1 w-60 dropdown-menu rounded-lg shadow-xl border p-1 z-30 animate-scale-in origin-top-right max-h-80 overflow-y-auto">
-                {FEED_ORDER.map((feed) => (
-                  <button
-                    key={feed}
-                    onClick={() => select(feed)}
-                    className="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-md text-[13px] dropdown-item"
-                  >
-                    {FEED_META[feed].menuLabel}
-                    {feed === type && <CheckIcon />}
-                  </button>
-                ))}
+    <div className="home-feed min-w-0" data-preferences-ready={preferencesReady}>
+      <noscript>
+        <style>{`
+          .home-feed[data-preferences-ready="false"] > .home-feed-content { display: block; }
+          .home-feed[data-preferences-ready="false"] > .home-feed-placeholder { display: none; }
+        `}</style>
+      </noscript>
+      <div className="home-feed-placeholder">
+        <div className="relative" aria-hidden="true">
+          <div className="invisible">
+            <SectionHeader label="Loading activity" size="lg" actions={
+              <div>
+                <button disabled tabIndex={-1} className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-mono">
+                  <SlidersIcon className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Customize</span>
+                </button>
               </div>
-            )}
+            } />
           </div>
-        }
-      />
+          <div className="absolute top-1 left-0 h-4 w-48 rounded skeleton-bg motion-safe:animate-pulse" />
+        </div>
+        <HomeFeedTableSkeleton footer={<span className="text-xs sm:text-sm font-mono" aria-hidden="true">&nbsp;</span>} />
+      </div>
+      <div className="home-feed-content">
+        <SectionHeader
+          label={meta.sectionLabel}
+          size="lg"
+          actions={
+            <div className="relative" ref={menuRef}>
+              <button
+                onClick={() => setOpen((v) => !v)}
+                aria-label="Customize this card"
+                aria-expanded={open}
+                className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-mono transition-colors ${
+                  open ? 'text-primary bg-cipher-hover' : 'text-muted hover:text-primary'
+                }`}
+              >
+                <SlidersIcon className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Customize</span>
+              </button>
 
-      {type === 'blocks' && (
-        <RecentBlocks initialBlocks={type === defaultType ? initialBlocks : undefined} footer={viewAllLink} />
-      )}
-      {type === 'shielded' && (
-        <RecentShieldedTxs
-          initialTxs={type === defaultType ? initialShieldedTxs : undefined}
-          showLegend={false}
-          footer={viewAllLink}
+              {open && (
+                <div className="absolute right-0 mt-1 w-60 dropdown-menu rounded-lg shadow-xl border p-1 z-30 animate-scale-in origin-top-right max-h-80 overflow-y-auto">
+                  {FEED_ORDER.map((feed) => (
+                    <button
+                      key={feed}
+                      onClick={() => select(feed)}
+                      className="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-md text-[13px] dropdown-item"
+                    >
+                      {FEED_META[feed].menuLabel}
+                      {feed === type && <CheckIcon />}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          }
         />
-      )}
-      {type === 'transactions' && <RecentTransactions footer={viewAllLink} />}
-      {type === 'reorgs' && <RecentReorgs footer={viewAllLink} />}
-      {type === 'miners' && <TopMiners footer={viewAllLink} />}
-      {type === 'ironwood' && <IronwoodProgressCard footer={viewAllLink} />}
-      {type === 'poolsChart' && <ShieldedPoolMiniChart footer={viewAllLink} />}
+
+        {type === 'blocks' && (
+          <RecentBlocks initialBlocks={type === defaultType ? initialBlocks : undefined} footer={viewAllLink} />
+        )}
+        {type === 'shielded' && (
+          <RecentShieldedTxs
+            initialTxs={type === defaultType ? initialShieldedTxs : undefined}
+            showLegend={false}
+            footer={viewAllLink}
+          />
+        )}
+        {type === 'transactions' && <RecentTransactions footer={viewAllLink} />}
+        {type === 'reorgs' && <RecentReorgs footer={viewAllLink} />}
+        {type === 'miners' && <TopMiners footer={viewAllLink} />}
+        {type === 'ironwood' && <IronwoodProgressCard footer={viewAllLink} />}
+        {type === 'poolsChart' && <ShieldedPoolMiniChart footer={viewAllLink} />}
+      </div>
     </div>
   );
 }

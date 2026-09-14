@@ -1,8 +1,7 @@
 /**
  * Format timestamp to relative time (e.g., "5 years ago", "2 hours ago")
  */
-export function formatRelativeTime(timestamp: number): string {
-  const now = Date.now();
+export function formatRelativeTime(timestamp: number, now = Date.now()): string {
   const diff = now - timestamp * 1000; // Convert to milliseconds
 
   const seconds = Math.floor(diff / 1000);
