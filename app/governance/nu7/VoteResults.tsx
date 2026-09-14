@@ -1,9 +1,10 @@
-import { NU7_ROUND_ID, NU7_SUMMARY_URL, NU7_TALLY_URL, NU7_VERIFY_COMMAND, ZEC_PER_VOTE_UNIT, type VoteResults as Results } from '@/lib/nu7-vote-results';
+import { getParticipationStats, NU7_SNAPSHOT_SUPPLY, NU7_ROUND_ID, NU7_SUMMARY_URL, NU7_TALLY_URL, NU7_VERIFY_COMMAND, ZEC_PER_VOTE_UNIT, type VoteResults as Results } from '@/lib/nu7-vote-results';
 
 const zec = (units: number) => (units * ZEC_PER_VOTE_UNIT).toLocaleString('en-US', { maximumFractionDigits: 3 });
 
 export function VoteResults({ results }: { results: Results }) {
   const published = results.state === 'published';
+  const participation = getParticipationStats(results);
   const thresholdMet = results.proposals.some(p => p.options.reduce((s, o) => s + o.total_value, 0) * ZEC_PER_VOTE_UNIT >= 1_000_000);
   return (
     <section className="space-y-6 mb-8" aria-labelledby="results-heading">
@@ -13,6 +14,30 @@ export function VoteResults({ results }: { results: Results }) {
           ? 'Published by the voting-chain API. CipherScan has not independently verified this tally.'
           : 'A complete finalized tally could not be confirmed. This does not mean zero votes were cast. Reload this page or check the source links below.'}</p>
         <a href="#verify-results" className="inline-block text-sm text-cipher-cyan underline mt-3">Verify this tally independently</a>
+        {participation && <>
+          <dl className="grid grid-cols-2 sm:grid-cols-3 gap-3 my-4">
+            <div className="rounded-xl bg-glass-3 p-3">
+              <dt className="text-xs text-muted">ZEC per question</dt>
+              <dd className="text-xl font-mono font-bold text-primary mt-1">~{(participation.maxZec / 1_000_000).toFixed(2)}M</dd>
+              <p className="text-xs text-muted mt-1">Including abstentions</p>
+            </div>
+            <div className="rounded-xl bg-glass-3 p-3">
+              <dt className="text-xs text-muted">Ironwood at snapshot</dt>
+              <dd className="text-xl font-mono font-bold text-primary mt-1">{(participation.snapshotZec / 1_000_000).toFixed(2)}M ZEC</dd>
+              <p className="text-xs text-muted mt-1">Block {NU7_SNAPSHOT_SUPPLY.height.toLocaleString('en-US')}</p>
+            </div>
+            <div className="col-span-2 sm:col-span-1 rounded-xl bg-cipher-yellow/5 border border-cipher-yellow/20 p-3">
+              <dt className="text-xs text-muted">Share of snapshot pool supply</dt>
+              <dd className="text-xl font-mono font-bold text-cipher-yellow mt-1">{participation.minShare.toFixed(1)}–{participation.maxShare.toFixed(1)}%</dd>
+              <p className="text-xs text-muted mt-1">Range across the five questions</p>
+            </div>
+          </dl>
+          <p className="text-xs text-muted">Compared with {participation.snapshotZec.toLocaleString('en-US', { maximumFractionDigits: 8 })} ZEC in Ironwood at <a className="text-cipher-cyan underline" href={`/block/${NU7_SNAPSHOT_SUPPLY.height}`}>snapshot block {NU7_SNAPSHOT_SUPPLY.height.toLocaleString('en-US')}</a> (Aug 24, 2026, 19:18:03 UTC). This compares vote weight with total pool supply, not an exact eligible-voter turnout rate.</p>
+          <details className="text-xs text-muted mt-2">
+            <summary className="cursor-pointer">Verify the snapshot supply</summary>
+            <p className="mt-2">On your Zcash mainnet node, query <code className="break-all">getblock &quot;{NU7_SNAPSHOT_SUPPLY.hash}&quot; 1</code>. The Ironwood entry in <code>valuePools</code> has <code>chainValueZat = {NU7_SNAPSHOT_SUPPLY.ironwoodZatoshi}</code>; divide by 100,000,000 for ZEC. The voting-chain node used to verify the tally is a separate chain.</p>
+          </details>
+        </>}
         {published && <>
           <p className="text-sm text-primary mt-3">1,000,000 ZEC participation threshold: <strong>{thresholdMet ? 'met' : 'not met'}</strong>.</p>
           <p className="text-xs text-muted mt-2">The threshold applies to at least one question, including abstentions. Each question is counted separately; totals cannot be added to count unique participating ZEC or voters.</p>

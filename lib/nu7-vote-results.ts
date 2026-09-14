@@ -57,3 +57,21 @@ export function parseVoteResults(summary: unknown, tally: unknown): VoteResults 
   }
   return { state: 'published', proposals };
 }
+
+// Historical getblock(3459350, 1) on the mainnet Zakura node, checked 2026-09-15.
+// This is the monitored chain balance, not an assertion that every note was eligible.
+export const NU7_SNAPSHOT_SUPPLY = {
+  height: 3459350,
+  hash: '000000000079f151b017b515d0084713d19bd596a76ecfd75f82fd32bf43d968',
+  time: '2026-08-24T19:18:03Z',
+  ironwoodZatoshi: 373195940650354,
+} as const;
+
+export function getParticipationStats(results: VoteResults) {
+  if (results.state !== 'published' || !results.proposals.length) return null;
+  const totals = results.proposals.map(p => p.options.reduce((n, o) => n + o.total_value, 0) * ZEC_PER_VOTE_UNIT);
+  const minZec = Math.min(...totals);
+  const maxZec = Math.max(...totals);
+  const snapshotZec = NU7_SNAPSHOT_SUPPLY.ironwoodZatoshi / 100_000_000;
+  return { minZec, maxZec, snapshotZec, minShare: minZec / snapshotZec * 100, maxShare: maxZec / snapshotZec * 100 };
+}

@@ -5,20 +5,7 @@ import Link from 'next/link';
 import { isCrosslink, isMainnet } from '@/lib/config';
 import { NU7_VOTE } from '@/lib/nu7-vote-config';
 
-const DISMISS_KEY = 'nu7-vote-banner-dismissed';
-
-type VotePhase = 'pre-snapshot' | 'pre-vote' | 'active' | 'ended';
-
-function getPhase(): VotePhase {
-  const now = Date.now();
-  const snapshot = new Date(NU7_VOTE.snapshotTime).getTime();
-  const start = new Date(NU7_VOTE.voteStartTime).getTime();
-  const end = new Date(NU7_VOTE.voteEndTime).getTime();
-  if (now < snapshot) return 'pre-snapshot';
-  if (now < start) return 'pre-vote';
-  if (now < end) return 'active';
-  return 'ended';
-}
+import { getVoteBannerPhase, voteBannerDismissKey, type VoteBannerPhase } from '@/lib/nu7-vote-banner';
 
 function formatCountdown(ms: number) {
   if (ms <= 0) return null;
@@ -31,20 +18,22 @@ function formatCountdown(ms: number) {
 }
 
 export function NU7VoteBanner() {
-  const [phase, setPhase] = useState<VotePhase>(getPhase);
+  const [phase, setPhase] = useState<VoteBannerPhase>(() => getVoteBannerPhase(Date.now()));
   const [remaining, setRemaining] = useState(0);
   const [dismissed, setDismissed] = useState(true);
-  const bannerRef = useRef<HTMLAnchorElement>(null);
+  const bannerRef = useRef<HTMLDivElement>(null);
+  const dismissedKeys = useRef(new Set<string>());
   const visible = isMainnet && !isCrosslink && !dismissed && phase !== 'ended';
 
   useEffect(() => {
     if (!isMainnet || isCrosslink) return;
-    const stored = sessionStorage.getItem(DISMISS_KEY);
-    if (stored) return;
-    setDismissed(false);
 
     function tick() {
-      const p = getPhase();
+      const p = getVoteBannerPhase(Date.now());
+      const key = voteBannerDismissKey(p);
+      let stored = false;
+      try { stored = !!sessionStorage.getItem(key); } catch { /* Storage may be disabled. */ }
+      setDismissed(stored || dismissedKeys.current.has(key));
       setPhase(p);
       const target = p === 'pre-snapshot'
         ? new Date(NU7_VOTE.snapshotTime).getTime()
@@ -79,7 +68,9 @@ export function NU7VoteBanner() {
   function handleDismiss(e: React.MouseEvent) {
     e.preventDefault();
     e.stopPropagation();
-    sessionStorage.setItem(DISMISS_KEY, '1');
+    const key = voteBannerDismissKey(phase);
+    dismissedKeys.current.add(key);
+    try { sessionStorage.setItem(key, '1'); } catch { /* Keep in-memory dismissal. */ }
     setDismissed(true);
   }
 
@@ -92,12 +83,14 @@ export function NU7VoteBanner() {
       : 'Voting closes';
 
   return (
-    <Link
+    <div
       ref={bannerRef}
-      href="/governance/nu7"
+      role="region"
+      aria-label="NU7 announcement"
       className="ironwood-banner backdrop-blur-xl group sticky top-[calc(var(--app-nav-height,4rem)+var(--app-stats-height,2.75rem))] z-40 block w-full border-b border-cipher-border/50 transition duration-300"
     >
       <div className="relative mx-auto h-9 sm:h-10 max-w-7xl px-4 sm:px-6 lg:px-8">
+        <Link href="/governance/nu7" className="block h-full pr-6">
         {/* Mobile */}
         <div className="flex h-full items-center gap-2 pr-8 sm:hidden">
           <span className="relative flex h-2 w-2 shrink-0">
@@ -105,7 +98,7 @@ export function NU7VoteBanner() {
             <span className="relative inline-flex h-2 w-2 rounded-full bg-cipher-cyan" />
           </span>
           <span className="min-w-0 flex-1 truncate text-xs font-mono text-muted">
-            <span className="text-cipher-cyan font-medium">NU7 Vote</span>
+            <span className="text-cipher-cyan font-medium">{phase === 'results' ? 'NU7 results are live →' : 'NU7 Vote'}</span>
             {countdownStr && (
               <>
                 <span className="text-muted/60 mx-1.5">·</span>
@@ -122,13 +115,14 @@ export function NU7VoteBanner() {
             <span className="relative inline-flex h-2 w-2 rounded-full bg-cipher-cyan" />
           </span>
           <span className="text-xs font-mono text-muted group-hover:text-secondary transition-colors">
-            <span className="text-cipher-cyan font-medium">NU7 Coinholder Vote</span>
+            <span className="text-cipher-cyan font-medium">{phase === 'results' ? 'NU7 results are live' : 'NU7 Coinholder Vote'}</span>
             {countdownStr && (
               <>
                 <span className="text-muted/60 mx-1.5">·</span>
                 <span>{phaseLabel} in {countdownStr}</span>
               </>
             )}
+            {phase === 'results' && <span className="ml-3">Explore the results &amp; verify the tally</span>}
             {phase === 'pre-snapshot' && (
               <>
                 <span className="text-muted/60 mx-1.5">·</span>
@@ -143,10 +137,11 @@ export function NU7VoteBanner() {
             )}
           </span>
           <span className="text-[11px] text-muted/40 group-hover:text-cipher-cyan/60 transition-colors ml-1">
-            Details →
+            {phase === 'results' ? 'View results →' : 'Details →'}
           </span>
         </div>
 
+        </Link>
         <button
           onClick={handleDismiss}
           className="absolute right-3 top-1/2 -translate-y-1/2 text-muted/30 transition-colors hover:text-muted sm:right-6 lg:right-8"
@@ -157,6 +152,6 @@ export function NU7VoteBanner() {
           </svg>
         </button>
       </div>
-    </Link>
+    </div>
   );
 }

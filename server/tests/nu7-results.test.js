@@ -101,3 +101,31 @@ test('NU7 page remains unavailable on testnet and Crosslink before any upstream 
     await assert.rejects(Page(), /NOT_FOUND/);
   }
 });
+
+
+test('snapshot comparison uses the historical Ironwood balance and separate question totals', () => {
+  const stats = moduleUnderTest.getParticipationStats(parseVoteResults(...fixture()));
+  assert.equal(stats.snapshotZec, 3731959.40650354);
+  assert.equal(stats.minZec, 2399146.25);
+  assert.equal(stats.maxZec, 2403537);
+  assert.equal(stats.minShare.toFixed(1), '64.3');
+  assert.equal(stats.maxShare.toFixed(1), '64.4');
+  assert.equal(moduleUnderTest.getParticipationStats(parseVoteResults(null, null)), null);
+  const html = renderToStaticMarkup(React.createElement(VoteResults, { results: parseVoteResults(...fixture()) }));
+  assert.match(html, /3,731,959.40650354/);
+  assert.match(html, /64.3–64.4%/);
+  assert.match(html, /not an exact eligible-voter turnout rate/);
+});
+
+test('results announcement lasts five days and is independent of the old dismissal', () => {
+  const config = load('lib/nu7-vote-config.ts');
+  const banner = load('lib/nu7-vote-banner.ts', { './nu7-vote-config': config });
+  const start = Date.parse(banner.NU7_RESULTS_ANNOUNCEMENT.startsAt);
+  const end = Date.parse(banner.NU7_RESULTS_ANNOUNCEMENT.endsAt);
+  assert.equal(end - start, 5 * 86400000);
+  assert.equal(banner.getVoteBannerPhase(start - 1), 'ended');
+  assert.equal(banner.getVoteBannerPhase(start), 'results');
+  assert.equal(banner.getVoteBannerPhase(end - 1), 'results');
+  assert.equal(banner.getVoteBannerPhase(end), 'ended');
+  assert.notEqual(banner.voteBannerDismissKey('results'), banner.voteBannerDismissKey('active'));
+});
