@@ -1,3 +1,4 @@
+import { parseTransactionListItems, type TransactionListItem } from '@/lib/transaction-list';
 import { getApiUrl } from '@/lib/api-config';
 import { retainLastGoodOrBuildFallback } from '@/lib/isr-fallback';
 import { buildPageMetadata, getBaseUrl } from '@/lib/seo';
@@ -161,7 +162,7 @@ async function getInitialTxs(
   }
 
   try {
-    const all = json.transactions;
+    const all = parseTransactionListItems(json.transactions);
     const reverseOffset = request.direction === 'prev' && all.length > PAGE_SIZE ? 1 : 0;
     const txs = all.slice(reverseOffset, reverseOffset + PAGE_SIZE);
     const firstTx = txs[0] ?? null;
@@ -277,7 +278,7 @@ export async function renderTransactionsPage(
   const request = parseTransactionsRequest(await searchParams);
   const isShielded = request.type === 'shielded';
 
-  let initialTxs: unknown[] = [];
+  let initialTxs: TransactionListItem[] = [];
   let initialFlows: unknown[] = [];
   let pagination: Record<string, unknown> | null = null;
   let available = true;
@@ -336,7 +337,7 @@ export async function renderTransactionsPage(
       )}
       <TxsClient
         key={archiveKey}
-        initialTxs={initialTxs as never[]}
+        initialTxs={initialTxs}
         initialFlows={initialFlows as never[]}
         initialPagination={pagination}
         initialPage={request.page}

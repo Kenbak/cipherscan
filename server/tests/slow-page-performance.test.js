@@ -208,6 +208,7 @@ test('all list SSR fetches use chain-tip tagged ISR with deadline', async () => 
   const txsRender = loadTypeScriptModule('app/txs/render.tsx', {
     ...commonImports,
     './TxsClient': { __esModule: true, default: () => null },
+    '@/lib/transaction-list': loadTypeScriptModule('lib/transaction-list.ts'),
   });
   const pages = [
     loadTypeScriptModule('app/blocks/page.tsx', {
@@ -217,6 +218,7 @@ test('all list SSR fetches use chain-tip tagged ISR with deadline', async () => 
     loadTypeScriptModule('app/txs/page.tsx', {
       ...commonImports,
       './TxsClient': { __esModule: true, default: () => null },
+      '@/lib/transaction-list': loadTypeScriptModule('lib/transaction-list.ts'),
       './render': txsRender,
     }),
   ];
@@ -282,6 +284,7 @@ test('latest list ISR throws on unavailable data while dynamic handlers keep she
     const txsImports = {
       'react/jsx-runtime': jsxRuntime,
       './TxsClient': { __esModule: true, default: () => null },
+      '@/lib/transaction-list': loadTypeScriptModule('lib/transaction-list.ts'),
       '@/lib/api-config': { getApiUrl: () => 'https://api.invalid' },
       '@/lib/isr-fallback': {
         retainLastGoodOrBuildFallback: (fallback) => fallback,

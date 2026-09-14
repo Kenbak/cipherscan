@@ -3,8 +3,8 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import { formatRelativeTime } from '@/lib/utils';
 
-function absoluteUtc(timestamp: number): string {
-  if (!Number.isFinite(timestamp) || timestamp <= 0) return 'Time unavailable';
+function absoluteUtc(timestamp: number | null): string {
+  if (timestamp === null || !Number.isFinite(timestamp) || timestamp <= 0) return 'Time unavailable';
   return new Date(timestamp * 1000).toISOString().replace('T', ' ').slice(0, 16) + ' UTC';
 }
 
@@ -39,7 +39,7 @@ export function RelativeTime({
   timestamp,
   className,
 }: {
-  timestamp: number;
+  timestamp: number | null;
   className?: string;
 }) {
   const now = useContext(RelativeTimeContext);
@@ -49,13 +49,13 @@ export function RelativeTime({
     if (!hasServerClock) setHydrated(true);
   }, [hasServerClock]);
 
-  const dateTime = Number.isFinite(timestamp) && timestamp > 0
+  const dateTime = timestamp !== null && Number.isFinite(timestamp) && timestamp > 0
     ? new Date(timestamp * 1000).toISOString()
     : undefined;
 
   return (
     <time className={className} dateTime={dateTime} title={absoluteUtc(timestamp)}>
-      {dateTime && (now !== undefined || hydrated)
+      {timestamp !== null && dateTime && (now !== undefined || hydrated)
         ? formatRelativeTime(timestamp, now)
         : absoluteUtc(timestamp)}
     </time>

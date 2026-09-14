@@ -15,6 +15,8 @@ function load(file, dependencies = {}) {
 }
 
 const utils = load('lib/utils.ts');
+const { parseTransactionListItems, parseTransactionTimestamp } = load('lib/transaction-list.ts');
+const fixture = require('./fixtures/transaction-list-mainnet.json');
 const { RelativeTime, RelativeTimeProvider } = load('components/RelativeTime.tsx', {
   '@/lib/utils': utils,
 });
@@ -37,9 +39,47 @@ test('server HTML contains relative age and an exact machine-readable date and U
 });
 
 test('invalid timestamps remain unavailable, never a fake age', () => {
-  for (const value of [NaN, Infinity, 0, -1]) {
+  for (const value of [null, NaN, Infinity, 0, -1]) {
     assert.equal(render(value, timestamp * 1000), '<time title="Time unavailable">Time unavailable</time>');
   }
+});
+
+test('captured production transaction strings decode to renderable ages without changing monetary units', () => {
+  assert.equal(typeof fixture.transactions[0].block_time, 'string', 'Fixture must retain the production wire type');
+  const decoded = parseTransactionListItems(fixture.transactions);
+  for (const [i, row] of decoded.entries()) {
+    const wire = fixture.transactions[i];
+    assert.equal(row.block_time, Number(wire.block_time));
+    assert.equal(row.block_height, Number(wire.block_height));
+    assert.equal(row.value_balance_sapling, wire.value_balance_sapling);
+    assert.equal(row.total_output, wire.total_output);
+    assert.match(render(row.block_time, (row.block_time + 120) * 1000), />2 mins ago<\/time>/);
+  }
+});
+
+test('numeric and decimal-string timestamps share one boundary; invalid values remain unknown', () => {
+  assert.equal(parseTransactionTimestamp(timestamp), timestamp);
+  assert.equal(parseTransactionTimestamp(String(timestamp)), timestamp);
+  for (const value of [null, undefined, '', ' ', '0', '-1', '1789370528oops', '1e9', true, {}, NaN, Infinity, 1.5, 8_640_000_000_001]) {
+    assert.equal(parseTransactionTimestamp(value), null);
+  }
+});
+
+test('the list decoder preserves unknown time and rejects malformed rows instead of trusting a type cast', () => {
+  const wire = fixture.transactions[0];
+  const [unknownTime] = parseTransactionListItems([{ ...wire, block_time: null }]);
+  assert.match(render(unknownTime.block_time, Date.now()), />Time unavailable<\/time>/);
+  for (const rows of [null, {}, [null], [{ ...wire, txid: '' }], [{ ...wire, block_height: 'bad' }], [{ ...wire, has_sapling: 'false' }]]) {
+    assert.throws(() => parseTransactionListItems(rows));
+  }
+  assert.equal(parseTransactionListItems([]).length, 0);
+});
+
+test('zatoshi strings are preserved exactly and fractional ZEC values cannot masquerade as zatoshis', () => {
+  const wire = fixture.transactions[0];
+  const [row] = parseTransactionListItems([{ ...wire, total_output: '9007199254740993' }]);
+  assert.equal(row.total_output, '9007199254740993');
+  assert.throws(() => parseTransactionListItems([{ ...wire, total_output: 0.01 }]), /total_output/);
 });
 
 test('callers without a server clock retain a deterministic UTC server fallback', () => {

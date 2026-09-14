@@ -710,6 +710,7 @@ test('transaction archive metadata indexes only unfiltered first pages', async (
   const sharedMocks = {
     'react/jsx-runtime': jsxRuntime,
     './TxsClient': { __esModule: true, default: () => null },
+    '@/lib/transaction-list': loadTypeScriptModule('lib/transaction-list.ts'),
     '@/lib/api-config': { getApiUrl: () => 'https://api.mainnet.cipherscan.app' },
     '@/lib/isr-fallback': {
       retainLastGoodOrBuildFallback: (fallback) => fallback,

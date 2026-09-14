@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useMemo } from 'react';
 import Link from 'next/link';
+import { parseTransactionListItems, type TransactionListItem as Transaction } from '@/lib/transaction-list';
 import { formatRelativeTime } from '@/lib/utils';
 import { formatZecPrecise, zatToZec } from '@/lib/format-numbers';
 import { getApiUrl } from '@/lib/api-config';
@@ -23,26 +24,6 @@ type FlowFilter = 'all' | 'shield' | 'deshield' | 'fully_shielded';
 type PoolFilter = 'all' | 'ironwood' | 'sapling' | 'orchard' | 'mixed';
 type ViewTab = 'recent' | 'trends';
 
-interface Transaction {
-  txid: string;
-  block_height: number;
-  block_time: number;
-  size: number;
-  vin_count: number;
-  vout_count: number;
-  has_sapling: boolean;
-  has_orchard: boolean;
-  has_ironwood: boolean;
-  has_sprout: boolean;
-  is_coinbase: boolean;
-  value_balance: number;
-  value_balance_sapling: number;
-  value_balance_orchard: number;
-  value_balance_ironwood: number;
-  total_output: number | string;
-  flow_type: string | null;
-  tx_index?: number;
-}
 
 interface ShieldedFlow {
   id: number;
@@ -108,9 +89,9 @@ function getFlowBadge(tx: Transaction) {
     flowType: tx.flow_type,
     vinCount: tx.vin_count,
     voutCount: tx.vout_count,
-    valueBalanceSapling: tx.value_balance_sapling,
-    valueBalanceOrchard: tx.value_balance_orchard,
-    valueBalanceIronwood: tx.value_balance_ironwood,
+    valueBalanceSapling: Number(tx.value_balance_sapling),
+    valueBalanceOrchard: Number(tx.value_balance_orchard),
+    valueBalanceIronwood: Number(tx.value_balance_ironwood),
   });
 
   if (!tx.has_orchard && !tx.has_sapling && !tx.has_ironwood && !tx.flow_type) {
@@ -195,7 +176,7 @@ const txColumns: DataTableColumn<Transaction>[] = [
     align: 'right',
     skeletonWidth: 'w-16',
     cell: (tx) => (
-      <span className="text-xs text-muted whitespace-nowrap">{formatRelativeTime(tx.block_time)}</span>
+      <span className="text-xs text-muted whitespace-nowrap">{tx.block_time === null ? 'Time unavailable' : formatRelativeTime(tx.block_time)}</span>
     ),
   },
 ];
@@ -310,7 +291,7 @@ function useTransactionsList({
     secondaryCursorParam: 'cursor_idx',
     secondaryCursorFields: { next: 'nextCursorIdx', prev: 'prevCursorIdx' },
     buildParams: () => ({ type: typeFilter }),
-    getItemsFromResponse: (json) => (json.transactions as Transaction[]) || [],
+    getItemsFromResponse: (json) => parseTransactionListItems(json.transactions),
     getLatestKey: (tx) => tx.txid,
     buildCursors: (visibleItems) => {
       const firstTx = visibleItems[0] ?? null;

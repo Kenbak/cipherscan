@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, memo, useCallback, type ReactNode } from 'react';
+import { parseTransactionListItems, type TransactionListItem as Tx } from '@/lib/transaction-list';
 import { RelativeTime } from '@/components/RelativeTime';
 import { formatZecPrecise, zatToZec } from '@/lib/format-numbers';
 import { HomeFeedTableSkeleton } from '@/components/HomeFeedTableSkeleton';
@@ -10,21 +11,6 @@ import { ShieldFlowBadge } from '@/components/ShieldFlowBadge';
 import { resolveShieldFlowType } from '@/components/icons/shield-flow';
 import { HashLink, IconTooltip, RedactedAmount } from '@/components/ui';
 
-interface Tx {
-  txid: string;
-  block_time: number;
-  is_coinbase: boolean;
-  vin_count: number;
-  vout_count: number;
-  has_sapling: boolean;
-  has_orchard: boolean;
-  has_ironwood: boolean;
-  value_balance_sapling: number | string;
-  value_balance_orchard: number | string;
-  value_balance_ironwood: number | string;
-  total_output: number | string;
-  flow_type: string | null;
-}
 
 const TransparentIcon = () => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -129,12 +115,15 @@ export const RecentTransactions = memo(function RecentTransactions({
       const apiUrl = `${getApiUrl()}/api/transactions/list?limit=${limit}`;
 
       const response = await fetch(apiUrl);
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const data = await response.json();
-      if (data.transactions?.length) {
-        const newTop = data.transactions[0]?.txid;
+      if (data.success !== true) throw new Error('Transaction list unavailable');
+      const transactions = parseTransactionListItems(data.transactions);
+      if (transactions.length) {
+        const newTop = transactions[0].txid;
         if (newTop !== latestKey.current) {
           latestKey.current = newTop;
-          setTxs(data.transactions);
+          setTxs(transactions);
         }
       }
     } catch (error) {

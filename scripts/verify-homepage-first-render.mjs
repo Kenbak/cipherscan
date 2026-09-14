@@ -1,6 +1,10 @@
 // Run against a production build: HOME_VERIFY_URL=http://127.0.0.1:3100 node scripts/verify-homepage-first-render.mjs
 import assert from 'node:assert/strict';
 import { chromium } from 'playwright';
+import { readFileSync } from 'node:fs';
+
+const transactionFixture = JSON.parse(readFileSync(new URL('../server/tests/fixtures/transaction-list-mainnet.json', import.meta.url), 'utf8'));
+const blockFixture = JSON.parse(readFileSync(new URL('../server/tests/fixtures/blocks-mainnet.json', import.meta.url), 'utf8'));
 
 const url = process.env.HOME_VERIFY_URL || 'http://127.0.0.1:3100';
 const browser = await chromium.launch({
@@ -68,8 +72,7 @@ try {
     await page.clock.install();
     const fixtureTime = Math.floor(Date.now() / 1000) - 120;
     await page.route('**/api/blocks?limit=5', route => route.fulfill({ json: {
-      blocks: Array.from({ length: 5 }, (_, i) => ({ height: 1234567 - i, hash: String(i).padStart(64, '0'),
-        timestamp: fixtureTime, transaction_count: 1, size: 1600 })),
+      blocks: blockFixture.blocks.map(block => ({ ...block, timestamp: String(fixtureTime) })),
     } }));
     await page.route(url + '/', route => route.fulfill({ contentType: 'text/html', body: html }));
     let releaseScripts;
@@ -82,9 +85,8 @@ try {
     const transactionsReady = new Promise(resolve => { releaseTransactions = resolve; });
     await page.route('**/api/transactions/list*', async route => {
       await transactionsReady;
-      await route.fulfill({ json: { transactions: Array.from({ length: 5 }, (_, i) => ({
-        txid: String(i + 1).padStart(64, '0'), block_time: fixtureTime,
-        is_coinbase: true, vin_count: 0, vout_count: 1, total_output: 137500000,
+      await route.fulfill({ json: { ...transactionFixture, transactions: transactionFixture.transactions.map(tx => ({
+        ...tx, block_time: String(fixtureTime),
       })) } });
     });
     const navigation = page.goto(url, { waitUntil: 'domcontentloaded' });
@@ -111,7 +113,7 @@ try {
     const after = await page.locator('.home-feed').last().boundingBox();
     assert.ok(Math.abs(before.height - after.height) <= 2, `Loaded height changed: ${before.height} → ${after.height}`);
     assert.equal(await page.locator('.home-feed-placeholder').last().isVisible(), false);
-    await page.locator('.home-feed').first().locator('a[href="/block/1234567"]').waitFor();
+    await page.locator('.home-feed').first().locator(`a[href="/block/${blockFixture.blocks[0].height}"]`).waitFor();
     const ages = await page.locator('.home-feed time').allTextContents();
     assert.ok(ages.length > 0);
     assert.ok(ages.every(age => !age.includes('UTC')));
