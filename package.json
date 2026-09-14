@@ -48,7 +48,7 @@
     "test:v1-frontend": "node --test server/tests/v1-frontend-contract.test.js server/tests/docs-reference.test.js",
     "test:v1-postgres": "V1_TEST_POSTGRES=1 NODE_PATH=$PWD/server/api/node_modules node --test server/tests/v1-postgres-pagination.test.js",
     "attestations:collect": "node server/jobs/check-attestations.mjs",
-    "test:attestations": "node --test server/tests/attestations*.test.mjs",
+    "test:attestations": "node --test server/tests/attestations*.test.mjs server/tests/canary.test.mjs",
     "attestations:baseline": "node server/scripts/attestation-baseline.mjs",
     "test:mining-software": "NODE_PATH=$PWD/server/api/node_modules node --test server/tests/mining-software.test.js",
     "test:mining-software-postgres": "V1_TEST_POSTGRES=1 NODE_PATH=$PWD/server/api/node_modules node --test server/tests/mining-software-postgres.test.js",

@@ -1,5 +1,9 @@
 # Canary evaluation
 
+This is the historical September 10 trial. The upstream defect was fixed in Canary
+`0f12c09` / Bootproof `b346db1` and independently retested on September 13.
+See [the current integration](../../canary/README.md) for deployment and webhook setup.
+
 **Outcome:** the trial found a reproducible false signature rejection in the
 pinned Bootproof SDK. See [the report](BOOTPROOF-REPORT.md), candidate patch and
 [recorded results](results.json). Production monitoring remains on our collector.

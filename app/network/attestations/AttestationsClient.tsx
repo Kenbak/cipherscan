@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useApiQuery } from '@/hooks/useApiQuery';
 import type { AttestationData, AttestationEndpoint } from '@/lib/attestations';
+import { canaryStatus } from '@/lib/canary-status';
 import { attestationStatus, matchesReproducedBuild } from '@/lib/attestation-status';
 
 const STATES: Record<string, { label: string; color: string }> = {
@@ -38,6 +39,8 @@ function CheckValue({ label, value, color = 'text-secondary' }: { label: string;
 }
 function EndpointCard({ endpoint, endpoints, now, apiUrl }: { endpoint: AttestationEndpoint; endpoints: AttestationEndpoint[]; now: number; apiUrl: string }) {
   const check = endpoint.latest;
+  const canary = canaryStatus(endpoint.canary, now);
+  const canaryLabels: Record<string, string> = { verified: 'Signed checks verified', warning: 'Recent check passed · connection warning', failed: 'Signed check failed', unreachable: 'Endpoint unreachable', stale: 'Observation expired', unavailable: 'Verification unavailable', not_configured: 'Awaiting trusted build measurements' };
   const buildMatches = matchesReproducedBuild(endpoint, now);
   const status = attestationStatus(check, now);
   const state = STATES[status] ?? STATES.unavailable;
@@ -83,6 +86,11 @@ function EndpointCard({ endpoint, endpoints, now, apiUrl }: { endpoint: Attestat
           </dd>
         </div> : null}
       </dl>
+      <div className="mt-5 border-t border-cipher-border pt-4 text-xs">
+        <div className="flex flex-wrap justify-between gap-2"><span className="font-medium text-secondary">Canary · additional observer</span><span className={canary === 'verified' ? 'text-cipher-green' : 'text-muted'}>{canaryLabels[canary]}</span></div>
+        {endpoint.canary ? <p className="mt-2 text-muted">Observed {timestamp(endpoint.canary.observedAt)} · expires {timestamp(endpoint.canary.expiresAt)}</p> : null}
+        {endpoint.canary?.transportWarning ? <p className="mt-2 text-cipher-yellow">Latest connection attempt has a warning; a recent signed result may still be retained.</p> : null}
+      </div>
       {check?.errorCode ? <p className="mt-4 text-sm text-secondary" role="status">{ERRORS[check.errorCode] ?? 'The check could not be completed.'}</p> : null}
       {check?.release === 'mismatch' ? <p className="mt-4 text-sm text-danger">The measurements differ from the configured release baseline.</p> : null}
       <p className="mt-5 border-t border-cipher-border pt-3 text-xs text-muted leading-relaxed">
@@ -107,6 +115,10 @@ function EndpointCard({ endpoint, endpoints, now, apiUrl }: { endpoint: Attestat
           <div><dt className="text-muted mb-1">Last successful evidence and TLS check</dt><dd className="text-secondary">{timestamp(endpoint.lastSuccessful?.checkedAt)}</dd></div>
           <div><dt className="text-muted mb-1">Verifier</dt><dd className="text-secondary font-mono break-all">{check?.verifier ?? 'Not checked'}</dd></div>
         </dl>
+        {endpoint.canary ? <div className="space-y-2 text-muted">
+          <p>Canary runs on ZecBlock’s server. Its signing keys are pinned by ZecBlock; the monitor itself is not enclave-attested. Both signatures, target evidence, reproduced measurements and TLS binding are checked separately.</p>
+          <div className="flex flex-wrap gap-4 text-cipher-gold"><a href={`${apiUrl}/targets/${endpoint.id}/statement`} className="hover:underline">Signed statement ↗</a><a href={`${apiUrl}/targets/${endpoint.id}/evidence`} className="hover:underline">Evidence ↗</a><a href={`${apiUrl}/keys.json`} className="hover:underline">Public signing keys ↗</a><a href={`${apiUrl}/config.json`} className="hover:underline">Canary policy ↗</a><a href="https://github.com/Kenbak/cipherscan/tree/main/server/canary" target="_blank" rel="noopener noreferrer" className="hover:underline">Source &amp; verification guide ↗</a></div>
+        </div> : null}
         <div className="flex flex-wrap gap-4 text-cipher-gold">
           {endpoint.sourceUrl ? <a href={endpoint.sourceUrl} target="_blank" rel="noopener noreferrer" className="hover:underline">Registered source ↗</a> : null}
           {endpoint.baseline ? <a href={endpoint.baseline.referenceUrl} target="_blank" rel="noopener noreferrer" className="hover:underline">Release baseline ↗</a> : null}
@@ -143,7 +155,7 @@ export default function AttestationsClient({ initialData, initialNow, network, a
     {query.error || !data?.available ? <p role="status" className="mb-5 text-sm text-cipher-yellow">{data?.available ? 'Could not refresh observations. Retained results expire after 15 minutes.' : 'Observations are currently unavailable. No endpoint is being reported as verified.'}</p> : null}
     <div className="flex flex-wrap justify-between gap-3 mb-4">
       <h2 className="font-mono text-sm text-secondary uppercase tracking-wider">Endpoint observations</h2>
-      <p className="text-xs text-muted">Checks scheduled every 5 minutes · This page refreshes every minute</p>
+      <p className="text-xs text-muted">Primary checks every 5 minutes · Canary every minute</p>
     </div>
     {endpoints.length ? <div className="grid grid-cols-1 xl:grid-cols-2 items-start gap-5">{endpoints.map((endpoint) => <EndpointCard key={endpoint.id} endpoint={endpoint} endpoints={endpoints} now={now} apiUrl={apiUrl} />)}</div>
       : <div className="card p-6 text-sm text-muted">{query.loading ? 'Loading the endpoint registry…' : 'The endpoint registry could not be loaded. Please try again shortly.'}</div>}

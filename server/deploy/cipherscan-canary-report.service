@@ -1,0 +1,27 @@
+[Unit]
+Description=Verify Canary signatures and publish a bounded observation snapshot
+After=cipherscan-canary.service
+
+[Service]
+Type=oneshot
+DynamicUser=true
+WorkingDirectory=/opt/cipherscan-attestations
+ExecStart=/usr/bin/node server/jobs/check-canary.mjs
+Environment=ZCASH_NETWORK=mainnet
+Environment=NODE_ENV=production
+StateDirectory=cipherscan/canary-observations
+StateDirectoryMode=0750
+TimeoutStartSec=90
+MemoryMax=256M
+CPUQuota=25%
+UMask=0027
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+LockPersonality=true

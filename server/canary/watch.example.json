@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "canary": { "url": "http://127.0.0.1:3187", "keys": "/etc/cipherscan-canary/keys.json" },
+  "poll_interval_seconds": 30,
+  "heartbeat_interval_seconds": 300,
+  "failure_threshold": 3,
+  "targets": [{ "id": "zecrocks-mainnet", "webhooks": [{
+    "id": "operator", "url": "https://REPLACE-WITH-AUTHORIZED-RECEIVER.example/events", "secret_env": "CANARY_OPERATOR_WEBHOOK_SECRET"
+  }] }]
+}

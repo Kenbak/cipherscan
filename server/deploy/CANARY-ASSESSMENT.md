@@ -1,4 +1,6 @@
-# Canary compatibility assessment — 2026-09-10
+# Canary compatibility assessment
+
+Current integration (September 14): [ordinary-host service, verified observations and webhook hookup](../canary/README.md). The upstream bug is fixed in Canary `0f12c09` with Bootproof `b346db1`; the original regression, 245 workspace tests and fresh mainnet/testnet TLS checks passed. CipherScan is integrating this as an additional operator-pinned observer. The historical evaluation below explains the original blocker; it does not describe current upstream code.
 
 Reviewed upstream commit [`c5a3761798f9c438944d235551ddd192df9c1915`](https://codeberg.org/caution/canary/src/commit/c5a3761798f9c438944d235551ddd192df9c1915).
 The source review below was followed by a bounded local execution on 2026-09-10.
