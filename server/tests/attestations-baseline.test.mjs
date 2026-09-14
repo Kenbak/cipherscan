@@ -44,7 +44,7 @@ test('reproductions reject reused trusted state, missing TLS and wrong domains',
 test('API Docker context includes registry and shared freshness module', async () => {
   const dockerfile = await readFile(new URL('../api/Dockerfile', import.meta.url), 'utf8');
   const ignores = await readFile(new URL('../api/Dockerfile.dockerignore', import.meta.url), 'utf8');
-  for (const path of ['server/data/attestation-endpoints.json', 'lib/attestation-status.js']) {
+  for (const path of ['server/data/attestation-endpoints.json', 'lib/attestation-status.js', 'lib/canary-status.js', 'lib/mining-software.js', 'server/canary/config.js']) {
     assert.ok(dockerfile.includes(`COPY ${path} `));
     assert.ok(ignores.includes(`!${path}\n`));
   }
