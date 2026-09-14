@@ -9,7 +9,7 @@ network=${3:?mainnet or testnet}
 [[ "$network" == mainnet || "$network" == testnet ]]
 [[ $(id -u) == 0 ]]
 release="/opt/cipherscan-canary-releases/$release_id"
-install -d -m 0755 "$release" /etc/cipherscan-canary
+install -d -m 0755 /opt/cipherscan-canary-releases "$release" /etc/cipherscan-canary
 install -m 0755 "$artifacts/canaryctl" "$release/canaryctl"
 install -m 0755 "$artifacts/cipherscan-host" "$release/cipherscan-host"
 install -m 0644 "$artifacts/host.rs" "$release/host.rs"
@@ -31,7 +31,7 @@ systemctl daemon-reload
 systemctl enable cipherscan-canary.service
 systemctl restart cipherscan-canary.service
 for ((attempt=0; attempt<15; attempt++)); do
-  if curl -fsS --max-time 2 http://127.0.0.1:3187/health >/dev/null; then break; fi
+  if curl -fsS --max-time 2 http://127.0.0.1:3187/health >/dev/null 2>&1; then break; fi
   sleep 1
 done
 if [[ ! -e /etc/cipherscan-canary/keys.json ]]; then
