@@ -27,6 +27,9 @@ COPY server/lib/ ../lib/
 COPY server/signals/ ../signals/
 COPY server/data/attestation-endpoints.json ../data/attestation-endpoints.json
 COPY lib/attestation-status.js /app/lib/attestation-status.js
+COPY lib/canary-status.js /app/lib/canary-status.js
+COPY lib/mining-software.js /app/lib/mining-software.js
+COPY server/canary/config.js /app/server/canary/config.js
 RUN mkdir -p /var/cache/cipherscan/compact-blocks \
     && chown -R 1000:1000 /var/cache/cipherscan
 

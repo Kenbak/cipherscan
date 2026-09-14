@@ -12,3 +12,7 @@ server/api/.env.*
 !server/data/attestation-endpoints.json
 !lib/
 !lib/attestation-status.js
+!lib/canary-status.js
+!lib/mining-software.js
+!server/canary/
+!server/canary/config.js
