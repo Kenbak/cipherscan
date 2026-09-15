@@ -28,12 +28,12 @@
     "cors": "^2.8.5",
     "dotenv": "^17.0.0",
     "express": "^5.0.0",
-    "express-rate-limit": "^8.0.0",
+    "express-rate-limit": "^8.7.0",
     "helmet": "^8.0.0",
-    "pg": "^8.11.3",
-    "redis": "^6.0.0",
-    "ws": "^8.16.0",
-    "zod": "^4.4.3"
+    "pg": "^8.23.0",
+    "redis": "^6.2.1",
+    "ws": "^8.21.3",
+    "zod": "^4.5.4"
   },
   "devDependencies": {
     "js-yaml": "^5.4.1",
