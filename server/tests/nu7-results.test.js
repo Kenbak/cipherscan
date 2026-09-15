@@ -92,7 +92,7 @@ test('unavailable and zero participation remain distinct; no division by zero or
 test('NU7 page remains unavailable on testnet and Crosslink before any upstream request', async () => {
   for (const network of ['testnet', 'crosslink-testnet']) {
     const { default: Page } = load('app/governance/nu7/page.tsx', {
-      './NU7VoteClient': {}, './VoteResults': {},
+      './NU7VoteClient': {}, './VoteResults': {}, '../GovernanceRefresh': {},
       '@/lib/seo': { getNetwork: () => network },
       '@/lib/nu7-vote-config': {}, '@/lib/nu7-vote-results': moduleUnderTest,
       '@/lib/server-fetch': { fetchWithDeadline: () => { throw new Error('Unexpected fetch'); } },

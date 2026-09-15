@@ -1,3 +1,4 @@
+import { GovernanceRefresh } from '../GovernanceRefresh';
 import { VoteResults } from './VoteResults';
 import { NU7VoteClient } from './NU7VoteClient';
 import { getApiUrl, getBaseUrl, getNetwork } from '@/lib/seo';
@@ -73,7 +74,8 @@ export default async function NU7VotePage() {
         '@id': `${pageUrl}#breadcrumb`,
         itemListElement: [
           { '@type': 'ListItem', position: 1, name: 'Dashboard', item: `${baseUrl}/` },
-          { '@type': 'ListItem', position: 2, name: 'NU7 Vote', item: pageUrl },
+          { '@type': 'ListItem', position: 2, name: 'Governance', item: `${baseUrl}/governance` },
+          { '@type': 'ListItem', position: 3, name: 'NU7 Vote', item: pageUrl },
         ],
       },
     ],
@@ -87,6 +89,7 @@ export default async function NU7VotePage() {
           __html: JSON.stringify(structuredData).replace(/</g, '\\u003c'),
         }}
       />
+      <GovernanceRefresh />
       <NU7VoteClient initialData={initialData} resultsState={results.state} resultsContent={<VoteResults results={results} />} initialNow={Date.now()} />
     </>
   );

@@ -7,7 +7,7 @@ import { StatsBar } from "@/components/StatsBar";
 import { Footer } from "@/components/Footer";
 import { MaintenanceBanner } from "@/components/MaintenanceBanner";
 import { ChainSyncBanner } from "@/components/ChainSyncBanner";
-import { NU7VoteBanner } from "@/components/NU7VoteBanner";
+import { GovernanceBanner } from "@/components/GovernanceBanner";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { WebSocketProvider } from "@/contexts/WebSocketContext";
 import { buildPageMetadata, getBaseUrl, getNetwork } from "@/lib/seo";
@@ -128,7 +128,7 @@ function AppContent({ children }: { children: React.ReactNode }) {
       <ChainSyncBanner />
       <NavBar />
       <StatsBar />
-      <NU7VoteBanner />
+      <GovernanceBanner />
       <main id="main-content" tabIndex={-1} className="min-h-screen">{children}</main>
       <Footer />
     </>

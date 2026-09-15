@@ -1,3 +1,5 @@
+import { isGrantsRound } from '@/lib/governance';
+import { getGovernanceCatalog } from '@/lib/governance-data';
 import { unstable_cache } from 'next/cache';
 import { getAllNewsletters } from '@/lib/newsletter';
 import { createRefreshCache } from '@/lib/refresh-cache';
@@ -260,7 +262,24 @@ export async function GET(
     baseUrl,
     slug === 'content' ? getAllNewsletters() : [],
   );
-  if (staticEntries) return xmlResponse(serializeUrlSet(staticEntries), 86_400);
+  if (staticEntries) {
+    if (slug === 'core') {
+      const catalog = await getGovernanceCatalog();
+      const known = new Set(staticEntries.map(entry => entry.url));
+      for (const vote of catalog.votes) {
+        const url = `${baseUrl}${vote.href}`;
+        if (!known.has(url)) {
+          staticEntries.push({ url, changeFrequency: 'daily', priority: 0.5 });
+          known.add(url);
+        }
+      }
+      // The announcement redirects to a registered round once matched.
+      const grants = catalog.votes.filter(vote => isGrantsRound(vote.round));
+      const entries = grants.length === 1 ? staticEntries.filter(entry => !entry.url.endsWith('/governance/retroactive-grants-q3-2026')) : staticEntries;
+      return xmlResponse(serializeUrlSet(entries), 300);
+    }
+    return xmlResponse(serializeUrlSet(staticEntries), 86_400);
+  }
 
   try {
     const result = await getDynamicSitemapWithFallback(`${slug}\n${baseUrl}`);

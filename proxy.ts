@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { resolveGovernanceRequest } from './lib/governance-request';
+import { getConfiguredNetwork } from './lib/network';
 
 // Simple in-memory rate limiter
 // Format: Map<IP, { count: number, resetTime: number }>
@@ -84,7 +86,17 @@ const REDIRECT_HOSTS = [
   'www.zcashblocks.com',
 ];
 
-export function proxy(request: NextRequest) {
+export async function proxy(request: NextRequest) {
+  const governancePath = request.nextUrl.pathname;
+  if (governancePath === '/governance' || governancePath.startsWith('/governance/')) {
+    const result = await resolveGovernanceRequest(governancePath, getConfiguredNetwork() ?? 'testnet');
+    if (result.status === 308) return NextResponse.redirect(new URL(result.location, request.url), 308);
+    if (result.status !== 200) {
+      const unavailable = result.status === 503;
+      const title = unavailable ? 'Vote temporarily unavailable' : 'Vote not found';
+      return new NextResponse(`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex, follow"><title>${title} | CipherScan</title></head><body><main><h1>${title}</h1><p>${unavailable ? 'The voting directory could not be reached. Please try again shortly.' : 'This governance page is not available.'}</p><a href="/">Return to CipherScan</a></main></body></html>`, { status: result.status, headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store', 'X-Robots-Tag': 'noindex, follow', ...(unavailable ? { 'Retry-After': '60' } : {}) } });
+    }
+  }
   if (process.env.NODE_ENV === 'development') {
     return NextResponse.next();
   }
@@ -119,5 +131,5 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/api/:path*', '/block/:path*'],
+  matcher: ['/api/:path*', '/block/:path*', '/governance/:path*'],
 };
