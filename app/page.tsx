@@ -1,6 +1,7 @@
 import { readApiData } from '@/lib/api-client';
 import Link from 'next/link';
 import { SearchBar } from '@/components/SearchBar';
+import { HeroBlockGrid } from '@/components/HeroBlockGrid';
 import { SectionHeader } from '@/components/ui/SectionHeader';
 import { HomeFeedCard } from '@/components/HomeFeedCard';
 import { RelativeTimeProvider } from '@/components/RelativeTime';
@@ -103,17 +104,15 @@ export default async function Home() {
   return (
     <div className="home-page">
       {/* Full-bleed hero band. The band, not the container, owns the hero's
-          vertical rhythm, and it deliberately has no border of its own — the
-          texture fades out instead, so it does not add a fourth chrome edge
-          under the nav. No `overflow: hidden` here: the search suggestions
+          vertical rhythm, and it deliberately has no border of its own, so it
+          does not add a fourth chrome edge under the nav. No `overflow: hidden` here: the search suggestions
           dropdown is absolutely positioned inside and must escape the band. */}
       <section className="home-hero-band">
-        {/* Graticule substrate — pure CSS hairlines, no data, no meaning. */}
-        <div className="hero-lattice" aria-hidden="true" />
         {/* Shares the max-w-7xl container so the hero, the logo above it and
             the feed tables below all start on the same left edge.
             z-index so the search dropdown sits above the widgets below. */}
         <div className="home-hero relative z-30 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <HeroBlockGrid />
           <div className="home-introduction">
             {/* Kept small on purpose: this line is the indexable page subject,
                 not the visual centrepiece. The search field below is what the

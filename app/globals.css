@@ -407,9 +407,6 @@
   --risk-connector-color: rgb(var(--color-purple-rgb) / 0.25);
   --reactflow-bg-opacity: 1;
 
-  /* Homepage hero graticule (.hero-lattice) */
-  --hero-graticule: rgb(var(--color-gold-rgb) / 0.055);
-  --hero-lattice-opacity: 1;
 }
 
 /* Light Theme Overrides */
@@ -587,10 +584,6 @@
   --risk-connector-color: rgb(var(--color-purple-rgb) / 0.4);
   --reactflow-bg-opacity: 0.5;
 
-  /* Gold at low alpha over near-white loses far more contrast than the same
-     alpha over carbon, so paper needs a higher figure to read at all. */
-  --hero-graticule: rgb(var(--color-gold-rgb) / 0.22);
-  --hero-lattice-opacity: 1;
 }
 
 @layer base {
@@ -1907,30 +1900,44 @@
      than a decoration sitting inside the content column. */
   .home-hero-band { position: relative; padding: 40px 0 36px; }
 
-  /* Graticule: the faint square grid of an instrument's backing paper.
-     Hairlines, not filled cells — filled cells at any alpha average out
-     into a flat olive wash, which is what made the first attempt muddy.
-     A 1px line stays a line and never tints the surface it sits on. */
-  .hero-lattice {
+  /* Brand blocks stay beside the content, never behind text or search. */
+  .hero-block-grid {
+    display: none;
     position: absolute;
-    inset: 0;
+    right: 32px;
+    top: 50%;
+    transform: translateY(-50%);
+    grid-template-columns: repeat(5, 32px);
+    gap: 12px;
     pointer-events: none;
-    opacity: var(--hero-lattice-opacity, 1);
-    background-image:
-      linear-gradient(to right, var(--hero-graticule) 1px, transparent 1px),
-      linear-gradient(to bottom, var(--hero-graticule) 1px, transparent 1px);
-    background-size: 64px 64px;
-    /* Vignette: two masks intersected so the grid dissolves on all four
-       sides. The band then needs no border of its own, which keeps it
-       from becoming a fourth chrome edge under the nav. */
-    -webkit-mask-image:
-      linear-gradient(to bottom, #000 0%, #000 30%, transparent 96%),
-      linear-gradient(to right, transparent 0%, #000 18%, #000 82%, transparent 100%);
-    mask-image:
-      linear-gradient(to bottom, #000 0%, #000 30%, transparent 96%),
-      linear-gradient(to right, transparent 0%, #000 18%, #000 82%, transparent 100%);
-    -webkit-mask-composite: source-in;
-    mask-composite: intersect;
+    mask-image: radial-gradient(ellipse at center, #000 25%, rgb(0 0 0 / 0.2) 75%, transparent 100%);
+  }
+  .hero-block-cell {
+    position: relative;
+    width: 32px;
+    height: 32px;
+    border: 1px solid var(--color-border);
+  }
+  .hero-block-cell::after {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    background: var(--color-gold);
+    opacity: 0;
+  }
+  .hero-block-cell[data-active]::after { animation: hero-block-pulse 4.2s ease-in-out both; }
+  @keyframes hero-block-pulse {
+    0%, 100% { opacity: 0; }
+    40%, 60% { opacity: 0.7; }
+  }
+  @media (min-width: 1024px) {
+    .hero-block-grid { display: grid; }
+    .home-command { max-width: calc(100% - 256px); }
+    .home-introduction { max-width: calc(100% - 256px); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .hero-block-cell[data-active]::after { animation: none; }
+    .hero-block-cell:nth-child(8)::after { opacity: 0.35; }
   }
 
   /* Left-aligned on the container edge, matching the feeds below. */
@@ -1944,8 +1951,7 @@
   .home-hero form { width: 100%; max-width: none; margin: 0; padding: 0; }
   /* 50px, not 60px: the command field should be the clearly dominant
      control in the band without becoming the largest object on the page. */
-  /* Opaque on purpose, unlike the cards: the graticule sits directly
-     behind this field and must not read through the command area. */
+  /* Keep search an opaque, clearly defined control. */
   .home-hero .search-input-hero { min-height: 50px; background: var(--color-surface); font-size: 14px; }
   /* The hero band owns the space above; the body wrapper adds the rest. */
   .home-body { padding-top: 32px; }
