@@ -10,6 +10,7 @@ import { ThemeToggle } from '@/components/ThemeToggle';
 import { NETWORK, isMainnet, MAINNET_URL, TESTNET_URL, CROSSLINK_URL } from '@/lib/config';
 
 const LINK_CLASS = 'footer-link inline-block py-1.5 text-caption font-mono';
+const SECONDARY_LINK_CLASS = 'inline-flex min-h-9 items-center text-caption font-mono text-secondary hover:text-primary hover:underline underline-offset-4 transition-colors';
 const categories = getNavigation(NETWORK, 'footer');
 
 /**
@@ -50,18 +51,22 @@ export function Footer() {
           ))}
         </nav>
 
-        <div className="mt-8 pt-6 border-t border-cipher-border-subtle flex flex-wrap items-center gap-x-8 gap-y-4">
-          <nav aria-label="Community" className="flex flex-wrap items-center gap-x-5 gap-y-1">
-            <span className="type-label text-muted">Community</span>
-            <a href="https://twitter.com/cipherscan_app" target="_blank" rel="noopener noreferrer" className={LINK_CLASS}>X ↗</a>
-            <a href="https://github.com/Kenbak/cipherscan" target="_blank" rel="noopener noreferrer" className={LINK_CLASS}>GitHub ↗</a>
-            <a href="https://www.youtube.com/@AtmosphereLabsDev" target="_blank" rel="noopener noreferrer" className={LINK_CLASS}>YouTube ↗</a>
-            <DonateButton variant="link" />
+        <div className="mt-8 pt-6 border-t border-cipher-border-subtle grid grid-cols-2 gap-x-6 gap-y-6 md:grid-cols-[max-content_max-content] md:gap-x-16">
+          <nav aria-label="Community">
+            <FooterHeading>Community</FooterHeading>
+            <ul className="flex flex-col items-start md:flex-row md:flex-wrap md:items-center md:gap-x-5">
+              <li><a href="https://twitter.com/cipherscan_app" target="_blank" rel="noopener noreferrer" className={SECONDARY_LINK_CLASS}>X ↗</a></li>
+              <li><a href="https://github.com/Kenbak/cipherscan" target="_blank" rel="noopener noreferrer" className={SECONDARY_LINK_CLASS}>GitHub ↗</a></li>
+              <li><a href="https://www.youtube.com/@AtmosphereLabsDev" target="_blank" rel="noopener noreferrer" className={SECONDARY_LINK_CLASS}>YouTube ↗</a></li>
+              <li className="[&>button]:min-h-9 [&>button]:text-secondary [&>button:hover]:text-primary [&>button:hover]:underline [&>button]:underline-offset-4"><DonateButton variant="link" /></li>
+            </ul>
           </nav>
-          <nav aria-label="Ecosystem" className="flex flex-wrap items-center gap-x-5 gap-y-1">
-            <span className="type-label text-muted">Ecosystem</span>
-            {isMainnet && <a href="https://cipherswap.app/" target="_blank" rel="noopener noreferrer" className={LINK_CLASS}>CipherSwap ↗</a>}
-            <a href="https://www.cipherpay.app/" target="_blank" rel="noopener noreferrer" className={LINK_CLASS}>CipherPay ↗</a>
+          <nav aria-label="Ecosystem">
+            <FooterHeading>Ecosystem</FooterHeading>
+            <ul className="flex flex-col items-start md:flex-row md:flex-wrap md:items-center md:gap-x-5">
+              {isMainnet && <li><a href="https://cipherswap.app/" target="_blank" rel="noopener noreferrer" className={SECONDARY_LINK_CLASS}>CipherSwap ↗</a></li>}
+              <li><a href="https://www.cipherpay.app/" target="_blank" rel="noopener noreferrer" className={SECONDARY_LINK_CLASS}>CipherPay ↗</a></li>
+            </ul>
           </nav>
         </div>
 
