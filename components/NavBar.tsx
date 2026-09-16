@@ -201,7 +201,7 @@ export function NavBar() {
 
             {/* Right: utilities */}
             <div className="flex items-center gap-1.5 sm:gap-2">
-              {isMainnet ? <Link href="/ask" aria-current={pathname === '/ask' ? 'page' : undefined} title="Ask ZecBlock" className="flex h-9 items-center gap-1.5 px-1 sm:px-2.5 text-xs font-mono text-secondary hover:text-primary hover:bg-cipher-hover rounded-md transition-colors"><span className="hidden sm:inline" aria-hidden="true">&gt;_</span> Ask</Link> : null}
+              {isMainnet ? <Link href="/ask" aria-current={pathname === '/ask' ? 'page' : undefined} title="Ask ZecBlock" className="hidden xl:flex h-9 items-center gap-1.5 px-1 sm:px-2.5 text-xs font-mono text-secondary hover:text-primary hover:bg-cipher-hover rounded-md transition-colors"><span className="hidden sm:inline" aria-hidden="true">&gt;_</span> Ask</Link> : null}
               {/* Buy ZEC — mainnet only, desktop */}
               {isMainnet && (
                 <a
@@ -220,10 +220,8 @@ export function NavBar() {
                   Buy ZEC, which is desktop mainnet-only. */}
               {isMainnet && <span className="hidden xl:block w-px h-4 bg-cipher-border" aria-hidden="true" />}
 
-              {/* Network switcher. It also *labels* the current network: the
-                  control that changes the network is the one place that should
-                  name it, so the label is never stale and never duplicated. */}
-              <div className="relative" onBlur={event => {
+              {/* Desktop network control; mobile network choices live in the drawer. */}
+              <div className="relative hidden xl:block" onBlur={event => {
                 if (!event.currentTarget.contains(event.relatedTarget as Node)) setOpenDropdown(null);
               }}>
                 <button
@@ -306,7 +304,7 @@ export function NavBar() {
                   setMobileAccordion(categories.find(cat => cat.items.some(item => item.href === activeHref))?.id ?? 'explore');
                   setMobileMenuOpen(true);
                 }}
-                className="xl:hidden p-2 rounded-md text-muted hover:text-primary transition duration-150"
+                className="xl:hidden inline-flex h-11 w-11 items-center justify-center rounded-md text-muted hover:text-primary transition duration-150"
                 aria-label="Open navigation menu"
               >
                 <svg aria-hidden="true" className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
