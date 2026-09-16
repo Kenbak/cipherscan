@@ -112,7 +112,7 @@ export default async function Home() {
             the feed tables below all start on the same left edge.
             z-index so the search dropdown sits above the widgets below. */}
         <div className="home-hero relative z-30 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <HeroBlockGrid />
+          <HeroBlockGrid initialBlockHash={initialBlocks[0]?.hash} />
           <div className="home-introduction">
             {/* Kept small on purpose: this line is the indexable page subject,
                 not the visual centrepiece. The search field below is what the

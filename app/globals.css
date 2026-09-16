@@ -1902,21 +1902,25 @@
 
   /* Brand blocks stay beside the content, never behind text or search. */
   .hero-block-grid {
+    --hero-cell-size: 28px;
     display: none;
     position: absolute;
     right: 32px;
     top: 50%;
     transform: translateY(-50%);
-    grid-template-columns: repeat(5, 32px);
-    gap: 12px;
+    grid-template-columns: repeat(8, var(--hero-cell-size));
+    gap: 10px;
     pointer-events: none;
-    mask-image: radial-gradient(ellipse at center, #000 25%, rgb(0 0 0 / 0.2) 75%, transparent 100%);
+    mask-image:
+      linear-gradient(to right, transparent, #000 28%, #000 72%, transparent),
+      linear-gradient(to bottom, rgb(0 0 0 / 0.3), #000 35%, #000 65%, rgb(0 0 0 / 0.3));
+    mask-composite: intersect;
   }
   .hero-block-cell {
     position: relative;
-    width: 32px;
-    height: 32px;
-    border: 1px solid var(--color-border);
+    width: var(--hero-cell-size);
+    height: var(--hero-cell-size);
+    border: 1px solid color-mix(in srgb, var(--color-border) 70%, var(--color-text-muted));
   }
   .hero-block-cell::after {
     content: '';
@@ -1928,16 +1932,20 @@
   .hero-block-cell[data-active]::after { animation: hero-block-pulse 4.2s ease-in-out both; }
   @keyframes hero-block-pulse {
     0%, 100% { opacity: 0; }
-    40%, 60% { opacity: 0.7; }
+    40%, 60% { opacity: 0.85; }
   }
   @media (min-width: 1024px) {
     .hero-block-grid { display: grid; }
-    .home-command { max-width: calc(100% - 256px); }
-    .home-introduction { max-width: calc(100% - 256px); }
+    .home-command { max-width: calc(100% - 334px); }
+    .home-introduction { max-width: calc(100% - 334px); }
+  }
+  @media (min-width: 1280px) {
+    .hero-block-grid { --hero-cell-size: 36px; gap: 12px; }
+    .home-command { max-width: calc(100% - 412px); }
+    .home-introduction { max-width: calc(100% - 412px); }
   }
   @media (prefers-reduced-motion: reduce) {
-    .hero-block-cell[data-active]::after { animation: none; }
-    .hero-block-cell:nth-child(8)::after { opacity: 0.35; }
+    .hero-block-cell[data-active]::after { animation: none; opacity: 0.6; }
   }
 
   /* Left-aligned on the container edge, matching the feeds below. */

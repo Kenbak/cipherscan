@@ -1,48 +1,55 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { useWebSocket, type WebSocketMessage } from '@/hooks/useWebSocket';
 
-const CELL_COUNT = 20;
+const CELL_COUNT = 32;
 
-/** Decorative brand motif, independent of block production or network activity. */
-export function HeroBlockGrid() {
+/** A quiet visual response to new blocks received on the shared event feed. */
+export function HeroBlockGrid({ initialBlockHash }: { initialBlockHash?: string }) {
   const gridRef = useRef<HTMLDivElement>(null);
-  const [activeCell, setActiveCell] = useState<number | null>(null);
+  const visibleRef = useRef(false);
+  const seenHashes = useRef(new Set(initialBlockHash ? [initialBlockHash.toLowerCase()] : []));
+  const [pulse, setPulse] = useState<{ hash: string; cell: number } | null>(null);
+
+  useWebSocket({
+    onMessage: (message: WebSocketMessage) => {
+      if (message.type !== 'new_block' && message.type !== 'chain_tip') return;
+      const hash = message.data?.hash;
+      const height = Number(message.data?.height);
+      if (typeof hash !== 'string' || !/^[a-f0-9]{64}$/i.test(hash) || !Number.isSafeInteger(height) || height < 0) return;
+      const normalized = hash.toLowerCase();
+      if (seenHashes.current.has(normalized)) return;
+      seenHashes.current.add(normalized);
+      if (seenHashes.current.size > 64) {
+        const oldest = seenHashes.current.values().next().value;
+        if (oldest) seenHashes.current.delete(oldest);
+      }
+      // Connection snapshots and events received while away are not new-block pulses.
+      if (message.type !== 'new_block' || !visibleRef.current || document.hidden) return;
+      setPulse({ hash: normalized, cell: parseInt(normalized.slice(-6), 16) % CELL_COUNT });
+    },
+  });
 
   useEffect(() => {
     const grid = gridRef.current;
     if (!grid) return;
-    const motion = window.matchMedia('(prefers-reduced-motion: reduce)');
     const desktop = window.matchMedia('(min-width: 1024px)');
-    let visible = false;
-    let previous = 7;
-    let timer: ReturnType<typeof setTimeout> | undefined;
-
-    const canAnimate = () => visible && desktop.matches && !motion.matches && !document.hidden;
-    const pulse = () => {
-      if (!canAnimate()) return;
-      // Pick a different cell, only after the previous 4.2s fade has finished.
-      previous = (previous + 1 + Math.floor(Math.random() * (CELL_COUNT - 1))) % CELL_COUNT;
-      setActiveCell(previous);
-      timer = setTimeout(pulse, 6500 + Math.random() * 2500);
-    };
+    let inView = false;
     const sync = () => {
-      clearTimeout(timer);
-      setActiveCell(null);
-      if (canAnimate()) timer = setTimeout(pulse, 1200);
+      visibleRef.current = inView && desktop.matches && !document.hidden;
+      if (!visibleRef.current) setPulse(null);
     };
     const observer = new IntersectionObserver(([entry]) => {
-      visible = entry.isIntersecting;
+      inView = entry.isIntersecting;
       sync();
     });
     observer.observe(grid);
-    motion.addEventListener('change', sync);
     desktop.addEventListener('change', sync);
     document.addEventListener('visibilitychange', sync);
     return () => {
-      clearTimeout(timer);
+      visibleRef.current = false;
       observer.disconnect();
-      motion.removeEventListener('change', sync);
       desktop.removeEventListener('change', sync);
       document.removeEventListener('visibilitychange', sync);
     };
@@ -51,7 +58,7 @@ export function HeroBlockGrid() {
   return (
     <div ref={gridRef} className="hero-block-grid" aria-hidden="true">
       {Array.from({ length: CELL_COUNT }, (_, index) => (
-        <span key={index} className="hero-block-cell" data-active={index === activeCell ? '' : undefined} />
+        <span key={pulse?.cell === index ? `${index}-${pulse.hash}` : index} className="hero-block-cell" data-active={index === pulse?.cell ? '' : undefined} />
       ))}
     </div>
   );
