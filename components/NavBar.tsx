@@ -189,13 +189,13 @@ export function NavBar() {
             </div>
 
             {/* Keep SSR/client structure identical; homepage CSS hides compact search. */}
-            <div className="hidden xl:block shrink-0 nav-search-compact">
+            <div className="hidden xl:block w-44 2xl:w-60 shrink-0 nav-search-compact">
               <button ref={searchTriggerRef} type="button" aria-label="Search Zcash" aria-haspopup="dialog" aria-expanded={searchOpen} aria-controls="navigation-search"
                 title="Search (⌘K / Ctrl+K)"
                 onClick={() => { setOpenDropdown(null); setSearchOpen(true); }}
-                className="flex h-9 items-center gap-2 rounded-md border border-cipher-border bg-cipher-surface px-3 text-xs text-secondary transition-colors hover:border-glass-12 hover:text-primary">
+                className="flex h-9 w-full items-center gap-2 rounded-md border border-cipher-border bg-cipher-surface px-3 text-xs text-secondary transition-colors hover:border-glass-12 hover:text-primary">
                 <svg aria-hidden="true" className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}><circle cx="10.5" cy="10.5" r="6.5" /><path strokeLinecap="round" d="m16 16 4.5 4.5" /></svg>
-                <span>Search</span><kbd aria-hidden="true" className="ml-2 font-mono text-caption text-muted">⌘K</kbd>
+                <span>Search</span><kbd aria-hidden="true" className="ml-auto font-mono text-caption text-muted">⌘K</kbd>
               </button>
             </div>
 
