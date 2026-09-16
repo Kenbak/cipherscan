@@ -204,7 +204,7 @@ export function ZodlClient({
             return (
               <div
                 key={p.pool}
-                className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 rounded-xl border border-cipher-border bg-cipher-surface px-4 py-3 hover:border-cipher-yellow/30 transition-colors"
+                className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 rounded-xl border border-cipher-border bg-cipher-surface px-4 py-3"
               >
                 <div className="flex items-center gap-3 sm:w-[200px] sm:flex-shrink-0">
                   <div className={`w-6 text-sm font-mono font-semibold ${i < 3 ? 'text-cipher-yellow-bright' : 'text-muted'}`}>{i + 1}</div>

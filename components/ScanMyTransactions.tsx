@@ -430,7 +430,7 @@ export function ScanMyTransactions() {
             {scanResults.map((result, idx) => (
               <div
                 key={`${result.txid}:${result.output_index}`}
-                className="inbox-message border border-cipher-gold/20 rounded-xl overflow-hidden hover:border-cipher-gold/50 transition-colors duration-200 animate-fade-in"
+                className="inbox-message border border-cipher-border rounded-xl overflow-hidden animate-fade-in"
                 style={{ animationDelay: `${idx * 100}ms` }}
               >
                 {/* Message Header - Old School Email Style (Single Line) */}

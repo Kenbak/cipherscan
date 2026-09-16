@@ -502,7 +502,7 @@ export default function DecodeClient() {
                     {result.vin.map((vin, i) => (
                       <div
                         key={i}
-                        className="block-tx-row p-4 rounded-lg border border-cipher-border hover:border-cipher-gold/50 transition"
+                        className="block-tx-row p-4 rounded-lg border border-cipher-border"
                       >
                         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-3 gap-2">
                           <div className="flex items-center gap-2">
@@ -629,7 +629,7 @@ export default function DecodeClient() {
                     {result.vout.map((vout, i) => (
                       <div
                         key={i}
-                        className="block-tx-row p-4 rounded-lg border border-cipher-border hover:border-cipher-gold/50 transition"
+                        className="block-tx-row p-4 rounded-lg border border-cipher-border"
                       >
                         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-3 gap-2">
                           <div className="flex items-center gap-2">

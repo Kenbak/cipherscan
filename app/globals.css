@@ -664,16 +664,13 @@
     transition: border-color 250ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 250ms cubic-bezier(0.16, 1, 0.3, 1), transform 250ms cubic-bezier(0.16, 1, 0.3, 1), background-color 250ms cubic-bezier(0.16, 1, 0.3, 1);
   }
 
+  /* Dark inset panels are containers; child controls own hover feedback. */
   .card-dark {
     background: var(--card-dark-bg);
     border: 1px solid var(--card-dark-border);
     border-radius: var(--radius-lg);
     padding: var(--space-6);
     transition: border-color 250ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 250ms cubic-bezier(0.16, 1, 0.3, 1), transform 250ms cubic-bezier(0.16, 1, 0.3, 1), background-color 250ms cubic-bezier(0.16, 1, 0.3, 1);
-  }
-
-  .card-dark:hover {
-    border-color: rgb(var(--color-gold-rgb) / 0.2);
   }
 
   /* ===== BADGES ===== */
