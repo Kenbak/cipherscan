@@ -5,7 +5,6 @@ import { PageLoadingBody } from '@/components/ui/PageLoading';
 import { useState } from 'react';
 import Link from 'next/link';
 import { useApiQuery } from '@/hooks/useApiQuery';
-import { categoryColor } from '@/lib/category-colors';
 import {
   AreaChart, Area,
   XAxis, YAxis, CartesianGrid,
@@ -136,8 +135,8 @@ export default function WalletsClient() {
       {/* ================================================================ */}
       {/* COMPONENT 1: FEE LANE ANONYMITY BUCKETS                         */}
       {/* ================================================================ */}
-      <section id="fee-lanes" className="mb-12 scroll-mt-36">
-        <h2 className="text-sm font-mono font-semibold mb-3">Fee patterns</h2>
+      <section id="fee-lanes" className="mb-12 scroll-mt-[calc(var(--app-nav-height,4rem)+var(--app-stats-height,2.75rem)+var(--app-ironwood-height,0px)+1.5rem)]">
+        <h2 className="type-section text-primary mb-3">Fee patterns</h2>
         <p className="text-sm text-secondary mb-6">
           ZIP-317 defines a standard fee of 5,000 zat per logical action. Transactions paying this
           rate share a fee pattern. A shared fee is one observable property, not a measured anonymity set.
@@ -272,118 +271,72 @@ export default function WalletsClient() {
       {/* ================================================================ */}
       {/* COMPONENT 3: WALLET USAGE DISTRIBUTION                          */}
       {/* ================================================================ */}
-      <section id="usage" className="mb-12 scroll-mt-36">
-        <h2 className="text-sm font-mono font-semibold mb-3">Observed pattern matches</h2>
+      <section id="usage" className="mb-12 scroll-mt-[calc(var(--app-nav-height,4rem)+var(--app-stats-height,2.75rem)+var(--app-ironwood-height,0px)+1.5rem)]">
+        <h2 className="type-section text-primary mb-3">Observed pattern matches</h2>
         <p className="text-sm text-secondary mb-6">
           Counts of transactions matching known implementation patterns. These are not counts of users or verified wallet market shares; patterns can overlap.
         </p>
 
-        {usageData && (
-          <>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-              <Card variant="standard">
-                <CardBody>
-                  <h3 className="text-sm font-medium text-secondary mb-4">
-                    Matching patterns · {period}
-                  </h3>
-                  <div className="space-y-5">{usageData.map(entry => <div key={entry.name}>
-                    <div className="flex justify-between gap-4 mb-2"><span className="text-xs text-secondary">{entry.name}</span><span className="text-xs font-mono text-primary shrink-0">{formatNumber(entry.value)}</span></div>
-                    <div className="h-2 rounded-full bg-cipher-hover overflow-hidden"><div className="h-full rounded-full" style={{width:`${Math.min(100, fingerprints?.totalShielded ? entry.value / fingerprints.totalShielded * 100 : 0)}%`,backgroundColor:categoryColor(entry.name,theme)}} /></div>
-                    <p className="mt-1 text-caption text-muted">{entry.confidence} confidence · matches / observed shielded transactions</p>
-                  </div>)}</div>
-                </CardBody>
-              </Card>
-
-              <Card variant="standard">
-                <CardBody>
-                  <h3 className="text-sm font-medium text-secondary mb-4">
-                    Observation coverage
-                  </h3>
-                  {fingerprints && (
-                    <div className="space-y-4">
-                      <div className="flex items-baseline justify-between">
-                        <span className="text-secondary">
-                          Total shielded txs ({period})
-                        </span>
-                        <span className="text-2xl font-semibold font-mono">
-                          {formatNumber(fingerprints.totalShielded)}
-                        </span>
-                      </div>
-                      <div className="flex items-baseline justify-between">
-                        <span className="text-secondary">
-                          Fully-shielded Orchard
-                        </span>
-                        <span className="text-2xl font-semibold font-mono">
-                          {formatNumber(fingerprints.totalFullyShieldedOrchard)}
-                        </span>
-                      </div>
-                      <div className="flex items-baseline justify-between">
-                        <span className="text-secondary">
-                          Pattern matches (may overlap)
-                        </span>
-                        <span className="text-2xl font-semibold font-mono">
-                          {formatNumber(
-                            usageData.reduce((s, d) => s + d.value, 0)
-                          )}
-                        </span>
-                      </div>
-                      <div className="text-xs text-muted pt-3 border-t border-cipher-border space-y-1.5">
-                        <p className="font-medium text-secondary">Why matches cannot identify every wallet</p>
-                        <ul className="list-disc list-inside space-y-0.5 text-caption">
-                          <li>Sapling-only txs (no Orchard action count to fingerprint)</li>
-                          <li>SDK wallets (Edge, Unstoppable, YWallet) identical to ZODL on-chain</li>
-                          <li>Transactions with expiry=0 (disabled) or missing data</li>
-                          <li>Wallets we haven&apos;t fingerprinted yet</li>
-                        </ul>
-
+        {usageData && fingerprints && (
+          <div className="rounded-lg border border-cipher-border overflow-hidden">
+            <dl className="grid sm:grid-cols-3 border-b border-cipher-border bg-glass-3 divide-y sm:divide-y-0 sm:divide-x divide-cipher-border">
+              {[
+                { label: `Shielded transactions · ${period}`, value: fingerprints.totalShielded },
+                { label: 'Fully-shielded Orchard', value: fingerprints.totalFullyShieldedOrchard },
+                { label: 'Pattern matches · may overlap', value: usageData.reduce((sum, entry) => sum + entry.value, 0) },
+              ].map(stat => (
+                <div key={stat.label} className="px-4 py-4 sm:px-5">
+                  <dt className="text-caption text-muted">{stat.label}</dt>
+                  <dd className="mt-1 text-xl sm:text-2xl font-mono tabular-nums text-primary">{formatNumber(stat.value)}</dd>
+                </div>
+              ))}
+            </dl>
+            <div className="px-4 sm:px-5">
+              <div aria-hidden="true" className="hidden sm:grid grid-cols-[minmax(0,1fr)_6rem_6rem] gap-6 py-3 border-b border-cipher-border text-caption font-mono uppercase text-muted">
+                <span>Pattern</span><span>Confidence</span><span className="text-right">Matches</span>
+              </div>
+              <ul aria-label="Observed wallet pattern matches" className="divide-y divide-cipher-border">
+                {usageData.map(entry => (
+                  <li key={entry.name} className="grid grid-cols-[minmax(0,1fr)_auto] sm:grid-cols-[minmax(0,1fr)_6rem_6rem] gap-x-4 sm:gap-x-6 gap-y-2 py-3 items-center">
+                    <div className="min-w-0">
+                      <p className="text-sm text-primary">{entry.name}</p>
+                      <div aria-hidden="true" className="h-1 rounded-full bg-glass-5 overflow-hidden mt-2">
+                        <div className="h-full rounded-full bg-cipher-blue" style={{ width: `${Math.min(100, fingerprints.totalShielded ? entry.value / fingerprints.totalShielded * 100 : 0)}%` }} />
                       </div>
                     </div>
-                  )}
-                </CardBody>
-              </Card>
+                    <span className="text-caption text-muted col-start-1 row-start-2 sm:col-auto sm:row-auto"><span className="capitalize">{entry.confidence}</span><span className="sm:sr-only"> confidence</span></span>
+                    <span className="text-sm font-mono tabular-nums text-primary text-right col-start-2 row-start-1 sm:col-auto sm:row-auto">{formatNumber(entry.value)}</span>
+                  </li>
+                ))}
+              </ul>
+              {usageData.length === 0 && <p className="py-5 text-sm text-muted">No matching patterns in this period.</p>}
+              <p className="text-caption text-muted py-3 border-t border-cipher-border">Bar lengths compare each pattern with all observed shielded transactions. Matches can overlap.</p>
             </div>
-
-            {/* Methodology accordion */}
-
-          </>
+            <details className="border-t border-cipher-border px-4 sm:px-5">
+              <summary className="min-h-11 py-3 cursor-pointer text-sm text-secondary">What these matches can tell us</summary>
+              <ul className="list-disc pl-4 pb-4 space-y-1 text-caption text-muted leading-relaxed">
+                <li>Shared SDK patterns cannot distinguish individual wallet apps.</li>
+                <li>Sapling-only transactions have no Orchard action count to compare.</li>
+                <li>Disabled expiry, missing data and unrecognized implementations limit matching.</li>
+              </ul>
+            </details>
+          </div>
         )}
       </section>
 
-      <section id="fingerprints" className="mb-12 scroll-mt-36">
-        <h2 className="text-sm font-mono font-semibold mb-3">Wallet implementation signals</h2>
+      <section id="fingerprints" className="mb-12 scroll-mt-[calc(var(--app-nav-height,4rem)+var(--app-stats-height,2.75rem)+var(--app-ironwood-height,0px)+1.5rem)]">
+        <h2 className="type-section text-primary mb-3">Wallet implementation signals</h2>
         <p className="text-sm text-secondary mb-6">
           Some wallets share the same transaction patterns. Expand a wallet family to inspect evidence and confidence.
         </p>
 
         {fingerprints && (
-          <div className="space-y-3">
-            {fingerprints.wallets.map(wallet => (
-              <WalletCard key={wallet.name} wallet={wallet} />
-            ))}
-
-            {/* Legend */}
-            <div className="flex flex-wrap items-center gap-4 pt-2 text-xs text-secondary">
-              <span className="flex items-center gap-1.5">
-                <span className="inline-block w-8 h-5 rounded-full bg-cipher-green/20 border border-cipher-green/40" />
-                Confirmed
-              </span>
-              <span className="flex items-center gap-1.5">
-                <span className="inline-block w-8 h-5 rounded-full bg-amber-400/20 border border-amber-400/40" />
-                Inferred
-              </span>
-              <span className="flex items-center gap-1.5">
-                <span className="inline-block w-8 h-5 rounded-full bg-slate-500/20 border border-slate-500/40" />
-                Unknown
-              </span>
-              <span className="flex items-center gap-1.5">
-                <span className="inline-block w-8 h-5 rounded-full bg-purple-500/15 border border-purple-500/30" />
-                Nym Mixnet
-              </span>
-            </div>
+          <div className="rounded-lg border border-cipher-border overflow-hidden divide-y divide-cipher-border">
+            {fingerprints.wallets.map(wallet => <WalletCard key={wallet.name} wallet={wallet} />)}
           </div>
         )}
       </section>
-      <section id="methodology" className="scroll-mt-36 mb-8"><MethodologyAccordion /></section>
+      <section id="methodology" className="scroll-mt-[calc(var(--app-nav-height,4rem)+var(--app-stats-height,2.75rem)+var(--app-ironwood-height,0px)+1.5rem)] mb-8"><MethodologyAccordion /></section>
       <nav aria-label="Related wallet analysis" className="grid sm:grid-cols-3 gap-3">{[{href:"/privacy",label:"Privacy participation"},{href:"/pools",label:"Shielded supply"},{href:"/tools/decode",label:"Decode a transaction"}].map(l=><Link key={l.href} href={l.href} className="border border-cipher-border rounded-lg p-4 text-xs font-mono text-secondary hover:bg-glass-3">{l.label} →</Link>)}</nav>
     </div>
   );
@@ -457,131 +410,53 @@ function BatteryBar({
   );
 }
 
+const SIGNAL_LABELS: Record<keyof WalletFingerprint['signals'], string> = {
+  fee: 'Fee', expiry: 'Expiry', locktime: 'Lock time', actionPadding: 'Padding',
+};
+const CONFIDENCE_LABELS = { high: 'Confirmed', medium: 'Inferred', low: 'Unknown' };
+
 function WalletCard({ wallet }: { wallet: WalletFingerprint }) {
-  const [expanded, setExpanded] = useState(false);
-  const signals = Object.entries(wallet.signals) as [string, WalletSignal][];
-  const signalLabels: Record<string, string> = {
-    fee: 'Fee',
-    expiry: 'Expiry',
-    locktime: 'Lock',
-    actionPadding: 'Padding',
-  };
-
+  const signals = Object.entries(wallet.signals) as [keyof WalletFingerprint['signals'], WalletSignal][];
   return (
-    <Card variant="compact" className="overflow-hidden">
-      <CardBody className="!p-0">
-        <button
-          onClick={() => setExpanded(!expanded)}
-          aria-expanded={expanded}
-          className="w-full text-left px-5 py-5 flex flex-col sm:flex-row sm:items-center gap-2 hover:bg-cipher-hover transition-colors"
-        >
-          <div className="flex items-center gap-2 sm:min-w-[13rem] flex-shrink-0">
-            <svg
-              className={`w-3 h-3 transition-transform flex-shrink-0 text-muted ${expanded ? 'rotate-90' : ''}`}
-              fill="currentColor"
-              viewBox="0 0 20 20"
-            >
-              <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
-            </svg>
-            <span className="font-medium text-sm">{wallet.name}</span>
-            <NymBadge status={wallet.nym} />
-          </div>
-          <div className="flex flex-wrap gap-1.5 sm:gap-2">
-            {signals.map(([key, signal]) => (
-              <SignalPill key={key} label={signalLabels[key]} signal={signal} />
-            ))}
-          </div>
-        </button>
-
-        {expanded && (
-          <div className="px-5 pb-5 pt-5 border-t border-cipher-border">
-            {wallet.description && (
-              <p className="text-xs text-secondary mb-3">{wallet.description}</p>
-            )}
-            {wallet.familyMembers && wallet.familyMembers.length > 0 && (
-              <div className="flex flex-wrap items-center gap-1.5 mb-3">
-                <span className="text-caption uppercase tracking-wider text-muted">Includes:</span>
-                {wallet.familyMembers.map(m => (
-                  <span key={m} className="text-caption px-1.5 py-0.5 rounded bg-cipher-green/10 text-cipher-teal border border-cipher-teal/20">
-                    {m}
-                  </span>
-                ))}
-              </div>
-            )}
-            {wallet.nymNote && (
-              <div className="flex items-start gap-2 mb-3 px-2 py-1.5 rounded bg-purple-500/5 border border-purple-500/20">
-                <span className="text-caption uppercase tracking-wider text-purple-400 font-medium whitespace-nowrap mt-px">Nym</span>
-                <span className="text-xs text-purple-300/80">{wallet.nymNote}</span>
-              </div>
-            )}
-            {wallet.note && (
-              <p className="text-xs text-muted italic mb-3">{wallet.note}</p>
-            )}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+    <details className="group">
+      <summary className="list-none cursor-pointer px-4 py-4 sm:px-5 hover:bg-glass-3 transition-colors [&::-webkit-details-marker]:hidden">
+        <div className="flex items-start gap-3">
+          <svg aria-hidden="true" className="w-4 h-4 mt-0.5 shrink-0 text-muted transition-transform group-open:rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="m9 5 7 7-7 7" strokeWidth="1.5" /></svg>
+          <div className="grid min-w-0 flex-1 gap-3 lg:grid-cols-[minmax(12rem,1.1fr)_2fr] lg:gap-6">
+            <div>
+              <span className="text-sm font-medium text-primary">{wallet.name}</span>
+              {wallet.nym && wallet.nym !== 'none' && <span className="block mt-1 text-caption text-muted">{wallet.nym === 'supported' ? 'Nym supported' : 'Nym · partial support'}</span>}
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-3">
               {signals.map(([key, signal]) => (
-                <div key={key} className="rounded-lg bg-cipher-hover p-2.5">
-                  <p className="text-caption uppercase tracking-wider text-muted mb-1">
-                    {signalLabels[key]}
-                  </p>
-                  <p className="font-mono text-xs font-medium mb-1">{signal.value}</p>
-                  {signal.matchCount !== undefined && signal.matchCount > 0 && (
-                    <p className="text-caption text-cipher-teal font-medium">
-                      {formatNumber(signal.matchCount)} matches
-                    </p>
-                  )}
-                  <p className="text-caption text-muted mt-1 leading-tight">
-                    {signal.source}
-                  </p>
+                <div key={key} className="min-w-0">
+                  <span className="block text-caption text-muted mb-1">{SIGNAL_LABELS[key]}</span>
+                  <span className="block text-caption font-mono text-secondary break-words">{signal.value}</span>
                 </div>
               ))}
             </div>
           </div>
-        )}
-      </CardBody>
-    </Card>
-  );
-}
-
-function NymBadge({ status }: { status?: 'supported' | 'partial' | 'none' }) {
-  if (!status || status === 'none') return null;
-
-  const styles = status === 'supported'
-    ? 'bg-purple-500/15 border-purple-500/30 text-purple-300'
-    : 'bg-purple-500/10 border-purple-500/20 text-purple-400/70';
-
-  const label = status === 'supported' ? 'Nym' : 'Nym (partial)';
-
-  return (
-    <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full border text-caption font-medium uppercase tracking-wider whitespace-nowrap ${styles}`}>
-      <svg className="w-2.5 h-2.5" viewBox="0 0 16 16" fill="currentColor">
-        <path d="M8 1a7 7 0 100 14A7 7 0 008 1zM4.5 7.5a1 1 0 112 0v3a1 1 0 11-2 0v-3zm5 0a1 1 0 112 0v3a1 1 0 11-2 0v-3zM7 5a1 1 0 112 0 1 1 0 01-2 0z" />
-      </svg>
-      {label}
-    </span>
-  );
-}
-
-function SignalPill({ label, signal }: { label: string; signal: WalletSignal }) {
-  const styles = {
-    high: 'bg-cipher-green/15 border-cipher-green/30 text-cipher-green',
-    medium: 'bg-amber-400/15 border-amber-400/30 text-amber-300',
-    low: 'bg-slate-500/15 border-slate-500/30 text-muted',
-  }[signal.confidence];
-
-  const shortValue = signal.value === 'Unknown' || signal.value === 'Unknown (custom builder)'
-    ? '?'
-    : signal.value.length > 12
-      ? signal.value.slice(0, 12) + '...'
-      : signal.value;
-
-  return (
-    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-caption font-mono ${styles}`}>
-      <span className="text-caption opacity-60 uppercase">{label}</span>
-      {shortValue}
-      {signal.matchCount !== undefined && signal.matchCount > 0 && (
-        <span className="text-caption opacity-70">({formatNumber(signal.matchCount)})</span>
-      )}
-    </span>
+        </div>
+      </summary>
+      <div className="px-4 sm:px-5 pb-5 border-t border-cipher-border pt-4">
+        {wallet.description && <p className="text-sm text-secondary mb-3 leading-relaxed">{wallet.description}</p>}
+        {!!wallet.familyMembers?.length && <p className="text-caption text-muted mb-3"><span className="text-secondary">Includes:</span> {wallet.familyMembers.join(' · ')}</p>}
+        {wallet.nymNote && <p className="text-caption text-muted mb-3"><span className="text-secondary">Nym:</span> {wallet.nymNote}</p>}
+        {wallet.note && <p className="text-caption text-muted mb-3 leading-relaxed">{wallet.note}</p>}
+        <dl className="divide-y divide-cipher-border">
+          {signals.map(([key, signal]) => (
+            <div key={key} className="grid gap-2 sm:grid-cols-[6rem_7rem_minmax(0,1fr)] py-3">
+              <dt className="text-caption font-medium text-primary">{SIGNAL_LABELS[key]}</dt>
+              <dd className="text-caption text-secondary">{CONFIDENCE_LABELS[signal.confidence]}</dd>
+              <dd className="text-caption text-muted leading-relaxed break-words">
+                {signal.source}
+                {signal.matchCount !== undefined && <span className="block mt-1 font-mono tabular-nums text-secondary">{formatNumber(signal.matchCount)} matches</span>}
+              </dd>
+            </div>
+          ))}
+        </dl>
+      </div>
+    </details>
   );
 }
 
