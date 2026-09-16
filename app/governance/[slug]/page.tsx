@@ -1,3 +1,4 @@
+import { CopyableValue, CopyableCommand } from '../CopyableValue';
 import { notFound, permanentRedirect } from 'next/navigation';
 import { buildPageMetadata, getNetwork } from '@/lib/seo';
 import { getGovernanceCatalog } from '@/lib/governance-data';
@@ -66,10 +67,10 @@ export default async function VotePage({ params }: Props) {
     </div>
     <ProposalList proposals={vote.proposals} published={published} zecPerUnit={vote.zecPerUnit} />
     <section className="mt-6 rounded-xl border border-cipher-border p-4 sm:p-5"><h2 className="text-sm font-semibold text-primary">Sources & independent verification</h2>
-      <dl className="mt-3 space-y-3 text-xs"><div><dt className="text-muted">Voting round · zvote-1</dt><dd className="mt-1 break-all font-mono text-secondary">{vote.id}</dd></div><div><dt className="text-muted">Zcash snapshot · block {vote.round.snapshot_height.toLocaleString('en-US')}</dt><dd className="mt-1 break-all font-mono text-secondary">{snapshotHash}</dd></div></dl>
+      <dl className="mt-3 space-y-3 text-xs"><div><dt className="text-muted">Voting round · zvote-1</dt><dd className="mt-1"><CopyableValue value={vote.id} label="voting round ID" /></dd></div><div><dt className="text-muted">Zcash snapshot · block {vote.round.snapshot_height.toLocaleString('en-US')}</dt><dd className="mt-1"><CopyableValue value={snapshotHash} label="snapshot block hash" /></dd></div></dl>
       <div className="mt-4 flex flex-wrap gap-4 text-xs text-brand-gold"><a href={`${GOVERNANCE_API}/vote-summary/${vote.id}`} target="_blank" rel="noopener noreferrer">API summary ↗</a><a href={`${GOVERNANCE_API}/tally-results/${vote.id}`} target="_blank" rel="noopener noreferrer">Raw tally ↗</a><a href="https://tally.valargroup.org" target="_blank" rel="noopener noreferrer">Verification guide ↗</a></div>
       <p className="mt-4 text-xs leading-relaxed text-muted">After results are published, synchronize your own voting-chain node and follow the verification guide. Run the command against your local node; reading the API alone is not independent verification.</p>
-      <pre className="mt-3 overflow-x-auto rounded-lg bg-cipher-surface p-3 font-mono text-xs text-secondary">{command}</pre>
+      <div className="mt-3"><CopyableCommand command={command} label="Verify tally command" /></div>
     </section>
     <Freshness catalog={catalog} /><SourceNote />
   </GovernanceShell>;

@@ -1,3 +1,4 @@
+import { CopyableValue, CopyableCommand } from '../CopyableValue';
 import { getParticipationStats, NU7_SNAPSHOT_SUPPLY, NU7_ROUND_ID, NU7_SUMMARY_URL, NU7_TALLY_URL, NU7_VERIFY_COMMAND, ZEC_PER_VOTE_UNIT, type VoteResults as Results } from '@/lib/nu7-vote-results';
 
 const zec = (units: number) => (units * ZEC_PER_VOTE_UNIT).toLocaleString('en-US', { maximumFractionDigits: 3 });
@@ -32,15 +33,19 @@ export function VoteResults({ results }: { results: Results }) {
               <p className="text-xs text-muted mt-1">Range across the five questions</p>
             </div>
           </dl>
-          <p className="text-xs text-muted">Compared with {participation.snapshotZec.toLocaleString('en-US', { maximumFractionDigits: 8 })} ZEC in Ironwood at <a className="text-brand-gold underline" href={`/block/${NU7_SNAPSHOT_SUPPLY.height}`}>snapshot block {NU7_SNAPSHOT_SUPPLY.height.toLocaleString('en-US')}</a> (Aug 24, 2026, 19:18:03 UTC). This compares vote weight with total pool supply, not an exact eligible-voter turnout rate.</p>
-          <details className="text-xs text-muted mt-2">
-            <summary className="cursor-pointer">Verify the snapshot supply</summary>
-            <p className="mt-2">On your Zcash mainnet node, query <code className="break-all">getblock &quot;{NU7_SNAPSHOT_SUPPLY.hash}&quot; 1</code>. The Ironwood entry in <code>valuePools</code> has <code>chainValueZat = {NU7_SNAPSHOT_SUPPLY.ironwoodZatoshi}</code>; divide by 100,000,000 for ZEC. The voting-chain node used to verify the tally is a separate chain.</p>
+          <details className="text-xs text-secondary">
+            <summary className="cursor-pointer text-muted">Snapshot comparison &amp; verification</summary>
+            <div className="mt-3 space-y-3">
+              <p>Compared with {participation.snapshotZec.toLocaleString('en-US', { maximumFractionDigits: 8 })} ZEC in Ironwood at <a className="text-primary underline underline-offset-4" href={`/block/${NU7_SNAPSHOT_SUPPLY.height}`}>snapshot block {NU7_SNAPSHOT_SUPPLY.height.toLocaleString('en-US')}</a> (Aug 24, 2026, 19:18:03 UTC). This is not an exact eligible-voter turnout rate.</p>
+              <div><p className="mb-1 text-muted">Snapshot block hash</p><CopyableValue value={NU7_SNAPSHOT_SUPPLY.hash} label="snapshot block hash" /></div>
+              <CopyableCommand command={`getblock "${NU7_SNAPSHOT_SUPPLY.hash}" 1`} label="Snapshot RPC command" />
+              <p>Run on a Zcash mainnet node. In <code>valuePools</code>, Ironwood has <code>chainValueZat = {NU7_SNAPSHOT_SUPPLY.ironwoodZatoshi}</code>; divide by 100,000,000 for ZEC. The tally uses a separate voting-chain node.</p>
+            </div>
           </details>
         </>}
         {published && <>
           <p className="text-sm text-primary mt-3">1,000,000 ZEC participation threshold: <strong>{thresholdMet ? 'met' : 'not met'}</strong>.</p>
-          <p className="text-xs text-muted mt-2">The threshold applies to at least one question, including abstentions. Each question is counted separately; totals cannot be added to count unique participating ZEC or voters.</p>
+          <p className="text-xs text-muted mt-2">Vote weights include abstentions. Question totals do not count unique voters.</p>
         </>}
       </div>
       {results.proposals.map(p => {
@@ -82,26 +87,47 @@ export function VoteResults({ results }: { results: Results }) {
             <summary className="cursor-pointer text-muted">Question context</summary>
             <p className="mt-2 whitespace-pre-line leading-relaxed">{p.description}</p>
           </details>
-          <p className="text-xs text-muted mt-3">Percentages use this question’s vote weight, including abstentions. They are not percentages of voters.</p>
         </article>;
       })}
-      <section id="verify-results" className="rounded-2xl border border-cipher-border bg-cipher-surface p-5 sm:p-6 space-y-4" aria-labelledby="verify-heading">
-        <h2 id="verify-heading" className="text-lg font-semibold text-primary">Verify the results yourself</h2>
-        <p className="text-sm text-secondary">Anyone can audit the published tally using a synced, independently operated zvote-1 full node. No wallet, private keys, or funds are needed.</p>
-        <div><p className="text-xs text-muted mb-1">NU7 Scope round · Zcash mainnet snapshot 3,459,350</p><code className="text-xs text-primary break-all">{NU7_ROUND_ID}</code></div>
-        <ol className="list-decimal pl-5 space-y-3 text-sm text-secondary">
-          <li>Follow the <a className="text-brand-gold underline" href="https://tally.valargroup.org">official full-node setup and verification guide</a>. Confirm the chain is zvote-1 and let your node sync.</li>
-          <li>Run the command below against your own node. It checks the finalized totals against encrypted accumulators and validator partial decryptions.</li>
-          <li>Check that the report names this round, reports <code>SESSION_STATUS_FINALIZED</code> and <code>verified: true</code>, and includes all 19 question/option checks. Compare its <code>claimed_total</code> values with the raw tally below. A failed or missing check needs investigation.</li>
-        </ol>
-        <pre className="rounded-lg bg-glass-3 p-4 overflow-x-auto text-xs text-primary"><code>{NU7_VERIFY_COMMAND}</code></pre>
-        <div className="flex flex-wrap gap-4 text-sm text-brand-gold">
-          <a className="underline" href={NU7_SUMMARY_URL}>Question labels &amp; totals (JSON)</a>
-          <a className="underline" href={NU7_TALLY_URL}>Raw finalized tally (JSON)</a>
-          <a className="underline" href="https://github.com/valargroup/vote-sdk/blob/7c59b7cc32593ec1a596b8a007431313d7c568a5/x/vote/client/cli/query.go">Verifier source</a>
+      <section id="verify-results" className="rounded-2xl border border-cipher-border bg-cipher-surface p-5 sm:p-6" aria-labelledby="verify-heading">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 id="verify-heading" className="text-lg font-semibold text-primary">Verify the tally</h2>
+          <a className="text-sm text-secondary hover:text-primary underline underline-offset-4" href="https://tally.valargroup.org">Node setup guide ↗</a>
         </div>
-        <p className="text-xs text-muted">Each raw tally unit is 12,500,000 zatoshi (0.125 ZEC), per the <a className="text-brand-gold underline" href="https://github.com/valargroup/vote-sdk/blob/7c59b7cc32593ec1a596b8a007431313d7c568a5/ui/src/App.tsx#L2958">voting software’s conversion</a>. Missing option index 0 fields in the JSON use protobuf’s zero default. API responses alone are not independent verification. The verifier checks the aggregate tally; it does not reveal individual ballots or constitute a full protocol audit.</p>
-        <p className="text-xs text-muted">ZecBlock checks for a complete, matching summary and tally. This page refreshes automatically while visible. Source responses are cached for up to five minutes and may remain older during upstream failures.</p>
+        <p className="mt-2 text-sm text-secondary">Run on your own synced zvote-1 node. No wallet, keys or funds needed.</p>
+        <div className="my-4 space-y-1">
+          <p className="text-xs text-muted">Voting round · NU7 Scope</p>
+          <CopyableValue value={NU7_ROUND_ID} label="voting round ID" />
+        </div>
+        <CopyableCommand command={NU7_VERIFY_COMMAND} label="Verify tally command" />
+        <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-xs text-secondary">
+          <a className="hover:text-primary underline underline-offset-4" href={NU7_SUMMARY_URL}>Question labels &amp; totals (JSON) ↗</a>
+          <a className="hover:text-primary underline underline-offset-4" href={NU7_TALLY_URL}>Raw finalized tally (JSON) ↗</a>
+          <a className="hover:text-primary underline underline-offset-4" href="https://github.com/valargroup/vote-sdk/blob/7c59b7cc32593ec1a596b8a007431313d7c568a5/x/vote/client/cli/query.go">Verifier source ↗</a>
+        </div>
+        <div className="mt-5 divide-y divide-cipher-border border-t border-cipher-border text-xs leading-relaxed text-secondary">
+          <details className="py-3">
+            <summary className="cursor-pointer text-sm text-primary">What should the output show?</summary>
+            <div className="mt-3 space-y-2">
+              <p>Confirm the report names the round above and includes:</p>
+              <ul className="list-disc space-y-1 pl-5">
+                <li><code>SESSION_STATUS_FINALIZED</code></li>
+                <li><code>verified: true</code></li>
+                <li>All 19 question/option checks, with <code>claimed_total</code> values matching the raw tally.</li>
+              </ul>
+              <p>A failed or missing check needs investigation. The command verifies totals against encrypted accumulators and validator partial decryptions; it does not reveal individual ballots or constitute a full protocol audit.</p>
+            </div>
+          </details>
+          <details className="pt-3">
+            <summary className="cursor-pointer text-sm text-primary">Data sources &amp; methodology</summary>
+            <div className="mt-3 space-y-3">
+              <p>Each raw tally unit is 12,500,000 zatoshi (0.125 ZEC), per the <a className="text-primary underline underline-offset-4" href="https://github.com/valargroup/vote-sdk/blob/7c59b7cc32593ec1a596b8a007431313d7c568a5/ui/src/App.tsx#L2958">voting software’s conversion</a>. Missing option index 0 fields use protobuf’s zero default.</p>
+              <p>Percentages use each question’s vote weight, including abstentions, not its number of voters. Totals cannot be added to count unique participating ZEC or voters. The 1,000,000 ZEC threshold applies to at least one question, including abstentions.</p>
+              <p>ZecBlock checks for a complete, matching summary and tally. API responses alone are not independent verification.</p>
+              <p>This page refreshes automatically while visible. Source responses are cached for up to five minutes and may remain older during upstream failures.</p>
+            </div>
+          </details>
+        </div>
       </section>
     </section>
   );

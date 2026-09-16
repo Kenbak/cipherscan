@@ -1,4 +1,3 @@
-import Link from 'next/link';
 import { PageHeader } from '@/components/ui';
 import { STATE_LABELS, catalogIsStale, type Catalog, type VoteState } from '@/lib/governance';
 import { getBaseUrl } from '@/lib/seo';
@@ -15,8 +14,7 @@ export function GovernanceShell({ title, description, path, children, back = tru
   return <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
     <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(data).replace(/</g, '\\u003c') }} />
     <GovernanceRefresh />
-    {back && <Link href="/governance" className="mb-4 inline-block font-mono text-xs text-muted hover:text-brand-gold">← All votes</Link>}
-    <PageHeader eyebrow="GOVERNANCE" title={title} subtitle={description} />
+    <PageHeader eyebrow="GOVERNANCE" eyebrowHref={back ? "/governance" : undefined} title={title} subtitle={description} />
     {children}
   </div>;
 }

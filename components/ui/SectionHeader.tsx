@@ -1,4 +1,5 @@
 import { ReactNode } from 'react';
+import Link from 'next/link';
 
 /**
  * PageHeader — the standard page-level header.
@@ -11,6 +12,7 @@ import { ReactNode } from 'react';
  */
 export function PageHeader({
   eyebrow,
+  eyebrowHref,
   title,
   subtitle,
   actions,
@@ -20,6 +22,8 @@ export function PageHeader({
 }: {
   /** Mono uppercase label, e.g. "MINING" — rendered as "> MINING" */
   eyebrow: string;
+  /** Optional parent link, using the standard eyebrow instead of a separate back row. */
+  eyebrowHref?: string;
   title: ReactNode;
   subtitle?: ReactNode;
   /** Optional right-aligned controls (count, export button, period selector, ...) */
@@ -43,7 +47,7 @@ export function PageHeader({
   return (
     <div className={`mb-8 animate-fade-in ${className}`}>
       <p className="type-label text-muted uppercase mb-3">
-        <span className="opacity-50">{'>'}</span> {eyebrow}
+        <span className="opacity-50" aria-hidden="true">{'>'}</span> {eyebrowHref ? <Link href={eyebrowHref} className="rounded-sm underline decoration-cipher-border underline-offset-4 transition-colors hover:text-primary hover:decoration-current">{eyebrow}</Link> : eyebrow}
       </p>
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div className="min-w-0">

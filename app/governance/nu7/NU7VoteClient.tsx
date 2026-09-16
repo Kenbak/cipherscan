@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
+import { CopyableValue } from '../CopyableValue';
 import type { ReactNode } from 'react';
 import type { VoteResults as Results } from '@/lib/nu7-vote-results';
 import {
@@ -254,10 +255,10 @@ export function NU7VoteClient({ initialData, resultsState, resultsContent, initi
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
-      <Link href="/governance" className="mb-4 inline-block font-mono text-xs text-muted hover:text-brand-gold">← All votes</Link>
       {/* Header */}
       <PageHeader
         eyebrow="GOVERNANCE"
+        eyebrowHref="/governance"
         title={closed ? "NU7 Coinholder Vote Results" : "NU7 Coinholder Vote"}
         subtitle="Private coinholder vote on NU7 scope — issuance smoothing, Sprout deprecation, 25-second blocks, and upgrade schedule. Organized by Valar Group and Project Tachyon."
         actions={<PhaseBadge phase={phase} />}
@@ -653,7 +654,7 @@ function ChainExplorerTab({ chainState }: { chainState: ChainState | null }) {
                       <Tip text="The combined public key used to encrypt all votes. No single validator holds the matching private key.">Election authority key</Tip>
                     </div>
                     <div className="font-mono text-caption text-secondary bg-glass-3 rounded-lg px-3 py-2 break-all leading-relaxed">
-                      {chainState.ceremony.eaPk}
+                      <CopyableValue value={chainState.ceremony.eaPk} label="election authority key" />
                     </div>
                   </div>
                 </div>
