@@ -464,12 +464,11 @@ function MethodologyAccordion() {
   const [open, setOpen] = useState(false);
 
   return (
-    <Card variant="dark">
-      <CardBody>
+    <div className="rounded-lg border border-cipher-border overflow-hidden">
         <button
           onClick={() => setOpen(!open)}
           aria-expanded={open}
-          className="flex items-center justify-between w-full text-left p-3 rounded-md hover:bg-glass-3"
+          className="flex items-center justify-between w-full text-left px-4 py-4 sm:px-5 hover:bg-glass-3 transition-colors"
         >
           <span className="text-sm font-medium">Methodology</span>
           <svg
@@ -482,7 +481,7 @@ function MethodologyAccordion() {
           </svg>
         </button>
         {open && (
-          <div className="mt-5 px-3 pb-3 space-y-3 text-xs text-secondary leading-relaxed">
+          <div className="border-t border-cipher-border px-4 py-4 sm:px-5 space-y-3 text-xs text-secondary leading-relaxed">
             <p>
               <strong>On-chain fingerprint matching:</strong> We count transactions matching each
               wallet&apos;s known signature. Signals used: Orchard action count (padding),
@@ -502,8 +501,7 @@ function MethodologyAccordion() {
             <p><strong>Limitations:</strong> These matches are implementation clues, not verified wallet identities or user counts. Patterns can overlap and change between releases. Unmatched transactions are not assigned to a fabricated remainder category.</p>
           </div>
         )}
-      </CardBody>
-    </Card>
+    </div>
   );
 }
 
