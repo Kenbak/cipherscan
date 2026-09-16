@@ -18,9 +18,12 @@ const categories = getNavigation(NETWORK);
 export function NavBar() {
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
   const [mobileAccordion, setMobileAccordion] = useState<string | null>(null);
   const navRef = useRef<HTMLElement>(null);
   const drawerRef = useRef<HTMLDialogElement>(null);
+  const searchDialogRef = useRef<HTMLDialogElement>(null);
+  const searchTriggerRef = useRef<HTMLButtonElement>(null);
   const mobileTriggerRef = useRef<HTMLButtonElement>(null);
   const pathname = usePathname();
   const activeHref = getActiveNavigationHref(pathname, categories);
@@ -28,6 +31,7 @@ export function NavBar() {
   const closeAll = useCallback(() => {
     setOpenDropdown(null);
     setMobileMenuOpen(false);
+    setSearchOpen(false);
     setMobileAccordion(null);
   }, []);
 
@@ -49,7 +53,30 @@ export function NavBar() {
     };
   }, [openDropdown]);
 
-  useBodyScrollLock(mobileMenuOpen);
+  useBodyScrollLock(mobileMenuOpen || searchOpen);
+
+  useEffect(() => {
+    const dialog = searchDialogRef.current;
+    if (!searchOpen || !dialog) return;
+    dialog.showModal();
+    dialog.querySelector('input')?.focus();
+    return () => dialog.close();
+  }, [searchOpen]);
+
+  useEffect(() => {
+    const openWithKeyboard = (event: KeyboardEvent) => {
+      if (!(event.metaKey || event.ctrlKey) || event.key.toLowerCase() !== 'k') return;
+      // The homepage hero and mobile field handle their own shortcut.
+      if (!searchTriggerRef.current?.getClientRects().length) return;
+      const active = document.activeElement;
+      if (active instanceof HTMLElement && (active.matches('input, textarea') || active.isContentEditable)) return;
+      event.preventDefault();
+      setOpenDropdown(null);
+      setSearchOpen(true);
+    };
+    document.addEventListener('keydown', openWithKeyboard);
+    return () => document.removeEventListener('keydown', openWithKeyboard);
+  }, []);
 
   useEffect(() => {
     const drawer = drawerRef.current;
@@ -107,7 +134,7 @@ export function NavBar() {
             {/* Desktop: Horizontal category dropdowns */}
             {/* Anchored beside the logo rather than centered, so the whole
                 chrome band shares the page's left edge. */}
-            <div className="hidden xl:flex items-center gap-0.5 flex-1 justify-start lg:ml-6">
+            <div className="hidden xl:flex items-center gap-1 flex-1 justify-start xl:ml-6">
               {categories.map(cat => (
                 <div key={cat.id} className="relative" onBlur={event => {
                   if (!event.currentTarget.contains(event.relatedTarget as Node)) setOpenDropdown(null);
@@ -162,13 +189,19 @@ export function NavBar() {
             </div>
 
             {/* Keep SSR/client structure identical; homepage CSS hides compact search. */}
-            <div className="hidden xl:block flex-1 max-w-xs nav-search-compact">
-              <SearchBar compact />
+            <div className="hidden xl:block shrink-0 nav-search-compact">
+              <button ref={searchTriggerRef} type="button" aria-label="Search Zcash" aria-haspopup="dialog" aria-expanded={searchOpen} aria-controls="navigation-search"
+                title="Search (⌘K / Ctrl+K)"
+                onClick={() => { setOpenDropdown(null); setSearchOpen(true); }}
+                className="flex h-9 items-center gap-2 rounded-md border border-cipher-border bg-cipher-surface px-3 text-xs text-secondary transition-colors hover:border-glass-12 hover:text-primary">
+                <svg aria-hidden="true" className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}><circle cx="10.5" cy="10.5" r="6.5" /><path strokeLinecap="round" d="m16 16 4.5 4.5" /></svg>
+                <span>Search</span><kbd aria-hidden="true" className="ml-2 font-mono text-caption text-muted">⌘K</kbd>
+              </button>
             </div>
 
             {/* Right: utilities */}
             <div className="flex items-center gap-1.5 sm:gap-2">
-              {isMainnet ? <Link href="/ask" aria-current={pathname === '/ask' ? 'page' : undefined} className="flex items-center gap-1.5 px-1 sm:px-2.5 py-2 text-xs font-mono text-cipher-gold hover:bg-cipher-hover rounded-md"><span className="hidden sm:inline" aria-hidden="true">&gt;_</span> Ask</Link> : null}
+              {isMainnet ? <Link href="/ask" aria-current={pathname === '/ask' ? 'page' : undefined} title="Ask ZecBlock" className="flex h-9 items-center gap-1.5 px-1 sm:px-2.5 text-xs font-mono text-secondary hover:text-primary hover:bg-cipher-hover rounded-md transition-colors"><span className="hidden sm:inline" aria-hidden="true">&gt;_</span> Ask</Link> : null}
               {/* Buy ZEC — mainnet only, desktop */}
               {isMainnet && (
                 <a
@@ -176,10 +209,9 @@ export function NavBar() {
                   target="_blank"
                   rel="noopener noreferrer"
                   title="Buy ZEC on CipherSwap"
-                  className="hidden xl:flex items-center gap-1 text-xs font-mono font-semibold text-cipher-yellow hover:opacity-80 transition-opacity duration-150 px-2 py-1"
+                  className="hidden xl:flex h-9 items-center gap-1.5 whitespace-nowrap px-3 text-xs font-mono font-semibold text-brand-gold hover:underline underline-offset-4 transition-colors"
                 >
-                  <span className="text-cipher-yellow/50">&gt;</span>
-                  Buy ZEC
+                  Buy ZEC <span aria-hidden="true">↗</span>
                 </a>
               )}
 
@@ -294,6 +326,22 @@ export function NavBar() {
           </div>
         </div>
       </nav>
+
+      <dialog ref={searchDialogRef} id="navigation-search" aria-labelledby="navigation-search-title"
+        onKeyDown={containDialogFocus} onCancel={() => setSearchOpen(false)}
+        onClick={event => { if (event.target === event.currentTarget) setSearchOpen(false); }}
+        className="fixed inset-0 m-0 h-dvh max-h-none w-full max-w-none border-0 bg-transparent p-4 text-primary backdrop:bg-black/50 backdrop:backdrop-blur-sm">
+        <div className="mx-auto mt-[15vh] w-full max-w-2xl rounded-xl border border-cipher-border bg-cipher-bg p-5 shadow-xl sm:p-6">
+          <div className="mb-4 flex items-center justify-between gap-4">
+            <h2 id="navigation-search-title" className="text-base font-medium">Search Zcash</h2>
+            <button type="button" aria-label="Close search" onClick={() => setSearchOpen(false)} className="flex h-8 w-8 items-center justify-center rounded-md text-muted hover:bg-cipher-hover hover:text-primary">
+              <svg aria-hidden="true" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" d="m6 6 12 12M6 18 18 6" /></svg>
+            </button>
+          </div>
+          <SearchBar compact onNavigate={() => setSearchOpen(false)} />
+          <p className="mt-3 text-xs text-muted">Find an address, transaction, block or Zcash name.</p>
+        </div>
+      </dialog>
 
       {/* Mobile Full-Screen Overlay Drawer with Accordion Categories */}
       <dialog ref={drawerRef} id="mobile-navigation" aria-label="Navigation menu"

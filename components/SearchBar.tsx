@@ -10,6 +10,7 @@ import { isMainnet } from '@/lib/config';
 interface SearchBarProps {
   compact?: boolean;
   subtitle?: string;
+  onNavigate?: () => void;
 }
 
 interface LabelSuggestion {
@@ -31,7 +32,7 @@ const categoryConfig: Record<string, { color: string; bg: string }> = {
   'custom': { color: 'text-muted', bg: 'bg-gray-400/10' },
 };
 
-export function SearchBar({ compact = false, subtitle }: SearchBarProps) {
+export function SearchBar({ compact = false, subtitle, onNavigate }: SearchBarProps) {
   const [query, setQuery] = useState('');
   const [isFocused, setIsFocused] = useState(false);
   const [suggestions, setSuggestions] = useState<LabelSuggestion[]>([]);
@@ -41,15 +42,14 @@ export function SearchBar({ compact = false, subtitle }: SearchBarProps) {
   const suggestionsRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
+  const navigate = (href: string) => { onNavigate?.(); router.push(href); };
 
-  // Global ⌘K / Ctrl+K — exactly one SearchBar (compact in the navbar, or
-  // full-size in the homepage hero) is ever mounted per page, so focusing
-  // "the" input here is unambiguous without a shared context/store. Skipped
-  // while another input/textarea/contentEditable already has focus so this
-  // doesn't hijack typing elsewhere on the page.
+  // Only the visible field handles the shortcut; navbar fields remain mounted
+  // across routes and breakpoints to keep hydration stable.
   useEffect(() => {
     function handleGlobalKeyDown(e: KeyboardEvent) {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        if (!inputRef.current?.getClientRects().length) return;
         const active = document.activeElement;
         const isTyping =
           active instanceof HTMLElement &&
@@ -116,7 +116,7 @@ export function SearchBar({ compact = false, subtitle }: SearchBarProps) {
   const selectSuggestion = (suggestion: LabelSuggestion) => {
     setShowSuggestions(false);
     setQuery('');
-    router.push(`/address/${encodeURIComponent(suggestion.address)}`);
+    navigate(`/address/${encodeURIComponent(suggestion.address)}`);
   };
 
   // Close suggestions when clicking outside
@@ -153,21 +153,21 @@ export function SearchBar({ compact = false, subtitle }: SearchBarProps) {
     const addressType = detectAddressType(trimmedQuery);
 
     if (addressType !== 'invalid') {
-      router.push(`/address/${encodeURIComponent(trimmedQuery)}`);
+      navigate(`/address/${encodeURIComponent(trimmedQuery)}`);
     } else if (!isNaN(Number(trimmedQuery))) {
-      router.push(`/block/${encodeURIComponent(trimmedQuery)}`);
+      navigate(`/block/${encodeURIComponent(trimmedQuery)}`);
     } else if (BLOCK_HASH_REGEX.test(trimmedQuery)) {
-      router.push(`/block/${encodeURIComponent(trimmedQuery)}`);
+      navigate(`/block/${encodeURIComponent(trimmedQuery)}`);
     } else if (/^[a-fA-F0-9]{64}$/.test(trimmedQuery)) {
-      router.push(`/tx/${encodeURIComponent(trimmedQuery)}`);
+      navigate(`/tx/${encodeURIComponent(trimmedQuery)}`);
     } else if (/^[a-fA-F0-9]+$/.test(trimmedQuery)) {
-      router.push(`/tx/${encodeURIComponent(trimmedQuery)}`);
+      navigate(`/tx/${encodeURIComponent(trimmedQuery)}`);
     } else {
       const addressByLabel = findAddressByLabel(trimmedQuery);
       if (addressByLabel) {
-        router.push(`/address/${encodeURIComponent(addressByLabel)}`);
+        navigate(`/address/${encodeURIComponent(addressByLabel)}`);
       } else if (isValidName(trimmedQuery.toLowerCase())) {
-        router.push(`/name/${encodeURIComponent(trimmedQuery.toLowerCase())}`);
+        navigate(`/name/${encodeURIComponent(trimmedQuery.toLowerCase())}`);
       } else {
         console.warn('No matching address, transaction, or label found');
       }
@@ -283,7 +283,7 @@ export function SearchBar({ compact = false, subtitle }: SearchBarProps) {
   // Compact version for navbar
   if (compact) {
     return (
-      <form onSubmit={handleSearch} className="flex-1 max-w-lg">
+      <form onSubmit={handleSearch} className="w-full">
         <div className="relative">
           <div className="absolute left-3 top-1/2 -translate-y-1/2 text-cipher-gold font-mono text-xs">
             {'>'}
@@ -296,7 +296,7 @@ export function SearchBar({ compact = false, subtitle }: SearchBarProps) {
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
             onFocus={() => query.length >= 2 && suggestions.length > 0 && setShowSuggestions(true)}
-            placeholder="Search address, tx hash, block number, or name..."
+            placeholder="Address, transaction, block or name"
             className="w-full pl-7 pr-3 py-2 text-xs font-mono search-input"
           />
           <SuggestionsDropdown />
