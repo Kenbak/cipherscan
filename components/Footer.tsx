@@ -76,25 +76,25 @@ export function Footer() {
           </div>
 
           <div className="mt-3 flex flex-col items-start gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-x-6">
-            <nav aria-label="Legal and service information" className="flex flex-wrap items-center gap-x-5 text-caption font-mono">
-              <Link href="/privacy-policy" className="footer-link inline-flex min-h-11 items-center">Privacy Policy</Link>
-              <Link href="/terms" className="footer-link inline-flex min-h-11 items-center">Terms</Link>
-              <a href="https://status.cipherscan.app" target="_blank" rel="noopener noreferrer" className="footer-link inline-flex min-h-11 items-center" aria-label="Service status (opens in a new tab)">Status ↗</a>
-            </nav>
-            <nav aria-label="Network" className="inline-flex max-w-full flex-wrap items-center gap-1 rounded-lg border border-cipher-border p-1 text-caption font-mono">
+            <nav aria-label="Network" className="inline-flex max-w-full flex-wrap items-center gap-x-4 text-caption font-mono">
               {[
                 { id: 'mainnet', label: 'Mainnet', href: MAINNET_URL },
                 { id: 'testnet', label: 'Testnet', href: TESTNET_URL },
                 { id: 'crosslink', label: 'Crosslink', href: CROSSLINK_URL },
               ].map(network => network.id === NETWORK ? (
-                <span key={network.id} aria-current="true" className="inline-flex min-h-11 items-center rounded-md bg-cipher-surface px-3 font-medium text-primary">
+                <span key={network.id} aria-current="true" className="inline-flex min-h-9 items-center text-secondary underline decoration-cipher-border underline-offset-4">
                   {network.label}
                 </span>
               ) : (
-                <a key={network.id} href={network.href} className="footer-link inline-flex min-h-11 items-center rounded-md px-3 hover:bg-cipher-hover">
+                <a key={network.id} href={network.href} className="footer-link inline-flex min-h-9 items-center">
                   {network.label}
                 </a>
               ))}
+            </nav>
+            <nav aria-label="Legal and service information" className="flex flex-wrap items-center gap-x-5 sm:order-first text-caption font-mono">
+              <Link href="/privacy-policy" className="footer-link inline-flex min-h-11 items-center">Privacy Policy</Link>
+              <Link href="/terms" className="footer-link inline-flex min-h-11 items-center">Terms</Link>
+              <a href="https://status.cipherscan.app" target="_blank" rel="noopener noreferrer" className="footer-link inline-flex min-h-11 items-center" aria-label="Service status (opens in a new tab)">Status ↗</a>
             </nav>
           </div>
 
