@@ -45,7 +45,7 @@ const categories: NavigationCategory[] = [
     { href: '/zodl', label: 'Miner ZODL', desc: 'Rewards held and moved', networks: mainnet },
     { href: '/usage-clock', label: 'Usage Clock', desc: 'Timing and regional patterns', networks: mainnet },
     { href: '/crosschain', label: 'Cross-Chain Swaps', desc: 'ZEC swaps via NEAR Intents', networks: mainnet },
-    { href: '/governance/nu7', label: 'NU7 Coinholder Vote', desc: 'Proposals and poll results', networks: mainnet },
+    { href: '/governance', label: 'Governance', desc: 'Votes, schedules and results', networks: mainnet },
   ] },
   { id: 'tools', label: 'Tools', items: [
     { href: '/tools', label: 'Developer Tools', desc: 'Transaction and wallet utilities' },
@@ -74,7 +74,8 @@ export function getNavigation(network: NavigationNetwork, surface: 'header' | 'f
 }
 
 /** Match the deepest listed destination, so child pages do not mark two links current. */
-export function getActiveNavigationHref(pathname: string, navigation: NavigationCategory[]): string | undefined {
+export function getActiveNavigationHref(pathname: string | null, navigation: NavigationCategory[]): string | undefined {
+  if (!pathname) return undefined;
   const path = pathname.replace(/\/$/, '') || '/';
   return navigation.flatMap(category => category.items)
     .filter(item => path === item.href || path.startsWith(`${item.href}/`))

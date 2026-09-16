@@ -12,9 +12,9 @@ export function generateMetadata(): Metadata {
   }
 
   return buildPageMetadata({
-    title: 'NU7 Coinholder Vote — Zcash Governance | ZecBlock',
+    title: 'NU7 Coinholder Vote Results & Verification | ZecBlock',
     description:
-      'Follow the Zcash NU7 coinholder vote: issuance smoothing, Sprout deprecation, 25-second blocks, and upgrade schedule. Live countdown, poll questions, and verified results on ZecBlock.',
+      'See published Zcash NU7 coinholder vote results, ZEC participation by question, and instructions to independently verify the tally with your own voting-chain node.',
     keywords: [
       'Zcash NU7',
       'Zcash governance',
@@ -26,6 +26,7 @@ export function generateMetadata(): Metadata {
       'ZIP 218',
     ],
     path: '/governance/nu7',
+    index: true,
     imageAlt: 'ZecBlock NU7 coinholder vote tracker',
     networks: ['mainnet'],
   });

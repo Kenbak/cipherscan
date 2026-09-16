@@ -23,7 +23,6 @@ export function NavBar() {
   const drawerRef = useRef<HTMLDialogElement>(null);
   const mobileTriggerRef = useRef<HTMLButtonElement>(null);
   const pathname = usePathname();
-  const isHomePage = pathname === '/';
   const activeHref = getActiveNavigationHref(pathname, categories);
 
   const closeAll = useCallback(() => {
@@ -85,7 +84,7 @@ export function NavBar() {
     const observer = new ResizeObserver(syncNavHeight);
     observer.observe(nav);
     return () => observer.disconnect();
-  }, [pathname, isHomePage]);
+  }, [pathname]);
 
   const toggleDropdown = (id: string) => {
     setOpenDropdown(prev => prev === id ? null : id);
@@ -162,12 +161,10 @@ export function NavBar() {
 
             </div>
 
-            {/* Desktop: Search (non-home) */}
-            {!isHomePage && (
-              <div className="hidden xl:block flex-1 max-w-xs nav-search-compact">
-                <SearchBar compact />
-              </div>
-            )}
+            {/* Keep SSR/client structure identical; homepage CSS hides compact search. */}
+            <div className="hidden xl:block flex-1 max-w-xs nav-search-compact">
+              <SearchBar compact />
+            </div>
 
             {/* Right: utilities */}
             <div className="flex items-center gap-1.5 sm:gap-2">
@@ -291,12 +288,10 @@ export function NavBar() {
             </div>
           </div>
 
-          {/* Mobile Search (only on non-home pages) */}
-          {!isHomePage && (
-            <div className="xl:hidden pb-3 nav-search-compact">
-              <SearchBar compact />
-            </div>
-          )}
+          {/* The same homepage CSS controls the mobile search. */}
+          <div className="xl:hidden pb-3 nav-search-compact">
+            <SearchBar compact />
+          </div>
         </div>
       </nav>
 

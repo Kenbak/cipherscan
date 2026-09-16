@@ -1,14 +1,18 @@
+import { readApiData } from '@/lib/api-client';
+import { GovernanceRefresh } from '../GovernanceRefresh';
+import { VoteResults } from './VoteResults';
 import { NU7VoteClient } from './NU7VoteClient';
 import { getApiUrl, getBaseUrl, getNetwork } from '@/lib/seo';
 import { NU7_VOTE } from '@/lib/nu7-vote-config';
 import { fetchWithDeadline } from '@/lib/server-fetch';
+import { NU7_ROUND_ID, NU7_SUMMARY_URL, NU7_TALLY_URL, parseVoteResults } from '@/lib/nu7-vote-results';
 import { notFound } from 'next/navigation';
 
-async function fetchJson(url: string) {
+async function fetchJson(url: string, versioned = false) {
   try {
     const res = await fetchWithDeadline(url, { next: { revalidate: 300 } }, 8_000);
     if (!res.ok) return null;
-    return await res.json();
+    return versioned ? await readApiData(res) : await res.json();
   } catch {
     return null;
   }
@@ -22,7 +26,12 @@ export default async function NU7VotePage() {
   const baseUrl = getBaseUrl();
   const pageUrl = new URL('/governance/nu7', `${baseUrl}/`).toString();
 
-  const networkStats = await fetchJson(`${apiBase}/v1/network/stats`);
+  const [networkStats, summary, tally] = await Promise.all([
+    fetchJson(`${apiBase}/v1/network/stats`, true),
+    fetchJson(NU7_SUMMARY_URL),
+    fetchJson(NU7_TALLY_URL),
+  ]);
+  const results = parseVoteResults(summary, tally);
 
   const supply = networkStats?.supply ?? null;
   const initialData = {
@@ -39,9 +48,11 @@ export default async function NU7VotePage() {
         '@type': 'WebPage',
         '@id': `${pageUrl}#webpage`,
         url: pageUrl,
-        name: 'NU7 Coinholder Vote — Zcash Governance',
+        name: 'NU7 Coinholder Vote Results and Verification',
+        identifier: { '@type': 'PropertyValue', propertyID: 'zvote-1 round', value: NU7_ROUND_ID },
+        about: { '@id': `${pageUrl}#event` },
         description:
-          'Follow the Zcash NU7 coinholder vote: issuance smoothing, Sprout deprecation, 25-second blocks, and upgrade schedule.',
+          'Published Zcash NU7 coinholder vote results, question-by-question participation, and independent tally verification instructions.',
         isPartOf: { '@id': `${baseUrl}/#website` },
         breadcrumb: { '@id': `${pageUrl}#breadcrumb` },
       },
@@ -51,7 +62,6 @@ export default async function NU7VotePage() {
         name: NU7_VOTE.title,
         startDate: NU7_VOTE.voteStartTime,
         endDate: NU7_VOTE.voteEndTime,
-        eventStatus: 'https://schema.org/EventScheduled',
         organizer: [
           { '@type': 'Organization', name: 'Valar Group' },
           { '@type': 'Organization', name: 'Project Tachyon' },
@@ -80,7 +90,8 @@ export default async function NU7VotePage() {
           __html: JSON.stringify(structuredData).replace(/</g, '\\u003c'),
         }}
       />
-      <NU7VoteClient initialData={initialData} />
+      <GovernanceRefresh />
+      <NU7VoteClient initialData={initialData} resultsState={results.state} resultsContent={<VoteResults results={results} />} initialNow={Date.now()} />
     </>
   );
 }

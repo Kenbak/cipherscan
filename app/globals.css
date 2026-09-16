@@ -3,6 +3,12 @@
 @source "../app";
 @source "../lib";
 
+/* Avoid painting defaults before local preferences are known, even when
+   hydration is delayed. HomeFeedCard's noscript styles restore the SSR view. */
+.home-feed-placeholder { display: none; }
+.home-feed[data-preferences-ready="false"] > .home-feed-content { display: none; }
+.home-feed[data-preferences-ready="false"] > .home-feed-placeholder { display: block; }
+
 /* Class-based dark: variant — <html> carries .dark/.light (see ThemeContext).
    Matches the selector the v3 config bridge generated (descendants of .dark). */
 @custom-variant dark (&:is(.dark *));
@@ -1090,7 +1096,7 @@
     transition-duration: var(--duration-normal);
   }
 
-  /* Hide compact nav search on the homepage (CSS-level defense against hydration flash) */
+  /* Keep navbar markup stable across SSR/hydration; page content controls search visibility. */
   body:has(.home-page) .nav-search-compact {
     display: none !important;
   }

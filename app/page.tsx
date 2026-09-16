@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { SearchBar } from '@/components/SearchBar';
 import { SectionHeader } from '@/components/ui/SectionHeader';
 import { HomeFeedCard } from '@/components/HomeFeedCard';
+import { RelativeTimeProvider } from '@/components/RelativeTime';
 import { RecentMempool } from '@/components/RecentMempool';
 import { CrosslinkStats } from '@/components/CrosslinkStats';
 import { CrosslinkChainGraph } from '@/components/CrosslinkChainGraph.lazy';
@@ -189,18 +190,20 @@ export default async function Home() {
           </div>
         </>
       ) : (
-        <div className="home-feeds home-table-section grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <HomeFeedCard
-            storageKey="cipherscan-home-card-left"
-            defaultType="blocks"
-            initialBlocks={initialBlocks}
-          />
-          <HomeFeedCard
-            storageKey="cipherscan-home-card-right"
-            defaultType="shielded"
-            initialShieldedTxs={initialShieldedTxs}
-          />
-        </div>
+        <RelativeTimeProvider initialNow={Date.now()}>
+          <div className="home-feeds home-table-section grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <HomeFeedCard
+              storageKey="cipherscan-home-card-left"
+              defaultType="blocks"
+              initialBlocks={initialBlocks}
+            />
+            <HomeFeedCard
+              storageKey="cipherscan-home-card-right"
+              defaultType="shielded"
+              initialShieldedTxs={initialShieldedTxs}
+            />
+          </div>
+        </RelativeTimeProvider>
       )}
 
       {/* Network Pulse — floating widget */}

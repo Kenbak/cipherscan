@@ -1,7 +1,9 @@
 'use client';
 
-import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
+import type { ReactNode } from 'react';
+import type { VoteResults as Results } from '@/lib/nu7-vote-results';
 import {
   NU7_VOTE,
   VOTE_CHAIN,
@@ -21,8 +23,7 @@ interface InitialData {
 
 type Phase = 'pre-snapshot' | 'pre-vote' | 'active' | 'tallying' | 'results';
 
-function getPhase(): Phase {
-  const now = Date.now();
+function getPhase(now: number): Phase {
   const snapshot = new Date(NU7_VOTE.snapshotTime).getTime();
   const start = new Date(NU7_VOTE.voteStartTime).getTime();
   const end = new Date(NU7_VOTE.voteEndTime).getTime();
@@ -222,8 +223,15 @@ function useChainState(): ChainState | null {
 
 /* ── Main component ── */
 
-export function NU7VoteClient({ initialData }: { initialData: InitialData }) {
-  const phase = useMemo(getPhase, []);
+export function NU7VoteClient({ initialData, resultsState, resultsContent, initialNow }: { initialData: InitialData; resultsState: Results['state']; resultsContent: ReactNode; initialNow: number }) {
+  const [now, setNow] = useState(initialNow);
+  useEffect(() => {
+    if (initialNow >= new Date(NU7_VOTE.voteEndTime).getTime()) return;
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, [initialNow]);
+  const phase = resultsState === 'published' ? 'results' : getPhase(now);
+  const closed = phase === 'results' || phase === 'tallying';
   const snapshotCountdown = useCountdown(NU7_VOTE.snapshotTime);
   const voteStartCountdown = useCountdown(NU7_VOTE.voteStartTime);
   const voteEndCountdown = useCountdown(NU7_VOTE.voteEndTime);
@@ -246,15 +254,19 @@ export function NU7VoteClient({ initialData }: { initialData: InitialData }) {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+      <Link href="/governance" className="mb-4 inline-block font-mono text-xs text-muted hover:text-brand-gold">← All votes</Link>
       {/* Header */}
       <PageHeader
         eyebrow="GOVERNANCE"
-        title="NU7 Coinholder Vote"
+        title={closed ? "NU7 Coinholder Vote Results" : "NU7 Coinholder Vote"}
         subtitle="Private coinholder vote on NU7 scope — issuance smoothing, Sprout deprecation, 25-second blocks, and upgrade schedule. Organized by Valar Group and Project Tachyon."
         actions={<PhaseBadge phase={phase} />}
       />
 
+      {closed && resultsContent}
+
       {/* Countdown + Context */}
+      {!closed && (
       <div className="rounded-2xl border border-cipher-border bg-cipher-surface overflow-hidden mb-8">
         <div className="flex items-center gap-2 border-b border-cipher-border-subtle px-4 py-2.5 sm:px-5">
           <span className="h-2 w-2 rounded-full bg-brand-gold animate-pulse" />
@@ -290,7 +302,7 @@ export function NU7VoteClient({ initialData }: { initialData: InitialData }) {
               {initialData.ironwoodZec != null && (
                 <>
                   <div
-                    className="absolute inset-y-0 left-0 rounded-lg bg-cipher-yellow/20 border-r-2 border-cipher-yellow"
+                    className="absolute inset-y-0 left-0 rounded-lg bg-brand-gold/20 border-r-2 border-brand-gold"
                     style={{ width: `${Math.min((initialData.ironwoodZec / (initialData.ironwoodZec * 1.15)) * 100, 100)}%` }}
                   />
                   <div
@@ -300,7 +312,7 @@ export function NU7VoteClient({ initialData }: { initialData: InitialData }) {
                 </>
               )}
               <div className="absolute inset-0 flex items-center justify-between px-4">
-                <span className="text-sm font-semibold font-mono text-cipher-yellow-bright tabular-nums">
+                <span className="text-sm font-semibold font-mono text-brand-gold-bright tabular-nums">
                   {initialData.ironwoodZec != null
                     ? `${(initialData.ironwoodZec / 1_000_000).toFixed(2)}M ZEC`
                     : '—'}
@@ -315,6 +327,8 @@ export function NU7VoteClient({ initialData }: { initialData: InitialData }) {
           </div>
         </div>
       </div>
+
+      )}
 
       {/* Key Dates — right after countdown */}
       <div className="rounded-2xl border border-cipher-border bg-cipher-surface mb-8">
@@ -335,12 +349,18 @@ export function NU7VoteClient({ initialData }: { initialData: InitialData }) {
             label="Voting closes"
             date={formatVoteDate(NU7_VOTE.voteEndTime)}
             time={formatVoteTime(NU7_VOTE.voteEndTime)}
-            note="Results published shortly after"
+            note={closed ? "Voting has ended" : "Results follow after tallying"}
           />
         </div>
       </div>
 
-      {/* Main tabs: Vote / Chain */}
+      {/* Published results already contain the full questions and options. */}
+      {resultsState === 'published' ? (
+        <details className="mb-8 rounded-2xl border border-cipher-border bg-cipher-surface p-5 sm:p-6">
+          <summary className="cursor-pointer text-sm font-semibold text-primary">Voting chain details</summary>
+          <div className="mt-5"><ChainExplorerTab chainState={chainState} /></div>
+        </details>
+      ) : (
       <div className="mb-8">
         <div className="flex gap-1 p-1 rounded-lg bg-glass-3 w-fit mb-6">
           <button
@@ -351,7 +371,7 @@ export function NU7VoteClient({ initialData }: { initialData: InitialData }) {
                 : 'text-muted hover:text-secondary'
             }`}
           >
-            Vote
+            Poll details
           </button>
           <button
             onClick={() => setActiveTab('chain')}
@@ -376,6 +396,8 @@ export function NU7VoteClient({ initialData }: { initialData: InitialData }) {
         )}
       </div>
 
+      )}
+
       {/* Resources */}
       <div className="mb-8">
         <SectionLabel label="RESOURCES_&_AUDIT" />
@@ -399,10 +421,9 @@ export function NU7VoteClient({ initialData }: { initialData: InitialData }) {
       <div className="rounded-2xl border border-cipher-border bg-cipher-surface p-5 sm:p-6">
         <h3 className="text-xs font-mono font-semibold text-secondary uppercase tracking-wider mb-2">What ZecBlock shows</h3>
         <p className="text-xs text-muted leading-relaxed max-w-3xl">
-          This page displays public vote parameters, countdowns, and live chain state from the Valar
-          zvote-1 REST API. ZecBlock cannot determine individual eligibility, reveal
-          encrypted vote choices before tally, or verify the protocol without an independent
-          full node. The Ironwood supply shown is an upper bound on eligible ZEC — not a turnout estimate.
+          This page displays public vote parameters, published aggregate results, and live chain state from the Valar
+          zvote-1 REST API. ZecBlock has not independently verified the tally. Follow the verification
+          instructions above to check it against your own full node. Individual ballots remain private.
         </p>
       </div>
     </div>
@@ -462,7 +483,7 @@ function VoteTab({
               ))}
             </div>
             <p className="mt-4 text-caption text-muted leading-relaxed">
-              Use a supported wallet to vote. ZecBlock does not handle votes or keys.
+              Wallets that supported this vote. ZecBlock does not handle votes or keys.
             </p>
           </div>
         </div>
@@ -476,7 +497,7 @@ function VoteTab({
               <StatusRow label="Validators" value={chainState?.validators?.length?.toString() ?? '—'} />
               <StatusRow
                 label="Active round"
-                value={chainState?.roundActive ? 'Yes' : 'Not yet'}
+                value={chainState ? (chainState.roundActive ? 'Yes' : 'None') : 'Unavailable'}
                 accent={chainState?.roundActive}
               />
               <StatusRow
@@ -574,7 +595,7 @@ function ChainExplorerTab({ chainState }: { chainState: ChainState | null }) {
                           </span>
                         </td>
                         <td className="px-4 py-2 text-center">
-                          <span className={`tabular-nums ${b.sigCount === chainState.validators.length ? 'text-cipher-green' : 'text-cipher-yellow'}`}>
+                          <span className={`tabular-nums ${b.sigCount === chainState.validators.length ? 'text-cipher-green' : 'text-brand-gold'}`}>
                             {b.sigCount}/{chainState.validators.length}
                           </span>
                         </td>
@@ -607,7 +628,7 @@ function ChainExplorerTab({ chainState }: { chainState: ChainState | null }) {
                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-caption font-mono font-semibold border ${
                       ceremonyStatus === 'Finalized'
                         ? 'border-cipher-green/30 text-cipher-green bg-cipher-green/5'
-                        : 'border-cipher-yellow/30 text-cipher-yellow bg-cipher-yellow/5'
+                        : 'border-brand-gold/30 text-brand-gold bg-brand-gold/5'
                     }`}>
                       {ceremonyStatus}
                     </span>
@@ -738,7 +759,7 @@ function PhaseBadge({ phase }: { phase: Phase }) {
     'pre-snapshot': { label: 'Snapshot pending', color: 'muted' },
     'pre-vote': { label: 'Vote starting soon', color: 'muted' },
     active: { label: 'Voting open', color: 'green' },
-    tallying: { label: 'Tallying', color: 'muted' },
+    tallying: { label: 'Vote closed', color: 'muted' },
     results: { label: 'Results published', color: 'green' },
   };
   const c = config[phase];
@@ -746,7 +767,7 @@ function PhaseBadge({ phase }: { phase: Phase }) {
 }
 
 function MetricCell({ label, value, accent }: { label: string; value: string; accent?: 'yellow' | 'gold' }) {
-  const valueColor = accent === 'yellow' ? 'text-cipher-yellow-bright' : accent === 'gold' ? 'text-cipher-gold-bright' : 'text-primary';
+  const valueColor = accent === 'yellow' ? 'text-brand-gold-bright' : accent === 'gold' ? 'text-cipher-gold-bright' : 'text-primary';
   return (
     <div>
       <div className="text-caption font-mono uppercase tracking-wider text-muted">{label}</div>
@@ -807,7 +828,7 @@ function WalletBadge({ status }: { status: 'confirmed' | 'expected' | 'unknown' 
     return <span className="text-caption font-mono font-semibold text-cipher-green border border-cipher-green/20 bg-cipher-green/5 rounded-full px-2 py-0.5">Confirmed</span>;
   }
   if (status === 'expected') {
-    return <span className="text-caption font-mono font-semibold text-cipher-yellow border border-cipher-yellow/20 bg-cipher-yellow/5 rounded-full px-2 py-0.5">Expected</span>;
+    return <span className="text-caption font-mono font-semibold text-brand-gold border border-brand-gold/20 bg-brand-gold/5 rounded-full px-2 py-0.5">Expected</span>;
   }
   return <span className="text-caption font-mono font-semibold text-muted border border-cipher-border rounded-full px-2 py-0.5">Unknown</span>;
 }

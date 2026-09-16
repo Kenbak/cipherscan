@@ -1,4 +1,5 @@
 import { readApiCollection, parseApiCursor } from '@/lib/api-client';
+import { parseTransactionListItems, type TransactionListItem } from '@/lib/transaction-list';
 import { getApiUrl } from '@/lib/api-config';
 import { retainLastGoodOrBuildFallback } from '@/lib/isr-fallback';
 import { buildPageMetadata, getBaseUrl } from '@/lib/seo';
@@ -114,7 +115,7 @@ function unavailableData(policy: UnavailablePolicy, error: unknown, label: strin
     : fallback;
 }
 
-async function getInitialCollection(request: TransactionsRequest, unavailablePolicy: UnavailablePolicy, shielded: boolean) {
+async function getInitialCollection<T>(request: TransactionsRequest, unavailablePolicy: UnavailablePolicy, shielded: boolean, parseItems: (items: unknown[]) => T[]) {
   try {
     const params = new URLSearchParams({ limit: String(PAGE_SIZE) });
     if (shielded) {
@@ -127,13 +128,13 @@ async function getInitialCollection(request: TransactionsRequest, unavailablePol
       next: { revalidate: 30, tags: ['chain-tip'] },
     });
     const { items, page } = await readApiCollection<unknown>(response);
-    return { items, pagination: { ...page, total: page.total ?? 0, totalPages: Math.ceil((page.total ?? 0) / PAGE_SIZE) }, available: true };
+    return { items: parseItems(items), pagination: { ...page, total: page.total ?? 0, totalPages: Math.ceil((page.total ?? 0) / PAGE_SIZE) }, available: true };
   } catch (error) {
     return unavailableData(unavailablePolicy, error, shielded ? 'latest shielded transactions' : 'latest transactions');
   }
 }
-const getInitialTxs = (request: TransactionsRequest, policy: UnavailablePolicy) => getInitialCollection(request, policy, false);
-const getInitialFlows = (request: TransactionsRequest, policy: UnavailablePolicy) => getInitialCollection(request, policy, true);
+const getInitialTxs = (request: TransactionsRequest, policy: UnavailablePolicy) => getInitialCollection(request, policy, false, parseTransactionListItems);
+const getInitialFlows = (request: TransactionsRequest, policy: UnavailablePolicy) => getInitialCollection(request, policy, true, items => items);
 
 export async function renderTransactionsPage(
   searchParams: Promise<SearchParams>,
@@ -142,7 +143,7 @@ export async function renderTransactionsPage(
   const request = parseTransactionsRequest(await searchParams);
   const isShielded = request.type === 'shielded';
 
-  let initialTxs: unknown[] = [];
+  let initialTxs: TransactionListItem[] = [];
   let initialFlows: unknown[] = [];
   let pagination: Record<string, unknown> | null = null;
   let available = true;
@@ -201,7 +202,7 @@ export async function renderTransactionsPage(
       )}
       <TxsClient
         key={archiveKey}
-        initialTxs={initialTxs as never[]}
+        initialTxs={initialTxs}
         initialFlows={initialFlows as never[]}
         initialPagination={pagination}
         initialPage={request.page}

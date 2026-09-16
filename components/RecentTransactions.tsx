@@ -2,29 +2,16 @@
 
 import { readApiData } from '@/lib/api-client';
 import { useState, useEffect, useRef, memo, useCallback, type ReactNode } from 'react';
-import { formatRelativeTime } from '@/lib/utils';
+import { parseTransactionListItems, type TransactionListItem as Tx } from '@/lib/transaction-list';
+import { RelativeTime } from '@/components/RelativeTime';
 import { formatZecPrecise, zatToZec } from '@/lib/format-numbers';
+import { HomeFeedTableSkeleton } from '@/components/HomeFeedTableSkeleton';
 import { getApiUrl } from '@/lib/api-config';
 import { useWebSocket } from '@/hooks/useWebSocket';
 import { ShieldFlowBadge } from '@/components/ShieldFlowBadge';
 import { resolveShieldFlowType } from '@/components/icons/shield-flow';
-import { HashLink, IconTooltip, RedactedAmount, SkeletonTable } from '@/components/ui';
+import { HashLink, IconTooltip, RedactedAmount } from '@/components/ui';
 
-interface Tx {
-  txid: string;
-  block_time: number;
-  is_coinbase: boolean;
-  vin_count: number;
-  vout_count: number;
-  has_sapling: boolean;
-  has_orchard: boolean;
-  has_ironwood: boolean;
-  value_balance_sapling: number | string;
-  value_balance_orchard: number | string;
-  value_balance_ironwood: number | string;
-  total_output: number | string;
-  flow_type: string | null;
-}
 
 const TransparentIcon = () => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -129,12 +116,12 @@ export const RecentTransactions = memo(function RecentTransactions({
       const apiUrl = `${getApiUrl()}/v1/transactions?limit=${limit}`;
 
       const response = await fetch(apiUrl);
-      const data = await readApiData(response);
-      if (data?.length) {
-        const newTop = data[0]?.txid;
+      const transactions = parseTransactionListItems(await readApiData(response));
+      if (transactions.length) {
+        const newTop = transactions[0].txid;
         if (newTop !== latestKey.current) {
           latestKey.current = newTop;
-          setTxs(data);
+          setTxs(transactions);
         }
       }
     } catch (error) {
@@ -164,12 +151,7 @@ export const RecentTransactions = memo(function RecentTransactions({
   }, [wsConnected, fetchLatest]);
 
   if (loading) {
-    return (
-      <div className="card p-0 overflow-hidden">
-        <SkeletonTable rows={limit} rowHeight="h-12" headers={["TXID", "Flow", "Amount", "Age"]} />
-        {footer && <div className="px-4 py-3 border-t border-cipher-border text-center">{footer}</div>}
-      </div>
-    );
+    return <HomeFeedTableSkeleton rows={limit} footer={footer} />;
   }
 
   return (
@@ -216,7 +198,7 @@ export const RecentTransactions = memo(function RecentTransactions({
                     )}
                   </td>
                   <td className="px-4 sm:px-5 h-12 border-b border-cipher-border text-right">
-                    <span className="text-sm text-muted whitespace-nowrap">{formatRelativeTime(tx.block_time)}</span>
+                    <RelativeTime timestamp={tx.block_time} className="text-sm text-muted whitespace-nowrap" />
                   </td>
                 </tr>
               );
@@ -224,7 +206,7 @@ export const RecentTransactions = memo(function RecentTransactions({
           </tbody>
         </table>
       </div>
-      {footer && <div className="px-4 py-3 border-t border-cipher-border text-center">{footer}</div>}
+      {footer && <div className="px-4 py-3 border-t border-cipher-border flex items-center justify-center text-center">{footer}</div>}
     </div>
   );
 });

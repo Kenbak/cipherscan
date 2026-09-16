@@ -142,6 +142,18 @@
       "core": true
     },
     {
+      "id": "governance",
+      "routeGroup": "/governance",
+      "path": "/governance",
+      "core": true
+    },
+    {
+      "id": "governance-retroactive-grants-q3-2026",
+      "routeGroup": "/governance/[slug]",
+      "path": "/governance/retroactive-grants-q3-2026",
+      "core": true
+    },
+    {
       "id": "governance-nu7",
       "routeGroup": "/governance/nu7",
       "path": "/governance/nu7",

@@ -6,6 +6,7 @@ import { ChartSkeleton } from '@/components/ui/Skeleton';
 import { useState, useEffect, useRef, useMemo } from 'react';
 import Link from 'next/link';
 import { RelativeTime } from '@/components/RelativeTime';
+import { parseTransactionListItems, type TransactionListItem as Transaction } from '@/lib/transaction-list';
 import { formatZecPrecise, zatToZec } from '@/lib/format-numbers';
 import { getApiUrl } from '@/lib/api-config';
 import { Pagination } from '@/components/Pagination';
@@ -27,26 +28,6 @@ type FlowFilter = 'all' | 'shield' | 'deshield' | 'fully_shielded';
 type PoolFilter = 'all' | 'ironwood' | 'sapling' | 'orchard' | 'mixed';
 type ViewTab = 'recent' | 'trends';
 
-interface Transaction {
-  txid: string;
-  block_height: number;
-  block_time: number;
-  size: number;
-  vin_count: number;
-  vout_count: number;
-  has_sapling: boolean;
-  has_orchard: boolean;
-  has_ironwood: boolean;
-  has_sprout: boolean;
-  is_coinbase: boolean;
-  value_balance: number;
-  value_balance_sapling: number;
-  value_balance_orchard: number;
-  value_balance_ironwood: number;
-  total_output: number | string;
-  flow_type: string | null;
-  tx_index?: number;
-}
 
 interface ShieldedFlow {
   id: number;
@@ -112,9 +93,9 @@ function getFlowBadge(tx: Transaction) {
     flowType: tx.flow_type,
     vinCount: tx.vin_count,
     voutCount: tx.vout_count,
-    valueBalanceSapling: tx.value_balance_sapling,
-    valueBalanceOrchard: tx.value_balance_orchard,
-    valueBalanceIronwood: tx.value_balance_ironwood,
+    valueBalanceSapling: Number(tx.value_balance_sapling),
+    valueBalanceOrchard: Number(tx.value_balance_orchard),
+    valueBalanceIronwood: Number(tx.value_balance_ironwood),
   });
 
   if (!tx.has_orchard && !tx.has_sapling && !tx.has_ironwood && !tx.flow_type) {
@@ -312,6 +293,7 @@ function useTransactionsList({
     pageSize: PAGE_SIZE,
     archiveBasePath: '/txs',
     buildParams: () => ({ type: typeFilter }),
+    parseItems: parseTransactionListItems,
     getLatestKey: (tx) => tx.txid,
     buildArchiveHref: (cursor, cursorIdx, direction, targetPage) => {
       const params = new URLSearchParams();

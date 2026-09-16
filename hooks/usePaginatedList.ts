@@ -38,6 +38,8 @@ export interface UsePaginatedListOptions<
   secondaryCursorFields?: { next: string; prev: string };
   /** Build filter/query params — cursor pagination params are added by the hook */
   buildParams?: () => Record<string, string>;
+  /** Validate and normalize items after decoding the v1 collection envelope. */
+  parseItems?: (items: unknown[]) => T[];
   /** Return a comparable key for the newest item (silent refresh dedup) */
   getLatestKey: (item: T) => string | number;
   /** Build archive navigation href */
@@ -128,6 +130,7 @@ export function usePaginatedList<
     secondaryCursorFields,
     buildParams,
     getLatestKey,
+    parseItems,
     buildArchiveHref,
     processExtra,
     shouldWsRefresh = defaultShouldWsRefresh,
@@ -183,7 +186,8 @@ export function usePaginatedList<
         params.set('cursor', String(cursor));
       }
 
-      const { items: visibleItems, page: apiPage } = await fetchLiveResponse(`${base}${endpoint}?${params}`, readApiCollection<T>);
+      const { items: rawItems, page: apiPage } = await fetchLiveResponse(`${base}${endpoint}?${params}`, readApiCollection<T>);
+      const visibleItems = parseItems ? parseItems(rawItems) : rawItems;
       const total = apiPage.total ?? 0;
       setItems(visibleItems);
       setPage(targetPage);
@@ -204,6 +208,7 @@ export function usePaginatedList<
     endpoint,
     getLatestKey,
     processExtra,
+    parseItems,
     secondaryCursorParam,
   ]);
 
@@ -236,7 +241,8 @@ export function usePaginatedList<
         limit: String(pageSize),
         ...(buildParams?.() ?? {}),
       });
-      const { items: visibleItems, page: apiPage } = await fetchLiveResponse(`${base}${endpoint}?${params}`, readApiCollection<T>);
+      const { items: rawItems, page: apiPage } = await fetchLiveResponse(`${base}${endpoint}?${params}`, readApiCollection<T>);
+      const visibleItems = parseItems ? parseItems(rawItems) : rawItems;
       setLastCheckedAt(Date.now());
       setRefreshFailed(false);
       setDataAvailable(true);
@@ -266,6 +272,7 @@ export function usePaginatedList<
     endpoint,
     getLatestKey,
     processExtra,
+    parseItems,
   ]);
 
   silentRefreshRef.current = silentRefresh;

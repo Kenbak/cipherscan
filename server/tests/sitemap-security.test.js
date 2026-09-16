@@ -628,6 +628,8 @@ test('child sitemap isolates static cohorts and returns explicit 404/503 failure
 
   const loadRoute = (network = 'mainnet') => loadTypeScriptModule('app/sitemaps/[slug]/route.ts', {
     'next/cache': { unstable_cache: (callback) => callback },
+    '@/lib/governance-data': { getGovernanceCatalog: async () => ({ votes: [], checkedAt: 0, unavailable: true }) },
+    '@/lib/governance': { isGrantsRound: () => false },
     '@/lib/newsletter': { getAllNewsletters: () => [] },
     '@/lib/refresh-cache': refreshCache,
     '@/lib/seo': {
@@ -676,6 +678,8 @@ test('ZNS child sitemap coalesces one bounded registration refresh', async () =>
   let registrationCalls = 0;
   const route = loadTypeScriptModule('app/sitemaps/[slug]/route.ts', {
     'next/cache': { unstable_cache: (callback) => callback },
+    '@/lib/governance-data': { getGovernanceCatalog: async () => ({ votes: [], checkedAt: 0, unavailable: true }) },
+    '@/lib/governance': { isGrantsRound: () => false },
     '@/lib/newsletter': { getAllNewsletters: () => [] },
     '@/lib/refresh-cache': refreshCache,
     '@/lib/seo': {
@@ -713,6 +717,7 @@ test('transaction archive metadata indexes only unfiltered first pages', async (
   const sharedMocks = {
     'react/jsx-runtime': jsxRuntime,
     './TxsClient': { __esModule: true, default: () => null },
+    '@/lib/transaction-list': loadTypeScriptModule('lib/transaction-list.ts'),
     '@/lib/api-config': { getApiUrl: () => 'https://api.mainnet.cipherscan.app' },
     '@/lib/isr-fallback': {
       retainLastGoodOrBuildFallback: (fallback) => fallback,
