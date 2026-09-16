@@ -5,8 +5,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { getApiUrl } from '@/lib/api-config';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getChartColors } from '@/lib/chart-theme';
-import { NETWORK_LABEL, NETWORK_COLOR } from '@/lib/config';
-import { useCurrencyToggle, fmtValue } from '@/hooks/useCurrencyToggle';
+import { NETWORK_LABEL } from '@/lib/config';
+import { useCurrencyToggle } from '@/hooks/useCurrencyToggle';
 import { zatToZec } from '@/lib/format-numbers';
 import { useInViewport } from '@/hooks/useInViewport';
 import { TurnstileHero } from './TurnstileHero';
@@ -87,7 +87,7 @@ export function MigrationClient({
   const [loaded, setLoaded] = useState(!!initialOverview);
   const { theme } = useTheme();
   const colors = getChartColors(theme);
-  const { mode: currencyMode, toggle: toggleCurrency, price: zecPrice } = useCurrencyToggle();
+  const { mode: currencyMode, setMode: setCurrencyMode, price: zecPrice } = useCurrencyToggle();
 
   // Sentinel placed just above the scatter-consuming sections (Migration
   // Activity + Amount Privacy) — the ~10MB /v1/migration/scatter payload is
@@ -277,14 +277,16 @@ export function MigrationClient({
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <button
-            onClick={toggleCurrency}
-            className="flex items-center rounded-full border border-cipher-border bg-glass-3 text-caption font-mono overflow-hidden"
-          >
-            <span className={`px-2.5 py-1 transition-colors ${currencyMode === 'zec' ? 'bg-cipher-yellow-bright/15 text-cipher-yellow-bright' : 'text-muted'}`}>ZEC</span>
-            <span className={`px-2.5 py-1 transition-colors ${currencyMode === 'usd' ? 'bg-cipher-yellow-bright/15 text-cipher-yellow-bright' : 'text-muted'}`}>USD</span>
-          </button>
-          <span className={`text-caption font-mono ${NETWORK_COLOR} border border-current/20 rounded-full px-3 py-1`}>
+          <div role="group" aria-label="Display currency" className="inline-flex gap-1 p-1 rounded-lg bg-glass-3">
+            {(['zec', 'usd'] as const).map(unit => (
+              <button key={unit} type="button" aria-pressed={currencyMode === unit}
+                onClick={() => setCurrencyMode(unit)}
+                className={`min-h-9 px-3 rounded-md text-xs font-mono uppercase transition-colors ${currencyMode === unit ? 'bg-cipher-bg text-primary shadow-sm ring-1 ring-glass-12' : 'text-muted hover:text-primary'}`}>
+                {unit.toUpperCase()}
+              </button>
+            ))}
+          </div>
+          <span className="text-caption font-mono text-muted px-2" aria-label={`Network: ${NETWORK_LABEL}`}>
             {NETWORK_LABEL}
           </span>
         </div>

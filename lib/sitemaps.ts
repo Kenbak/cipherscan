@@ -212,7 +212,7 @@ export function getStaticSitemapEntries(
   newsletters: NewsletterIssue[],
 ): SitemapUrlEntry[] | null {
   if (slug === 'core') {
-    return CORE_PATHS.map((path) => ({ url: absoluteUrl(baseUrl, path), ...(path.startsWith('/governance') ? { lastModified: '2026-09-15', changeFrequency: 'daily' as const, priority: 0.6 } : {}), ...(path === '/ask' ? { lastModified: '2026-09-10', changeFrequency: 'weekly' as const, priority: 0.7 } : {}), ...(path === '/network/attestations' ? { lastModified: '2026-09-09', changeFrequency: 'hourly' as const, priority: 0.6 } : {}) }));
+    return CORE_PATHS.map((path) => ({ url: absoluteUrl(baseUrl, path), ...(path.startsWith('/governance') ? { lastModified: '2026-09-15', changeFrequency: 'daily' as const, priority: 0.6 } : {}), ...(path === '/ironwood' ? { lastModified: '2026-09-17' } : {}), ...(path === '/ask' ? { lastModified: '2026-09-10', changeFrequency: 'weekly' as const, priority: 0.7 } : {}), ...(path === '/network/attestations' ? { lastModified: '2026-09-09', changeFrequency: 'hourly' as const, priority: 0.6 } : {}) }));
   }
 
   if (slug === 'tools') {

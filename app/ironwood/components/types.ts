@@ -158,5 +158,3 @@ export interface TierTx {
   h: number;
   a: number;
 }
-
-export type WalletStatus = 'zip318' | 'ready' | 'in_progress' | 'unknown';
