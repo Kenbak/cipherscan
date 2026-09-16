@@ -1,0 +1,30 @@
+/* The home-page motif, decorative here: no live data or animation. */
+.grid {
+  display: none;
+  position: absolute;
+  right: -16px;
+  top: 0;
+  grid-template-columns: repeat(8, 30px);
+  gap: 12px;
+  pointer-events: none;
+  opacity: 0.65;
+  mask-image: linear-gradient(to right, transparent, black 30%, black 70%, transparent),
+    linear-gradient(to bottom, transparent, black 30%, black 70%, transparent);
+  mask-composite: intersect;
+}
+
+.grid span {
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--color-border);
+}
+
+.grid .accent {
+  border-color: var(--color-gold);
+  background: var(--color-gold);
+  opacity: 0.4;
+}
+
+@media (min-width: 1024px) {
+  .grid { display: grid; }
+}

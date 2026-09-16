@@ -2,321 +2,184 @@ import { readApiData } from '@/lib/api-client';
 import Link from 'next/link';
 import { getApiUrl } from '@/lib/api-config';
 import { NETWORK_LABEL } from '@/lib/config';
-import { buildPageMetadata } from '@/lib/seo';
+import { buildPageMetadata, getBaseUrl } from '@/lib/seo';
+import styles from './page.module.css';
+
+const DESCRIPTION = 'Explore the story behind ZecBlock, the Zcash blockchain explorer for public network data, shielded pool analytics and developer tools.';
 
 export const metadata = buildPageMetadata({
   title: 'About | ZecBlock',
-  description:
-    'Privacy-first Zcash blockchain explorer. Born at the Zypherpunk hackathon. Making privacy visual, understandable, and accessible to all.',
+  description: DESCRIPTION,
   path: '/about',
   networks: ['mainnet'],
 });
 
 const API_URL = getApiUrl();
 
-interface LiveStats {
-  blocksIndexed: number | null;
-  totalTransactions: number | null;
-  shieldedTxAnalyzed: number | null;
-  chainSizeGB: number | null;
-  miningPools: number;
-  apiEndpoints: number;
+async function getLiveStats() {
+  const [networkResult, privacyResult] = await Promise.allSettled([
+    fetch(`${API_URL}/v1/network/stats`, { next: { revalidate: 60 } })
+      .then(res => res.ok ? readApiData(res) : null),
+    fetch(`${API_URL}/v1/privacy/stats`, { next: { revalidate: 60 } })
+      .then(res => res.ok ? readApiData(res) : null),
+  ]);
+  const network = networkResult.status === 'fulfilled' ? networkResult.value : null;
+  const privacy = privacyResult.status === 'fulfilled' ? privacyResult.value : null;
+  return [
+    { label: 'Block height', value: formatNumber(network?.blockchain?.height) },
+    { label: 'Transactions indexed', value: formatNumber(privacy?.totals?.totalTx) },
+    { label: 'Shielded transactions', value: formatNumber(privacy?.totals?.shieldedTx) },
+    { label: 'Chain data', value: formatNumber(network?.blockchain?.sizeGB, 2), unit: 'GiB' },
+  ];
 }
 
-async function getLiveStats(): Promise<LiveStats> {
-  const STATIC = { miningPools: 12 };
-  try {
-    const [networkRes, privacyRes] = await Promise.allSettled([
-      fetch(`${API_URL}/v1/network/stats`, { next: { revalidate: 60 } }),
-      fetch(`${API_URL}/v1/privacy/stats`, { next: { revalidate: 60 } }),
-    ]);
-
-    const network =
-      networkRes.status === 'fulfilled' && networkRes.value.ok
-        ? await readApiData(networkRes.value)
-        : null;
-    const privacy =
-      privacyRes.status === 'fulfilled' && privacyRes.value.ok
-        ? await readApiData(privacyRes.value)
-        : null;
-
-    return {
-      blocksIndexed: network?.blockchain?.height ?? null,
-      totalTransactions: privacy?.totals?.totalTx ?? null,
-      shieldedTxAnalyzed: privacy?.totals?.shieldedTx ?? null,
-      chainSizeGB: network?.blockchain?.sizeGB ?? null,
-      apiEndpoints: network?.apiEndpoints ?? 104,
-      ...STATIC,
-    };
-  } catch {
-    return { blocksIndexed: null, totalTransactions: null, shieldedTxAnalyzed: null, chainSizeGB: null, apiEndpoints: 104, ...STATIC };
-  }
-}
-
-function fmt(n: number | null): string {
-  if (n === null || n === undefined) return '...';
-  return n.toLocaleString();
+function formatNumber(value: unknown, decimals = 0): string {
+  return typeof value === 'number' && Number.isFinite(value)
+    ? value.toLocaleString('en-US', { maximumFractionDigits: decimals })
+    : '—';
 }
 
 const timeline = [
   {
-    date: 'NOV 2025',
-    tag: 'ORIGIN',
-    tagColor: 'text-cipher-gold',
-    dotColor: 'bg-brand-gold shadow-[0_0_8px_rgb(var(--color-gold-rgb)_/_0.6)]',
-    title: 'Built at Zypherpunk',
-    description:
-      "Created at the world's first Zcash privacy hackathon. 300+ projects. Won 4 tracks: Project Tachyon, Gemini, Raybot, and Network State. From zero to a working explorer in days.",
+    date: 'Nov 2025', month: '2025-11', title: 'Built at Zypherpunk',
+    description: 'Started as CipherScan at the Zcash privacy hackathon, winning tracks from Project Tachyon, Gemini, Raybot and Network State.',
   },
   {
-    date: 'DEC 2025',
-    tag: 'WASM',
-    tagColor: 'text-cipher-purple',
-    dotColor: 'bg-cipher-purple shadow-[0_0_8px_rgb(var(--color-purple-rgb)_/_0.6)]',
-    title: 'Browser-Native Decryption',
-    description:
-      'First frontend WASM-powered Zcash transaction decoder. Decrypt shielded memos entirely in-browser — no server, no keys shared, no trust required.',
-  },
-  // {
-  //   date: 'DEC 2025',
-  //   tag: 'INTEGRATION',
-  //   tagColor: 'text-cipher-green',
-  //   dotColor: 'bg-cipher-green shadow-[0_0_8px_rgba(0,255,148,0.6)]',
-  //   title: 'Near Intents',
-  //   description:
-  //     'Cross-chain integration connecting Zcash privacy with the broader multichain ecosystem.',
-  // },
-  {
-    date: 'JAN 2026',
-    tag: 'ANALYTICS',
-    tagColor: 'text-cipher-gold',
-    dotColor: 'bg-brand-gold shadow-[0_0_8px_rgb(var(--color-gold-rgb)_/_0.6)]',
-    title: 'Privacy Risks & Batch Patterns',
-    description:
-      'Advanced deshielding pattern detection and linkability analysis. Identifying on-chain behaviors that compromise Zcash privacy — and making that data accessible to everyone.',
+    date: 'Dec 2025', month: '2025-12', title: 'In-browser memo decryption',
+    description: 'WASM-powered tools to decrypt shielded memos in the browser, without sending viewing keys to a server.',
+    href: '/decrypt',
   },
   {
-    date: 'FEB 2026',
-    tag: 'GRANT',
-    tagColor: 'text-cipher-yellow',
-    dotColor: 'bg-cipher-yellow shadow-[0_0_8px_rgb(var(--color-yellow-rgb)_/_0.6)]',
-    title: 'ZCG Grant Awarded',
-    description:
-      'Funded by the Zcash Community Grants program. Community recognition that privacy visibility infrastructure is essential for the ecosystem.',
+    date: 'Jan 2026', month: '2026-01', title: 'Privacy risks & batch patterns',
+    description: 'Analysis of public transaction patterns that can increase linkability when funds leave a shielded pool.',
+    href: '/privacy',
   },
   {
-    date: 'MAR 2026',
-    tag: 'CROSS-CHAIN',
-    tagColor: 'text-cipher-green',
-    dotColor: 'bg-cipher-green shadow-[0_0_8px_rgba(0,255,148,0.6)]',
-    title: 'Bridge & Cross-Chain Analytics',
-    description:
-      'Tracking ZEC flowing across bridges — ETH, BTC, and beyond. Mapping the cross-chain ecosystem with swap detection, volume analytics, and bridge health monitoring.',
+    date: 'Feb 2026', month: '2026-02', title: 'ZCG grant awarded',
+    description: 'Support from Zcash Community Grants to continue building the explorer and its privacy tools.',
   },
   {
-    date: 'APR 2026',
-    tag: 'MONITORING',
-    tagColor: 'text-cipher-gold',
-    dotColor: 'bg-brand-gold shadow-[0_0_8px_rgb(var(--color-gold-rgb)_/_0.6)]',
-    title: 'Fork Watch & Network Health',
-    description:
-      'Real-time chain reorganization detection and monitoring. Tracking network consensus health, stale blocks, and reorg depth — critical infrastructure visibility.',
+    date: 'Mar 2026', month: '2026-03', title: 'Cross-chain analytics',
+    description: 'Tracking supported cross-chain ZEC swaps, their volume and the networks they connect.',
+    href: '/crosschain',
   },
   {
-    date: 'MAY 2026',
-    tag: 'INDEXER',
-    tagColor: 'text-cipher-purple',
-    dotColor: 'bg-cipher-purple shadow-[0_0_8px_rgb(var(--color-purple-rgb)_/_0.6)]',
-    title: 'ZecBlock Rust Indexer',
-    description:
-      'High-performance Rust-based blockchain indexer. Full chain state in PostgreSQL — every transaction, output, and shielded action indexed for instant queries across 3.3M+ blocks.',
+    date: 'Apr 2026', month: '2026-04', title: 'Fork watch & network health',
+    description: 'Monitoring chain reorganizations, competing blocks and reorg depth.',
+    href: '/reorgs',
   },
   {
-    date: 'JUN 2026',
-    tag: 'MINING',
-    tagColor: 'text-cipher-orange',
-    dotColor: 'bg-cipher-orange shadow-[0_0_8px_rgb(var(--color-orange-rgb)_/_0.6)]',
-    title: 'Mining Pool Analytics',
-    description:
-      'Pool diversity tracking, hashrate share over time, and miner behavior analysis. Showing whether miners sell or accumulate — strategy transparency for the entire network.',
+    date: 'May 2026', month: '2026-05', title: 'Rust indexer',
+    description: 'A Rust indexing pipeline for querying blocks, transactions and public shielded-action data from PostgreSQL.',
+  },
+  {
+    date: 'Jun 2026', month: '2026-06', title: 'Mining pool analytics',
+    description: 'Pool distribution, estimated hashrate share and tracked miner address flows.',
+    href: '/mining',
+  },
+  {
+    date: 'Jul 2026', month: '2026-07', title: 'Ironwood & migration tracking',
+    description: 'Ironwood support across the explorer, with migration flows, pool balances and supply verification.',
+    href: '/ironwood',
+  },
+  {
+    date: 'Aug 2026', month: '2026-08', title: 'Network node explorer',
+    description: 'Crawler-observed nodes, client versions, reachability and network topology in one place.',
+    href: '/network/nodes',
   },
 ];
 
 export default async function AboutPage() {
   const stats = await getLiveStats();
+  const baseUrl = getBaseUrl();
+  const schema = {
+    '@context': 'https://schema.org',
+    '@type': 'AboutPage',
+    '@id': `${baseUrl}/about#webpage`,
+    url: `${baseUrl}/about`,
+    name: 'About ZecBlock',
+    description: DESCRIPTION,
+    isPartOf: { '@id': `${baseUrl}/#website` },
+    about: { '@id': 'https://zecblock.com/#organization' },
+  };
 
   return (
-    <div className="min-h-screen">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24">
-
-        {/* Hero */}
-        <div className="mb-20 sm:mb-28">
-          <div className="mb-6">
-            <span className="font-mono text-xs text-muted tracking-[0.3em] uppercase">
-              {'>'} about
-            </span>
-          </div>
-          <h1 className="type-page font-mono mb-6 ">
-            <span className="text-primary">Decode the blockchain.</span>
-            <br />
-            <span className="text-cipher-gold">Protect the user.</span>
-          </h1>
-          <p className="text-base sm:text-lg text-muted max-w-2xl leading-relaxed mb-6">
-            ZecBlock is a privacy-first Zcash blockchain explorer.
-            Not just a block browser — a tool for understanding, analyzing, and
-            visualizing what privacy means on-chain. Making the invisible visible
-            without compromising individuals.
-          </p>
-          <p className="text-sm text-muted font-mono">
-            Created by <span className="text-primary">Kenbak</span>
-          </p>
+    <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-16">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schema).replace(/</g, '\\u003c') }} />
+      <header className="relative mb-12 sm:mb-16">
+        <div className={styles.grid} aria-hidden="true">
+          {Array.from({ length: 32 }, (_, index) => (
+            <span key={index} className={index === 11 ? styles.accent : undefined} />
+          ))}
         </div>
+        <div className="relative max-w-xl lg:max-w-lg">
+          <p className="font-mono text-xs text-muted uppercase mb-5">&gt; About</p>
+          <h1 className="type-page text-primary mb-5">A clearer view of Zcash.</h1>
+          <p className="text-sm sm:text-base text-muted leading-relaxed mb-5">
+            ZecBlock is a Zcash blockchain explorer. Follow blocks and transactions,
+            understand shielded pools, and explore the health of the network.
+          </p>
+          <p className="text-xs text-muted">Built by <span className="text-primary">Kenbak</span>. Started as CipherScan.</p>
+        </div>
+      </header>
 
-        {/* Live Stats */}
-        <div className="mb-20 sm:mb-28">
-          <div className="mb-5">
-            <span className="font-mono text-caption text-muted tracking-[0.3em] uppercase">
-              {'>'} live_stats
-            </span>
-          </div>
+      <section aria-labelledby="stats-heading" className="mb-12 sm:mb-16">
+        <div className="flex flex-wrap items-baseline justify-between gap-2 mb-4">
+          <h2 id="stats-heading" className="type-section text-primary">The network in numbers</h2>
+          <p className="text-caption text-muted font-mono">{NETWORK_LABEL} snapshot</p>
+        </div>
+        <dl className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          {stats.map(stat => (
+            <div key={stat.label} className="rounded-lg border border-cipher-border card-surface p-4 sm:p-5">
+              <dt className="text-caption text-muted mb-3">{stat.label}</dt>
+              <dd className="font-mono text-base sm:text-xl text-primary tabular-nums tracking-tight">
+                {stat.value}{stat.unit && stat.value !== '—' && <span className="text-xs text-muted ml-1">{stat.unit}</span>}
+              </dd>
+            </div>
+          ))}
+        </dl>
+        {stats.some(stat => stat.value === '—') && (
+          <p className="text-caption text-muted mt-3">Some network data is currently unavailable.</p>
+        )}
+      </section>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-6 sm:gap-8">
-            {[
-              { label: 'Blocks Indexed', value: fmt(stats.blocksIndexed), color: 'text-cipher-gold' },
-              { label: 'Transactions Tracked', value: fmt(stats.totalTransactions), color: 'text-cipher-yellow' },
-              { label: 'Shielded TXs Analyzed', value: fmt(stats.shieldedTxAnalyzed), color: 'text-cipher-shielded' },
-              { label: 'Chain Data Indexed', value: stats.chainSizeGB ? `${stats.chainSizeGB} GB` : '...', color: 'text-cipher-green' },
-              { label: 'API Endpoints', value: String(stats.apiEndpoints), color: 'text-primary' },
-              { label: 'Mining Pools Tracked', value: String(stats.miningPools), color: 'text-cipher-orange' },
-            ].map((stat) => (
-              <div key={stat.label}>
-                <div className={`text-xl sm:text-2xl lg:text-3xl font-semibold font-mono ${stat.color} leading-none`}>
-                  {stat.value}
-                </div>
-                <div className="text-caption sm:text-caption text-muted font-mono uppercase tracking-wider mt-2">
-                  {stat.label}
-                </div>
+      <section aria-labelledby="why-heading" className="border-t border-cipher-border py-8 sm:py-10 mb-4 sm:mb-6 grid sm:grid-cols-[1fr_2fr] gap-4 sm:gap-10">
+        <h2 id="why-heading" className="type-section text-primary">Understand the network.<br />Respect the privacy.</h2>
+        <p className="text-sm text-muted leading-relaxed">
+          Privacy does not make the whole network invisible. Public transactions,
+          shielded pool balances and network activity help people understand how Zcash is used.
+          ZecBlock brings that data together for users, developers and researchers,
+          without exposing the contents of shielded transactions.
+        </p>
+      </section>
+
+      <section aria-labelledby="timeline-heading" className="mb-12 sm:mb-16">
+        <h2 id="timeline-heading" className="type-section text-primary mb-6">Built over time</h2>
+        <ol className="border-l border-cipher-border ml-1.5">
+          {timeline.map(item => (
+            <li key={item.month} className="relative pl-6 sm:pl-8 pb-7 last:pb-0 sm:grid sm:grid-cols-[7rem_1fr] sm:gap-5">
+              <span aria-hidden="true" className="absolute -left-1 top-1.5 w-2 h-2 bg-cipher-border" />
+              <time dateTime={item.month} className="block font-mono text-caption text-muted mb-2 sm:mb-0 sm:pt-0.5">{item.date}</time>
+              <div>
+                <h3 className="text-sm font-medium text-primary mb-1.5">
+                  {item.href ? <Link href={item.href} className="underline decoration-cipher-border underline-offset-4 hover:decoration-current transition-colors">{item.title}<span aria-hidden="true" className="text-muted ml-2">↗</span></Link> : item.title}
+                </h3>
+                <p className="text-sm text-muted leading-relaxed max-w-xl">{item.description}</p>
               </div>
-            ))}
-          </div>
-          <div className="mt-5">
-            <span className="text-caption text-muted font-mono">LIVE FROM {NETWORK_LABEL}</span>
-          </div>
+            </li>
+          ))}
+        </ol>
+      </section>
+
+      <section aria-labelledby="contribute-heading" className="border-t border-cipher-border pt-8">
+        <h2 id="contribute-heading" className="type-section text-primary mb-2">Open source. Community funded.</h2>
+        <p className="text-sm text-muted leading-relaxed mb-4">Contributions, issues and feedback are welcome.</p>
+        <div className="flex flex-wrap gap-x-6 gap-y-1 text-sm">
+          <a href="https://github.com/Kenbak/cipherscan" target="_blank" rel="noopener noreferrer" className="inline-flex items-center min-h-11 text-primary underline decoration-cipher-border underline-offset-4 hover:decoration-current">GitHub ↗</a>
+          <a href="https://twitter.com/cipherscan_app" target="_blank" rel="noopener noreferrer" className="inline-flex items-center min-h-11 text-primary underline decoration-cipher-border underline-offset-4 hover:decoration-current">X / Twitter ↗</a>
+          <Link href="/docs" className="inline-flex items-center min-h-11 text-primary underline decoration-cipher-border underline-offset-4 hover:decoration-current">API docs →</Link>
         </div>
-
-        {/* Timeline */}
-        <div className="mb-20 sm:mb-28">
-          <div className="mb-8">
-            <span className="font-mono text-caption text-muted tracking-[0.3em] uppercase">
-              {'>'} timeline
-            </span>
-          </div>
-
-          <div className="relative">
-            {/* Vertical line */}
-            <div className="absolute left-[5px] top-2 bottom-2 w-px bg-gradient-to-b from-cipher-gold/40 via-cipher-purple/20 to-transparent" />
-
-            <div className="space-y-8 sm:space-y-10">
-              {timeline.map((item, i) => (
-                <div key={i} className="relative pl-8">
-                  <div className={`absolute left-0 top-1.5 w-[11px] h-[11px] rounded-full ${item.dotColor}`} />
-
-                  <div className="flex flex-wrap items-center gap-2 mb-1">
-                    <span className="font-mono text-caption text-muted tracking-widest">
-                      {item.date}
-                    </span>
-                    <span className={`font-mono text-caption font-semibold tracking-widest ${item.tagColor}`}>
-                      [{item.tag}]
-                    </span>
-                  </div>
-
-                  <h3 className="text-sm sm:text-base font-semibold font-mono text-primary mb-1">
-                    {item.title}
-                  </h3>
-                  <p className="text-xs sm:text-sm text-muted leading-relaxed max-w-2xl">
-                    {item.description}
-                  </p>
-                </div>
-              ))}
-
-              {/* Ongoing */}
-              <div className="relative pl-8">
-                <div className="absolute left-0 top-1.5 w-[11px] h-[11px] rounded-full border border-muted/30 bg-transparent animate-pulse" />
-                <span className="font-mono text-caption text-muted tracking-widest">[BUILDING]</span>
-                <p className="text-xs text-muted font-mono mt-1">More to come.</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Mission */}
-        <div className="mb-20 sm:mb-28">
-          <div className="mb-5">
-            <span className="font-mono text-caption text-muted tracking-[0.3em] uppercase">
-              {'>'} why
-            </span>
-          </div>
-          <p className="text-sm sm:text-base text-muted leading-relaxed max-w-2xl mb-4">
-            Zcash has the strongest privacy technology in crypto. But privacy is invisible
-            by default — that&apos;s the point. The problem: if you can&apos;t see it, you can&apos;t
-            understand it, measure it, or improve it.
-          </p>
-          <p className="text-sm sm:text-base text-muted leading-relaxed max-w-2xl">
-            ZecBlock makes privacy visual, understandable, and accessible to all — developers,
-            researchers, and everyday users. We show the shielded pool&apos;s health, detect patterns
-            that risk privacy, and provide the tools to explore a blockchain designed to be private.
-          </p>
-        </div>
-
-        {/* Open Source CTA */}
-        <div className="border border-cipher-border rounded-2xl p-6 sm:p-8 card-surface">
-          <div className="flex flex-col gap-6">
-            <div>
-              <h2 className="text-base sm:text-lg font-semibold font-mono text-primary mb-2">
-                Open source. Community funded.
-              </h2>
-              <p className="text-xs sm:text-sm text-muted leading-relaxed max-w-lg">
-                ZecBlock is fully open source and funded by the Zcash community.
-                Contributions, issues, and feedback are welcome.
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-3">
-              <a
-                href="https://github.com/Kenbak/cipherscan"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-4 py-2.5 border border-cipher-border rounded-lg font-mono text-xs text-muted hover:text-primary hover:border-cipher-gold/40 transition-colors duration-150"
-              >
-                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                  <path fillRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clipRule="evenodd" />
-                </svg>
-                GitHub
-              </a>
-              <a
-                href="https://twitter.com/cipherscan_app"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-4 py-2.5 border border-cipher-border rounded-lg font-mono text-xs text-muted hover:text-primary hover:border-cipher-gold/40 transition-colors duration-150"
-              >
-                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
-                </svg>
-                @cipherscan_app
-              </a>
-              <Link
-                href="/docs"
-                className="inline-flex items-center gap-2 px-4 py-2.5 bg-brand-gold/10 border border-cipher-gold/30 rounded-lg font-mono text-xs text-cipher-gold hover:bg-brand-gold/20 transition-colors duration-150"
-              >
-                API Docs
-                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
-              </Link>
-            </div>
-          </div>
-        </div>
-
-      </div>
+      </section>
     </div>
   );
 }

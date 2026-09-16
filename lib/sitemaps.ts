@@ -226,6 +226,7 @@ export function getStaticSitemapEntries(
     const staticEntries = CONTENT_PATHS.map((path) => ({
       url: absoluteUrl(baseUrl, path),
       ...(path === '/learn' ? { lastModified: '2026-09-08' } : {}),
+      ...(path === '/about' ? { lastModified: '2026-09-17' } : {}),
       ...(path === '/newsletter' && latestNewsletterDate
         ? { lastModified: latestNewsletterDate }
         : {}),
