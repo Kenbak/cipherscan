@@ -2,7 +2,7 @@ import { buildPageMetadata } from '@/lib/seo';
 
 export const metadata = buildPageMetadata({
   title: 'Developer Tools | ZecBlock',
-  description: 'Free Zcash developer tools: decode raw transactions, broadcast signed transactions, decrypt shielded memos, and more. Built on a live Zebra node.',
+  description: 'Zcash developer tools to decode and broadcast transactions, decrypt shielded memos, compare public flow amounts, convert ZEC units and search anchor roots.',
   keywords: [
     'zcash developer tools',
     'zcash raw transaction',

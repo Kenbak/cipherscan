@@ -1,38 +1,38 @@
 import Link from 'next/link';
-import { Badge } from '@/components/ui/Badge';
-import { Card, CardBody } from '@/components/ui/Card';
-import { PageHeader } from '@/components/ui';
+import { PageHeader } from '@/components/ui/SectionHeader';
+import { getBaseUrl } from '@/lib/seo';
 
 // Icons
 const Icons = {
   Code: () => (
-    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+    <svg className="w-5 h-5" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
     </svg>
   ),
   Bolt: () => (
-    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+    <svg className="w-5 h-5" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
     </svg>
   ),
   Lock: () => (
-    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+    <svg className="w-5 h-5" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
     </svg>
   ),
   Calculator: () => (
-    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+    <svg className="w-5 h-5" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
     </svg>
   ),
   Tree: () => (
-    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
+    <svg className="w-5 h-5" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
     </svg>
   ),
-  ChevronRight: () => (
-    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+  Shield: () => (
+    <svg className="w-5 h-5" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="m12 3-8 3v6c0 5 8 9 8 9s8-4 8-9V6l-8-3Z" />
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h8m-4-4v8" />
     </svg>
   ),
 };
@@ -40,111 +40,98 @@ const Icons = {
 const tools = [
   {
     href: '/tools/decode',
-    title: 'Decode Raw Transaction',
-    desc: 'Parse a raw transaction hex into human-readable fields, inputs, outputs, shielded data, and more.',
+    title: 'Decode transaction',
+    desc: 'Inspect the inputs, outputs and public shielded fields in raw transaction hex.',
     icon: Icons.Code,
-    badge: 'Client-side',
   },
   {
     href: '/tools/broadcast',
-    title: 'Broadcast Transaction',
-    desc: 'Submit a pre-signed raw transaction to the Zcash network via a live Zebra node.',
+    title: 'Broadcast transaction',
+    desc: 'Submit a signed transaction to the Zcash network.',
     icon: Icons.Bolt,
-    badge: 'API',
   },
   {
     href: '/decrypt',
-    title: 'Decrypt Shielded Memo',
-    desc: 'Decode encrypted memos from Orchard and Ironwood transactions using your viewing key. 100% client-side.',
+    title: 'Decrypt memo',
+    desc: 'Read Orchard and Ironwood memos with your viewing key. Decryption stays in your browser.',
     icon: Icons.Lock,
-    badge: 'Client-side WASM',
+  },
+  {
+    href: '/tools/blend-check',
+    title: 'Blend Check',
+    desc: 'Compare an amount with observed shielding and deshielding amounts.',
+    icon: Icons.Shield,
   },
   {
     href: '/tools/unit-converter',
-    title: 'ZEC / Zatoshi Unit Converter',
-    desc: 'Convert between ZEC and zatoshis (1 ZEC = 100,000,000 zatoshis). Useful for devs and raw amounts.',
+    title: 'Unit converter',
+    desc: 'Convert between ZEC and zatoshis, down to the smallest unit.',
     icon: Icons.Calculator,
-    badge: 'Client-side',
   },
   {
     href: '/tools/anchor-search',
-    title: 'Anchor Root Search',
-    desc: 'Search Sapling/Orchard commitment tree roots across canonical and orphaned blocks. Debug wallet sync issues and fork detection.',
+    title: 'Anchor root search',
+    desc: 'Find Sapling and Orchard commitment roots in canonical and orphaned blocks.',
     icon: Icons.Tree,
-    badge: 'API',
   },
 ];
 
 export default function ToolsPage() {
+  const baseUrl = getBaseUrl();
+  const schema = {
+    '@context': 'https://schema.org',
+    '@type': 'CollectionPage',
+    '@id': `${baseUrl}/tools#webpage`,
+    url: `${baseUrl}/tools`,
+    name: 'Zcash Developer Tools',
+    description: 'Tools to inspect transactions, read shielded memos, compare amounts and debug wallets.',
+    isPartOf: { '@id': `${baseUrl}/#website` },
+    publisher: { '@id': 'https://zecblock.com/#organization' },
+    mainEntity: {
+      '@type': 'ItemList',
+      itemListElement: tools.map((tool, index) => ({
+        '@type': 'ListItem', position: index + 1,
+        item: { '@type': 'WebPage', name: tool.title, description: tool.desc, url: `${baseUrl}${tool.href}` },
+      })),
+    },
+  };
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schema).replace(/</g, '\\u003c') }} />
       <PageHeader
-        eyebrow="DEVELOPER_TOOLS"
-        title="Developer Tools"
-        subtitle="Decode and broadcast transactions, decrypt memos, convert units, debug wallets"
+        eyebrow="TOOLS"
+        title="Developer tools"
+        subtitle="Inspect transactions, read shielded memos and debug wallets."
       />
 
-      {/* Tool Cards */}
-      <div className="space-y-4 animate-fade-in-up stagger-2">
-        {tools.map((tool) => {
-          const IconComponent = tool.icon;
+      <ul aria-label="Zcash tools" className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+        {tools.map(tool => {
+          const Icon = tool.icon;
           return (
-            <Link key={tool.href} href={tool.href} className="block">
-              <Card interactive>
-                <CardBody className="flex items-start gap-4">
-                  <div className="w-10 h-10 rounded-lg bg-brand-gold/10 flex items-center justify-center flex-shrink-0">
-                    <span className="text-cipher-gold">
-                      <IconComponent />
-                    </span>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-3 mb-1">
-                      <h2 className="text-base font-semibold text-primary">{tool.title}</h2>
-                      <Badge color="gold">{tool.badge}</Badge>
-                    </div>
-                    <p className="text-sm text-secondary leading-relaxed">{tool.desc}</p>
-                  </div>
-                  <span className="text-muted flex-shrink-0 mt-0.5">
-                    <Icons.ChevronRight />
-                  </span>
-                </CardBody>
-              </Card>
-            </Link>
+            <li key={tool.href}>
+              <Link href={tool.href} className="group block h-full rounded-lg border border-cipher-border card-surface p-5 sm:p-6 transition-colors hover:border-cipher-gold/40">
+                <div className="flex items-center justify-between gap-4 text-muted mb-5">
+                  <Icon />
+                  <span aria-hidden="true" className="transition-colors group-hover:text-brand-gold group-focus-visible:text-brand-gold">→</span>
+                </div>
+                <h2 className="text-base font-medium text-primary mb-2">{tool.title}</h2>
+                <p className="text-sm text-muted leading-relaxed max-w-sm">{tool.desc}</p>
+              </Link>
+            </li>
           );
         })}
-      </div>
+      </ul>
 
-      {/* API Reference */}
-      <div className="mt-10 sm:mt-12 animate-fade-in-up stagger-3">
-        <Card variant="glass">
-          <CardBody>
-            <h3 className="text-xs font-mono text-muted mb-4 uppercase tracking-widest">
-              <span className="opacity-50">{'>'}</span> API_ENDPOINTS
-            </h3>
-            <div className="space-y-3 text-sm font-mono">
-              <div className="flex items-center gap-3">
-                <Badge color="green">POST</Badge>
-                <code className="text-primary">/v1/transactions/broadcast</code>
-                <span className="text-muted hidden sm:inline">— Broadcast signed transaction</span>
-              </div>
-              <div className="flex items-center gap-3">
-                <Badge color="gold">GET</Badge>
-                <code className="text-primary">/v1/transactions/:txid</code>
-                <span className="text-muted hidden sm:inline">— Get transaction details</span>
-              </div>
-              <div className="flex items-center gap-3">
-                <Badge color="gold">GET</Badge>
-                <code className="text-primary">/v1/search/anchors/:root</code>
-                <span className="text-muted hidden sm:inline">— Search anchor root (canonical + orphaned)</span>
-              </div>
-            </div>
-            <p className="text-xs text-muted mt-4">
-              Full documentation at{' '}
-              <Link href="/docs" className="text-cipher-gold hover:underline font-mono">/docs</Link>
-            </p>
-          </CardBody>
-        </Card>
-      </div>
+      <section aria-labelledby="api-heading" className="mt-8 sm:mt-10 border-t border-cipher-border pt-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-8">
+        <div>
+          <h2 id="api-heading" className="type-section text-primary mb-1">Building with Zcash data?</h2>
+          <p className="text-sm text-muted leading-relaxed">Explore endpoints, response formats and examples in the API reference.</p>
+        </div>
+        <Link href="/docs" className="inline-flex min-h-11 items-center gap-2 self-start sm:self-auto shrink-0 text-sm text-primary underline decoration-cipher-border underline-offset-4 hover:decoration-current">
+          API documentation <span aria-hidden="true">→</span>
+        </Link>
+      </section>
     </div>
   );
 }

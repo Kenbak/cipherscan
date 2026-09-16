@@ -216,7 +216,10 @@ export function getStaticSitemapEntries(
   }
 
   if (slug === 'tools') {
-    return TOOL_PATHS.map((path) => ({ url: absoluteUrl(baseUrl, path) }));
+    return TOOL_PATHS.map((path) => ({
+      url: absoluteUrl(baseUrl, path),
+      ...(path === '/tools' ? { lastModified: '2026-09-17' } : {}),
+    }));
   }
 
   if (slug === 'content') {
