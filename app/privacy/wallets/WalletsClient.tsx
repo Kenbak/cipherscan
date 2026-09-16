@@ -138,68 +138,18 @@ export default function WalletsClient() {
       <section id="fee-lanes" className="mb-12 scroll-mt-[calc(var(--app-nav-height,4rem)+var(--app-stats-height,2.75rem)+var(--app-ironwood-height,0px)+1.5rem)]">
         <h2 className="type-section text-primary mb-3">Fee patterns</h2>
         <p className="text-sm text-secondary mb-6">
-          ZIP-317 defines a standard fee of 5,000 zat per logical action. Transactions paying this
-          rate share a fee pattern. A shared fee is one observable property, not a measured anonymity set.
+          Compare fee patterns across observed shielded transactions. The ZIP-317 standard rate is 5,000 zat per logical action.
         </p>
 
         {feeLanes && (
           <>
-            {/* Hero stat row */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-              <StatCard
-                label="Standard Fee"
-                value={`${feeLanes.buckets.standard.pct}%`}
-                subtext={`${formatNumber(feeLanes.buckets.standard.count)} txs`}
-                accent="gold"
-              />
-              <StatCard
-                label="Priority Fee (4x)"
-                value={`${feeLanes.buckets.priority.pct}%`}
-                subtext={`${formatNumber(feeLanes.buckets.priority.count)} txs`}
-                accent="yellow"
-              />
-              <StatCard
-                label="Non-Standard"
-                value={`${feeLanes.buckets.non_standard.pct}%`}
-                subtext={`${formatNumber(feeLanes.buckets.non_standard.count)} txs`}
-                accent="amber"
-              />
-            </div>
-
-            {/* Battery bar */}
-            <Card variant="standard" className="mb-6">
-              <CardBody>
-                <div className="flex items-center gap-2 mb-3">
-                  <span className="text-sm font-medium text-secondary">
-                    Fee Lane Distribution
-                  </span>
-                  <span className="text-xs text-muted">
-                    ({formatNumber(feeLanes.totalShieldedTxs)} shielded txs in {period})
-                  </span>
-                </div>
-                <BatteryBar buckets={feeLanes.buckets} />
-                <div className="flex flex-wrap items-center gap-4 mt-3 text-xs text-secondary">
-                  <span className="flex items-center gap-1">
-                    <span className="w-3 h-3 rounded-sm bg-cipher-green" />
-                    Standard (5000 zat)
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <span className="w-3 h-3 rounded-sm bg-cipher-yellow-bright" />
-                    Priority (20000 zat)
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <span className="w-3 h-3 rounded-sm bg-cipher-orange" />
-                    Non-Standard
-                  </span>
-                </div>
-              </CardBody>
-            </Card>
+            <FeeDistribution data={feeLanes} period={period} />
 
             {/* Stacked area chart */}
             <Card variant="standard" className="mb-6">
               <CardBody>
                 <h3 className="text-sm font-medium text-secondary mb-4">
-                  Fee Lane Evolution Over Time
+                  Fee patterns over time
                 </h3>
                 <><ResponsiveContainer initialDimension={{ width: 500, height: 300 }} width="100%" height={300}>
                   <AreaChart data={feeLanes.history}>
@@ -258,7 +208,6 @@ export default function WalletsClient() {
               </CardBody>
             </Card>
 
-            <p className="text-xs text-muted leading-relaxed mb-6">{feeLanes.buckets.standard.pct}% of observed shielded transactions use the standard fee lane. Shared fee patterns describe this sample; they do not measure an anonymity set or identify a wallet on their own.</p>
           </>
         )}
       </section>
@@ -346,66 +295,46 @@ export default function WalletsClient() {
 // SUB-COMPONENTS
 // ============================================================================
 
-function StatCard({
-  label,
-  value,
-  subtext,
-  accent,
-}: {
-  label: string;
-  value: string;
-  subtext: string;
-  accent: 'gold' | 'yellow' | 'amber';
-}) {
-  const accentClass = { gold: 'text-cipher-green', yellow: 'text-cipher-gold', amber: 'text-cipher-orange' }[accent];
+const FEE_CATEGORIES = [
+  { key: 'standard', label: 'Standard', rate: '5,000 zat / action', color: 'bg-cipher-green' },
+  { key: 'priority', label: 'Priority · 4×', rate: '20,000 zat / action', color: 'bg-cipher-gold' },
+  { key: 'non_standard', label: 'Non-standard', rate: 'Other fee patterns', color: 'bg-cipher-orange' },
+] as const;
+
+function FeeDistribution({ data, period }: { data: FeeLaneData; period: Period }) {
+  const categories = FEE_CATEGORIES.map(category => {
+    const count = data.buckets[category.key].count;
+    const share = data.totalShieldedTxs > 0 ? count / data.totalShieldedTxs * 100 : 0;
+    const label = data.totalShieldedTxs === 0 ? '—' : count === 0 ? '0%' : share < 0.1 ? '<0.1%' : `${share.toFixed(1)}%`;
+    return { ...category, count, share, shareLabel: label };
+  });
 
   return (
-    <Card variant="compact">
-      <CardBody>
-        <p className="text-xs text-secondary mb-1">{label}</p>
-        <p className={`text-3xl font-semibold font-mono ${accentClass}`}>
-          {value}
-        </p>
-        <p className="text-xs text-muted mt-1">{subtext}</p>
-      </CardBody>
-    </Card>
-  );
-}
-
-function BatteryBar({
-  buckets,
-}: {
-  buckets: FeeLaneData['buckets'];
-}) {
-  return (
-    <div className="relative w-full h-8 rounded-lg overflow-hidden flex" role="img" aria-label={`Fee distribution: ${buckets.standard.pct}% standard, ${buckets.priority.pct}% priority, ${buckets.non_standard.pct}% non-standard`}>
-      {buckets.standard.pct > 0 && (
-        <div
-          className="h-full transition-[width] duration-500 flex items-center justify-center text-xs font-medium text-cipher-bg-dark light:text-white"
-          style={{ width: `${buckets.standard.pct}%`, background: 'var(--color-green)' }}
-          title={`Standard: ${buckets.standard.pct}%`}
-        >
-          {buckets.standard.pct > 10 && `${buckets.standard.pct}%`}
+    <div className="rounded-lg border border-cipher-border mb-6 overflow-hidden">
+      <div className="px-4 pt-4 sm:px-5 sm:pt-5">
+        <div className="flex flex-wrap justify-between items-baseline gap-2 mb-4">
+          <h3 className="text-sm font-medium text-primary">Fee distribution</h3>
+          <p className="text-caption text-muted">{formatNumber(data.totalShieldedTxs)} shielded transactions · {period}</p>
         </div>
-      )}
-      {buckets.priority.pct > 0 && (
-        <div
-          className="h-full transition-[width] duration-500 flex items-center justify-center text-xs font-medium text-cipher-bg-dark"
-          style={{ width: `${buckets.priority.pct}%`, background: 'var(--color-gold)' }}
-          title={`Priority: ${buckets.priority.pct}%`}
-        >
-          {buckets.priority.pct > 5 && `${buckets.priority.pct}%`}
+        <div aria-hidden="true" className="flex h-2 overflow-hidden rounded-full bg-glass-5">
+          {categories.map(category => <div key={category.key} className={`h-full shrink-0 ${category.color}`} style={{ width: `${category.share}%` }} />)}
         </div>
-      )}
-      {buckets.non_standard.pct > 0 && (
-        <div
-          className="h-full transition-[width] duration-500 flex items-center justify-center text-xs font-medium text-cipher-bg-dark light:text-white"
-          style={{ width: `${buckets.non_standard.pct}%`, background: 'var(--color-orange)' }}
-          title={`Non-Standard: ${buckets.non_standard.pct}%`}
-        >
-          {buckets.non_standard.pct > 5 && `${buckets.non_standard.pct}%`}
-        </div>
-      )}
+      </div>
+      <dl className="grid sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-cipher-border mt-4">
+        {categories.map(category => (
+          <div key={category.key} className="px-4 py-4 sm:px-5 grid grid-cols-[1fr_auto] sm:block gap-x-4">
+            <dt className="text-sm text-secondary flex items-center gap-2">
+              <span aria-hidden="true" className={`w-2 h-2 rounded-sm shrink-0 ${category.color}`} />{category.label}
+            </dt>
+            <dd className="text-2xl font-mono tabular-nums text-primary sm:mt-2 row-span-2 text-right sm:text-left">{category.shareLabel}</dd>
+            <dd className="text-caption text-muted mt-1">{formatNumber(category.count)} transactions</dd>
+            <dd className="text-caption text-muted mt-1 col-span-2">{category.rate}</dd>
+          </div>
+        ))}
+      </dl>
+      <p className="border-t border-cipher-border px-4 py-3 sm:px-5 text-caption text-muted leading-relaxed">
+        Shared fees do not identify a wallet or measure an anonymity set.
+      </p>
     </div>
   );
 }
