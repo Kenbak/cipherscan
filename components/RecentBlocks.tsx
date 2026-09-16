@@ -1,80 +1,14 @@
 'use client';
 
-import { readApiData } from '@/lib/api-client';
-import { useState, useEffect, useRef, memo, useCallback, type ReactNode } from 'react';
-import { fetchLiveResponse, startLiveRefresh } from '@/lib/live-refresh';
+import { memo, type ReactNode } from 'react';
 import Link from 'next/link';
 import { formatBytesCompact } from '@/lib/format-numbers';
 import { RelativeTime } from '@/components/RelativeTime';
-import { getApiUrl } from '@/lib/api-config';
-import { useWebSocket } from '@/hooks/useWebSocket';
 import { HomeFeedTableSkeleton } from '@/components/HomeFeedTableSkeleton';
+import { useHomeBlocks } from '@/components/HomeBlocksProvider';
 
-interface Block {
-  height: number;
-  hash: string;
-  timestamp: number;
-  transactions: number;
-  size: number;
-  finality?: string | null;
-}
-
-interface RecentBlocksProps {
-  initialBlocks?: Block[];
-  /** Rendered inside the card, below the table (e.g. a "View all" link) — same slot DataTable's own `footer` prop fills. */
-  footer?: ReactNode;
-}
-
-function parseBlock(b: any): Block {
-  return {
-    height: parseInt(b.height ?? b.block_height),
-    hash: b.hash,
-    timestamp: parseInt(b.timestamp ?? b.block_time),
-    transactions: parseInt(b.transaction_count ?? b.transactions ?? 0),
-    size: parseInt(b.size ?? 0),
-  };
-}
-
-export const RecentBlocks = memo(function RecentBlocks({ initialBlocks = [], footer }: RecentBlocksProps) {
-  const [blocks, setBlocks] = useState<Block[]>(initialBlocks);
-  const [loading, setLoading] = useState(initialBlocks.length === 0);
-  const inFlight = useRef(false);
-  const loadedOnce = useRef(initialBlocks.length > 0);
-  const fetchRef = useRef<() => void>(() => {});
-
-  const fetchLatest = useCallback(async () => {
-    if (inFlight.current) return;
-    inFlight.current = true;
-    try {
-      const apiUrl = `${getApiUrl()}/v1/blocks?limit=5`;
-
-      const data = await fetchLiveResponse(apiUrl, readApiData<any[]>);
-      if (!Array.isArray(data) || !data.length) {
-        throw new Error('Block data unavailable');
-      }
-      setBlocks(data.map(parseBlock));
-    } catch (error) {
-      console.error('Error fetching blocks:', error);
-    } finally {
-      inFlight.current = false;
-      if (!loadedOnce.current) {
-        loadedOnce.current = true;
-        setLoading(false);
-      }
-    }
-  }, []);
-
-  fetchRef.current = fetchLatest;
-
-  const handleWsMessage = useCallback((msg: any) => {
-    if (msg.type === 'new_block' || msg.type === 'chain_tip') {
-      void fetchRef.current();
-    }
-  }, []);
-
-  useWebSocket({ onMessage: handleWsMessage, onConnect: fetchLatest });
-
-  useEffect(() => startLiveRefresh(fetchLatest), [fetchLatest]);
+export const RecentBlocks = memo(function RecentBlocks({ footer }: { footer?: ReactNode }) {
+  const { blocks, loading } = useHomeBlocks();
 
   if (loading) {
     return <HomeFeedTableSkeleton rows={5} footer={footer} />;

@@ -2,6 +2,7 @@ import { readApiData } from '@/lib/api-client';
 import Link from 'next/link';
 import { SearchBar } from '@/components/SearchBar';
 import { HeroBlockGrid } from '@/components/HeroBlockGrid';
+import { HomeBlocksProvider } from '@/components/HomeBlocksProvider';
 import { SectionHeader } from '@/components/ui/SectionHeader';
 import { HomeFeedCard } from '@/components/HomeFeedCard';
 import { RelativeTimeProvider } from '@/components/RelativeTime';
@@ -102,6 +103,7 @@ export default async function Home() {
   ]);
 
   return (
+    <HomeBlocksProvider initialBlocks={initialBlocks}>
     <div className="home-page">
       {/* Full-bleed hero band. The band, not the container, owns the hero's
           vertical rhythm, and it deliberately has no border of its own, so it
@@ -112,7 +114,7 @@ export default async function Home() {
             the feed tables below all start on the same left edge.
             z-index so the search dropdown sits above the widgets below. */}
         <div className="home-hero relative z-30 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <HeroBlockGrid initialBlock={initialBlocks[0] ? { hash: initialBlocks[0].hash, height: initialBlocks[0].height } : undefined} />
+          <HeroBlockGrid />
           <div className="home-introduction">
             {/* Kept small on purpose: this line is the indexable page subject,
                 not the visual centrepiece. The search field below is what the
@@ -194,7 +196,6 @@ export default async function Home() {
             <HomeFeedCard
               storageKey="cipherscan-home-card-left"
               defaultType="blocks"
-              initialBlocks={initialBlocks}
             />
             <HomeFeedCard
               storageKey="cipherscan-home-card-right"
@@ -223,5 +224,6 @@ export default async function Home() {
       </div>
       </div>
     </div>
+    </HomeBlocksProvider>
   );
 }

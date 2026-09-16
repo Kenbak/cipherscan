@@ -50,12 +50,10 @@ const CheckIcon = () => (
 export function HomeFeedCard({
   storageKey,
   defaultType,
-  initialBlocks,
   initialShieldedTxs,
 }: {
   storageKey: string;
   defaultType: HomeFeedType;
-  initialBlocks?: any[];
   initialShieldedTxs?: any[];
 }) {
   const [type, setType] = useState<HomeFeedType>(defaultType);
@@ -165,7 +163,7 @@ export function HomeFeedCard({
         />
 
         {type === 'blocks' && (
-          <RecentBlocks initialBlocks={type === defaultType ? initialBlocks : undefined} footer={viewAllLink} />
+          <RecentBlocks footer={viewAllLink} />
         )}
         {type === 'shielded' && (
           <RecentShieldedTxs
