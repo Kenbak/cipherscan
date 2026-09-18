@@ -5,6 +5,7 @@ import { GOVERNANCE_API, GRANTS, isGrantsRound, roundHex } from '@/lib/governanc
 import { NU7_ROUND_ID } from '@/lib/nu7-vote-results';
 import { GovernanceShell, Status, Freshness, SourceNote } from '../GovernanceUI';
 import { ProposalList } from '../ProposalList';
+import { HowToVote } from '../HowToVote';
 
 type Props = { params: Promise<{ slug: string }> };
 const validSlug = (slug: string) => slug === GRANTS.slug || /^[a-f0-9]{64}$/.test(slug);
@@ -51,6 +52,7 @@ export default async function VotePage({ params }: Props) {
         <section className="rounded-xl border border-cipher-border p-4 sm:p-5"><h2 className="text-sm font-semibold text-primary">What coinholders will decide</h2><ul className="mt-3 space-y-2 text-sm text-secondary"><li>Accept</li><li>Reject — do not support the project</li><li>Reject — reconsider in a future round at a lower amount</li><li>Abstain</li></ul><p className="mt-4 text-xs leading-relaxed text-muted">Both rejection options count as “no.” These are the announced options; the registered ballot will be shown when available.</p></section>
         <section className="rounded-xl border border-cipher-border p-4 sm:p-5"><h2 className="text-sm font-semibold text-primary">Follow the vote here</h2><p className="mt-3 text-sm leading-relaxed text-secondary">This page will show the registered proposals, voting status, and published tally, with links to independently verify the results.</p><p className="mt-4 text-xs leading-relaxed text-muted">Disclosure: CipherScan and CipherPay have applications in this round. All proposals will use the same presentation and ballot order.</p></section>
       </div>
+      <div className="mt-6"><HowToVote /></div>
       <Freshness catalog={catalog} /><SourceNote />
     </GovernanceShell>;
   }
@@ -64,6 +66,7 @@ export default async function VotePage({ params }: Props) {
       {isGrantsRound(vote.round) && <p className="mt-3 text-xs text-muted">Both rejection options count as “no.” Approval requires the program’s decision rules. CipherScan and CipherPay are applicants and receive the same presentation as all other proposals.</p>}
       <a href="https://voting.valargroup.org" target="_blank" rel="noopener noreferrer" className="mt-3 inline-block text-sm text-cipher-cyan hover:underline">Official voting site ↗</a>
     </div>
+    {(vote.state === 'active' || vote.state === 'upcoming') && <div className="mt-6"><HowToVote snapshotHeight={vote.round.snapshot_height} /></div>}
     <ProposalList proposals={vote.proposals} published={published} zecPerUnit={vote.zecPerUnit} />
     <section className="mt-6 rounded-xl border border-cipher-border p-4 sm:p-5"><h2 className="text-sm font-semibold text-primary">Sources & independent verification</h2>
       <dl className="mt-3 space-y-3 text-xs"><div><dt className="text-muted">Voting round · zvote-1</dt><dd className="mt-1 break-all font-mono text-secondary">{vote.id}</dd></div><div><dt className="text-muted">Zcash snapshot · block {vote.round.snapshot_height.toLocaleString('en-US')}</dt><dd className="mt-1 break-all font-mono text-secondary">{snapshotHash}</dd></div></dl>

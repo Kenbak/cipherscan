@@ -210,7 +210,7 @@ export function getStaticSitemapEntries(
   newsletters: NewsletterIssue[],
 ): SitemapUrlEntry[] | null {
   if (slug === 'core') {
-    return CORE_PATHS.map((path) => ({ url: absoluteUrl(baseUrl, path), ...(path.startsWith('/governance') ? { lastModified: '2026-09-15', changeFrequency: 'daily' as const, priority: 0.6 } : {}), ...(path === '/network/attestations' ? { lastModified: '2026-09-09', changeFrequency: 'hourly' as const, priority: 0.6 } : {}) }));
+    return CORE_PATHS.map((path) => ({ url: absoluteUrl(baseUrl, path), ...(path.startsWith('/governance') ? { lastModified: path === '/governance/nu7' ? '2026-09-15' : '2026-09-18', changeFrequency: 'daily' as const, priority: 0.6 } : {}), ...(path === '/network/attestations' ? { lastModified: '2026-09-09', changeFrequency: 'hourly' as const, priority: 0.6 } : {}) }));
   }
 
   if (slug === 'tools') {

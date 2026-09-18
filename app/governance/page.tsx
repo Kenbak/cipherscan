@@ -5,9 +5,10 @@ import { getGovernanceCatalog } from '@/lib/governance-data';
 import { GRANTS, isGrantsRound, type Vote } from '@/lib/governance';
 import { NU7_ROUND_ID } from '@/lib/nu7-vote-results';
 import { GovernanceShell, Status, Freshness, SourceNote } from './GovernanceUI';
+import { HowToVote } from './HowToVote';
 
 const title = 'Zcash Governance: Votes & Results';
-const description = 'Follow upcoming and active Zcash coinholder votes, explore past results, and learn how to verify published tallies independently.';
+const description = 'Follow Zcash coinholder votes, learn how to vote with a supported wallet, and explore past results with independent tally verification instructions.';
 export const generateMetadata = () => buildPageMetadata({ title: `${title} | CipherScan`, description, path: '/governance', index: true, networks: ['mainnet'] });
 
 function VoteCard({ vote }: { vote: Vote }) {
@@ -27,6 +28,7 @@ export default async function GovernancePage() {
   const announcementDue = Date.now() >= Date.parse(`${GRANTS.opensOn}T00:00:00Z`);
   const announced = !catalog.votes.some(v => isGrantsRound(v.round));
   return <GovernanceShell title="Zcash Governance" description={description} path="/governance" back={false}>
+    <p className="mb-5 text-sm text-secondary">New to coinholder voting? <a href="#how-to-vote" className="text-cipher-cyan hover:underline">How to vote in 3 steps ↓</a></p>
     <div className="space-y-7">
       <section aria-labelledby="active-votes"><h2 id="active-votes" className="mb-3 font-mono text-xs uppercase tracking-wider text-muted">Active votes {active.length > 0 && `· ${active.length}`}</h2>
         {active.length ? <div className="space-y-3">{active.map(v => <VoteCard key={v.id} vote={v} />)}</div> : <p className="rounded-xl border border-dashed border-cipher-border px-4 py-4 text-sm text-muted">{catalog.unavailable ? 'Current voting status is unavailable.' : 'No active votes in the tracked rounds.'}</p>}
@@ -44,6 +46,8 @@ export default async function GovernancePage() {
         {!catalog.votes.some(v => v.id === NU7_ROUND_ID) && <Link href="/governance/nu7" className="block rounded-xl border border-cipher-border bg-cipher-surface p-5"><h3 className="text-base font-semibold text-primary">NU7 Coinholder Vote</h3><p className="mt-2 text-sm text-muted">Voting closed September 14, 2026. Open the results and verification page →</p></Link>}
       </div></section>
     </div>
-    <Freshness catalog={catalog} /><SourceNote />
+    <Freshness catalog={catalog} />
+    <div className="mt-7"><HowToVote /></div>
+    <SourceNote />
   </GovernanceShell>;
 }
