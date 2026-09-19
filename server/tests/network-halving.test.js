@@ -47,4 +47,58 @@ test('discovers exact halving boundaries entirely through RPC', async () => {
   assert.equal(result.nextMinerReward, 0.78125);
   assert.ok(requestedHeights.includes(currentHeight));
   assert.ok(requestedHeights.includes(NEXT_HALVING));
+  assert.equal(result.halvingStatus, 'available');
+});
+
+test('a threefold spacing subsidy adjustment is not reported as a halving', async () => {
+  const activation = 3_600_000; // Synthetic fixture, not a proposed activation height.
+  const result = await discoverNextHalving(async (_, [height]) => height < activation
+    ? subsidyAt(height) : { totalblocksubsidy: 0.52083333 }, 3_500_000);
+  assert.equal(result.halvingStatus, 'unavailable');
+  assert.equal(result.halvingUnavailableReason, 'non-halving-subsidy-change');
+  assert.equal(result.halvingBlock, null);
+  assert.equal(result.eraProgress, null);
+  assert.equal(result.nextSubsidy, null);
+  assert.equal(result.currentSubsidy, 1.5625);
+});
+
+test('increasing or gradually changing subsidies do not produce a guessed halving', async () => {
+  for (const changed of [1.6, 1.56249999]) {
+    const result = await discoverNextHalving(async (_, [height]) => ({
+      totalblocksubsidy: height < 3_600_000 ? 1.5625 : changed,
+    }), 3_500_000);
+    assert.equal(result.halvingStatus, 'unavailable');
+    assert.equal(result.minerReward, null);
+    assert.equal(result.fundingStreams, null);
+    assert.equal(result.lockbox, null);
+  }
+});
+
+test('integer-zatoshi halvings work without treating the previous spacing adjustment as an era start', async () => {
+  const result = await discoverNextHalving(async (_, [height]) => ({ totalblocksubsidy:
+    height < 3_600_000 ? 1.5625 : height < 5_000_000 ? 0.52083333 : 0.26041666,
+  }), 3_700_000);
+  assert.equal(result.halvingBlock, 5_000_000);
+  assert.equal(result.halvingStatus, 'available');
+  assert.equal(result.eraStartBlock, null);
+  assert.equal(result.eraProgress, null);
+});
+
+test('unknown distant halvings and zero subsidy retain current observations', async () => {
+  for (const current of [1.5625, 0]) {
+    let calls = 0;
+    const result = await discoverNextHalving(async () => { calls++; return { totalblocksubsidy: current }; }, 3_500_000);
+    assert.equal(result.halvingStatus, 'unavailable');
+    assert.equal(result.halvingBlock, null);
+    assert.equal(result.currentSubsidy, current);
+    assert.ok(calls <= 41);
+  }
+});
+
+test('missing or malformed subsidy observations cannot create a boundary', async () => {
+  for (const missing of [null, undefined, -1, NaN, '0.78125', 0.000000001]) {
+    await assert.rejects(discoverNextHalving(async (_, [height]) => ({
+      totalblocksubsidy: height === 3_500_000 ? 1.5625 : missing,
+    }), 3_500_000), /Subsidy observation unavailable/);
+  }
 });

@@ -6,10 +6,11 @@ import { formatDuration } from '@/lib/format-numbers';
 export interface HalvingInfo {
   halvingBlock: number | null;
   blocksRemaining: number | null;
-  eraProgress?: number;
+  eraProgress?: number | null;
+  halvingStatus?: 'available' | 'unavailable';
   currentSubsidy: number;
   nextSubsidy: number | null;
-  minerReward: number;
+  minerReward: number | null;
   nextMinerReward: number | null;
   estimatedDate: string | null;
   estimatedSeconds: number | null;
@@ -33,6 +34,10 @@ export function HalvingPanel({ halving }: { halving: HalvingInfo | null }) {
           <span className="text-xs text-muted font-mono uppercase tracking-widest opacity-50">{'>'}</span>
           <h2 className="text-sm font-semibold font-mono text-secondary lowercase tracking-tight">NEXT_HALVING</h2>
         </div>
+
+        {halving.halvingStatus === 'unavailable' && <p className="text-caption text-muted mb-5">
+          The next halving cannot currently be determined from the node&apos;s subsidy schedule.
+        </p>}
 
         <div className="text-center mb-5">
           <p className="text-3xl sm:text-4xl font-semibold font-mono text-primary tabular-nums">

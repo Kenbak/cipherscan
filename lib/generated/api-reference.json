@@ -1100,12 +1100,12 @@
   {
     "method": "GET",
     "path": "/v1/network/halving",
-    "description": "Block subsidy halving schedule.",
+    "description": "Node-observed halving schedule and cadence-based estimates.",
     "category": "network",
     "query": [],
     "listKey": null,
     "zatoshiFields": [],
-    "note": null,
+    "note": "A constant-subsidy RPC detector reports a countdown only for an exact integer-zatoshi halving. Other transitions or an exhausted two-million-block search return halvingStatus unavailable with null countdown fields. Missing miner/funding allocations are null. Cadence uses up to 120 consecutive indexed block intervals ending at the observed node height; estimates assume it continues and do not predict future upgrades. Successful complete results may be cached for 300 seconds.",
     "ownershipToken": false,
     "pagination": null,
     "parameters": [],
@@ -1212,14 +1212,14 @@
   {
     "method": "GET",
     "path": "/v1/network/emission",
-    "description": "ZEC emission curve.",
+    "description": "Observed chain supply and estimated daily subsidy.",
     "category": "network",
     "query": [
       "period"
     ],
     "listKey": null,
     "zatoshiFields": [],
-    "note": null,
+    "note": "Supply history preserves observed decreases and gaps. circulatingZat and emissionZat are integer zatoshis; ZEC values are display conversions. Invalid or missing supply (including legacy zero sentinels) is null. supplyHistoryTable and supplyObservedAt identify the selected stored source and its latest timestamp; stored history is not live supply. The legacy dailyEmission array is signed net chain-supply change, not gross issuance; missing or nonconsecutive days have null changes. dailyEmissionEstimate extrapolates the current node subsidy at the observed recent block cadence and is null when those inputs are unavailable.",
     "ownershipToken": false,
     "pagination": null,
     "parameters": [

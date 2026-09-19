@@ -25,7 +25,7 @@ export function MiningIssuance() {
             ['Estimated daily issuance', emission.data ? emission.data.dailyEmissionEstimate : null],
           ].map(([label, value]) => <div key={label} className="flex flex-wrap justify-between gap-2 border-b border-cipher-border pb-3"><dt className="text-muted">{label}</dt><dd className="font-mono text-primary tabular-nums">{value != null ? `${value} ZEC` : '—'}</dd></div>)}
         </dl>
-        <p className="text-caption text-muted mt-5">Daily issuance assumes 1,152 blocks at the current subsidy. Halving dates are estimates based on recent block intervals. The activation height determines the subsidy change.</p>
+        <p className="text-caption text-muted mt-5">Daily issuance extrapolates the current subsidy at the recent observed block cadence. Halving dates assume that cadence continues; future upgrades may change it. Estimates are unavailable when recent block observations are incomplete.</p>
       </CardBody></Card>
     </div>
     {error && halving && <p role="status" className="text-caption text-warning mt-3">Could not refresh issuance data. Last received values are shown.</p>}

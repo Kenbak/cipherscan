@@ -6207,7 +6207,7 @@
     "/v1/network/halving": {
       "get": {
         "operationId": "get_network_Halving",
-        "summary": "Block subsidy halving schedule.",
+        "summary": "Node-observed halving schedule and cadence-based estimates.",
         "tags": [
           "network"
         ],
@@ -6217,7 +6217,7 @@
         "x-cipherscan-v1-status": "adapter",
         "responses": {
           "200": {
-            "description": "Block subsidy halving schedule.",
+            "description": "Node-observed halving schedule and cadence-based estimates.",
             "content": {
               "application/json": {
                 "schema": {
@@ -6878,7 +6878,7 @@
     "/v1/network/emission": {
       "get": {
         "operationId": "get_network_Emission",
-        "summary": "ZEC emission curve.",
+        "summary": "Observed chain supply and estimated daily subsidy.",
         "tags": [
           "network"
         ],
@@ -6899,7 +6899,7 @@
         "x-cipherscan-v1-status": "adapter",
         "responses": {
           "200": {
-            "description": "ZEC emission curve.",
+            "description": "Observed chain supply and estimated daily subsidy.",
             "content": {
               "application/json": {
                 "schema": {
