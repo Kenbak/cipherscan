@@ -1,21 +1,26 @@
 import Link from 'next/link';
+import { RelativeTimeProvider } from '@/components/RelativeTime';
 import NetworkClient, { type NetworkPageInitialData } from './NetworkClient';
-import { getApiUrl, getNetwork } from '@/lib/seo';
+import { getApiUrl, getNetwork, getBaseUrl } from '@/lib/seo';
 import { fetchWithDeadline } from '@/lib/server-fetch';
+import { retainLastGoodOrBuildFallback } from '@/lib/isr-fallback';
+
+// Keep the shared HTML/RSC snapshot inexpensive; browsers refresh live data
+// independently. No server fetch may shorten this route's ISR lifetime.
+export const revalidate = 300;
 
 async function fetchJson<T>(
   apiBase: string,
   path: string,
-  revalidate: number,
   expectedNetwork: string,
 ): Promise<T | null> {
   try {
     const response = await fetchWithDeadline(`${apiBase}${path}`, {
-      next: { revalidate },
+      next: { revalidate: 300 },
     });
     if (!response.ok) return null;
     const data = await response.json();
-    if (data?.network && data.network !== expectedNetwork) return null;
+    if (typeof data?.network === 'string' && data.network !== expectedNetwork) return null;
     return data as T;
   } catch {
     return null;
@@ -42,65 +47,60 @@ export default async function NetworkPage() {
     feeDistribution,
     protocolStats,
   ] = await Promise.all([
-    fetchJson<NetworkPageInitialData['stats']>(apiBase, '/api/network/stats', 30, network),
-    fetchJson<NetworkPageInitialData['health']>(apiBase, '/api/network/health', 60, network),
-    fetchJson<NetworkPageInitialData['price']>(apiBase, '/api/price', 60, network),
+    fetchJson<NetworkPageInitialData['stats']>(apiBase, '/api/network/stats', network),
+    fetchJson<NetworkPageInitialData['health']>(apiBase, '/api/network/health', network),
+    fetchJson<NetworkPageInitialData['price']>(apiBase, '/api/price', network),
     fetchJson<NetworkPageInitialData['breakdown']>(
       apiBase,
       '/api/supply/transparent-breakdown',
-      300,
       network,
     ),
-    fetchJson<NetworkPageInitialData['halving']>(apiBase, '/api/network/halving', 300, network),
+    fetchJson<NetworkPageInitialData['halving']>(apiBase, '/api/network/halving', network),
     fetchJson<NetworkPageInitialData['emission']>(
       apiBase,
       '/api/network/emission?period=1y',
-      300,
       network,
     ),
     fetchJson<NetworkPageInitialData['nodeLocations']>(
       apiBase,
       '/api/network/nodes',
-      300,
       network,
     ),
     fetchJson<NetworkPageInitialData['nodeStats']>(
       apiBase,
       '/api/network/nodes/stats',
-      300,
       network,
     ),
     fetchJson<NetworkPageInitialData['recentBlocks']>(
       apiBase,
       '/api/network/blocks/recent?limit=15',
-      30,
       network,
     ),
     fetchJson<NetworkPageInitialData['poolHistory']>(
       apiBase,
       '/api/network/pool-history?period=all',
-      300,
       network,
     ),
     fetchJson<NetworkPageInitialData['chainSizeHistory']>(
       apiBase,
       '/api/network/chain-size-history?period=1y',
-      300,
       network,
     ),
     fetchJson<NetworkPageInitialData['feeDistribution']>(
       apiBase,
       '/api/network/fee-distribution?period=30d',
-      300,
       network,
     ),
     fetchJson<NetworkPageInitialData['protocolStats']>(
       apiBase,
       '/api/network/protocol-stats',
-      300,
       network,
     ),
   ]);
+
+  if (!stats) {
+    retainLastGoodOrBuildFallback(null, new Error('Network statistics unavailable'), 'network snapshot');
+  }
 
   const initialData: NetworkPageInitialData = {
     fetchedAt,
@@ -119,12 +119,24 @@ export default async function NetworkPage() {
     protocolStats,
   };
 
+  const pageUrl = `${getBaseUrl()}/network`;
+  const pageSchema = {
+    '@context': 'https://schema.org', '@type': 'WebPage', '@id': `${pageUrl}#webpage`,
+    url: pageUrl, name: 'Zcash Network Overview',
+    description: 'Zcash network statistics, supply, mining and observed nodes.',
+    isPartOf: { '@id': `${getBaseUrl()}/#website` },
+    publisher: { '@id': 'https://cipherscan.app/#organization' },
+  };
+
   return (
     <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(pageSchema).replace(/</g, '\\u003c') }} />
       {network !== 'crosslink-testnet' ? <nav aria-label="Network monitoring" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
         <Link href="/network/attestations" className="text-sm text-cipher-cyan hover:underline">Zero Indexer attestation monitor →</Link>
       </nav> : null}
-      <NetworkClient initialData={initialData} />
+      <RelativeTimeProvider initialNow={fetchedAt}>
+        <NetworkClient initialData={initialData} />
+      </RelativeTimeProvider>
 
       {/* Static page description — server-rendered for indexing */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">

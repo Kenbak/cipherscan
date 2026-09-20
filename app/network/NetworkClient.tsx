@@ -3,6 +3,7 @@
 import { useEffect, useState, lazy, Suspense, type ReactNode } from 'react';
 import Link from 'next/link';
 import { useWebSocket } from '@/hooks/useWebSocket';
+import { RelativeTime } from '@/components/RelativeTime';
 import { useApiQuery } from '@/hooks/useApiQuery';
 import { Card, CardBody } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
@@ -236,9 +237,10 @@ export default function NetworkClient({ initialData }: { initialData: NetworkPag
     );
   }
 
-  if (error || !stats) {
+  if (!stats) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <PageHeader eyebrow="NETWORK_STATUS" title="Network Overview" subtitle="Zcash network statistics are temporarily unavailable." />
         <Card className="text-center">
           <CardBody className="py-16">
             <div className="text-5xl mb-6">&#x26A0;&#xFE0F;</div>
@@ -264,6 +266,11 @@ export default function NetworkClient({ initialData }: { initialData: NetworkPag
         subtitle="Live Zcash network statistics: block height, hashrate, difficulty, peer count, circulating supply, shielded pool balances, and mining pool distribution — indexed directly from a Zebra full node."
       />
 
+      {error ? (
+        <p role="status" className="mb-6 text-sm text-muted">
+          Live refresh delayed. Showing the last available network statistics.
+        </p>
+      ) : null}
       <NetworkSectionNav />
 
       {/* ── OVERVIEW ── */}
@@ -294,6 +301,7 @@ export default function NetworkClient({ initialData }: { initialData: NetworkPag
               <BlockActivityChart limit={80} />
             ) : (
               <NodeMap
+                initialFetchedAt={initialData.fetchedAt}
                 initialLocations={initialData.nodeLocations}
                 initialStats={initialData.nodeStats}
               />
@@ -323,7 +331,7 @@ export default function NetworkClient({ initialData }: { initialData: NetworkPag
 
         <div className="animate-fade-in-up stagger-4">
           <Suspense fallback={<div className="card h-64 animate-pulse" />}>
-            <RecentBlocksTable initialData={initialData.recentBlocks} />
+            <RecentBlocksTable initialFetchedAt={initialData.fetchedAt} initialData={initialData.recentBlocks} />
           </Suspense>
         </div>
       </section>
@@ -475,16 +483,16 @@ export default function NetworkClient({ initialData }: { initialData: NetworkPag
 
             <div className="space-y-6 animate-fade-in-up">
               <Suspense fallback={<div className="card h-80 animate-pulse" />}>
-                <PoolDistributionChart initialData={initialData.poolHistory} />
+                <PoolDistributionChart initialFetchedAt={initialData.fetchedAt} initialData={initialData.poolHistory} />
               </Suspense>
               <Suspense fallback={<div className="card h-64 animate-pulse" />}>
-                <NetworkHistoryCharts initialData={initialData.chainSizeHistory} />
+                <NetworkHistoryCharts initialFetchedAt={initialData.fetchedAt} initialData={initialData.chainSizeHistory} />
               </Suspense>
               <Suspense fallback={<div className="card h-80 animate-pulse" />}>
-                <FeeDistributionChart initialData={initialData.feeDistribution} />
+                <FeeDistributionChart initialFetchedAt={initialData.fetchedAt} initialData={initialData.feeDistribution} />
               </Suspense>
               <Suspense fallback={<div className="card h-80 animate-pulse" />}>
-                <ProtocolStatsChart initialData={initialData.protocolStats} />
+                <ProtocolStatsChart initialFetchedAt={initialData.fetchedAt} initialData={initialData.protocolStats} />
               </Suspense>
             </div>
 
@@ -659,7 +667,6 @@ function ChainInfoStrip({
 }) {
   const supply = stats.supply!;
   const upgradeUrl = getUpgradeUrl(supply.activeUpgrade);
-  const latestBlockAgo = `${Math.floor((Date.now() / 1000 - stats.blockchain.latestBlockTime) / 60)}m ago`;
 
   return (
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-8 animate-fade-in-up stagger-4">
@@ -676,8 +683,8 @@ function ChainInfoStrip({
       />
       <ChainInfoChip
         label="Latest block"
-        value={latestBlockAgo}
-        subtitle={new Date(stats.blockchain.latestBlockTime * 1000).toLocaleTimeString()}
+        value={<RelativeTime timestamp={stats.blockchain.latestBlockTime} />}
+        subtitle={new Date(stats.blockchain.latestBlockTime * 1000).toISOString().slice(11, 19) + ' UTC'}
         tooltip="Time since the most recent block was mined. Zcash targets a new block every 75 seconds."
       />
       <HoverTip tip="The currently active Zcash network upgrade.">
@@ -697,7 +704,7 @@ function ChainInfoStrip({
 }
 
 function ChainInfoChip({ label, value, subtitle, tooltip }: {
-  label: string; value: string; subtitle?: string; tooltip?: string;
+  label: string; value: ReactNode; subtitle?: string; tooltip?: string;
 }) {
   return (
     <HoverTip tip={tooltip}>

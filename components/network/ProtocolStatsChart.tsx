@@ -37,7 +37,7 @@ export interface ProtocolStatsResponse {
   history: RawPoint[];
 }
 
-export function ProtocolStatsChart({ initialData }: { initialData?: ProtocolStatsResponse | null }) {
+export function ProtocolStatsChart({ initialData, initialFetchedAt }: { initialFetchedAt?: number; initialData?: ProtocolStatsResponse | null }) {
   const { theme } = useTheme();
   const colors = getChartColors(theme);
   const [view, setView] = useState<'commitments' | 'nullifiers'>('commitments');
@@ -46,7 +46,7 @@ export function ProtocolStatsChart({ initialData }: { initialData?: ProtocolStat
   const { data: apiData, loading } = useApiQuery<ProtocolStatsResponse>(
     '/api/network/protocol-stats',
     undefined,
-    { initialData: initialData ?? undefined },
+    { refreshInterval: 300_000, initialFetchedAt, initialData: initialData ?? undefined },
   );
   const current = apiData?.current ?? null;
   const rawData = useMemo(
@@ -69,7 +69,7 @@ export function ProtocolStatsChart({ initialData }: { initialData?: ProtocolStat
 
     return filtered.map(p => ({
       ...p,
-      label: new Date(p.month).toLocaleDateString('en-US', { month: 'short', year: '2-digit' }),
+      label: new Date(p.month).toLocaleDateString('en-US', { month: 'short', year: '2-digit', timeZone: 'UTC' }),
     }));
   }, [rawData, period]);
 

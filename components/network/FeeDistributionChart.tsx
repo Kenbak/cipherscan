@@ -28,7 +28,7 @@ export interface FeeDistributionResponse {
   daily: DayFees[];
 }
 
-export function FeeDistributionChart({ initialData }: { initialData?: FeeDistributionResponse | null }) {
+export function FeeDistributionChart({ initialData, initialFetchedAt }: { initialFetchedAt?: number; initialData?: FeeDistributionResponse | null }) {
   const { theme } = useTheme();
   const colors = getChartColors(theme);
   const [period, setPeriod] = useState<Period>('30d');
@@ -36,12 +36,12 @@ export function FeeDistributionChart({ initialData }: { initialData?: FeeDistrib
   const { data: res, loading } = useApiQuery<FeeDistributionResponse>(
     '/api/network/fee-distribution',
     { period },
-    { initialData: period === '30d' ? initialData ?? undefined : undefined },
+    { refreshInterval: 300_000, initialFetchedAt, initialData: period === '30d' ? initialData ?? undefined : undefined },
   );
   const data = res?.daily ?? [];
 
   const chartData = data.map(d => ({
-    date: new Date(d.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+    date: new Date(d.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' }),
     p10: d.p10 / 100000,
     p25: d.p25 / 100000,
     median: d.median / 100000,

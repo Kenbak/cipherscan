@@ -208,7 +208,7 @@ export interface PoolHistoryResponse {
   hasVerifiedPerPoolBreakdown?: boolean;
 }
 
-export function PoolDistributionChart({ initialData }: { initialData?: PoolHistoryResponse | null }) {
+export function PoolDistributionChart({ initialData, initialFetchedAt }: { initialFetchedAt?: number; initialData?: PoolHistoryResponse | null }) {
   const { theme } = useTheme();
   const colors = getChartColors(theme);
   const [period, setPeriod] = useState<Period>('all');
@@ -218,7 +218,7 @@ export function PoolDistributionChart({ initialData }: { initialData?: PoolHisto
   const { data: apiRes, loading } = useApiQuery<PoolHistoryResponse>(
     '/api/network/pool-history',
     { period },
-    { initialData: period === 'all' ? initialData ?? undefined : undefined },
+    { refreshInterval: 300_000, initialFetchedAt, initialData: period === 'all' ? initialData ?? undefined : undefined },
   );
   const points = apiRes?.points ?? EMPTY_POINTS;
   const hasPerPoolHistory = !!apiRes?.hasVerifiedPerPoolBreakdown;

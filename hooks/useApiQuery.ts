@@ -142,7 +142,7 @@ function scheduleNext(entry: RegistryEntry) {
   // (failureCount is zeroed in runFetch on a 2xx+parseable response).
   const delay = entry.failureCount > 0
     ? Math.min(entry.refreshInterval * 2 ** entry.failureCount, MAX_BACKOFF_MS)
-    : entry.refreshInterval;
+    : Math.max(0, entry.refreshInterval - Math.max(0, Date.now() - entry.state.fetchedAt));
 
   entry.timer = setTimeout(() => runFetch(entry), delay);
 }
@@ -332,8 +332,14 @@ export function useApiQuery<T>(
     stateRef.current = entry.state;
     forceRender((n) => n + 1);
 
-    const isFreshEntry = !entry.state.settled && !entry.inFlight;
-    if (isFreshEntry) {
+    // A seeded ISR response may already be older than the browser's poll
+    // cadence. Catch up immediately without hiding its useful initial data.
+    const needsFirstFetch = !entry.state.settled;
+    const needsCatchUp = entry.refreshInterval !== undefined
+      && Date.now() - entry.state.fetchedAt >= entry.refreshInterval
+      && entry.failureCount === 0
+      && !isHidden();
+    if (!entry.inFlight && (needsFirstFetch || needsCatchUp)) {
       runFetch(entry);
     } else if (entry.refreshInterval && !entry.timer && !entry.inFlight && !isHidden()) {
       // Entry existed (shared with another subscriber) but had no active

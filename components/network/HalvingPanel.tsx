@@ -30,7 +30,7 @@ export function HalvingPanel({ halving }: { halving: HalvingInfo | null }) {
   );
 
   const estDate = halving.estimatedDate
-    ? new Date(halving.estimatedDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
+    ? new Date(halving.estimatedDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' })
     : null;
 
   return (
@@ -118,9 +118,9 @@ function generateEmissionCurve(currentCirculating: number) {
 
   for (let year = 2016; year <= 2036; year += 1) {
     for (let month = 0; month < 12; month += 3) {
-      const date = new Date(year, month, 1);
+      const date = new Date(Date.UTC(year, month, 1));
       if (date < genesisDate) continue;
-      if (date > new Date(2036, 0, 1)) break;
+      if (date > new Date(Date.UTC(2036, 0, 1))) break;
 
       const secondsSinceGenesis = (date.getTime() - genesisDate.getTime()) / 1000;
       const blockAtDate = Math.floor(secondsSinceGenesis / blockTime);
@@ -137,7 +137,7 @@ function generateEmissionCurve(currentCirculating: number) {
       }
 
       const cappedSupply = Math.min(s, maxSupply);
-      const label = `${date.toLocaleString(undefined, { month: 'short' })} '${String(year).slice(2)}`;
+      const label = `${date.toLocaleString('en-US', { month: 'short', timeZone: 'UTC' })} '${String(year).slice(2)}`;
       points.push({ date: label, supply: cappedSupply, ts: date.getTime() });
     }
   }
