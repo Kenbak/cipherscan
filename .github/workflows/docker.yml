@@ -75,15 +75,17 @@ jobs:
             -e POSTGRES_PASSWORD=smoke-test-only \
             -e POSTGRES_DB=zcash_explorer_testnet \
             postgres:16-alpine
+          # The initialization server accepts Unix sockets before the final
+          # database is ready. Wait for TCP, which the API container uses.
           for attempt in $(seq 1 20); do
             if docker exec cipherscan-postgres-smoke \
-              pg_isready -U zcash_user -d zcash_explorer_testnet >/dev/null; then
+              pg_isready -h 127.0.0.1 -U zcash_user -d zcash_explorer_testnet >/dev/null; then
               break
             fi
             sleep 1
           done
           docker exec cipherscan-postgres-smoke \
-            pg_isready -U zcash_user -d zcash_explorer_testnet
+            pg_isready -h 127.0.0.1 -U zcash_user -d zcash_explorer_testnet
           docker run --detach --name cipherscan-api-smoke \
             --network cipherscan-api-smoke \
             -p 3001:3001 \
