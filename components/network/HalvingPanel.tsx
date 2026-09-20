@@ -24,7 +24,7 @@ export function HalvingPanel({ halving }: { halving: HalvingInfo | null }) {
     ? Math.max(0, Math.min(100, halving.eraProgress)) : null;
 
   const estDate = halving.estimatedDate
-    ? new Date(halving.estimatedDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
+    ? new Date(halving.estimatedDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' })
     : null;
 
   return (

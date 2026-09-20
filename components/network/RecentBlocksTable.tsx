@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { formatRelativeTime } from '@/lib/format-numbers';
+import { RelativeTime } from '@/components/RelativeTime';
 import { useApiQuery } from '@/hooks/useApiQuery';
 import { DataTable, EmptyState, SectionHeader, type DataTableColumn } from '@/components/ui';
 
@@ -61,16 +61,16 @@ const columns: DataTableColumn<RecentBlock>[] = [
     align: 'right',
     skeletonWidth: 'w-16',
     cell: (b) => (
-      <span className="font-mono text-sm text-muted whitespace-nowrap">{formatRelativeTime(b.timestamp)}</span>
+      <RelativeTime className="font-mono text-sm text-muted whitespace-nowrap" timestamp={b.timestamp} />
     ),
   },
 ];
 
-export function RecentBlocksTable({ initialData }: { initialData?: RecentBlocksResponse | null }) {
+export function RecentBlocksTable({ initialData, initialFetchedAt }: { initialFetchedAt?: number; initialData?: RecentBlocksResponse | null }) {
   const { data, loading } = useApiQuery<RecentBlocksResponse>(
     '/v1/network/blocks/recent-summary',
     { limit: 15 },
-    { refreshInterval: 60_000, initialData: initialData ?? undefined },
+    { refreshInterval: 60_000, initialFetchedAt, initialData: initialData ?? undefined },
   );
   const blocks = data?.blocks ?? [];
 

@@ -17,11 +17,12 @@ type Period = typeof PERIODS[number];
 export interface DayFees { date: string; p10: number; p25: number; median: number; p75: number; p90: number; avgFee: number; txCount: number }
 export interface FeeDistributionResponse { daily: DayFees[] }
 
-export function FeeDistributionChart({ initialData }: { initialData?: FeeDistributionResponse | null }) {
+export function FeeDistributionChart({ initialData, initialFetchedAt }: { initialFetchedAt?: number; initialData?: FeeDistributionResponse | null }) {
   const { theme } = useTheme();
   const colors = getChartColors(theme);
   const [period, setPeriod] = useState<Period>('30d');
   const { data, loading, error, isRefreshing } = useApiQuery<FeeDistributionResponse>('/v1/network/fee-distribution', { period }, {
+    initialFetchedAt,
     initialData: period === '30d' ? initialData ?? undefined : undefined, refreshInterval: 300_000,
   });
   const points = (data?.daily ?? []).map(day => ({ date: day.date, txCount: day.txCount, ...feeBand(day) }));

@@ -161,7 +161,7 @@ export default function NetworkClient({ initialData }: { initialData: NetworkPag
 
       <section id="network-nodes" className="network-section mb-10" aria-label="Observed node distribution">
         <Suspense fallback={<div className="card h-80 flex items-center justify-center text-muted text-sm">Loading node observations…</div>}>
-          {isCrosslink ? <BlockActivityChart limit={80} /> : <NodeMap initialLocations={initialData.nodeLocations} initialStats={initialData.nodeStats} />}
+          {isCrosslink ? <BlockActivityChart limit={80} /> : <NodeMap initialFetchedAt={initialData.fetchedAt} initialLocations={initialData.nodeLocations} initialStats={initialData.nodeStats} />}
         </Suspense>
       </section>
 
@@ -169,7 +169,7 @@ export default function NetworkClient({ initialData }: { initialData: NetworkPag
         <SectionHeader label="ACTIVITY" />
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-5 items-stretch">
           <BlockCadenceChart initialData={initialData.recentBlocks} initialFetchedAt={initialData.fetchedAt} chainHeight={height} now={now} />
-          <div id="network-fees" className="network-section h-full"><FeeDistributionChart initialData={initialData.feeDistribution} /></div>
+          <div id="network-fees" className="network-section h-full"><FeeDistributionChart initialFetchedAt={initialData.fetchedAt} initialData={initialData.feeDistribution} /></div>
         </div>
       </section>
 

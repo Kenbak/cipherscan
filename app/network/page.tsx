@@ -3,20 +3,24 @@ import { readApiData } from '@/lib/api-client';
 import NetworkClient, { type NetworkPageInitialData } from './NetworkClient';
 import { getApiUrl, getNetwork, getBaseUrl } from '@/lib/seo';
 import { fetchWithDeadline } from '@/lib/server-fetch';
+import { retainLastGoodOrBuildFallback } from '@/lib/isr-fallback';
+
+// Keep the shared HTML/RSC snapshot inexpensive; browsers refresh live data
+// independently. No server fetch may shorten this route's ISR lifetime.
+export const revalidate = 300;
 
 async function fetchJson<T>(
   apiBase: string,
   path: string,
-  revalidate: number,
   expectedNetwork: string,
 ): Promise<T | null> {
   try {
     const response = await fetchWithDeadline(`${apiBase}${path}`, {
-      next: { revalidate },
+      next: { revalidate: 300 },
     });
     if (!response.ok) return null;
     const data = await readApiData(response);
-    if (data?.network && data.network !== expectedNetwork) return null;
+    if (typeof data?.network === 'string' && data.network !== expectedNetwork) return null;
     return data as T;
   } catch {
     return null;
@@ -28,13 +32,16 @@ export default async function NetworkPage() {
   const network = getNetwork();
   const fetchedAt = Date.now();
   const [stats, health, nodeLocations, nodeStats, recentBlocks, feeDistribution] = await Promise.all([
-    fetchJson<NetworkPageInitialData['stats']>(apiBase, '/v1/network/stats', 30, network),
-    fetchJson<NetworkPageInitialData['health']>(apiBase, '/v1/network/health', 60, network),
-    fetchJson<NetworkPageInitialData['nodeLocations']>(apiBase, '/v1/network/nodes', 300, network),
-    fetchJson<NetworkPageInitialData['nodeStats']>(apiBase, '/v1/network/nodes/stats', 300, network),
-    fetchJson<NetworkPageInitialData['recentBlocks']>(apiBase, '/v1/network/blocks/recent-summary?limit=30', 30, network),
-    fetchJson<NetworkPageInitialData['feeDistribution']>(apiBase, '/v1/network/fee-distribution?period=30d', 300, network),
+    fetchJson<NetworkPageInitialData['stats']>(apiBase, '/v1/network/stats', network),
+    fetchJson<NetworkPageInitialData['health']>(apiBase, '/v1/network/health', network),
+    fetchJson<NetworkPageInitialData['nodeLocations']>(apiBase, '/v1/network/nodes', network),
+    fetchJson<NetworkPageInitialData['nodeStats']>(apiBase, '/v1/network/nodes/stats', network),
+    fetchJson<NetworkPageInitialData['recentBlocks']>(apiBase, '/v1/network/blocks/recent-summary?limit=30', network),
+    fetchJson<NetworkPageInitialData['feeDistribution']>(apiBase, '/v1/network/fee-distribution?period=30d', network),
   ]);
+  if (!stats) {
+    retainLastGoodOrBuildFallback(null, new Error('Network statistics unavailable'), 'network snapshot');
+  }
   const pageUrl = `${getBaseUrl()}/network`;
   const pageSchema = {
     '@context': 'https://schema.org', '@type': 'WebPage', '@id': `${pageUrl}#webpage`,

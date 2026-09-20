@@ -23,14 +23,14 @@ export interface ChainSizeHistoryResponse {
   points: { time: string; sizeGB: number }[];
 }
 
-export function NetworkHistoryCharts({ initialData }: { initialData?: ChainSizeHistoryResponse | null }) {
+export function NetworkHistoryCharts({ initialData, initialFetchedAt }: { initialFetchedAt?: number; initialData?: ChainSizeHistoryResponse | null }) {
   const { theme } = useTheme();
   const colors = getChartColors(theme);
 
   const { data, loading } = useApiQuery<ChainSizeHistoryResponse>(
     '/v1/network/chain-size-history',
     { period: '1y' },
-    { initialData: initialData ?? undefined },
+    { refreshInterval: 300_000, initialFetchedAt, initialData: initialData ?? undefined },
   );
   const sizePoints = useMemo(
     () => (data?.points ?? []).map((p) => ({

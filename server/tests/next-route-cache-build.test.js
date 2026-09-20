@@ -48,3 +48,8 @@ test('detail routes retain on-demand static fallbacks for runtime ISR', () => {
     assert.equal(entry.fallback, null, `${route} must generate uncached params on demand`);
   }
 });
+
+// A short server fetch silently lowers the whole route's cache lifetime.
+test('network snapshot retains five-minute ISR independently of live browser polling', () => {
+  assert.equal(manifest.routes?.['/network']?.initialRevalidateSeconds, 300);
+});

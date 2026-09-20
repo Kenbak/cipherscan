@@ -67,6 +67,7 @@ export interface NodeStatsResponse {
 }
 
 interface NodeMapProps {
+  initialFetchedAt?: number;
   initialLocations?: NodeLocationsResponse | null;
   initialStats?: NodeStatsResponse | null;
 }
@@ -109,16 +110,16 @@ function getFlagEmoji(countryCode: string): string {
 // COMPONENT
 // ==========================================================================
 
-export function NodeMap({ initialLocations, initialStats }: NodeMapProps) {
+export function NodeMap({ initialLocations, initialStats, initialFetchedAt }: NodeMapProps) {
   const locationsQuery = useApiQuery<NodeLocationsResponse>(
     '/v1/network/nodes',
     undefined,
-    { refreshInterval: 300_000, initialData: initialLocations ?? undefined },
+    { refreshInterval: 300_000, initialFetchedAt, initialData: initialLocations ?? undefined },
   );
   const statsQuery = useApiQuery<NodeStatsResponse>(
     '/v1/network/nodes/stats',
     undefined,
-    { refreshInterval: 300_000, initialData: initialStats ?? undefined },
+    { refreshInterval: 300_000, initialFetchedAt, initialData: initialStats ?? undefined },
   );
   const locations = locationsQuery.data?.locations ?? EMPTY_LOCATIONS;
   const stats = statsQuery.data?.stats ?? null;
