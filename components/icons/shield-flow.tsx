@@ -41,7 +41,7 @@ function IconBase({ size = 20, className = '', children, ...props }: IconProps &
 // filled shape — thinner, quieter glyph that reads well at 14-20px next to
 // text in a badge without competing with the badge's own fill/border. Every
 // icon shares the identical outer crest path so only the inner glyph (plain
-// / up-arrow / down-arrow / through-arrow) differs, keeping the family
+// / up-arrow / down-arrow / through-arrow / partial fill) differs, keeping the family
 // visually obviously related.
 const SHIELD_OUTLINE = 'M12 2L4 5v6.09c0 5.05 3.41 9.76 8 10.91 4.59-1.15 8-5.86 8-10.91V5l-8-3z';
 
@@ -85,14 +85,13 @@ export function MigrationIcon(props: IconProps) {
   );
 }
 
-export function MixedIcon({ size = 20, className = '', ...props }: IconProps) {
+/** Public and shielded components in one transaction, not a privacy percentage. */
+export function MixedIcon(props: IconProps) {
   return (
-    <IconBase size={size} className={className} {...props}>
-      <path d="M2 18h1.4c1.3 0 2.5-.6 3.3-1.7l6.6-8.6c.8-1.1 2-1.7 3.3-1.7H22" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M18 2l4 4-4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M2 6h1.4c1.3 0 2.5.6 3.3 1.7l6.6 8.6c.8 1.1 2 1.7 3.3 1.7H22" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M18 14l4 4-4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-    </IconBase>
+    <ShieldOutline {...props}>
+      <path d="M12 2L4 5v6.09c0 5.05 3.41 9.76 8 10.91V2z" fill="currentColor" fillOpacity={0.5} />
+      <path d="M12 2v20" stroke="currentColor" strokeWidth={1.5} />
+    </ShieldOutline>
   );
 }
 

@@ -3,7 +3,6 @@
 import { Badge, IconTooltip, TX_CATEGORY_CONFIG } from '@/components/ui';
 import {
   ShieldFlowIcon,
-  MixedIcon,
   SHIELD_FLOW_COLORS,
   SHIELD_FLOW_LABELS,
   type ShieldFlowType,
@@ -18,14 +17,6 @@ interface ShieldFlowBadgeProps {
 
 export function ShieldFlowBadge({ type, variant = 'compact', className = '' }: ShieldFlowBadgeProps) {
   const label = SHIELD_FLOW_LABELS[type];
-
-  if (type === 'mixed' && variant === 'compact') {
-    return (
-      <IconTooltip label={label} className={`text-muted ${className}`}>
-        <MixedIcon size={18} />
-      </IconTooltip>
-    );
-  }
 
   const icon = <ShieldFlowIcon type={type} size={variant === 'compact' ? 20 : 14} />;
 

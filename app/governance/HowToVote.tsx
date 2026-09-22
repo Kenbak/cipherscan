@@ -11,7 +11,7 @@ export function HowToVote({ snapshotHeight }: { snapshotHeight?: number }) {
       className="scroll-mt-48 rounded-xl border border-cipher-border bg-cipher-surface p-4 sm:p-5"
     >
       <h2 id="how-to-vote-title" className="text-base font-semibold text-primary">How to vote</h2>
-      <p className="mt-1 text-sm text-secondary">When a poll is open, cast your vote in your wallet. Use CipherScan to explore the proposals and results.</p>
+      <p className="mt-1 text-sm text-secondary">When a poll is open, cast your vote in your wallet. Use ZecBlock to explore the proposals and results.</p>
 
       <ol className="mt-5 grid gap-5 md:grid-cols-3">
         <li>
@@ -45,7 +45,7 @@ export function HowToVote({ snapshotHeight }: { snapshotHeight?: number }) {
           <a href={ZODL_GUIDE} target="_blank" rel="noopener noreferrer" className="text-cipher-gold hover:underline">Wallet guide ↗</a>
         </p>
         <p className="mt-2 text-muted">No poll or eligible balance showing? Check that your wallet supports this poll and has finished syncing. Your current balance alone does not establish eligibility.</p>
-        <p className="mt-2 text-muted">CipherScan never asks for your recovery phrase or private keys. You do not send ZEC to CipherScan to vote.</p>
+        <p className="mt-2 text-muted">ZecBlock never asks for your recovery phrase or private keys. You do not send ZEC to ZecBlock to vote.</p>
         <a href="https://shieldedlabs.net/governance/" target="_blank" rel="noopener noreferrer" className="mt-2 inline-block text-muted underline decoration-cipher-border underline-offset-4 hover:text-secondary">Supported wallets &amp; participation information ↗</a>
       </div>
     </section>
