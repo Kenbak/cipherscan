@@ -230,7 +230,6 @@ const columns: DataTableColumn<any>[] = [
 
 export const BlockTransactionsSection = forwardRef<HTMLDivElement, { data: BlockData }>(
   function BlockTransactionsSection({ data }, ref) {
-    if (data.isOrphaned) return null;
 
     return (
       <div ref={ref}>
@@ -238,8 +237,18 @@ export const BlockTransactionsSection = forwardRef<HTMLDivElement, { data: Block
           <h2 className="text-sm font-semibold text-secondary lowercase tracking-tight">Transactions</h2>
           <Badge color="muted">{data.transactionCount}</Badge>
         </div>
+        {data.isOrphaned && (
+          <p className="text-xs text-muted mb-3">
+            {data.transactions.length} of {data.transactionCount} transactions archived.
+            {data.transactions.length < data.transactionCount ? ' The remaining transaction details are not available in this archive.' : ''}
+            {' '}Linked hashes open the transaction’s current canonical record; unlinked hashes are retained here only.
+          </p>
+        )}
         <DataTable
-          columns={columns}
+          columns={data.isOrphaned ? columns.map(column => column.id === 'hash' ? {
+            ...column,
+            cell: (tx: any) => <HashLink value={tx.txid} href={tx.canonical_available ? `/tx/${tx.txid}` : undefined} lead={10} tail={6} responsive />,
+          } : column) : columns}
           rows={data.transactions || []}
           rowKey={(tx, i) => tx.txid || i}
           empty={<p className="text-center py-12 text-secondary font-mono text-sm">No transaction details available</p>}

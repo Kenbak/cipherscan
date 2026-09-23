@@ -7,6 +7,8 @@ import { formatRelativeTime, formatDateUTC } from '@/lib/utils';
 import { getApiUrl } from '@/lib/api-config';
 import { Card, CardBody, Badge, DataTable, HashLink, EmptyState, type DataTableColumn } from '@/components/ui';
 
+import { BlockFirstSeen, BLOCK_FIRST_SEEN_EXPLANATION } from '@/components/BlockFirstSeen';
+
 const API_URL = getApiUrl();
 
 function isUnknownPool(pool: string | null | undefined) {
@@ -17,6 +19,7 @@ interface OrphanedBlock {
   id: number;
   height: number;
   hash: string;
+  firstSeenAt?: string | null;
   canonicalHash: string | null;
   timestamp: number | null;
   transactionCount: number;
@@ -34,6 +37,7 @@ interface OrphanedBlock {
 
 interface ReorgBlockSide {
   hash: string;
+  firstSeenAt?: string | null;
   timestamp: number | null;
   transactionCount: number | null;
   size: number | null;
@@ -389,13 +393,14 @@ export default function UnclesPage() {
               <PoolBadge pool={block.minerPool} url={block.minerPoolUrl} variant={variant} minerAddress={block.minerAddress} />
             </div>
           </div>
+          <BlockFirstSeen value={block.firstSeenAt} />
           <div className="flex gap-4">
             <div>
               <span className="text-caption text-muted font-mono uppercase">TXs</span>
               <div className="text-xs font-mono text-secondary">{block.transactionCount ?? '—'}</div>
             </div>
             <div>
-              <span className="text-caption text-muted font-mono uppercase">Time</span>
+              <span className="text-caption text-muted font-mono uppercase">Block time</span>
               <div className="text-xs font-mono text-secondary">
                 {block.timestamp ? formatRelativeTime(block.timestamp) : '—'}
               </div>
@@ -428,6 +433,8 @@ export default function UnclesPage() {
           When miners produce blocks at the same height, the network resolves to a single chain — losing blocks become orphans.
         </p>
       </div>
+
+      <p className="text-xs text-muted mb-6 max-w-3xl">{BLOCK_FIRST_SEEN_EXPLANATION}</p>
 
       {/* Stats */}
       {stats && (
@@ -602,6 +609,7 @@ export default function UnclesPage() {
                               label="Orphaned Block"
                               block={{
                                 hash: block.hash,
+                                firstSeenAt: block.firstSeenAt,
                                 timestamp: block.timestamp,
                                 transactionCount: block.transactionCount,
                                 size: block.size,

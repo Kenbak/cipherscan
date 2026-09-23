@@ -741,7 +741,7 @@
   {
     "method": "GET",
     "path": "/v1/network/stats",
-    "description": "Aggregate network statistics.",
+    "description": "Aggregate network statistics. Headline hashrate uses canonical target work over the full trailing 24 hours; mining.hashrateEstimate supplies shared 24h/7d windows and as-of timestamps. Unavailable rates are null.",
     "category": "network",
     "query": [],
     "listKey": null,
@@ -1150,10 +1150,11 @@
   {
     "method": "GET",
     "path": "/v1/mining/hashrate-history",
-    "description": "Historical network hashrate.",
+    "description": "Work-based hashrate in Sol/s over full trailing 24h or 7d windows, sampled at midnight UTC. Current estimates and as-of times are shared through network/stats. Missing samples return null.",
     "category": "mining",
     "query": [
-      "period"
+      "period",
+      "window"
     ],
     "listKey": null,
     "zatoshiFields": [],
@@ -1166,9 +1167,33 @@
         "in": "query",
         "required": false,
         "schema": {
-          "type": "string"
+          "type": "string",
+          "enum": [
+            "7d",
+            "30d",
+            "90d",
+            "1y",
+            "all"
+          ],
+          "default": "90d",
+          "description": "Range of historical samples ending at UTC midnight."
         },
-        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+        "description": "Range of historical samples ending at UTC midnight."
+      },
+      {
+        "name": "window",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string",
+          "enum": [
+            "24h",
+            "7d"
+          ],
+          "default": "24h",
+          "description": "Full trailing work-estimation window. Independent of chart range."
+        },
+        "description": "Full trailing work-estimation window. Independent of chart range."
       }
     ],
     "requestBody": null

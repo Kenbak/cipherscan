@@ -2273,7 +2273,10 @@ paths:
   /v1/network/stats:
     get:
       operationId: get_network_Stats
-      summary: Aggregate network statistics.
+      summary: >-
+        Aggregate network statistics. Headline hashrate uses canonical target work over the full
+        trailing 24 hours; mining.hashrateEstimate supplies shared 24h/7d windows and as-of
+        timestamps. Unavailable rates are null.
       tags:
         - network
       x-cipherscan-legacy-path: /api/network/stats
@@ -2282,7 +2285,10 @@ paths:
       x-cipherscan-v1-status: adapter
       responses:
         '200':
-          description: Aggregate network statistics.
+          description: >-
+            Aggregate network statistics. Headline hashrate uses canonical target work over the full
+            trailing 24 hours; mining.hashrateEstimate supplies shared 24h/7d windows and as-of
+            timestamps. Unavailable rates are null.
           content:
             application/json:
               schema:
@@ -4447,7 +4453,10 @@ paths:
   /v1/mining/hashrate-history:
     get:
       operationId: get_mining_Hashrate-history
-      summary: Historical network hashrate.
+      summary: >-
+        Work-based hashrate in Sol/s over full trailing 24h or 7d windows, sampled at midnight UTC.
+        Current estimates and as-of times are shared through network/stats. Missing samples return
+        null.
       tags:
         - mining
       parameters:
@@ -4456,14 +4465,36 @@ paths:
           required: false
           schema:
             type: string
-          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
+            enum:
+              - 7d
+              - 30d
+              - 90d
+              - 1y
+              - all
+            default: 90d
+            description: Range of historical samples ending at UTC midnight.
+          description: Range of historical samples ending at UTC midnight.
+        - name: window
+          in: query
+          required: false
+          schema:
+            type: string
+            enum:
+              - 24h
+              - 7d
+            default: 24h
+            description: Full trailing work-estimation window. Independent of chart range.
+          description: Full trailing work-estimation window. Independent of chart range.
       x-cipherscan-legacy-path: /api/network/hashrate-history
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
       x-cipherscan-v1-status: adapter
       responses:
         '200':
-          description: Historical network hashrate.
+          description: >-
+            Work-based hashrate in Sol/s over full trailing 24h or 7d windows, sampled at midnight
+            UTC. Current estimates and as-of times are shared through network/stats. Missing samples
+            return null.
           content:
             application/json:
               schema:

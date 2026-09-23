@@ -134,3 +134,29 @@ test('orphaned block detail sets a bounded, revalidating Cache-Control header', 
   assert.equal(result.status, 200);
   assert.equal(result.headers.get('cache-control'), 'public, s-maxage=300, stale-while-revalidate=3600');
 });
+
+test('orphan metadata and archive coverage are explicit; query failures are not empty archives', async () => {
+  const pool = createFakePool();
+  const query = pool.query.bind(pool);
+  pool.query = async (sql, params) => {
+    const result = await query(sql, params);
+    if (sql.includes('FROM orphaned_blocks WHERE hash = $1')) Object.assign(result.rows[0], {
+      first_seen_at: '2026-09-23T11:22:33.456Z',
+      block_metadata: { version: 4, merkle_root: 'c'.repeat(64), final_ironwood_root: 'd'.repeat(64), bits: '1f07ffff' },
+      raw_block_available: true,
+    });
+    return result;
+  };
+  const result = await requestOrphanBlock(pool);
+  assert.equal(result.body.firstSeenAt, '2026-09-23T11:22:33.456Z');
+  assert.equal(result.body.merkle_root, 'c'.repeat(64));
+  assert.equal(result.body.final_ironwood_root, 'd'.repeat(64));
+  assert.equal(result.body.rawBlockAvailable, true);
+  assert.equal(result.body.archivedTransactionCount, 2);
+  assert.equal(result.body.transactionArchiveComplete, true);
+  pool.query = async (sql, params) => {
+    if (sql.includes('FROM orphaned_transactions')) throw new Error('archive query unavailable');
+    return query(sql, params);
+  };
+  assert.equal((await requestOrphanBlock(pool)).status, 500);
+});

@@ -10,20 +10,16 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { getChartColors } from '@/lib/chart-theme';
 import { formatHashrate } from '@/lib/format-numbers';
 import { useApiQuery } from '@/hooks/useApiQuery';
+import { hashrateChartPoints, type HashrateEstimate, type HashrateStats, type HashrateWindow } from '@/lib/hashrate';
 import { ChartCard } from './ChartCard';
 
 const PERIODS = ['30d', '90d', '1y', 'all'] as const;
 type Period = typeof PERIODS[number];
 
-interface HashratePoint {
-  date: string;
-  avgDifficulty: number;
-  blockCount: number;
-  hashrate: number;
-}
-
 interface HashrateHistoryResponse {
-  points?: HashratePoint[];
+  window?: string;
+  method?: string;
+  points?: (HashrateEstimate & { date: string })[];
 }
 
 function HashratePeriodSelector({ value, onChange }: { value: Period; onChange: (p: Period) => void }) {
@@ -48,7 +44,7 @@ function HashratePeriodSelector({ value, onChange }: { value: Period; onChange: 
 }
 
 /**
- * Long-range network hashrate trend (daily buckets from /api/network/hashrate-history).
+ * Trailing-work estimates sampled daily at UTC midnight, plus the shared current snapshot.
  * Complements MiningMetricsChart, which shows short-range per-block solrate/difficulty —
  * this one is for spotting week-to-month-scale ramps (new fleets, pool migrations, etc).
  */
@@ -56,41 +52,61 @@ export function NetworkHashrateChart() {
   const { theme } = useTheme();
   const colors = getChartColors(theme);
   const [period, setPeriod] = useState<Period>('1y');
+  const [window, setWindow] = useState<HashrateWindow>('24h');
+  const stats = useApiQuery<HashrateStats>('/v1/network/stats', undefined, { refreshInterval: 30_000 });
 
   const { data, loading } = useApiQuery<HashrateHistoryResponse>(
     '/v1/mining/hashrate-history',
-    { period },
+    { period, window },
+    { refreshInterval: 300_000, timeoutMs: 30_000 },
   );
-  const points = data?.points ?? [];
-  const latest = points[points.length - 1];
+  const snapshot = stats.data?.mining?.hashrateEstimate;
+  const points = hashrateChartPoints(data, window, snapshot);
+  const current = snapshot?.windows['24h'];
 
   return (
     <ChartCard
       title="NETWORK_HASHRATE_TREND"
       height={280}
       watermarkSize="lg"
-      controls={<HashratePeriodSelector value={period} onChange={setPeriod} />}
+      controls={<div className="flex flex-wrap items-center gap-2">
+        <label className="text-xs text-muted">Estimate window{' '}
+          <select aria-label="Hashrate estimate window" value={window} onChange={event => setWindow(event.target.value as HashrateWindow)} className="bg-transparent text-primary">
+            <option value="24h">24 hours</option><option value="7d">7 days</option>
+          </select>
+        </label>
+        <HashratePeriodSelector value={period} onChange={setPeriod} />
+      </div>}
     >
-      {latest && (
-        <p className="text-xs font-mono text-muted mb-3">
-          Latest: <span className="text-cipher-gold font-semibold">{formatHashrate(latest.hashrate)}</span>
-          <span className="text-muted"> ({latest.date}, {latest.blockCount} blocks)</span>
-        </p>
-      )}
-      {loading && points.length === 0 ? (
-        <ChartSkeleton height={260} />
+      <p className="text-xs font-mono text-muted mb-3">
+        Estimated hashrate · 24h: <span className="text-cipher-gold font-semibold">{snapshot ? stats.data?.mining?.networkHashrate : '—'}</span>
+        {current && <span className="block text-muted">{current.blockCount.toLocaleString()} blocks · As of {current.windowEnd.replace('T', ' ').replace('Z', ' UTC')}</span>}
+      </p>
+      <p className="text-xs text-muted mb-3">
+        Canonical block work divided by the full trailing {window === '24h' ? '24 hours' : '7 days'}.
+        Historical samples end at midnight UTC; the last point uses the current shared snapshot.
+        Estimates use block-header timestamps and exclude orphaned blocks.
+      </p>
+      {(stats.error || stats.isRefreshing) && <p className="text-xs text-muted" role="status">{stats.error ? 'Live refresh delayed; showing the last available snapshot.' : 'Refreshing estimate…'}</p>}
+      {!points.some(point => point.hashrate != null) ? (
+        <div className="flex items-center justify-center h-[260px]">
+          {loading ? <ChartSkeleton height={260} /> : <p className="text-xs text-muted">Hashrate history unavailable</p>}
+        </div>
       ) : (
         <ResponsiveContainer initialDimension={{ width: 500, height: 300 }} width="100%" height={260}>
           <LineChart data={points} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
             <CartesianGrid vertical={false} strokeDasharray="2 6" stroke={colors.grid} opacity={0.5} />
             <XAxis
-              dataKey="date"
+              dataKey="timestamp"
               minTickGap={32}
+              type="number"
+              scale="time"
+              domain={['dataMin', 'dataMax']}
               stroke={colors.axis}
               tick={{ fill: colors.axis, fontSize: 12 }}
-              tickFormatter={(d: string) => {
+              tickFormatter={(d: number) => {
                 const date = new Date(d);
-                return `${date.getMonth() + 1}/${date.getDate()}`;
+                return `${date.getUTCMonth() + 1}/${date.getUTCDate()}`;
               }}
             />
             <YAxis
@@ -107,11 +123,12 @@ export function NetworkHashrateChart() {
                 fontSize: 12,
                 fontFamily: 'var(--font-geist-mono), monospace',
               }}
-              labelFormatter={(d) => String(d)}
-              formatter={(value) => [formatHashrate(Number(value)), 'Network hashrate']}
+              labelFormatter={(d) => `${new Date(Number(d)).toISOString().replace('T', ' ').replace('Z', '')} UTC`}
+              formatter={(value) => [formatHashrate(Number(value)), `Estimated hashrate · ${window}`]}
             />
             <Line
               type="linear"
+              connectNulls={false}
               dataKey="hashrate"
               stroke={colors.gold}
               strokeWidth={2}

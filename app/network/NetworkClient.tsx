@@ -7,7 +7,7 @@ import { useApiQuery } from '@/hooks/useApiQuery';
 import { Card, CardBody } from '@/components/ui/Card';
 import { PageHeader, SectionHeader } from '@/components/ui/SectionHeader';
 import { isCrosslink } from '@/lib/config';
-import { formatHashrate } from '@/lib/format-numbers';
+import type { HashrateSnapshot } from '@/lib/hashrate';
 import { blockAgeLabel, observationStatus } from '@/lib/network-overview';
 import { MiningIssuance } from '@/components/network/MiningIssuance';
 import { NetworkSectionNav } from '@/components/network/NetworkSectionNav';
@@ -24,7 +24,8 @@ export interface NetworkStats {
   success: boolean;
   mining: {
     networkHashrate: string;
-    networkHashrateRaw: number;
+    networkHashrateRaw: number | null;
+    hashrateEstimate?: HashrateSnapshot;
     difficulty: number;
     avgBlockTime: number;
     blocks24h: number;
@@ -149,7 +150,7 @@ export default function NetworkClient({ initialData }: { initialData: NetworkPag
               { label: 'Latest block', value: height != null ? <Link href={`/block/${height}`} className="hover:text-cipher-gold">{height.toLocaleString()}</Link> : '—', hint: stats ? `Block timestamp · ${blockAgeLabel(stats.blockchain.latestBlockTime, now)}` : 'Awaiting chain data' },
               { label: 'Block interval', value: stats ? `${stats.mining.avgBlockTime.toFixed(1)}s` : '—', hint: 'Rolling average · target 75s' },
               { label: 'Transactions · 24h', value: txCount?.toLocaleString() ?? '—', hint: stats?.blockchain.tx24hExclCoinbase != null ? 'Confirmed · coinbase excluded' : 'Confirmed · includes coinbase' },
-              { label: 'Network hashrate', value: stats ? formatHashrate(stats.mining.networkHashrateRaw) : '—', hint: <Link href="/mining#metrics" className="hover:text-primary underline underline-offset-4">Estimated mining power →</Link> },
+              { label: 'Estimated hashrate · 24h', value: stats?.mining.hashrateEstimate ? stats.mining.networkHashrate : '—', hint: <Link href="/mining#metrics" className="hover:text-primary underline underline-offset-4">Trailing 24-hour estimate →</Link> },
             ].map(({ label, value, hint }) => <div key={label}>
               <dt className="type-label text-muted uppercase mb-2">{label}</dt>
               <dd><div className="type-metric text-primary">{value}</div><p className="text-caption text-muted mt-2">{hint}</p></dd>

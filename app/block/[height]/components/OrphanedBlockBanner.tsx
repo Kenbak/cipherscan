@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { BlockFirstSeen, BLOCK_FIRST_SEEN_EXPLANATION } from '@/components/BlockFirstSeen';
 import { formatRelativeTime } from '@/lib/utils';
 import { Badge } from '@/components/ui/Badge';
 import { HashLink } from '@/components/ui/HashLink';
@@ -16,7 +17,7 @@ export function OrphanedBlockBanner({ data }: { data: BlockData }) {
             This block was replaced during a chain reorganization and is no longer part of the canonical chain.
           </p>
           <p className="text-xs text-muted font-mono">
-            Transaction data is not available for orphaned blocks.
+            Archived transactions below describe this orphaned block. They do not imply confirmation on the current chain.
             {data.orphanSource && (
               <span className="ml-2 text-secondary">Source: {data.orphanSource}</span>
             )}
@@ -25,11 +26,13 @@ export function OrphanedBlockBanner({ data }: { data: BlockData }) {
       </div>
 
       <div className="rounded-xl border border-cipher-border bg-glass-2 backdrop-blur-sm p-4">
+        <p className="text-xs text-muted mb-3">{BLOCK_FIRST_SEEN_EXPLANATION}</p>
         <p className="text-caption font-mono uppercase tracking-wider text-muted mb-3">Reorg comparison at #{data.height.toLocaleString()}</p>
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="flex-1 rounded-lg border border-orange-500/30 bg-gradient-to-br from-orange-950/30 to-red-950/20 p-3">
             <span className="text-caption font-mono uppercase tracking-wider font-semibold text-cipher-orange">Orphaned</span>
             <div className="mt-2 space-y-1.5">
+              <BlockFirstSeen value={data.firstSeenAt} />
               <HashLink value={data.hash} lead={10} tail={6} copy={false} linkClassName="text-xs font-mono text-cipher-orange block" />
               <div className="text-xs font-mono text-secondary">
                 {data.minerPool ? (
@@ -57,6 +60,7 @@ export function OrphanedBlockBanner({ data }: { data: BlockData }) {
             <div className="flex-1 rounded-lg border border-cipher-green/30 bg-gradient-to-br from-emerald-950/30 to-gold-950/20 p-3">
               <span className="text-caption font-mono uppercase tracking-wider font-semibold text-cipher-green">Canonical</span>
               <div className="mt-2 space-y-1.5">
+                <BlockFirstSeen value={data.canonicalBlock.firstSeenAt} />
                 <HashLink
                   value={data.canonicalBlock.hash}
                   href={`/block/${data.canonicalBlock.height}`}

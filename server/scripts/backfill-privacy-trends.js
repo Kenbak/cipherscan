@@ -20,6 +20,7 @@ require('dotenv').config({ path: path.join(__dirname, '../jobs/.env') });
 require('dotenv').config({ path: path.join(__dirname, '../api/.env') });
 
 const { Pool } = require('pg');
+const { SHIELDED } = require('../lib/transaction-activity');
 const {
   calculatePrivacyScore,
   computeScoreInputsFromCounts,
@@ -134,13 +135,13 @@ async function fetchDailyTxRollups(poolClient, startDate, endDate) {
     `
     SELECT
       (to_timestamp(block_time) AT TIME ZONE 'UTC')::date::text AS day,
-      COUNT(*) FILTER (WHERE has_sapling OR has_orchard OR has_ironwood) AS shielded,
+      COUNT(*) FILTER (WHERE NOT is_coinbase AND ${SHIELDED}) AS shielded,
       COUNT(*) FILTER (
         WHERE NOT is_coinbase
-          AND NOT has_sapling AND NOT has_orchard AND NOT has_ironwood
+          AND NOT ${SHIELDED}
       ) AS transparent,
       COUNT(*) FILTER (
-        WHERE (has_sapling OR has_orchard OR has_ironwood)
+        WHERE ${SHIELDED}
           AND vin_count = 0 AND vout_count = 0
           AND NOT is_coinbase
       ) AS fully_shielded,

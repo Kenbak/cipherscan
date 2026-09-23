@@ -35,6 +35,13 @@ const softwareFilters = {
   bucket: {type:'string',enum:['auto','day','week'],default:'auto',description:'Auto selects weekly for ranges longer than 121 days. Weekly buckets start Monday; boundary weeks contain only requested days.'},
 };
 function getQueryConstraint(route, name) {
+  if (route === '/v1/mining/hashrate-history') {
+    const schema = name === 'window'
+      ? { type: 'string', enum: ['24h', '7d'], default: '24h', description: 'Full trailing work-estimation window. Independent of chart range.' }
+      : name === 'period' ? { type: 'string', enum: ['7d', '30d', '90d', '1y', 'all'], default: '90d', description: 'Range of historical samples ending at UTC midnight.' } : null;
+    if (schema) return { required: false, schema, description: schema.description };
+  }
+
   if(['/v1/blocks','/v1/mining/software'].includes(route) && softwareFilters[name]) return {required:false,schema:softwareFilters[name],description:softwareFilters[name].description};
   const field = schemas[routeSchemas[route]]?.query?.shape?.[name];
   if (!field) return null;

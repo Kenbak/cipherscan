@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { CURRENCY, isCrosslink } from '@/lib/config';
 import { SlidersIcon } from '@/components/icons/common';
+import { HASHRATE_DESCRIPTION, type HashrateSnapshot } from '@/lib/hashrate';
 import { useApiQuery } from '@/hooks/useApiQuery';
 
 interface StatsData {
@@ -92,9 +93,9 @@ function formatCompact(num: number): string {
   return num.toLocaleString();
 }
 
-function StatItem({ href, label, children }: { href: string; label: string; children: React.ReactNode }) {
+function StatItem({ href, label, title, children }: { href: string; label: string; title?: string; children: React.ReactNode }) {
   return (
-    <Link href={href} className="flex items-center gap-1.5 text-xs sm:text-data font-mono text-muted hover:text-primary transition-colors whitespace-nowrap">
+    <Link href={href} title={title} className="flex items-center gap-1.5 text-xs sm:text-data font-mono text-muted hover:text-primary transition-colors whitespace-nowrap">
       <span className="text-muted">{label}</span>
       <span className="text-secondary">{children}</span>
     </Link>
@@ -143,7 +144,7 @@ export function StatsBar() {
     { refreshInterval: 30_000 },
   );
   const networkQuery = useApiQuery<{
-    mining?: { networkHashrate?: string; avgBlockTime?: number };
+    mining?: { networkHashrate?: string; avgBlockTime?: number; hashrateEstimate?: HashrateSnapshot };
     network?: { height?: number };
     supply?: { ironwood?: number; totalShielded?: number };
   }>('/v1/network/stats', undefined, {
@@ -323,7 +324,7 @@ export function StatsBar() {
         ) : null;
       case 'hashrate':
         return stats.hashrate ? (
-          <StatItem href="/network" label="Hashrate">{stats.hashrate}</StatItem>
+          <StatItem href="/network" label="Hashrate · 24h" title={`${HASHRATE_DESCRIPTION}${networkQuery.data?.mining?.hashrateEstimate ? ` As of ${networkQuery.data.mining.hashrateEstimate.asOf}` : ''}`}>{networkQuery.data?.mining?.hashrateEstimate ? networkQuery.data.mining.networkHashrate : '—'}</StatItem>
         ) : null;
       case 'mempool':
         return stats.mempoolCount !== null ? (

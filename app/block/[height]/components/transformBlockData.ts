@@ -14,18 +14,18 @@ export function transformExpressBlockData(blockData: any): BlockData {
     // (e.g. older cached responses).
     const isCoinbase = typeof tx.is_coinbase === 'boolean'
       ? tx.is_coinbase
-      : (tx.inputs || []).length === 0 || (tx.inputs || []).every((input: any) => !input.prev_txid);
+      : (tx.inputs || tx.vin || []).length === 0 || (tx.inputs || tx.vin || []).every((input: any) => !input.prev_txid);
 
     const transformedInputs = isCoinbase
       ? [{ coinbase: true }]
-      : (tx.inputs || []).map((input: any) => ({
+      : (tx.inputs || tx.vin || []).map((input: any) => ({
           ...input,
           value: input.value ? zatToZec(input.value) : 0,
           txid: input.prev_txid,
           vout: input.prev_vout,
         }));
 
-    const transformedOutputs = (tx.outputs || []).map((output: any) => ({
+    const transformedOutputs = (tx.outputs || tx.vout || []).map((output: any) => ({
       value: output.value ? zatToZec(output.value) : 0,
       n: output.vout_index,
       spent: output.spent || false,
@@ -52,11 +52,11 @@ export function transformExpressBlockData(blockData: any): BlockData {
     const isCoinbaseTx = tx.tx_index === 0;
     if (isCoinbaseTx) return sum;
 
-    const transparentInputs = (tx.inputs || []).reduce((inputSum: number, input: any) => {
+    const transparentInputs = (tx.inputs || tx.vin || []).reduce((inputSum: number, input: any) => {
       return inputSum + parseInt(input.value || 0);
     }, 0);
 
-    const transparentOutputs = (tx.outputs || []).reduce((outputSum: number, output: any) => {
+    const transparentOutputs = (tx.outputs || tx.vout || []).reduce((outputSum: number, output: any) => {
       return outputSum + parseInt(output.value || 0);
     }, 0);
 
@@ -72,6 +72,7 @@ export function transformExpressBlockData(blockData: any): BlockData {
     ? {
         height: parseInt(blockData.canonicalBlock.height),
         hash: blockData.canonicalBlock.hash,
+        firstSeenAt: blockData.canonicalBlock.firstSeenAt || null,
         timestamp: blockData.canonicalBlock.timestamp
           ? parseInt(blockData.canonicalBlock.timestamp)
           : null,
@@ -90,7 +91,7 @@ export function transformExpressBlockData(blockData: any): BlockData {
     hash: blockData.hash,
     timestamp: blockData.timestamp ? parseInt(blockData.timestamp) : 0,
     transactions: transformedTransactions,
-    transactionCount: blockData.transactionCount || transformedTransactions.length,
+    transactionCount: blockData.transactionCount ?? blockData.transaction_count ?? transformedTransactions.length,
     size: parseInt(blockData.size || 0),
     difficulty: blockData.difficulty ? parseFloat(blockData.difficulty) : 0,
     confirmations: parseInt(blockData.confirmations || 0),
@@ -112,6 +113,7 @@ export function transformExpressBlockData(blockData: any): BlockData {
     minerPoolIsFundingStream: Boolean(blockData.miner_pool_is_funding_stream),
     finality: blockData.finality || blockData.finality_status || null,
     isOrphaned: Boolean(blockData.isOrphaned),
+    firstSeenAt: blockData.firstSeenAt || null,
     orphanSource: blockData.orphanSource || null,
     orphanDetectedAt: blockData.orphanDetectedAt || null,
     canonicalBlock,

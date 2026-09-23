@@ -1,6 +1,7 @@
 export interface CanonicalBlockSummary {
   height: number;
   hash: string;
+  firstSeenAt?: string | null;
   timestamp: number | null;
   transactionCount: number | null;
   size: number | null;
@@ -14,6 +15,7 @@ export interface CanonicalBlockSummary {
 export interface BlockData {
   height: number;
   hash: string;
+  firstSeenAt?: string | null;
   timestamp: number;
   transactions: any[];
   transactionCount: number;
@@ -56,6 +58,7 @@ export interface BlockData {
 export interface BlockPageSummary {
   height: number;
   hash: string;
+  firstSeenAt?: string | null;
   isOrphaned: boolean;
   /**
    * Extra fields already available from the server-side block resolution

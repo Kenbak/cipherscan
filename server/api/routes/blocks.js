@@ -437,7 +437,8 @@ function parseBlockIdentifier(param) {
 
 async function fetchCanonicalBlockSummary(blockHeight) {
   const result = await pool.query(
-    `SELECT height, hash, timestamp, transaction_count, size, miner_address
+    `SELECT height, hash, timestamp, transaction_count, size, miner_address, coinbase_hex,
+            (SELECT first_seen_at FROM block_observations WHERE hash = blocks.hash) as first_seen_at
      FROM blocks WHERE height = $1`,
     [blockHeight]
   );
@@ -447,6 +448,7 @@ async function fetchCanonicalBlockSummary(blockHeight) {
   return {
     height: parseInt(row.height),
     hash: row.hash,
+    firstSeenAt: row.first_seen_at || null,
     timestamp: parseInt(row.timestamp),
     transaction_count: row.transaction_count,
     size: row.size,
@@ -473,7 +475,11 @@ async function buildOrphanedBlockResponse(orphanRow) {
               sapling_spend_count, sapling_output_count, orchard_actions, ironwood_actions,
               sprout_joinsplit_count,
               value_balance, value_balance_sapling, value_balance_orchard, value_balance_ironwood,
-              flow_type, privacy_score, "timestamp", expiry_height
+              flow_type, privacy_score, "timestamp", expiry_height,
+              EXISTS (SELECT 1 FROM transactions current_tx
+                      JOIN blocks current_block ON current_block.height = current_tx.block_height
+                        AND current_block.hash = current_tx.block_hash
+                      WHERE current_tx.txid = orphaned_transactions.txid) as canonical_available
        FROM orphaned_transactions
        WHERE block_hash = $1
        ORDER BY tx_index ASC`,
@@ -512,6 +518,7 @@ async function buildOrphanedBlockResponse(orphanRow) {
 
     transactions = txResult.rows.map(tx => ({
       txid: tx.txid,
+      canonical_available: tx.canonical_available === true,
       block_height: parseInt(tx.block_height),
       tx_index: tx.tx_index,
       version: tx.version,
@@ -557,9 +564,26 @@ async function buildOrphanedBlockResponse(orphanRow) {
     }));
   } catch (err) {
     logSafeError('[BLOCK] Failed to load orphaned transactions:', err);
+    throw err;
   }
 
+  const metadata = orphanRow.block_metadata || {};
   return {
+    version: metadata.version ?? null,
+    merkle_root: metadata.merkle_root ?? null,
+    bits: metadata.bits ?? null,
+    nonce: metadata.nonce ?? null,
+    solution: metadata.solution ?? null,
+    total_fees: metadata.total_fees ?? null,
+    final_sapling_root: metadata.final_sapling_root ?? orphanRow.final_sapling_root ?? null,
+    final_orchard_root: metadata.final_orchard_root ?? orphanRow.final_orchard_root ?? null,
+    final_ironwood_root: metadata.final_ironwood_root ?? orphanRow.final_ironwood_root ?? null,
+    coinbase_hex: metadata.coinbase_hex ?? orphanRow.coinbase_hex ?? null,
+    firstSeenAt: orphanRow.first_seen_at || null,
+    firstIndexedAt: orphanRow.first_indexed_at || null,
+    rawBlockAvailable: orphanRow.raw_block_available === true,
+    archivedTransactionCount: transactions.length,
+    transactionArchiveComplete: transactions.length === Number(orphanRow.transaction_count) && transactions.length > 0,
     height: blockHeight,
     hash: blockHash,
     timestamp: orphanRow.timestamp ? parseInt(orphanRow.timestamp) : null,
@@ -625,7 +649,10 @@ router.get('/api/block/:heightOrHash', async (req, res) => {
     if (blockResult.rows.length === 0 && isHash) {
       const orphanResult = await pool.query(
         `SELECT height, hash, timestamp, transaction_count, size, difficulty,
-                miner_address, previous_block_hash, source, detected_at
+                miner_address, previous_block_hash, source, detected_at,
+                coinbase_hex, final_sapling_root, final_orchard_root, final_ironwood_root,
+                first_indexed_at, block_metadata, (raw_hex IS NOT NULL) as raw_block_available,
+                (SELECT first_seen_at FROM block_observations WHERE hash = orphaned_blocks.hash) as first_seen_at
          FROM orphaned_blocks WHERE hash = $1`,
         [identifier.value]
       );

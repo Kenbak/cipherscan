@@ -199,7 +199,7 @@ export function BlockFactsCard({
             `sm:order-none` reverts *to* on desktop, which is what broke it
             last time.
           */}
-          <FactBox fit className="order-3 col-span-2 sm:order-none sm:col-span-1 fact-box-timestamp" label="Timestamp" tooltip="The date and time this block was mined">
+          <FactBox fit className="order-3 col-span-2 sm:order-none sm:col-span-1 fact-box-timestamp" label="Timestamp" tooltip="Miner-provided block header time; not the time CipherScan first observed the block">
             <span className="text-sm text-primary whitespace-nowrap">
               {formatRelativeTime(data.timestamp)}
               <span className="text-muted ml-1.5 text-xs">({formatDateUTC(data.timestamp)})</span>
@@ -245,8 +245,7 @@ export function BlockFactsCard({
           )}
         </div>
 
-        {!data.isOrphaned && (
-          <button
+        <button
             onClick={onToggleMoreDetails}
             className="mt-5 pt-4 border-t block-info-border text-sm text-secondary hover:text-primary transition-colors flex items-center font-mono w-full"
           >
@@ -254,10 +253,9 @@ export function BlockFactsCard({
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
             {showMoreDetails ? 'Hide' : 'Show'} More Details
-          </button>
-        )}
+        </button>
 
-        {showMoreDetails && !data.isOrphaned && (
+        {showMoreDetails && (
           <div className="mt-4 pt-4 border-t block-info-border">
             {/* Short values — same equal-width treatment as the top facts row. */}
             <div className="flex flex-wrap gap-3 items-start">
