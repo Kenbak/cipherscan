@@ -30,7 +30,7 @@
     "test:isr-warmup": "node --test server/tests/isr-warmup.test.js",
     "test:route-cache-build": "node --test server/tests/next-route-cache-build.test.js",
     "test:inbox-scan": "node --test server/tests/inbox-scan.test.js server/tests/scan-worker-pool.test.js server/api/test/scan-pipeline.test.js server/api/test/scan-cache.test.js server/api/test/scan-stream.test.js && cargo test --manifest-path wasm/Cargo.toml --lib",
-    "test:live-refresh": "node --test server/tests/live-refresh.test.js server/tests/relative-time.test.js server/tests/api-query-freshness.test.js server/tests/network-snapshot.test.js",
+    "test:live-refresh": "node --test server/tests/live-refresh.test.js server/tests/relative-time.test.js server/tests/api-query-freshness.test.js server/tests/network-snapshot.test.js server/tests/privacy-trend-dates.test.js",
     "verify:homepage:live": "node scripts/verify-homepage-live-api.mjs",
     "verify:homepage": "node scripts/verify-homepage-first-render.mjs",
     "test:frontend": "node --test server/tests/reorg-display.test.js && npm run test:live-refresh && npm run test:sitemap-security && npm run test:performance && npm run test:ttfb-probe && npm run test:isr-warmup && npm run test:revalidate-security && NODE_PATH=$PWD/server/api/node_modules node --test server/tests/address-labels-resilience.test.js && npm run test:nu7-results && npm run test:governance",

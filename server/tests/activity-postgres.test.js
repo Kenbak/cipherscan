@@ -39,6 +39,21 @@ test('UTC counts, completeness, count-only repair and draft deduplication agains
     const row = (await db.query('SELECT * FROM privacy_trends_daily')).rows[0];
     assert.equal(row.shielded_count,'2'); assert.equal(row.pool_size,'123456');
     assert.equal(row.privacy_score,72); assert.equal(row.created_at.toISOString(),'2026-09-14T23:00:00.000Z');
+    // Exercise the actual API query/serialization against PostgreSQL. Only the
+    // unrelated lifetime snapshot is stubbed; dates must remain calendar dates.
+    const express = require('express');
+    const app = express();
+    app.locals.pool = { query: (sql, args) => sql.includes('FROM privacy_stats')
+      ? Promise.resolve({ rows: [{ updated_at: now, privacy_score_breakdown: {} }] }) : db.query(sql, args) };
+    app.use(require('../api/routes/stats'));
+    const server = await new Promise(resolve => { const server = app.listen(0, '127.0.0.1', () => resolve(server)); });
+    try {
+      const response = await fetch(`http://127.0.0.1:${server.address().port}/api/privacy-stats?days=7`);
+      assert.equal(response.status, 200);
+      const body = await response.json();
+      assert.equal(body.trends.daily[0].date, '2026-09-14');
+      assert.equal(body.trends.daily[0].shielded, 2);
+    } finally { server.closeAllConnections(); await new Promise(resolve => server.close(resolve)); }
     await assert.rejects(readActivity(db, '2026-09-14', '2026-09-15', { now: new Date('2026-09-16') }), /stale/);
     await db.query('UPDATE blocks SET transaction_count=4 WHERE height=0');
     await assert.rejects(readActivity(db, '2026-09-14', '2026-09-15', { now }), /Incomplete transaction/);

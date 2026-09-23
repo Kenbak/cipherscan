@@ -5,13 +5,13 @@ export function parseTrendDate(value: string | Date | number | null | undefined)
   const raw = String(value).trim();
   if (!raw) return new Date(NaN);
   if (raw.includes('T')) return new Date(raw);
-  return new Date(`${raw.slice(0, 10)}T00:00:00`);
+  return new Date(`${raw.slice(0, 10)}T00:00:00Z`);
 }
 
 export function formatTrendDate(value: string | Date | number | null | undefined): string {
   const d = parseTrendDate(value);
   if (Number.isNaN(d.getTime())) return '';
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
 }
 
 export function normalizeTrendDateKey(value: string | Date | number | null | undefined): string {
