@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { CURRENCY, isCrosslink } from '@/lib/config';
 import { SlidersIcon } from '@/components/icons/common';
+import { HASHRATE_DESCRIPTION, type HashrateSnapshot } from '@/lib/hashrate';
 import { useApiQuery } from '@/hooks/useApiQuery';
 
 interface StatsData {
@@ -143,7 +144,7 @@ export function StatsBar() {
     { refreshInterval: 30_000 },
   );
   const networkQuery = useApiQuery<{
-    mining?: { networkHashrate?: string; avgBlockTime?: number };
+    mining?: { networkHashrate?: string; avgBlockTime?: number; hashrateEstimate?: HashrateSnapshot };
     network?: { height?: number };
     supply?: { ironwood?: number; totalShielded?: number };
   }>('/api/network/stats', undefined, {
@@ -323,7 +324,7 @@ export function StatsBar() {
         ) : null;
       case 'hashrate':
         return stats.hashrate ? (
-          <StatItem href="/network" label="Hashrate" title="Latest block difficulty × 8192 ÷ average spacing of up to 1,000 recent blocks. The mining chart uses daily average difficulty and spacing.">{stats.hashrate}</StatItem>
+          <StatItem href="/network" label="Hashrate · 24h" title={`${HASHRATE_DESCRIPTION}${networkQuery.data?.mining?.hashrateEstimate ? ` As of ${networkQuery.data.mining.hashrateEstimate.asOf}` : ''}`}>{networkQuery.data?.mining?.hashrateEstimate ? networkQuery.data.mining.networkHashrate : '—'}</StatItem>
         ) : null;
       case 'mempool':
         return stats.mempoolCount !== null ? (

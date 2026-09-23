@@ -4,13 +4,13 @@ import { useEffect, useState, lazy, Suspense, type ReactNode } from 'react';
 import Link from 'next/link';
 import { useWebSocket } from '@/hooks/useWebSocket';
 import { RelativeTime } from '@/components/RelativeTime';
+import type { HashrateSnapshot } from '@/lib/hashrate';
 import { useApiQuery } from '@/hooks/useApiQuery';
 import { Card, CardBody } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { PageHeader } from '@/components/ui/SectionHeader';
 import { isCrosslink } from '@/lib/config';
 
-import { formatHashrate } from '@/lib/format-numbers';
 import { NetworkSectionNav } from '@/components/network/NetworkSectionNav';
 import type { NodeLocationsResponse, NodeStatsResponse } from '@/components/NodeMap';
 import type { PoolHistoryResponse } from '@/components/network/PoolDistributionChart';
@@ -70,7 +70,8 @@ export interface NetworkStats {
   success: boolean;
   mining: {
     networkHashrate: string;
-    networkHashrateRaw: number;
+    networkHashrateRaw: number | null;
+    hashrateEstimate?: HashrateSnapshot;
     difficulty: number;
     avgBlockTime: number;
     blocks24h: number;
@@ -286,7 +287,7 @@ export default function NetworkClient({ initialData }: { initialData: NetworkPag
           }
           tx24h={stats.blockchain.tx24h}
           peers={stats.network.peers}
-          hashrate={formatHashrate(stats.mining.networkHashrateRaw)}
+          hashrate={stats.mining.hashrateEstimate ? stats.mining.networkHashrate : 'Unavailable'}
         />
 
         {/* On Crosslink: show the block activity chart (peer map has tiny sample size).
@@ -504,7 +505,7 @@ export default function NetworkClient({ initialData }: { initialData: NetworkPag
                     <div>
                       <h3 className="text-sm font-bold font-mono text-secondary uppercase tracking-wider mb-1">Mining</h3>
                       <div className="flex items-center gap-4 text-[11px] font-mono text-muted">
-                        <span>Hashrate: <span className="text-primary">{formatHashrate(stats.mining.networkHashrateRaw)}</span></span>
+                        <span>Hashrate · 24h: <span className="text-primary">{stats.mining.hashrateEstimate ? stats.mining.networkHashrate : 'Unavailable'}</span></span>
                         <span>Difficulty: <span className="text-primary">{(stats.mining.difficulty / 1e6).toFixed(1)}M</span></span>
                         <span>Block time: <span className="text-primary">~{stats.mining.avgBlockTime}s</span></span>
                       </div>
@@ -595,7 +596,7 @@ function OverviewHeroStrip({
   const secondary = [
     { label: 'TX (24h)', value: tx24h.toLocaleString(), tip: 'Transactions processed in the last 24 hours.' },
     { label: 'Peers', value: peers.toString(), tip: 'Nodes connected to this explorer.' },
-    { label: 'Hashrate', value: hashrate, tip: 'Combined mining power securing the network.' },
+    { label: 'Hashrate · 24h', value: hashrate, tip: 'Estimated solutions per second from canonical block work over the trailing 24 hours.' },
   ];
 
   return (

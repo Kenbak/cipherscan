@@ -605,7 +605,7 @@ export const getEndpoints = (baseUrl: string): ApiEndpoint[] => [
     category: 'Network',
     method: 'GET',
     path: '/api/network/stats',
-    description: 'Comprehensive network statistics: mining (hashrate, difficulty, block times), network (peers, height), blockchain (size, tx volume), and supply (pool breakdown).',
+    description: 'Comprehensive network statistics: mining (trailing 24h work-based hashrate, difficulty, block times), network (peers, height), blockchain (size, tx volume), and supply (pool breakdown).',
     params: [],
     example: `curl ${baseUrl}/api/network/stats`,
     response: {
@@ -675,19 +675,22 @@ export const getEndpoints = (baseUrl: string): ApiEndpoint[] => [
     category: 'Network',
     method: 'GET',
     path: '/api/network/hashrate-history',
-    description: 'Daily-bucketed network hashrate (Sol/s) history, for long-range trend charts (weeks to a year+).',
+    description: 'Trailing 24-hour or 7-day work-based hashrate estimates (Sol/s), sampled at midnight UTC.',
     params: [
-      { name: 'period', type: 'string', description: "'7d' | '30d' | '90d' | '1y' | 'all' (default: '90d')" }
+      { name: 'period', type: 'string', description: "'7d' | '30d' | '90d' | '1y' | 'all' (default: '90d')" },
+      { name: 'window', type: 'string', description: "'24h' | '7d' (default: '24h')" }
     ],
     example: `curl '${baseUrl}/api/network/hashrate-history?period=1y'`,
     response: {
       success: true,
       period: '1y',
+      window: '24h',
+      method: 'target-work-v1',
       points: [
-        { date: '2025-08-18', avgDifficulty: 72259790, blockCount: 1140, hashrate: 7891842375 }
+        { date: '2025-08-18T00:00:00.000Z', windowStart: '2025-08-17T00:00:00.000Z', windowEnd: '2025-08-18T00:00:00.000Z', windowSeconds: 86400, blockCount: 1140, hashrate: 7891842375, unavailableReason: null }
       ]
     },
-    note: 'UTC buckets: hashrate = avgDifficulty × 8192 × (blockCount − 1) ÷ (lastTimestamp − firstTimestamp). Buckets without a positive time span use avgDifficulty × 8192 ÷ 75. Today and the range’s first day may be partial. The top bar instead uses latest difficulty and average spacing of the last 1,000 blocks. Cached 10 minutes.'
+    note: 'Sum of canonical block work floor(2^256 / (target + 1)), divided by the full window duration. Windows include their start and exclude their end, using block-header timestamps. Missing targets, fewer than two blocks or insufficient history produce null, never a target-time fallback. Historical samples are cached 10 minutes; the current chart point and every headline use mining.hashrateEstimate from the shared network/stats snapshot (cached up to 2 minutes).'
   },
   {
     id: 'network-health',

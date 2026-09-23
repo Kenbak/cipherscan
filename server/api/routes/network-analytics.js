@@ -1,3 +1,4 @@
+const { cachedHashrateHistory } = require('../lib/hashrate');
 const { logSafeError } = require('../lib/safe-log');
 /**
  * Network analytics routes — halving, mining history, pool trends, emission, chain size.
@@ -321,60 +322,22 @@ function registerNetworkAnalyticsRoutes(router) {
     }
   });
 
-  // Long-range network hashrate trend (daily buckets, robust to per-block difficulty
-  // noise). Complements /api/network/mining-metrics, which is short-range/per-block.
+  // Historical full trailing windows; headlines use /api/network/stats.
   router.get('/api/network/hashrate-history', async (req, res) => {
+    const period = req.query.period || '90d';
+    const window = req.query.window || '24h';
+    if (!['7d', '30d', '90d', '1y', 'all'].includes(period) || !['24h', '7d'].includes(window)) {
+      return res.status(400).json({ success: false, error: 'Invalid period or window' });
+    }
     try {
       const pool = req.app.locals.pool;
       const redisClient = req.app.locals.redisClient;
-      const period = req.query.period || '90d';
-      const cacheKey = `network:hashrate-history:v2:${period}`;
-
+      const cacheKey = `network:hashrate-history:work-v1:${period}:${window}`;
       const cached = await getFromRedisCache(redisClient, cacheKey);
       if (cached) return res.json({ ...cached, cached: true });
-
-      const interval = periodToInterval(period);
-      const dateFilter =
-        period === 'all'
-          ? `timestamp >= 0`
-          : `timestamp >= EXTRACT(EPOCH FROM NOW() - INTERVAL '${interval}')`;
-
-      const result = await pool.query(`
-        SELECT
-          (to_timestamp(timestamp) AT TIME ZONE 'UTC')::date::text as day,
-          AVG(difficulty) as avg_difficulty,
-          COUNT(*) as block_count,
-          MIN(timestamp) as first_ts,
-          MAX(timestamp) as last_ts
-        FROM blocks
-        WHERE ${dateFilter}
-        GROUP BY day
-        ORDER BY day ASC
-      `);
-
-      // Realized rate over the bucket: blockCount / actual-elapsed-seconds, not a fixed
-      // 86400 — the "today" bucket is always partial (the day isn't over yet), so
-      // dividing its handful-of-blocks by a full day's seconds would make the most
-      // recent point look like a cliff-edge crash even though nothing changed.
-      const points = result.rows.map((r) => {
-        const avgDifficulty = parseFloat(r.avg_difficulty) || 0;
-        const blockCount = parseInt(r.block_count, 10) || 0;
-        const firstTs = parseInt(r.first_ts, 10) || 0;
-        const lastTs = parseInt(r.last_ts, 10) || 0;
-        const elapsedSeconds = lastTs - firstTs;
-        const hashrate = blockCount > 1 && elapsedSeconds > 0
-          ? (avgDifficulty * 8192 * (blockCount - 1)) / elapsedSeconds
-          : (avgDifficulty * 8192) / 75; // single-block bucket: fall back to target block time
-        return {
-          date: r.day,
-          avgDifficulty,
-          blockCount,
-          hashrate,
-        };
-      });
-
-      const response = { success: true, period, points };
-      await setRedisCache(redisClient, cacheKey, response, 600); // 10 min
+      const history = await cachedHashrateHistory(pool, period, window);
+      const response = { success: true, period, ...history };
+      await setRedisCache(redisClient, cacheKey, response, 600);
       res.json(response);
     } catch (error) {
       logSafeError('❌ [HASHRATE-HISTORY] Error:', error);

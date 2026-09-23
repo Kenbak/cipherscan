@@ -4,6 +4,7 @@
  */
 
 const express = require('express');
+const { loadHashrateSnapshot, formatHashrate } = require('../lib/hashrate');
 const router = express.Router();
 const { registerNetworkAnalyticsRoutes } = require('./network-analytics');
 const { parsePeerClient } = require('../../lib/peer-client');
@@ -39,7 +40,7 @@ router.use((req, res, next) => {
 // CACHE CONFIGURATION
 // ============================================================================
 
-const NETWORK_STATS_CACHE_KEY = 'zcash:network_stats';
+const NETWORK_STATS_CACHE_KEY = 'zcash:network_stats:work-v1';
 const NETWORK_STATS_CACHE_DURATION = 120; // 2 minutes — network stats don't change fast
 const NETWORK_HEALTH_CACHE_KEY = 'zcash:network_health';
 const NETWORK_HEALTH_CACHE_DURATION = 60;
@@ -147,11 +148,12 @@ async function fetchNetworkStatsOptimized() {
 
     const { height, difficulty, timestamp, blocks_24h, avg_difficulty, tx_24h, tx_24h_excl_coinbase, avg_block_fee_zat, rolling_block_time_secs } = dbStats.rows[0];
 
-    const [networkInfo, peerInfo, blockchainInfo, blockSubsidy] = await Promise.all([
+    const [networkInfo, peerInfo, blockchainInfo, blockSubsidy, hashrateSnapshot] = await Promise.all([
       callZebraRPC('getnetworkinfo').catch(() => null),
       callZebraRPC('getpeerinfo').catch(() => []),
       callZebraRPC('getblockchaininfo').catch(() => null),
       callZebraRPC('getblocksubsidy').catch(() => null),
+      loadHashrateSnapshot(pool),
     ]);
 
     // Extract peer count and network details
@@ -206,19 +208,8 @@ async function fetchNetworkStatsOptimized() {
       ? Math.round(Number(rolling_block_time_secs) * 10) / 10
       : (blocks24h > 0 ? Math.round(86400 / blocks24h) : 75);
     const difficultyNum = parseFloat(difficulty || 0);
-    // Zcash's Equihash difficulty encodes a solution-rate estimate with a 2^13
-    // constant (see zcashd's GetNetworkHashPS / getnetworksolps), not the plain
-    // Bitcoin-style difficulty/time ratio. Omitting it understates hashrate by 8192x.
-    const networkHashrate = (difficultyNum * 8192) / avgBlockTime;
+    const networkHashrate = hashrateSnapshot.windows['24h'].hashrate;
     const avgBlockFee = avg_block_fee_zat != null ? parseFloat(avg_block_fee_zat) / 100000000 : null;
-
-    function formatHashrate(h) {
-      if (h >= 1e12) return `${(h / 1e12).toFixed(2)} TSol/s`;
-      if (h >= 1e9) return `${(h / 1e9).toFixed(2)} GSol/s`;
-      if (h >= 1e6) return `${(h / 1e6).toFixed(2)} MSol/s`;
-      if (h >= 1e3) return `${(h / 1e3).toFixed(2)} KSol/s`;
-      return `${h.toFixed(2)} Sol/s`;
-    }
 
     // Block subsidy from Zebra RPC (dynamic, adjusts at halvings)
     const totalBlockSubsidy = blockSubsidy?.totalblocksubsidy ?? 1.5625;
@@ -233,6 +224,7 @@ async function fetchNetworkStatsOptimized() {
       mining: {
         networkHashrate: formatHashrate(networkHashrate),
         networkHashrateRaw: networkHashrate,
+        hashrateEstimate: hashrateSnapshot,
         difficulty: difficultyNum,
         avgBlockTime, // in seconds
         avgBlockFee, // in ZEC, null if no blocks in the last 24h

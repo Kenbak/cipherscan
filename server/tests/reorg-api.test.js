@@ -34,16 +34,3 @@ test('reorg sides expose independent observations; header/detection times are ne
   result = await request(router, pool, '/api/uncles');
   assert.equal(result.data.orphanedBlocks[0].canonicalBlock, null);
 });
-
-test('daily hashrate uses observed elapsed time and UTC buckets, including partial days', async () => {
-  const router = express.Router();
-  require('../api/routes/network-analytics').registerNetworkAnalyticsRoutes(router);
-  const pool = { async query(sql) {
-    assert.match(sql, /AT TIME ZONE 'UTC'/);
-    return { rows: [{ day: '2026-09-23', avg_difficulty: '100', block_count: '3', first_ts: '1000', last_ts: '1150' }] };
-  } };
-  const result = await request(router, pool, '/api/network/hashrate-history?period=30d');
-  assert.equal(result.status, 200);
-  assert.equal(result.data.points[0].date, '2026-09-23');
-  assert.equal(result.data.points[0].hashrate, 100 * 8192 * 2 / 150);
-});
