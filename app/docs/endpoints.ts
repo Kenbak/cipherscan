@@ -33,7 +33,7 @@ export const getEndpoints = (baseUrl: string): ApiEndpoint[] => [
     category: 'Blocks',
     method: 'GET',
     path: '/api/block/:heightOrHash',
-    description: 'Get detailed information about a specific block by height or hash, including all transactions with fee, total_input, and total_output in zatoshis.',
+    description: 'Get a block by height or hash, including transactions with fee, total_input, and total_output in zatoshis. Orphan hashes return their own archived transactions, with archivedTransactionCount and transactionArchiveComplete. firstSeenAt is nullable UTC collector receipt time from our local node, not header or indexing time. Archived vin/vout values remain in zatoshis; canonical_available indicates a current canonical transaction record.',
     params: [
       { name: 'heightOrHash', type: 'number | string', description: 'Block height (e.g., 2500000) or 64-character block hash', required: true }
     ],
@@ -687,7 +687,7 @@ export const getEndpoints = (baseUrl: string): ApiEndpoint[] => [
         { date: '2025-08-18', avgDifficulty: 72259790, blockCount: 1140, hashrate: 7891842375 }
       ]
     },
-    note: 'hashrate = avgDifficulty × 8192 × blockCount ÷ 86400 (realized daily average, robust to single-block difficulty noise). Cached 10 minutes.'
+    note: 'UTC buckets: hashrate = avgDifficulty × 8192 × (blockCount − 1) ÷ (lastTimestamp − firstTimestamp). Buckets without a positive time span use avgDifficulty × 8192 ÷ 75. Today and the range’s first day may be partial. The top bar instead uses latest difficulty and average spacing of the last 1,000 blocks. Cached 10 minutes.'
   },
   {
     id: 'network-health',

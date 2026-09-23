@@ -72,10 +72,15 @@ export function NetworkHashrateChart() {
     >
       {latest && (
         <p className="text-xs font-mono text-muted mb-3">
-          Latest: <span className="text-cipher-cyan font-bold">{formatHashrate(latest.hashrate)}</span>
+          Latest daily estimate: <span className="text-cipher-cyan font-bold">{formatHashrate(latest.hashrate)}</span>
           <span className="text-muted/60"> ({latest.date}, {latest.blockCount} blocks)</span>
         </p>
       )}
+      <p className="text-xs text-muted mb-3">
+        UTC day buckets: average difficulty × 8192 ÷ observed block spacing.
+        Today and the first day in a selected range may be partial. The top bar uses the latest
+        difficulty and spacing across the last 1,000 blocks, so the estimates can differ.
+      </p>
       {loading && points.length === 0 ? (
         <div className="flex items-center justify-center h-[260px]">
           <div className="animate-pulse text-muted font-mono text-xs">Loading...</div>

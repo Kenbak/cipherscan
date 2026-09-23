@@ -87,6 +87,20 @@ const REDIRECT_HOSTS = [
 ];
 
 export async function proxy(request: NextRequest) {
+  // Reject malformed block identifiers before a loading boundary can stream a
+  // soft 200. Do not fetch or cache a missing-resource guess for these URLs.
+  const blockPath = request.nextUrl.pathname.match(/^\/block\/([^/]+)$/);
+  if (blockPath) {
+    const id = blockPath[1];
+    const validHash = /^[a-fA-F0-9]{64}$/.test(id);
+    const validHeight = /^\d+$/.test(id) && Number(id) <= 100_000_000;
+    if (!validHash && !validHeight) {
+      return new NextResponse('<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="robots" content="noindex, follow"><title>Block not found | CipherScan</title></head><body><main><h1>Block not found</h1><p>Enter a valid block height or a 64-character block hash.</p><a href="/blocks">Browse blocks</a></main></body></html>', {
+        status: 404,
+        headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store', 'X-Robots-Tag': 'noindex, follow' },
+      });
+    }
+  }
   const governancePath = request.nextUrl.pathname;
   if (governancePath === '/governance' || governancePath.startsWith('/governance/')) {
     const result = await resolveGovernanceRequest(governancePath, getConfiguredNetwork() ?? 'testnet');

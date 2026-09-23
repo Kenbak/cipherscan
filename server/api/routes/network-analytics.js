@@ -328,7 +328,7 @@ function registerNetworkAnalyticsRoutes(router) {
       const pool = req.app.locals.pool;
       const redisClient = req.app.locals.redisClient;
       const period = req.query.period || '90d';
-      const cacheKey = `network:hashrate-history:${period}`;
+      const cacheKey = `network:hashrate-history:v2:${period}`;
 
       const cached = await getFromRedisCache(redisClient, cacheKey);
       if (cached) return res.json({ ...cached, cached: true });
@@ -341,7 +341,7 @@ function registerNetworkAnalyticsRoutes(router) {
 
       const result = await pool.query(`
         SELECT
-          date_trunc('day', to_timestamp(timestamp)) as day,
+          (to_timestamp(timestamp) AT TIME ZONE 'UTC')::date::text as day,
           AVG(difficulty) as avg_difficulty,
           COUNT(*) as block_count,
           MIN(timestamp) as first_ts,
@@ -366,7 +366,7 @@ function registerNetworkAnalyticsRoutes(router) {
           ? (avgDifficulty * 8192 * (blockCount - 1)) / elapsedSeconds
           : (avgDifficulty * 8192) / 75; // single-block bucket: fall back to target block time
         return {
-          date: r.day.toISOString().slice(0, 10),
+          date: r.day,
           avgDifficulty,
           blockCount,
           hashrate,

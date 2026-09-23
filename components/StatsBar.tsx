@@ -92,9 +92,9 @@ function formatCompact(num: number): string {
   return num.toLocaleString();
 }
 
-function StatItem({ href, label, children }: { href: string; label: string; children: React.ReactNode }) {
+function StatItem({ href, label, title, children }: { href: string; label: string; title?: string; children: React.ReactNode }) {
   return (
-    <Link href={href} className="flex items-center gap-1.5 text-xs sm:text-[13px] font-mono text-muted hover:text-primary transition-colors whitespace-nowrap">
+    <Link href={href} title={title} className="flex items-center gap-1.5 text-xs sm:text-[13px] font-mono text-muted hover:text-primary transition-colors whitespace-nowrap">
       <span className="text-muted/50">{label}</span>
       <span className="text-secondary">{children}</span>
     </Link>
@@ -323,7 +323,7 @@ export function StatsBar() {
         ) : null;
       case 'hashrate':
         return stats.hashrate ? (
-          <StatItem href="/network" label="Hashrate">{stats.hashrate}</StatItem>
+          <StatItem href="/network" label="Hashrate" title="Latest block difficulty × 8192 ÷ average spacing of up to 1,000 recent blocks. The mining chart uses daily average difficulty and spacing.">{stats.hashrate}</StatItem>
         ) : null;
       case 'mempool':
         return stats.mempoolCount !== null ? (
