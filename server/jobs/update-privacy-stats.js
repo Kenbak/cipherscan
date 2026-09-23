@@ -16,6 +16,7 @@
 const { log, loadEnv } = require('../lib/job-utils');
 const { getPool, getReadPool } = require('../lib/db-pool');
 const { callZebraRPC } = require('../lib/zebra-rpc');
+const { SHIELDED, addDays, readActivity, repairTrendCounts } = require('../lib/transaction-activity');
 
 loadEnv(__dirname);
 
@@ -103,17 +104,17 @@ async function updateTransactionCounts() {
     SELECT
       COUNT(*) as total_transactions,
       COUNT(*) FILTER (WHERE is_coinbase) as coinbase_count,
-      COUNT(*) FILTER (WHERE has_sapling OR has_orchard OR has_ironwood) as shielded_count,
-      COUNT(*) FILTER (WHERE NOT is_coinbase AND NOT has_sapling AND NOT has_orchard AND NOT has_ironwood) as transparent_count,
+      COUNT(*) FILTER (WHERE NOT is_coinbase AND ${SHIELDED}) as shielded_count,
+      COUNT(*) FILTER (WHERE NOT is_coinbase AND NOT ${SHIELDED}) as transparent_count,
       MAX(block_height) as latest_block
     FROM transactions WHERE block_height > 0
   `)).rows[0];
 
   const shieldedTypes = (await readPool.query(`
     SELECT
-      COUNT(*) FILTER (WHERE (has_sapling OR has_orchard OR has_ironwood) AND vin_count > 0 AND vout_count > 0) as mixed_count,
-      COUNT(*) FILTER (WHERE (has_sapling OR has_orchard OR has_ironwood) AND vin_count = 0 AND vout_count = 0) as fully_shielded_count
-    FROM transactions WHERE block_height > 0 AND (has_sapling OR has_orchard OR has_ironwood) AND NOT is_coinbase
+      COUNT(*) FILTER (WHERE ${SHIELDED} AND vin_count > 0 AND vout_count > 0) as mixed_count,
+      COUNT(*) FILTER (WHERE ${SHIELDED} AND vin_count = 0 AND vout_count = 0) as fully_shielded_count
+    FROM transactions WHERE block_height > 0 AND ${SHIELDED} AND NOT is_coinbase
   `)).rows[0];
 
   const blockCount = (await readPool.query('SELECT COUNT(*) as total_blocks FROM blocks')).rows[0];
@@ -125,17 +126,18 @@ async function updateTransactionCounts() {
   const mixedTx = parseInt(shieldedTypes.mixed_count) || 0;
   const fullyShieldedTx = parseInt(shieldedTypes.fully_shielded_count) || 0;
   const totalBlocks = parseInt(blockCount.total_blocks) || 0;
-  const shieldedPercentage = totalTx > 0 ? (shieldedTx / totalTx) * 100 : 0;
+  const nonCoinbaseTx = shieldedTx + transparentTx;
+  const shieldedPercentage = nonCoinbaseTx > 0 ? (shieldedTx / nonCoinbaseTx) * 100 : 0;
 
   const avgPerDay = (await readPool.query(`
-    SELECT COUNT(*) FILTER (WHERE has_sapling OR has_orchard OR has_ironwood) / 30.0 as avg
+    SELECT COUNT(*) FILTER (WHERE NOT is_coinbase AND ${SHIELDED}) / 30.0 as avg
     FROM transactions WHERE block_height > 0 AND block_time >= EXTRACT(EPOCH FROM NOW() - INTERVAL '30 days')
   `)).rows[0];
 
   const trend = (await readPool.query(`
     SELECT
-      COUNT(*) FILTER (WHERE (has_sapling OR has_orchard OR has_ironwood) AND block_time >= EXTRACT(EPOCH FROM NOW() - INTERVAL '7 days')) as recent,
-      COUNT(*) FILTER (WHERE (has_sapling OR has_orchard OR has_ironwood) AND block_time >= EXTRACT(EPOCH FROM NOW() - INTERVAL '14 days') AND block_time < EXTRACT(EPOCH FROM NOW() - INTERVAL '7 days')) as previous
+      COUNT(*) FILTER (WHERE NOT is_coinbase AND ${SHIELDED} AND block_time >= EXTRACT(EPOCH FROM NOW() - INTERVAL '7 days')) as recent,
+      COUNT(*) FILTER (WHERE NOT is_coinbase AND ${SHIELDED} AND block_time >= EXTRACT(EPOCH FROM NOW() - INTERVAL '14 days') AND block_time < EXTRACT(EPOCH FROM NOW() - INTERVAL '7 days')) as previous
     FROM transactions WHERE block_height > 0
   `)).rows[0];
 
@@ -148,7 +150,7 @@ async function updateTransactionCounts() {
     else if (change < -10) adoptionTrend = 'declining';
   }
 
-  log(`  ${shieldedTx.toLocaleString()} shielded / ${totalTx.toLocaleString()} total (${shieldedPercentage.toFixed(1)}%) | Trend: ${adoptionTrend}`);
+  log(`  ${shieldedTx.toLocaleString()} shielded / ${nonCoinbaseTx.toLocaleString()} non-coinbase (${shieldedPercentage.toFixed(1)}%) | Trend: ${adoptionTrend}`);
 
   return {
     totalBlocks, totalTx, shieldedTx, transparentTx, coinbaseTx,
@@ -249,26 +251,20 @@ async function updatePrivacyStats(pools, txStats) {
   log('  privacy_stats updated');
 }
 
-async function updatePrivacyTrendsDaily(pools, txStats) {
+async function updatePrivacyTrendsDaily(pools) {
   log('Updating privacy_trends_daily...');
 
   const today = new Date().toISOString().split('T')[0];
   const existing = await readPool.query('SELECT id FROM privacy_trends_daily WHERE date = $1', [today]);
 
-  // Get today's shielded counts
-  const latestBlock = txStats.latestBlock;
-  const blocksPerDay = 1152;
-  const startBlock = latestBlock - blocksPerDay;
-
-  const dayStats = (await readPool.query(`
-    SELECT
-      COUNT(*) FILTER (WHERE has_sapling OR has_orchard OR has_ironwood) as shielded_count,
-      COUNT(*) FILTER (WHERE NOT is_coinbase AND NOT has_sapling AND NOT has_orchard AND NOT has_ironwood) as transparent_count
-    FROM transactions WHERE block_height >= $1 AND block_height <= $2
-  `, [startBlock, latestBlock])).rows[0];
-
-  const shieldedCount = parseInt(dayStats.shielded_count) || 0;
-  const transparentCount = parseInt(dayStats.transparent_count) || 0;
+  // Reconcile a rolling week too: midnight completion, delayed indexing and
+  // recent reorgs can change a previously observed day. Today remains partial.
+  const activity = await readActivity(readPool, addDays(today, -7), addDays(today, 1));
+  const updated = await repairTrendCounts(pool, activity.days.slice(0, -1));
+  if (updated !== 7) log(`  Historical snapshot gaps: repaired ${updated}/7 days; missing pool observations were not invented`);
+  const dayStats = activity.days.at(-1);
+  const shieldedCount = dayStats.shielded;
+  const transparentCount = dayStats.transparent;
   const totalCount = shieldedCount + transparentCount;
   const shieldedPercentage = totalCount > 0 ? (shieldedCount / totalCount) * 100 : 0;
 
@@ -325,7 +321,7 @@ async function main() {
     await validatePoolSizesAgainstPriorDay(pools);
     const txStats = await updateTransactionCounts();
     await updatePrivacyStats(pools, txStats);
-    await updatePrivacyTrendsDaily(pools, txStats);
+    await updatePrivacyTrendsDaily(pools);
 
     // Refresh pool analytics materialized views (if they exist)
     try {
@@ -343,6 +339,7 @@ async function main() {
     process.exit(1);
   } finally {
     await pool.end();
+    if (readPool !== pool) await readPool.end();
   }
 }
 

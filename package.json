@@ -49,7 +49,8 @@
     "test:attestations": "node --test server/tests/attestations*.test.mjs server/tests/canary.test.mjs",
     "attestations:baseline": "node server/scripts/attestation-baseline.mjs",
     "test:nu7-results": "node --test server/tests/nu7-results.test.js",
-    "test:governance": "node --test server/tests/governance.test.js"
+    "test:governance": "node --test server/tests/governance.test.js",
+    "test:activity": "NODE_PATH=$PWD/server/api/node_modules node --test server/tests/activity-milestones.test.js server/tests/activity-postgres.test.js"
   },
   "overrides": {
     "axios": "1.14.0",
