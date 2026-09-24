@@ -64,7 +64,9 @@ NEXT_PUBLIC_WS_URL=wss://api.mainnet.cipherscan.app
 ```
 
 Consumers append `/v1/...`, so base URLs omit that suffix. The preview rejects
-foreign browser origins, non-loopback Host headers and writes. No shared preview
+foreign browser origins, non-loopback Host headers and writes. The one POST
+exception is `/v1/ask/chat`, forced to reviewed-guide mode with paid AI disabled.
+No shared preview
 secret enters a browser bundle. Restart the Node preview after backend edits;
 Next.js normally picks up frontend edits automatically.
 
@@ -108,6 +110,59 @@ it must not bypass ownership or payments. Dedicated deployments need their own
 CORS and global request limiting; the private development server is not a public
 hosting configuration. Writes preserve source behavior and are not automatically
 retried after an ambiguous timeout.
+
+## Ask contextual assistant
+
+Mainnet `POST /v1/ask/chat` accepts a validated page ID, question (1,000 characters),
+optional analysis recipe, response locale and at most four previous questions.
+The server selects reviewed public knowledge and/or fetches allowlisted analytics.
+It exposes no SQL, arbitrary URL, shell, wallet or write tools to the model.
+Sources come from `lib/ask-knowledge.js`; update their review dates when reviewing
+official material. The private wiki is not a retrieval source. Dynamic record
+pages currently receive conceptual guides, not analysis of that specific record.
+
+The global mainnet widget and full Ask workspace share this endpoint. Opening the
+widget or changing chart controls does not invoke paid inference. With no provider,
+exact page-guide/product prompts and guided chart recipes remain usable in English.
+Multilingual contextual answers require a configured and evaluated model.
+
+Paid mode requires all of these **backend** settings:
+
+- `ASK_ENABLED=true`, `ASK_PROVIDER=openai|anthropic`, `ASK_MODEL`, `ASK_API_KEY`.
+- `ASK_DAILY_CALL_LIMIT` (1–10,000), `ASK_DAILY_BUDGET_USD`,
+  `ASK_MONTHLY_BUDGET_USD` (each positive, at most 1,000 USD).
+- `ASK_MAX_INPUT_USD_PER_MILLION`, `ASK_MAX_OUTPUT_USD_PER_MILLION`: reviewed
+  upper bounds covering the selected model's applicable regional/cache premiums.
+- `ASK_ABUSE_SECRET` (at least 32 characters), `ASK_TURNSTILE_SECRET`,
+  `ASK_TURNSTILE_SITE_KEY`, `ASK_TURNSTILE_HOSTNAME` (exact frontend hostname).
+- Ready shared `app.locals.redisClient`. Configure durable, non-evicting storage
+  for allowance counters; losing/resetting them invalidates cumulative limits.
+- Optional OpenAI `ASK_REASONING_EFFORT`, supported by the selected model.
+
+Only the public Turnstile site key is returned to browsers. Server verification
+requires the configured hostname and `ask` action. Distributed limits admit five
+requests per UTC minute and twenty per day per daily HMAC of the trusted client IP.
+Verify reverse-proxy attribution before launch. IP quotas are not user identity;
+attackers can rotate IPs or exhaust the shared allowance.
+
+Atomic Redis reservations charge each provider call's conservative maximum against
+both UTC day/month budgets before dispatch, including selection and explanation
+separately. They use UTF-8 request bytes plus wrapper headroom, reviewed price
+bounds and 500 output tokens. This is a conservative reservation ledger, not
+measured invoice reconciliation; uncertain/failed calls receive no refund.
+There are no automatic retries; three concurrent calls, 15-second provider
+deadlines, 35-second operation deadlines and bounded bodies limit work. Missing
+configuration, Redis failures or exhausted allowances fail closed. Also configure
+provider-side controls; deployment-reviewed tokenization/pricing remains necessary.
+
+Only generic public explanations are cached for five minutes by model, locale,
+recipe, reviewed documents and evidence fingerprint. Arbitrary questions/history
+are not cached or logged by Ask. Audit infrastructure/APM logging separately.
+The provider processes submitted text; `store:false` is not zero retention or
+end-to-end privacy. Off-topic intent filtering and provenance checks do not prove
+jailbreak resistance or semantic accuracy. Real-model multilingual/adversarial
+evaluation, least-privilege runtime/egress review and live bot/cost tests remain
+launch gates. No paid configuration or production deployment is included here.
 
 ## Verification
 

@@ -26,9 +26,9 @@ function createLocalPreview({ upstream = 'https://api.mainnet.cipherscan.app', p
     }
     next();
   });
-  app.use(cors({ origin: [...origins], methods: ['GET', 'HEAD', 'OPTIONS'], exposedHeaders: ['X-Request-Id', 'Retry-After'] }));
+  app.use(cors({ origin: [...origins], methods: ['GET', 'HEAD', 'POST', 'OPTIONS'], exposedHeaders: ['X-Request-Id', 'Retry-After'] }));
   app.use((req, res, next) => {
-    if (!['GET', 'HEAD'].includes(req.method)) {
+    if (!['GET', 'HEAD'].includes(req.method) && !(req.method === 'POST' && req.path === '/v1/ask/chat')) {
       res.set('Allow', 'GET, HEAD, OPTIONS');
       res.set('Cache-Control', 'no-store');
       return sendProblem(res, 'method-not-allowed', { detail: 'This local mainnet preview is read-only.' });
@@ -36,6 +36,7 @@ function createLocalPreview({ upstream = 'https://api.mainnet.cipherscan.app', p
     next();
   });
   const router = createV1Router({
+    ASK_ENABLED: 'false', // Local contextual guides only; never borrow paid credentials.
     API_V1_ENABLED: 'true',
     API_V1_LAUNCHED: 'true', // This loopback process only; never changes production flags.
     NEXT_PUBLIC_NETWORK: 'mainnet',

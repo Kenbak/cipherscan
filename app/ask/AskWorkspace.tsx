@@ -10,14 +10,18 @@ import { readApiResponse } from '@/lib/api-client';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getChartColors } from '@/lib/chart-theme';
 import styles from './ask.module.css';
-import { AskInsights, explanationRecipe } from './AskInsights';
+import { AskLanguage } from '@/components/ask/AskLanguage';
+import { AskChallenge } from '@/components/ask/AskChallenge';
+import { AskSources } from '@/components/ask/AskSources';
+import { askChat, peekAskHandoff, clearAskHandoff } from '@/lib/ask/client';
+import type { AskLocale, AskSource } from '@/lib/ask/chat';
 import { describeMetric, formatChain } from '@/lib/ask/data';
 
 const AskChart = dynamic(() => import('./AskChart'), { ssr: false, loading: () => <div className="h-80 grid place-items-center text-sm text-muted" role="status">Loading chart…</div> });
 const categories = ['Featured', 'Pools', 'Ironwood', 'Cross-chain', 'Network'];
-type Message = { id: number; question: string; answer: string; spec?: AnalysisSpec };
-type Session = { id: number; title: string; messages: Message[]; spec: AnalysisSpec | null };
-type Capability = { mode: 'guided' | 'ai'; provider: string | null };
+type Message = { id: number; question: string; answer: string; spec?: AnalysisSpec; sources?: AskSource[]; locale?: string; scope?: string };
+type Session = { id: number; title: string; messages: Message[]; spec: AnalysisSpec | null; page?: string };
+type Capability = { mode: 'guided' | 'ai'; provider: string | null; siteKey?: string | null };
 const initialSession: Session = { id: 0, title: 'New analysis', messages: [], spec: null };
 const viewKey = (spec: AnalysisSpec | null) => spec ? JSON.stringify([spec.metric, spec.period, spec.pool, spec.view, spec.start, spec.end]) : '';
 
@@ -26,7 +30,11 @@ function AskMark({ small = false }: { small?: boolean }) {
 }
 
 export function AskWorkspace() {
-  const [sessions, setSessions] = useState<Session[]>([initialSession]);
+  const [handoff] = useState(peekAskHandoff);
+  const [locale, setLocale] = useState<AskLocale>(() => handoff?.locale || 'auto');
+  const [token, setToken] = useState('');
+  const [challengeReset, setChallengeReset] = useState(0);
+  const [sessions, setSessions] = useState<Session[]>(() => handoff?.turns.length ? [{ id: 0, title: handoff.turns[0].question, spec: handoff.spec, page: handoff.page, messages: handoff.turns.map((turn, i) => ({ id: i + 1, question: turn.question, answer: turn.answer, sources: turn.sources, locale: turn.locale, scope: turn.scope, spec: turn.spec || undefined })) }] : [initialSession]);
   const [activeId, setActiveId] = useState(0);
   const [question, setQuestion] = useState('');
   const [busy, setBusy] = useState(false);
@@ -41,10 +49,9 @@ export function AskWorkspace() {
   const [exampleCategory, setExampleCategory] = useState('Featured');
   const request = useRef<AbortController | null>(null);
   const input = useRef<HTMLTextAreaElement>(null);
-  const serial = useRef(0);
+  const serial = useRef(handoff?.turns.length || 0);
   const transcript = useRef<HTMLDivElement>(null);
   const workspace = useRef<HTMLDivElement>(null);
-  const autoExplain = useRef<string | null>(null);
   const session = sessions.find(item => item.id === activeId)!;
   const spec = session.spec;
   const info = spec ? describeMetric(spec.metric) : null;
@@ -61,6 +68,7 @@ export function AskWorkspace() {
   const invalidDates = Boolean(start && end && start > end);
 
   useEffect(() => {
+    clearAskHandoff();
     const controller = new AbortController();
     fetch(`${getApiUrl()}/v1/ask`, { signal: controller.signal, cache: 'no-store' }).then(res => readApiResponse<Capability>(res)).then(({ data, meta }) => {
       if (meta.network === 'mainnet' && ['guided', 'ai'].includes(data.mode)) setCapability(data);
@@ -87,7 +95,6 @@ export function AskWorkspace() {
   useEffect(() => { transcript.current?.scrollTo({ top: transcript.current.scrollHeight, behavior: 'instant' }); }, [session.messages.length, busy]);
 
   function updateSpec(next: AnalysisSpec, restore = false) {
-    autoExplain.current = null;
     if (!restore && (next.metric !== spec?.metric || next.period !== spec?.period || next.pool !== spec?.pool)) next = { ...next, start: null, end: null };
     const validated = analysisSchema.parse(next);
     setSessions(all => all.map(item => item.id === activeId ? { ...item, spec: validated } : item));
@@ -95,7 +102,6 @@ export function AskWorkspace() {
   }
 
   function switchSession(id: number) {
-    autoExplain.current = null;
     request.current?.abort(); request.current = null; setBusy(false); setActiveId(id); setQuestion(''); setSourcesOpen(false); setEvidence(null);
   }
 
@@ -109,40 +115,34 @@ export function AskWorkspace() {
 
   async function ask(text: string) {
     const trimmed = text.trim();
-    if (!trimmed || trimmed.length > 1000 || busy) return;
+    const next = resolveShortcut(trimmed, spec);
+    if (!trimmed || trimmed.length > 1000 || busy || capability.mode === 'ai' && !token && !next) return;
     setQuestion(''); setBusy(true); setCopied(false);
     const controller = new AbortController();
     request.current = controller;
-    const timeout = setTimeout(() => controller.abort(), 20000);
+    const timeout = setTimeout(() => controller.abort(), 45000);
     const id = ++serial.current;
-    const append = (answer: string, next?: AnalysisSpec) => setSessions(all => all.map(item => item.id === activeId ? {
+    const append = (answer: string, next?: AnalysisSpec, sources?: AskSource[], answerLocale?: string, scope?: string) => setSessions(all => all.map(item => item.id === activeId ? {
       ...item, title: item.messages.length ? item.title : trimmed,
-      messages: [...item.messages, { id, question: trimmed, answer, spec: next }].slice(-30),
+      messages: [...item.messages, { id, question: trimmed, answer, spec: next, sources, locale: answerLocale, scope }].slice(-30),
       spec: next ?? item.spec,
     } : item));
     try {
-      let next = resolveShortcut(trimmed, spec);
-      if (!next) {
-        if (capability.mode !== 'ai') {
-          append('Free-form AI is not enabled in this preview. Choose an example question, or refine an analysis with “show 90 days” or “show as a table”. Pool analyses also support “just Orchard” or “just Ironwood”.');
-          return;
-        }
-        const response = await fetch(`${getApiUrl()}/v1/ask`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ question: trimmed, context: spec }), signal: controller.signal, cache: 'no-store' });
-        const { data, meta } = await readApiResponse<{ spec: unknown | null }>(response);
-        if (meta.network !== 'mainnet') throw new Error('Wrong network');
-        if (data.spec === null) { append('This question goes beyond the datasets currently supported in Ask. Try pool balances and flows, tracked cross-chain swaps, transaction activity, or recorded Network Pulse alerts.'); return; }
-        next = analysisSchema.parse(data.spec);
+      if (!next || capability.mode === 'ai' && token) {
+        const reply = await askChat(trimmed, session.page || 'ask', spec, locale, session.messages.map(message => message.question), token, controller.signal);
+        if (controller.signal.aborted) return;
+        append(reply.answer, reply.spec ? analysisSchema.parse(reply.spec) : undefined, reply.sources, reply.locale, reply.scope);
+      } else {
+        append(`Opened ${describeMetric(next.metric).title.toLowerCase()} for ${next.period === '1y' ? 'the past year' : `the past ${next.period.slice(0, -1)} days`}${next.pool === 'all' ? '' : `, filtered to ${next.pool}`}. The analysis shows the source observations and updates as you change the controls.`, next);
       }
-      if (controller.signal.aborted) return;
-      autoExplain.current = capability.mode === 'ai' ? explanationRecipe(next) : null;
-      append(`Opened ${describeMetric(next.metric).title.toLowerCase()} for ${next.period === '1y' ? 'the past year' : `the past ${next.period.slice(0, -1)} days`}${next.pool === 'all' ? '' : `, filtered to ${next.pool}`}. The analysis shows the source observations and updates as you change the controls.`, next);
       if (!hasMessages) requestAnimationFrame(() => workspace.current?.scrollIntoView({ block: 'start', behavior: 'instant' }));
     } catch {
-      if (!controller.signal.aborted) append('Ask could not complete that request. Your current analysis is still available. Try again, or choose a starter question.');
+      if (!controller.signal.aborted && next) append(`Opened ${describeMetric(next.metric).title.toLowerCase()}. AI explanations are temporarily unavailable; the guided chart remains usable.`, next);
+      else if (!controller.signal.aborted) append('Ask could not complete that request. Your current analysis is still available. Try again, or choose a starter question.');
       else if (request.current === controller) append('The request was stopped. You can try again or continue with a starter question.');
     } finally {
       clearTimeout(timeout);
-      if (request.current === controller) setBusy(false);
+      if (request.current === controller) { setBusy(false); setToken(''); setChallengeReset(value => value + 1); }
     }
   }
 
@@ -154,16 +154,16 @@ export function AskWorkspace() {
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 
-  const composer = <form onSubmit={event => { event.preventDefault(); void ask(question); }} className={styles.composer}>
+  const composer = <div><div className="mb-2"><AskLanguage value={locale} onChange={setLocale} /></div><form onSubmit={event => { event.preventDefault(); void ask(question); }} className={styles.composer}>
     <label htmlFor="ask-question" className="sr-only">Ask a question about Zcash</label>
     <textarea ref={input} id="ask-question" value={question} onChange={event => setQuestion(event.target.value)} rows={hasMessages ? 2 : 3} maxLength={1000}
       placeholder={hasMessages ? 'Ask a follow-up, or refine this view…' : 'Ask about Zcash. Start with the data.'}
       onKeyDown={event => { if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) { event.preventDefault(); void ask(question); } }} />
     <div className="flex items-center justify-between gap-3 px-4 pb-3"><span className="text-caption font-mono text-muted">{capability.mode === 'ai' ? 'Public chain data' : 'Guided preview'}</span>
       {busy ? <button type="button" className={styles.submit} onClick={() => request.current?.abort()} aria-label="Stop response">■</button>
-        : <button type="submit" className={styles.submit} disabled={!question.trim()} aria-label="Send question">↑</button>}
+        : <button type="submit" className={styles.submit} disabled={!question.trim() || capability.mode === 'ai' && !token && !resolveShortcut(question, spec)} aria-label="Send question">↑</button>}
     </div>
-  </form>;
+  </form><AskChallenge siteKey={capability.siteKey} onToken={setToken} reset={challengeReset} /></div>;
 
   return <div className={styles.workspace} ref={workspace}>
     <aside className={styles.sidebar} aria-label="Ask workspace navigation">
@@ -180,7 +180,7 @@ export function AskWorkspace() {
         <Link href="/privacy" className={styles.sourceLink}>Privacy score <span>↗</span></Link>
         <Link href="/charts" className={styles.sourceLink}>Chart library <span>↗</span></Link>
       </div>
-      <div className={styles.sessionNote}><span className="text-secondary">A temporary workspace</span><p className="mt-2">Analyses stay in this page session. Reloading or leaving clears them.</p></div>
+      <div className={styles.sessionNote}><span className="text-secondary">A temporary workspace</span><p className="mt-2">Conversations stay in memory. Reloading clears them. Never include wallet secrets.</p></div>
     </aside>
 
     <div className={`${styles.main} ${hasMessages ? styles.active : ''}`}>
@@ -193,17 +193,17 @@ export function AskWorkspace() {
           <span className="flex justify-between items-center text-caption font-mono text-muted"><span>{starter.category}</span><span aria-hidden="true">0{index + 1}</span></span>
           <span className="block mt-3 text-sm text-primary font-medium">{starter.title}</span><span className="block mt-2 text-xs text-muted leading-relaxed">{starter.detail}</span>
         </button>)}</div>
-        <p className="mt-6 text-caption leading-relaxed text-muted">{capability.mode === 'ai' ? `Questions and the current analysis settings are sent to ${capability.provider}. Do not include wallet secrets or private information.` : 'Starter questions use indexed public data. Free-form AI is not enabled yet.'}</p>
+        <p className="mt-6 text-caption leading-relaxed text-muted">{capability.mode === 'ai' ? `Questions, recent conversation context and public facts are sent to ${capability.provider}. Do not include wallet secrets or private information.` : 'Starter questions use indexed public data. Reviewed wallet and node guides are available; free-form AI is not connected yet.'}</p>
       </div> : <>
         <section className={styles.conversation} aria-label="Conversation">
           <div className={styles.transcript} ref={transcript}>
             {session.messages.map(message => <div key={message.id} className="mb-7">
               <div className="ml-8 border border-cipher-border bg-cipher-surface rounded-lg px-4 py-3 text-sm text-primary leading-relaxed break-words">{message.question}</div>
-              <div className="flex gap-3 mt-5"><AskMark small /><div className="min-w-0"><p className="text-caption font-mono text-muted mb-2">ZecBlock</p><p className="text-sm text-secondary leading-relaxed">{message.answer}</p>
+              <div className="flex gap-3 mt-5"><AskMark small /><div className="min-w-0"><p className="text-caption font-mono text-muted mb-2">ZecBlock</p><p dir="auto" lang={message.locale} className="text-sm text-secondary leading-relaxed whitespace-pre-wrap">{message.answer}</p><AskSources sources={message.sources || []} />{message.scope ? <p className="mt-2 text-caption text-muted">{message.scope}</p> : null}
                 {message.spec && viewKey(message.spec) !== viewKey(spec) ? <button onClick={() => updateSpec(message.spec!, true)} className="mt-3 text-caption font-mono text-cipher-gold hover:underline">Restore this view →</button> : null}
               </div></div>
             </div>)}
-            {evidence && spec && summary?.points.length && !invalidDates ? <AskInsights key={JSON.stringify([evidence.key, spec.start, spec.end, evidence.receivedAt])} spec={spec} evidence={evidence} enabled={capability.mode === 'ai'} autoExplain={autoExplain} /> : null}
+            {evidence && spec && summary?.points.length && !invalidDates && capability.mode === 'ai' ? <button type="button" onClick={() => void ask('Explain this view')} disabled={busy || !token} className="text-sm text-cipher-gold hover:underline disabled:opacity-40">Explain this view →</button> : null}
             {busy ? <p className="text-sm text-muted py-3" role="status">Interpreting your question…</p> : null}
           </div>
           <div className={styles.conversationFooter}>

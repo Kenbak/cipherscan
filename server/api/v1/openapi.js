@@ -155,7 +155,7 @@ const HEIGHT = { type: 'integer', minimum: 0, maximum: 100_000_000 };
 function requestSchema(entry) {
   if (entry.v1.nativeKey === 'ask') {
     const { z } = require('zod');
-    const schema = z.toJSONSchema(entry.v1.path.endsWith('/explain') ? require('./lib/ask-explanation').explainRequestSchema : require('../../../lib/ask/contract').requestSchema);
+    const schema = z.toJSONSchema(entry.v1.path.endsWith('/chat') ? require('../../../lib/ask/chat').chatRequestSchema : entry.v1.path.endsWith('/explain') ? require('./lib/ask-explanation').explainRequestSchema : require('../../../lib/ask/contract').requestSchema);
     delete schema.$schema;
     return schema;
   }

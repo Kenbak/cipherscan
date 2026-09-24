@@ -99,7 +99,7 @@ test('Ask server rendering and metadata enforce the mainnet-only page policy', (
     assert.equal(page.metadata.alternates.canonical, `${seo.getBaseUrl()}/ask`);
     const html = renderToStaticMarkup(React.createElement(page.default));
     assert.equal((html.match(/<h1[\s>]/g) || []).length, 1);
-    assert.ok(html.includes('Explore public network data'));
+    assert.ok(html.includes('Explore Zcash mainnet data'));
     assert.equal(html.includes('Interactive workspace'), network === 'mainnet');
     assert.equal(html.includes('Ask is available on mainnet'), network !== 'mainnet');
     assert.ok(html.includes('application/ld+json'));

@@ -1,3 +1,5 @@
+import { Suspense } from 'react';
+import { AskWidget } from '@/components/ask/AskWidget';
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import Script from "next/script";
@@ -127,6 +129,7 @@ function AppContent({ children }: { children: React.ReactNode }) {
       <GovernanceBanner />
       <main id="main-content" tabIndex={-1} className="min-h-screen">{children}</main>
       <Footer />
+      <Suspense fallback={null}><AskWidget /></Suspense>
     </>
   );
 }

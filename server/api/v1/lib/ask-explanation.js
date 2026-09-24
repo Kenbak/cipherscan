@@ -6,7 +6,7 @@ const { summarizeEvidence, formatValue, snapshotInput } = require('../../../../l
 const { loadEvidence } = require('../../../../lib/ask/sources');
 const { buildMeta } = require('./envelope');
 
-const explainRequestSchema = z.object({ spec: analysisSchema, evidenceKey: z.string().regex(/^[a-f0-9]{64}$/) }).strict();
+const explainRequestSchema = z.object({ spec: analysisSchema, evidenceKey: z.string().regex(/^[a-f0-9]{64}$/), challenge: z.string().max(2048).optional() }).strict();
 const explanationSchema = z.object({
   summary: z.string().min(1).max(700),
   observations: z.array(z.string().min(1).max(500)).min(1).max(2),
@@ -51,7 +51,7 @@ function renderExplanation(raw, facts) {
       if (!Object.hasOwn(facts, id)) throw new Error('Unknown evidence reference');
       return '';
     });
-    if (/[0-9{}<>]|https?:|www\./i.test(remainder)) throw new Error('Unvalidated numerical claim or markup');
+    if (/[\p{N}{}<>]|https?:|www\./iu.test(remainder)) throw new Error('Unvalidated numerical claim or markup');
     return text.replace(/\{\{([a-z_]+)\}\}/g, (_, id) => facts[id]);
   }
   return { summary: render(parsed.summary), observations: parsed.observations.map(render), limitation: render(parsed.limitation) };

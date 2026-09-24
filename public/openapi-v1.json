@@ -338,6 +338,324 @@
     }
   },
   "paths": {
+    "/v1/ask/chat": {
+      "post": {
+        "operationId": "post_ask_Chat",
+        "summary": "Contextual mainnet questions with reviewed public sources, supported language selection and bounded recent questions. Paid answers require bot verification and shared spend limits.",
+        "tags": [
+          "ask"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "question": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1000
+                  },
+                  "page": {
+                    "type": "string",
+                    "enum": [
+                      "home",
+                      "ask",
+                      "pools",
+                      "ironwood",
+                      "crosschain",
+                      "pulse",
+                      "miner_zodl",
+                      "network",
+                      "addresses",
+                      "privacy",
+                      "transaction",
+                      "block",
+                      "address",
+                      "explorer"
+                    ]
+                  },
+                  "context": {
+                    "anyOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "version": {
+                            "type": "number",
+                            "const": 1
+                          },
+                          "metric": {
+                            "type": "string",
+                            "enum": [
+                              "balances",
+                              "flows",
+                              "activity",
+                              "swap_volume",
+                              "swap_count",
+                              "transactions",
+                              "pulse",
+                              "migration_share",
+                              "chain_inflows",
+                              "chain_outflows"
+                            ]
+                          },
+                          "period": {
+                            "type": "string",
+                            "enum": [
+                              "30d",
+                              "90d",
+                              "1y"
+                            ]
+                          },
+                          "pool": {
+                            "type": "string",
+                            "enum": [
+                              "all",
+                              "orchard",
+                              "ironwood",
+                              "sapling"
+                            ]
+                          },
+                          "view": {
+                            "type": "string",
+                            "enum": [
+                              "line",
+                              "bar",
+                              "table"
+                            ]
+                          },
+                          "start": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "end": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        },
+                        "required": [
+                          "version",
+                          "metric",
+                          "period",
+                          "pool",
+                          "view",
+                          "start",
+                          "end"
+                        ],
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "locale": {
+                    "default": "auto",
+                    "type": "string",
+                    "enum": [
+                      "auto",
+                      "en",
+                      "fr",
+                      "es",
+                      "de",
+                      "pt",
+                      "ja",
+                      "zh",
+                      "ko",
+                      "ar",
+                      "ru"
+                    ]
+                  },
+                  "history": {
+                    "default": [],
+                    "maxItems": 4,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 1000
+                    }
+                  },
+                  "challenge": {
+                    "type": "string",
+                    "maxLength": 2048
+                  }
+                },
+                "required": [
+                  "question",
+                  "page",
+                  "context",
+                  "locale",
+                  "history"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "x-cipherscan-legacy-path": null,
+        "x-cipherscan-legacy-method": "POST",
+        "x-cipherscan-classification": "public",
+        "x-cipherscan-v1-status": "native",
+        "responses": {
+          "200": {
+            "description": "Contextual mainnet questions with reviewed public sources, supported language selection and bounded recent questions. Paid answers require bot verification and shared spend limits.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data",
+                    "meta"
+                  ],
+                  "properties": {
+                    "data": {
+                      "oneOf": [
+                        {
+                          "type": "object"
+                        },
+                        {
+                          "type": "array",
+                          "items": {}
+                        }
+                      ]
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/Meta"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Preview or endpoint authentication required.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Payment required. Protocol challenges remain in Payment-Required / WWW-Authenticate; the original challenge is also in problem.paymentRequired.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Origin or ownership authorization denied.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource not found.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "JSON body exceeds 1 MB.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Per-IP, shared daily or concurrent request limit reached.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal error.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Upstream (legacy API) error.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "AI not configured, shared limiter unavailable, or provider failure. Guided analyses remain available.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "Upstream (legacy API) timeout.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/ask/explain": {
       "post": {
         "operationId": "post_ask_Explain",
@@ -436,6 +754,10 @@
                   "evidenceKey": {
                     "type": "string",
                     "pattern": "^[a-f0-9]{64}$"
+                  },
+                  "challenge": {
+                    "type": "string",
+                    "maxLength": 2048
                   }
                 },
                 "required": [
@@ -854,6 +1176,10 @@
                         "type": "null"
                       }
                     ]
+                  },
+                  "challenge": {
+                    "type": "string",
+                    "maxLength": 2048
                   }
                 },
                 "required": [

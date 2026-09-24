@@ -43,7 +43,7 @@ test('unknown tools, arbitrary execution, unsupported networks and oversized inp
   assert.equal(requestSchema.safeParse({ question: ' ', context: null }).success, false);
 });
 
-const env = { ASK_ENABLED: 'true', ASK_PROVIDER: 'openai', ASK_MODEL: 'test-model', ASK_API_KEY: 'test-key', ASK_DAILY_CALL_LIMIT: '5' };
+const env = { ASK_ENABLED: 'true', ASK_PROVIDER: 'openai', ASK_MODEL: 'test-model', ASK_API_KEY: 'test-key', ASK_DAILY_CALL_LIMIT: '5', ASK_DAILY_BUDGET_USD: '2', ASK_MONTHLY_BUDGET_USD: '30', ASK_MAX_INPUT_USD_PER_MILLION: '0.125', ASK_MAX_OUTPUT_USD_PER_MILLION: '0.5', ASK_ABUSE_SECRET: 'x'.repeat(32), ASK_TURNSTILE_SECRET: 'test-secret', ASK_TURNSTILE_HOSTNAME: 'example.test', ASK_TURNSTILE_SITE_KEY: 'test-site-key' };
 test('paid interpretation fails closed unless provider, model and explicit daily limit are configured', () => {
   assert.equal(providerConfig({}), null);
   for (const key of Object.keys(env)) assert.equal(providerConfig({ ...env, [key]: '' }), null);
@@ -83,11 +83,11 @@ test('Anthropic adapter requires exactly one completed allowlisted tool call', a
 async function serve(t, network = 'mainnet', overrides = {}, dependencies = {}) {
   const app = express(); app.use(express.json());
   app.use((req, res, next) => { req.v1 = { network, requestId: 'test', abortSignal: new AbortController().signal }; next(); });
-  const router = createAskRouter(overrides, dependencies); app.use('/ask', router);
+  const router = createAskRouter(overrides, { challengeFetch: async () => Response.json({ success: true, hostname: 'example.test', action: 'ask' }), ...dependencies }); app.use('/ask', router);
   const server = app.listen(0, '127.0.0.1'); await once(server, 'listening');
   t.after(() => { router.stop(); server.closeAllConnections(); server.close(); });
   const url = `http://127.0.0.1:${server.address().port}/ask`;
-  return { url, post: body => fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }) };
+  return { url, post: body => fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...body, challenge: 'test-token' }) }) };
 }
 
 test('native route supports guided mode without credentials, never caches conversations, and rejects query strings', async t => {
@@ -122,7 +122,7 @@ test('shared quota denial or Redis failure cannot reach the paid provider', asyn
 test('paid requests reserve a shared daily slot, release concurrency and retain the consumed reservation', async t => {
   let removed = false; let reserved = false;
   const api = await serve(t, 'mainnet', env, {
-    redis: { isReady: true, eval: async (script, options) => { assert.ok(script.includes('ZCARD')); assert.ok(script.includes('INCR')); assert.equal(options.arguments[2], '5'); reserved = true; return 1; }, zRem: async () => { removed = true; } },
+    redis: { isReady: true, eval: async (script, options) => { if (!script.includes('ZCARD')) return 1; assert.ok(script.includes('ZCARD')); assert.ok(script.includes('INCR')); assert.equal(options.arguments[2], '5'); reserved = true; return 1; }, zRem: async () => { removed = true; } },
     fetch: async () => { assert.equal(reserved, true); return Response.json({ choices: [{ finish_reason: 'stop', message: { content: JSON.stringify({ spec: sample }) } }] }); },
   });
   const result = await api.post({ question: 'interpret this question', context: null });
@@ -151,11 +151,11 @@ test('explanations use server-fetched evidence with fingerprints tied to dates, 
 test('a changed evidence snapshot cannot trigger a provider explanation for an old chart', async t => {
   let calls = 0;
   const api = await serve(t, 'mainnet', env, {
-    redis: { isReady: true, eval: async () => 1, zRem: async () => {} },
+    redis: { isReady: true, eval: async () => 1, zRem: async () => {}, get: async () => null, set: async () => {} },
     internalClient: { dispatch: async () => ({ ok: true, body: { points: [{ date: '2026-08-01', orchardZat: '100000000', hasPoolBreakdown: true }] } }) },
     fetch: async () => { calls++; },
   });
-  const result = await fetch(`${api.url}/explain`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ spec: { ...sample, pool: 'orchard' }, evidenceKey: '0'.repeat(64) }) });
+  const result = await fetch(`${api.url}/explain`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ spec: { ...sample, pool: 'orchard' }, evidenceKey: '0'.repeat(64), challenge: 'test-token' }) });
   assert.equal(result.status, 200); const body = await result.json();
   assert.equal(body.data.reason, 'source-changed'); assert.equal(body.data.explanation, null); assert.equal(calls, 0);
 });
@@ -165,14 +165,14 @@ test('an explanation response contains only validated narrative for the exact ch
   const spec = { ...sample, pool: 'orchard' };
   const evidence = await loadExplanationEvidence(spec, internalClient, new AbortController().signal);
   const api = await serve(t, 'mainnet', env, {
-    redis: { isReady: true, eval: async () => 1, zRem: async () => {} }, internalClient,
+    redis: { isReady: true, eval: async () => 1, zRem: async () => {}, get: async () => null, set: async () => {} }, internalClient,
     fetch: async (url, init) => {
       const body = JSON.parse(init.body); assert.equal(body.response_format.json_schema.name, 'explain_analysis');
       assert.equal(JSON.parse(body.messages[1].content).facts.orchard_value, '1.00 ZEC');
       return Response.json({ choices: [{ finish_reason: 'stop', message: { content: JSON.stringify({ summary: 'The observed Orchard balance was {{orchard_value}}.', observations: ['The source covers {{observation_count}} daily observation.'], limitation: 'This does not reveal private payments.' }) } }] });
     },
   });
-  const response = await fetch(`${api.url}/explain`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ spec, evidenceKey: evidence.evidenceKey }) });
+  const response = await fetch(`${api.url}/explain`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ spec, evidenceKey: evidence.evidenceKey, challenge: 'test-token' }) });
   assert.equal(response.status, 200); assert.equal(response.headers.get('cache-control'), 'private, no-store');
   const body = await response.json(); assert.equal(body.data.explanation.summary, 'The observed Orchard balance was 1.00 ZEC.'); assert.equal(body.data.evidenceKey, evidence.evidenceKey);
 });
