@@ -6,6 +6,7 @@ import { askCapability, askChat, saveAskHandoff, type AskCapability } from '@/li
 import type { AnalysisSpec } from '@/lib/ask/contract';
 import type { AskTurn } from '@/lib/ask/chat';
 import { AskChallenge } from './AskChallenge';
+import { AskTransfers } from './AskTransfers';
 import { AskSources } from './AskSources';
 
 export default function AskPanel({ pathname, open, onClose }: { pathname: string; open: boolean; onClose: () => void }) {
@@ -44,7 +45,7 @@ export default function AskPanel({ pathname, open, onClose }: { pathname: string
       const reply = await askChat(text.trim(), page.id, spec, 'auto', turns.map(turn => turn.question), token, controller.signal);
       if (controller.signal.aborted) return;
       setTurns(all => [...all, { ...reply, question: text.trim() }].slice(-12));
-      if (reply.spec) setSpec(reply.spec);
+      if (reply.transfers) setSpec(null); else if (reply.spec) setSpec(reply.spec);
       setQuestion('');
     } catch {
       if (request.current === controller) setError(capability.mode === 'ai' ? 'Ask could not answer. Check verification or try again; usage limits may apply.' : 'AI is not connected yet. Try “Explain this page” for its reviewed guide.');
@@ -62,7 +63,7 @@ export default function AskPanel({ pathname, open, onClose }: { pathname: string
       <div className="border-b border-cipher-border px-4 py-3"><p className="text-xs text-secondary">{page.title} · Mainnet</p><p className="mt-1 text-caption text-muted">{spec ? `Suggested analysis: ${spec.period} · ${spec.pool === 'all' ? 'all pools / network' : spec.pool}` : 'Page guide · public concepts'}</p></div>
       <div ref={transcript} className="min-h-0 flex-1 overflow-y-auto p-4" aria-live="polite">
         {!turns.length ? <div className="py-6"><h3 className="text-xl font-medium tracking-tight">Make sense of what you see.</h3><p className="mt-3 text-sm leading-relaxed text-secondary">Explore the data, understand the terms, or ask a follow-up in your language.</p><div className="mt-5 flex flex-wrap gap-2">{suggestions.map(text => <button key={text} onClick={() => void send(text)} disabled={blocked} className="rounded-lg border border-cipher-border px-3 py-2 text-left text-xs text-secondary hover:border-cipher-gold disabled:opacity-50">{text}</button>)}</div></div> : null}
-        {turns.map((turn, index) => <article key={index} className="mb-6"><p dir="auto" className="ml-6 rounded-lg border border-cipher-border bg-cipher-surface p-3 text-sm">{turn.question}</p><div dir="auto" lang={turn.locale} className="mt-4 whitespace-pre-wrap text-sm leading-relaxed text-secondary">{turn.answer}</div><AskSources sources={turn.sources} />{turn.scope ? <p className="mt-2 text-caption text-muted">{turn.scope}</p> : null}{turn.spec ? <button onClick={expand} className="mt-3 text-xs text-cipher-gold">Explore this analysis →</button> : null}</article>)}
+        {turns.map((turn, index) => <article key={index} className="mb-6"><p dir="auto" className="ml-6 rounded-lg border border-cipher-border bg-cipher-surface p-3 text-sm">{turn.question}</p><div dir="auto" lang={turn.locale} className="mt-4 whitespace-pre-wrap text-sm leading-relaxed text-secondary">{turn.answer}</div><AskTransfers result={turn.transfers} /><AskSources sources={turn.sources} />{turn.scope ? <p className="mt-2 text-caption text-muted">{turn.scope}</p> : null}{turn.spec ? <button onClick={expand} className="mt-3 text-xs text-cipher-gold">Explore this analysis →</button> : null}</article>)}
         {busy ? <p role="status" className="text-sm text-muted">Looking at the context…</p> : null}
       </div>
       <footer className="border-t border-cipher-border p-4" style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}>

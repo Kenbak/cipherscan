@@ -129,7 +129,35 @@ complete rolling-week changes, recent pace, peaks/concentration and coverage wit
 integer arithmetic. Stock intervals require both endpoints and consecutive dates;
 flow/count comparisons sum complete daily buckets. Missing observations stay unknown.
 Narration leads with comparative findings; generic limitations are optional. No
-extra model calls, SQL access or new public datasets are introduced.
+extra narration calls or SQL access are introduced.
+
+Ask also supports individual public shielding/deshielding transaction queries:
+latest, largest or both, 1–10 results, over the trailing 24 hours, with optional
+pool filtering. The classifier selects a strict server-side query; the reader
+uses only `/api/shielded/list`. Results are structured transaction rows rendered
+by the workspace/widget, with a deterministic localized introduction (one model
+call total). No transaction IDs, amounts or links are invented by the model.
+Largest rankings cover the complete time window above successively lower amount
+thresholds (1,000, 100, then zero ZEC). A threshold is sufficient only when the
+complete filtered window contains at least the requested number of records;
+lower amounts then cannot enter the ranking. This relies on the canonical
+`UNIQUE(txid, flow_type)` constraint. Duplicate transactions, incorrect order,
+ignored filters or invalid cursors fail closed. Twenty upstream requests maximum;
+an incomplete scan never produces a largest ranking. Source failures still fail
+the request. The existing operation deadline and admission limits apply.
+
+Exact `amountZat` strings are preferred when available. The current legacy source
+returns formatted `amountZec` numbers; those are labelled `legacy-reported-zec`,
+converted to integer display units and never presented as newly verified exact
+zatoshi authority. Times are source block timestamps in UTC; the 24-hour boundary
+is fixed at retrieval start. Results describe indexed canonical records, not a
+snapshot guarantee across a concurrent reorg. No SQL/schema/API deployment was
+needed for this capability. Other transaction windows remain unsupported.
+
+Chart narratives now receive the latest returned observation date instead of a
+hardcoded freshness status. The UI shows “Observations through” for daily series
+and retrieval time for chain rankings, preserving any explicit stale-source flag.
+Neither retrieval time nor a transaction timestamp proves indexer freshness.
 
 The global mainnet widget and full Ask workspace share this endpoint. Opening the
 widget or changing chart controls does not invoke paid inference. With no provider,

@@ -36,7 +36,7 @@ function buildInsights(evidence, spec, summary) {
     calendarDays: fact('calendar_days', String(calendarDays)),
     missingDates: fact('missing_dates', String(calendarDays - points.length)),
     completeDates: calendarDays === points.length,
-    scope: 'Returned observation window. Missing dates and null values are unknown, never zero. The latest day may be partial; source freshness is not established.',
+    scope: 'Returned observation window. Missing dates and null values are unknown, never zero. The latest day may be partial; the observation date is not an indexer refresh timestamp.',
   };
   function interval(key, end, days) {
     // Stock changes need both endpoints (eight snapshots for seven days).

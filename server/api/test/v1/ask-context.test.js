@@ -34,7 +34,7 @@ test('French contextual follow-up returns sourced prose without forcing a chart 
   const result = await chat({ ...input, question: 'Et Zebra, à quoi sert-il ?', history: ['Explique les nœuds Zcash'], challenge: 'must-not-reach-model' }, async (body, task) => {
     calls++;
     assert.equal(JSON.stringify(body).includes('must-not-reach-model'), false);
-    if (calls === 1) return task.validator.parse({ intent: 'knowledge', spec: null, topics: ['zebra'], locale: 'fr' });
+    if (calls === 1) return task.validator.parse({ intent: 'knowledge', flowQuery: null, spec: null, topics: ['zebra'], locale: 'fr' });
     assert.equal(body.locale, 'fr'); assert.deepEqual(body.history, ['Explique les nœuds Zcash']);
     assert.deepEqual(body.documents.map(doc => doc.id), ['zebra']);
     return task.validator.parse({ summary: 'Zebra est un nœud complet Zcash écrit en Rust.', observations: [], limitation: '', sources: ['zebra'] });
@@ -52,7 +52,7 @@ test('unsupported multilingual intent stops after classification', async () => {
 test('explicit response language overrides model selection and unprovided citations are rejected', async () => {
   let calls = 0;
   await assert.rejects(chat({ ...input, locale: 'ja' }, async (body) => {
-    if (++calls === 1) return { intent: 'knowledge', spec: null, topics: ['zodl'], locale: 'fr' };
+    if (++calls === 1) return { intent: 'knowledge', flowQuery: null, spec: null, topics: ['zodl'], locale: 'fr' };
     assert.equal(body.locale, 'ja');
     return { summary: 'Unsupported citation', observations: [], limitation: '', sources: ['vizor'] };
   }, null, signal, ''), /Unsupported citation/);
@@ -160,7 +160,7 @@ test('paid contextual route enforces bot admission and reserves both provider ca
     fetch: async (url, init) => {
       calls++; assert.equal(verified, 1); assert.equal(reservations, calls);
       const body = JSON.parse(init.body); assert.equal(JSON.stringify(body).includes('challenge-token'), false);
-      const content = calls === 1 ? { intent: 'knowledge', spec: null, topics: ['zebra'], locale: 'fr' } : { summary: 'Zebra est un nœud Zcash.', observations: [], limitation: '', sources: ['zebra'] };
+      const content = calls === 1 ? { intent: 'knowledge', flowQuery: null, spec: null, topics: ['zebra'], locale: 'fr' } : { summary: 'Zebra est un nœud Zcash.', observations: [], limitation: '', sources: ['zebra'] };
       return Response.json({ choices: [{ finish_reason: 'stop', message: { content: JSON.stringify(content) } }] });
     },
   });

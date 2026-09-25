@@ -11,14 +11,15 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { getChartColors } from '@/lib/chart-theme';
 import styles from './ask.module.css';
 import { AskChallenge } from '@/components/ask/AskChallenge';
+import { AskTransfers } from '@/components/ask/AskTransfers';
 import { AskSources } from '@/components/ask/AskSources';
 import { askChat, peekAskHandoff, clearAskHandoff } from '@/lib/ask/client';
-import type { AskSource } from '@/lib/ask/chat';
+import type { AskReply, AskSource } from '@/lib/ask/chat';
 import { describeMetric, formatChain } from '@/lib/ask/data';
 
 const AskChart = dynamic(() => import('./AskChart'), { ssr: false, loading: () => <div className="h-80 grid place-items-center text-sm text-muted" role="status">Loading chart…</div> });
 const categories = ['Featured', 'Pools', 'Ironwood', 'Cross-chain', 'Network'];
-type Message = { id: number; question: string; answer: string; spec?: AnalysisSpec; sources?: AskSource[]; locale?: string; scope?: string };
+type Message = { id: number; question: string; answer: string; spec?: AnalysisSpec; sources?: AskSource[]; transfers?: AskReply['transfers']; locale?: string; scope?: string };
 type Session = { id: number; title: string; messages: Message[]; spec: AnalysisSpec | null; page?: string };
 type Capability = { mode: 'guided' | 'ai'; provider: string | null; siteKey?: string | null };
 const initialSession: Session = { id: 0, title: 'New analysis', messages: [], spec: null };
@@ -32,7 +33,7 @@ export function AskWorkspace() {
   const [handoff] = useState(peekAskHandoff);
   const [token, setToken] = useState('');
   const [challengeReset, setChallengeReset] = useState(0);
-  const [sessions, setSessions] = useState<Session[]>(() => handoff?.turns.length ? [{ id: 0, title: handoff.turns[0].question, spec: handoff.spec, page: handoff.page, messages: handoff.turns.map((turn, i) => ({ id: i + 1, question: turn.question, answer: turn.answer, sources: turn.sources, locale: turn.locale, scope: turn.scope, spec: turn.spec || undefined })) }] : [initialSession]);
+  const [sessions, setSessions] = useState<Session[]>(() => handoff?.turns.length ? [{ id: 0, title: handoff.turns[0].question, spec: handoff.spec, page: handoff.page, messages: handoff.turns.map((turn, i) => ({ id: i + 1, question: turn.question, answer: turn.answer, sources: turn.sources, transfers: turn.transfers, locale: turn.locale, scope: turn.scope, spec: turn.spec || undefined })) }] : [initialSession]);
   const [activeId, setActiveId] = useState(0);
   const [question, setQuestion] = useState('');
   const [busy, setBusy] = useState(false);
@@ -62,6 +63,7 @@ export function AskWorkspace() {
   const { theme } = useTheme();
   const colors = getChartColors(theme);
   const hasMessages = session.messages.length > 0;
+  const transfers = !spec ? session.messages.filter(message => message.transfers).at(-1)?.transfers : undefined;
   const summary = evidence && spec ? summarizeEvidence(evidence, spec, start, end) : null;
   const invalidDates = Boolean(start && end && start > end);
 
@@ -120,16 +122,16 @@ export function AskWorkspace() {
     request.current = controller;
     const timeout = setTimeout(() => controller.abort(), 45000);
     const id = ++serial.current;
-    const append = (answer: string, next?: AnalysisSpec, sources?: AskSource[], answerLocale?: string, scope?: string) => setSessions(all => all.map(item => item.id === activeId ? {
+    const append = (answer: string, next?: AnalysisSpec, sources?: AskSource[], answerLocale?: string, scope?: string, transfers?: AskReply['transfers']) => setSessions(all => all.map(item => item.id === activeId ? {
       ...item, title: item.messages.length ? item.title : trimmed,
-      messages: [...item.messages, { id, question: trimmed, answer, spec: next, sources, locale: answerLocale, scope }].slice(-30),
-      spec: next ?? item.spec,
+      messages: [...item.messages, { id, question: trimmed, answer, spec: next, sources, transfers, locale: answerLocale, scope }].slice(-30),
+      spec: transfers ? null : next ?? item.spec,
     } : item));
     try {
       if (!next || capability.mode === 'ai' && token) {
         const reply = await askChat(trimmed, session.page || 'ask', spec, 'auto', session.messages.map(message => message.question), token, controller.signal);
         if (controller.signal.aborted) return;
-        append(reply.answer, reply.spec ? analysisSchema.parse(reply.spec) : undefined, reply.sources, reply.locale, reply.scope);
+        append(reply.answer, reply.spec ? analysisSchema.parse(reply.spec) : undefined, reply.sources, reply.locale, reply.scope, reply.transfers);
       } else {
         append(`Opened ${describeMetric(next.metric).title.toLowerCase()} for ${next.period === '1y' ? 'the past year' : `the past ${next.period.slice(0, -1)} days`}${next.pool === 'all' ? '' : `, filtered to ${next.pool}`}. The analysis shows the source observations and updates as you change the controls.`, next);
       }
@@ -197,7 +199,7 @@ export function AskWorkspace() {
           <div className={styles.transcript} ref={transcript}>
             {session.messages.map(message => <div key={message.id} className="mb-7">
               <div className="ml-8 border border-cipher-border bg-cipher-surface rounded-lg px-4 py-3 text-sm text-primary leading-relaxed break-words">{message.question}</div>
-              <div className="flex gap-3 mt-5"><AskMark small /><div className="min-w-0"><p className="text-caption font-mono text-muted mb-2">ZecBlock</p><p dir="auto" lang={message.locale} className="text-sm text-secondary leading-relaxed whitespace-pre-wrap">{message.answer}</p><AskSources sources={message.sources || []} />{message.scope ? <p className="mt-2 text-caption text-muted">{message.scope}</p> : null}
+              <div className="flex gap-3 mt-5"><AskMark small /><div className="min-w-0"><p className="text-caption font-mono text-muted mb-2">ZecBlock</p><p dir="auto" lang={message.locale} className="text-sm text-secondary leading-relaxed whitespace-pre-wrap">{message.answer}</p><>{message.transfers && message.transfers !== transfers ? <details className="mt-3"><summary className="cursor-pointer text-caption text-cipher-gold">View transaction results</summary><AskTransfers result={message.transfers} /></details> : null}</><AskSources sources={message.sources || []} />{message.scope ? <p className="mt-2 text-caption text-muted">{message.scope}</p> : null}
                 {message.spec && viewKey(message.spec) !== viewKey(spec) ? <button onClick={() => updateSpec(message.spec!, true)} className="mt-3 text-caption font-mono text-cipher-gold hover:underline">Restore this view →</button> : null}
               </div></div>
             </div>)}
@@ -211,8 +213,8 @@ export function AskWorkspace() {
         </section>
 
         <section className={styles.analysis} aria-label="Current analysis" aria-busy={loadingData}>
-          <div className="flex justify-between items-center gap-3 border-b border-cipher-border px-5 py-4"><span className="text-caption font-mono text-muted">ANALYSIS</span><div className="flex gap-4"><button className="text-caption text-muted hover:text-primary disabled:opacity-40" onClick={() => setRefresh(value => value + 1)} disabled={!spec || loadingData}>Refresh</button><button className="text-caption text-muted hover:text-primary disabled:opacity-40" onClick={exportCsv} disabled={!summary?.points.length || invalidDates}>Export CSV ↗</button></div></div>
-          {!spec ? <div className="p-8 text-sm text-muted leading-relaxed">Choose a starter question to open an analysis here. Its chart, controls and source data will stay alongside your conversation.</div> : <div className="p-4 sm:p-5">
+          <div className="flex justify-between items-center gap-3 border-b border-cipher-border px-5 py-4"><span className="text-caption font-mono text-muted">{transfers ? 'TRANSACTIONS' : 'ANALYSIS'}</span>{!transfers ? <div className="flex gap-4"><button className="text-caption text-muted hover:text-primary disabled:opacity-40" onClick={() => setRefresh(value => value + 1)} disabled={!spec || loadingData}>Refresh</button><button className="text-caption text-muted hover:text-primary disabled:opacity-40" onClick={exportCsv} disabled={!summary?.points.length || invalidDates}>Export CSV ↗</button></div> : null}</div>
+          {transfers ? <div className="p-4 sm:p-5"><h2 className="text-xl font-medium">Public {transfers.direction === 'deshield' ? 'deshielding' : 'shielding'} transactions</h2><AskTransfers result={transfers} /></div> : !spec ? <div className="p-8 text-sm text-muted leading-relaxed">Choose a starter question to open an analysis here. Its chart, controls and source data will stay alongside your conversation.</div> : <div className="p-4 sm:p-5">
             <h2 className="text-xl text-primary font-medium tracking-tight">{info?.title}</h2>
             <p className="mt-2 text-caption font-mono text-muted">MAINNET · {ranking ? 'LAST 30 DAYS · BY CHAIN' : 'DAILY'} · {spec.metric === 'activity' ? 'FLOW RECORDS' : info?.unit.toUpperCase()}</p>
             <div className={`${styles.controls} ${!poolMetric ? styles.twoControls : ''}`}>
@@ -228,7 +230,7 @@ export function AskWorkspace() {
                 <div className="flex justify-between gap-3 text-caption font-mono text-muted pt-2"><span>{ranking ? 'Rolling past 30 days' : `${summary.start} — ${summary.end} UTC`}</span><span>zecblock.com</span></div>
                 <div className="border-t border-cipher-border mt-5 pt-4"><p className="text-xs text-muted leading-relaxed mb-3">{evidence.note}</p><p className="text-sm text-secondary leading-relaxed">{ranking ? `Showing ${summary.points.length} chains ranked by tracked swap volume. Bar chart shows the top 10; the table and CSV include every returned chain.` : spec.metric === 'migration_share' ? `Latest observed share: ${summary.end}. Percentages compare pool balances on each returned day.` : spec.metric === 'balances' ? `Showing ${summary.points.length} daily snapshots. Headline balances are from ${summary.end}; changes compare the first and last returned observations.` : `Totals cover ${summary.points.length} returned daily buckets. Boundary days may be partial; absent days are not assumed to be zero.`}</p></div>
               </>}
-              <div className="flex flex-wrap items-center justify-between gap-3 mt-5"><button onClick={() => setSourcesOpen(value => !value)} aria-expanded={sourcesOpen} aria-controls="ask-sources" className="text-caption font-mono text-cipher-gold hover:underline">{sourcesOpen ? '−' : '+'} Source & methodology</button><span className="text-caption text-muted">Freshness: {evidence.meta.freshness?.status ?? 'unknown'}</span></div>
+              <div className="flex flex-wrap items-center justify-between gap-3 mt-5"><button onClick={() => setSourcesOpen(value => !value)} aria-expanded={sourcesOpen} aria-controls="ask-sources" className="text-caption font-mono text-cipher-gold hover:underline">{sourcesOpen ? '−' : '+'} Source & methodology</button><span className="text-caption text-muted">{evidence.meta.freshness?.status === 'stale' ? 'Source marked stale · ' : ''}{ranking ? `Retrieved ${new Date(evidence.receivedAt).toISOString().slice(0, 16).replace('T', ' ')} UTC` : `Observations through ${summary.end} UTC`}</span></div>
               {sourcesOpen ? <div id="ask-sources" className="border-t border-cipher-border mt-4 pt-4 text-xs text-muted leading-relaxed"><Link href={evidence.source} className="text-secondary hover:text-cipher-gold">{evidence.sourceLabel} · Indexed public data ↗</Link><p className="mt-3">{evidence.note}</p><p className="mt-3">Retrieved {evidence.receivedAt.replace('T', ' ').slice(0, 19)} UTC. Source observation time: {evidence.meta.source?.observedAt ?? 'unavailable'}. CSV exports use {evidence.csvUnit}. ZEC values retain exact zatoshis; USD valuations remain approximate.</p><button className="mt-3 text-cipher-gold hover:underline" onClick={async () => { try { await navigator.clipboard.writeText(`https://zecblock.com${evidence.source}`); setCopied(true); } catch { setCopied(false); } }}>{copied ? 'Source link copied' : 'Copy source link'}</button></div> : null}
             </> : null}
           </div>}
