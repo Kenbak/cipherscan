@@ -59,7 +59,7 @@ function deriveTxType(tx: ParsedTransaction): TxType {
   if (isCoinbase) return 'COINBASE';
 
   const hasTransparent = tx.vin.length > 0 || tx.vout.length > 0;
-  const hasShielded = tx.nSpendsSapling > 0 || tx.nOutputsSapling > 0 || tx.orchardActions > 0;
+  const hasShielded = tx.nSpendsSapling > 0 || tx.nOutputsSapling > 0 || tx.orchardActions > 0 || tx.ironwoodActions > 0;
 
   if (hasTransparent && hasShielded) return 'MIXED';
   if (hasShielded) return 'SHIELDED';
@@ -90,6 +90,7 @@ function generateSummary(tx: ParsedTransaction, txType: TxType): string {
   }
 
   if (txType === 'SHIELDED') {
+    if (tx.ironwoodActions > 0) return `Fully shielded transaction with ${tx.ironwoodActions} Ironwood actions, ${tx.orchardActions} Orchard actions and ${tx.nSpendsSapling + tx.nOutputsSapling} Sapling components`;
     if (tx.orchardActions > 0 && (tx.nSpendsSapling > 0 || tx.nOutputsSapling > 0)) {
       return `Fully shielded transaction with ${tx.orchardActions} Orchard action${tx.orchardActions !== 1 ? 's' : ''} and ${tx.nSpendsSapling + tx.nOutputsSapling} Sapling component${(tx.nSpendsSapling + tx.nOutputsSapling) !== 1 ? 's' : ''}`;
     }
@@ -103,6 +104,7 @@ function generateSummary(tx: ParsedTransaction, txType: TxType): string {
     const transparentIn = tx.vin.length;
     const transparentOut = tx.vout.length;
     const shieldedParts: string[] = [];
+    if (tx.ironwoodActions > 0) shieldedParts.push(`${tx.ironwoodActions} Ironwood actions`);
     if (tx.orchardActions > 0) shieldedParts.push(`${tx.orchardActions} Orchard action${tx.orchardActions !== 1 ? 's' : ''}`);
     if (tx.nSpendsSapling > 0) shieldedParts.push(`${tx.nSpendsSapling} Sapling spend${tx.nSpendsSapling !== 1 ? 's' : ''}`);
     if (tx.nOutputsSapling > 0) shieldedParts.push(`${tx.nOutputsSapling} Sapling output${tx.nOutputsSapling !== 1 ? 's' : ''}`);
@@ -186,6 +188,7 @@ export default function DecodeClient() {
   };
 
   const versionLabel = (tx: ParsedTransaction) => {
+    if (tx.version === 6) return 'v6 (Ironwood)';
     if (tx.version === 5) return 'v5 (NU5)';
     if (tx.version === 4 && tx.fOverwintered) return 'v4 (Sapling)';
     if (tx.version === 3 && tx.fOverwintered) return 'v3 (Overwinter)';
@@ -199,19 +202,19 @@ export default function DecodeClient() {
     ? result.vout.reduce((sum, o) => sum + o.value, 0)
     : 0;
   const totalInputCount = result
-    ? result.vin.length + result.nSpendsSapling + result.orchardActions
+    ? result.vin.length + result.nSpendsSapling + result.orchardActions + result.ironwoodActions
     : 0;
   const totalOutputCount = result
-    ? result.vout.length + result.nOutputsSapling + result.orchardActions
+    ? result.vout.length + result.nOutputsSapling + result.orchardActions + result.ironwoodActions
     : 0;
   const hasShielded = result
-    ? (result.nSpendsSapling > 0 || result.nOutputsSapling > 0 || result.orchardActions > 0)
+    ? (result.nSpendsSapling > 0 || result.nOutputsSapling > 0 || result.orchardActions > 0 || result.ironwoodActions > 0)
     : false;
 
   // Composition bar percentages (rough estimate based on component counts)
   const computeComposition = (tx: ParsedTransaction) => {
     const totalSize = tx.size;
-    const hasShieldedData = tx.nSpendsSapling > 0 || tx.nOutputsSapling > 0 || tx.orchardActions > 0;
+    const hasShieldedData = tx.nSpendsSapling > 0 || tx.nOutputsSapling > 0 || tx.orchardActions > 0 || tx.ironwoodActions > 0;
 
     if (!hasShieldedData) {
       return { transparentBytes: totalSize, shieldedBytes: 0, transparentPct: 100, shieldedPct: 0 };
@@ -484,9 +487,9 @@ export default function DecodeClient() {
                         <div className="text-2xl font-bold font-mono text-primary">
                           {result.vin.some((v) => !!v.coinbase) ? 'COINBASE' : `${result.vin.length} transparent`}
                         </div>
-                        {(result.nSpendsSapling > 0 || result.orchardActions > 0) && (
+                        {(result.nSpendsSapling > 0 || result.orchardActions > 0 || result.ironwoodActions > 0) && (
                           <Badge color="purple" className="mt-2">
-                            + {result.nSpendsSapling + result.orchardActions} shielded (hidden)
+                            + {result.nSpendsSapling + result.orchardActions + result.ironwoodActions} shielded (hidden)
                           </Badge>
                         )}
                       </div>
@@ -611,9 +614,9 @@ export default function DecodeClient() {
                           {totalTransparentOutput.toFixed(8)}
                         </div>
                         <div className="text-sm text-muted font-mono">ZEC</div>
-                        {(result.nOutputsSapling > 0 || result.orchardActions > 0) && (
+                        {(result.nOutputsSapling > 0 || result.orchardActions > 0 || result.ironwoodActions > 0) && (
                           <Badge color="purple" className="mt-2">
-                            + {result.nOutputsSapling + result.orchardActions} shielded (hidden)
+                            + {result.nOutputsSapling + result.orchardActions + result.ironwoodActions} shielded (hidden)
                           </Badge>
                         )}
                       </div>
@@ -737,6 +740,11 @@ export default function DecodeClient() {
                     )}
 
                     {/* Orchard Actions */}
+                    {result.ironwoodActions > 0 && <div className="p-4 rounded-lg border border-cipher-border">
+                      <p className="text-sm text-muted">Ironwood actions</p>
+                      <p className="font-mono text-primary">{result.ironwoodActions}</p>
+                      <p className="text-sm text-muted">Value balance: {result.valueBalanceIronwood?.toFixed(8)} ZEC</p>
+                    </div>}
                     {result.orchardActions > 0 && (
                       <div className="shielded-input-row p-4 rounded-lg border border-cipher-purple/20">
                         <div className="flex items-center justify-between">

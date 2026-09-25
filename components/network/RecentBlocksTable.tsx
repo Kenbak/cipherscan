@@ -11,7 +11,8 @@ export interface RecentBlock {
   timestamp: number;
   txCount: number;
   size: number;
-  minerReward: number;
+  minerReward: number | null;
+  coinbaseTransparentOutput: number | null;
   fees: number;
 }
 
@@ -32,11 +33,11 @@ const columns: DataTableColumn<RecentBlock>[] = [
   },
   {
     id: 'reward',
-    header: 'Miner reward',
+    header: 'Coinbase transparent outputs',
     align: 'right',
     skeletonWidth: 'w-20',
     cell: (b) => (
-      <span className="font-mono text-sm text-primary whitespace-nowrap">{b.minerReward.toFixed(4)} ZEC</span>
+      <span className="font-mono text-sm text-primary whitespace-nowrap">{b.coinbaseTransparentOutput == null ? 'Unavailable' : `${b.coinbaseTransparentOutput.toFixed(4)} ZEC`}</span>
     ),
   },
   {

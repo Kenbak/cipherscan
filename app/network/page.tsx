@@ -147,7 +147,7 @@ export default async function NetworkPage() {
           <div className="space-y-3 text-sm text-muted leading-relaxed">
             <p>
               Zcash is a proof-of-work blockchain secured by Equihash mining, with a block
-              target of 75 seconds and a maximum supply of 21 million ZEC. This page tracks
+              target determined by the active network upgrade and a maximum supply of 21 million ZEC. This page tracks
               the network&apos;s vital signs: chain height, hashrate, difficulty, connected
               peers, observed node-software diversity, and the split of circulating supply
               between the transparent, Sapling, Orchard, and Ironwood pools.
