@@ -10,11 +10,10 @@ import { readApiResponse } from '@/lib/api-client';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getChartColors } from '@/lib/chart-theme';
 import styles from './ask.module.css';
-import { AskLanguage } from '@/components/ask/AskLanguage';
 import { AskChallenge } from '@/components/ask/AskChallenge';
 import { AskSources } from '@/components/ask/AskSources';
 import { askChat, peekAskHandoff, clearAskHandoff } from '@/lib/ask/client';
-import type { AskLocale, AskSource } from '@/lib/ask/chat';
+import type { AskSource } from '@/lib/ask/chat';
 import { describeMetric, formatChain } from '@/lib/ask/data';
 
 const AskChart = dynamic(() => import('./AskChart'), { ssr: false, loading: () => <div className="h-80 grid place-items-center text-sm text-muted" role="status">Loading chart…</div> });
@@ -31,7 +30,6 @@ function AskMark({ small = false }: { small?: boolean }) {
 
 export function AskWorkspace() {
   const [handoff] = useState(peekAskHandoff);
-  const [locale, setLocale] = useState<AskLocale>(() => handoff?.locale || 'auto');
   const [token, setToken] = useState('');
   const [challengeReset, setChallengeReset] = useState(0);
   const [sessions, setSessions] = useState<Session[]>(() => handoff?.turns.length ? [{ id: 0, title: handoff.turns[0].question, spec: handoff.spec, page: handoff.page, messages: handoff.turns.map((turn, i) => ({ id: i + 1, question: turn.question, answer: turn.answer, sources: turn.sources, locale: turn.locale, scope: turn.scope, spec: turn.spec || undefined })) }] : [initialSession]);
@@ -129,7 +127,7 @@ export function AskWorkspace() {
     } : item));
     try {
       if (!next || capability.mode === 'ai' && token) {
-        const reply = await askChat(trimmed, session.page || 'ask', spec, locale, session.messages.map(message => message.question), token, controller.signal);
+        const reply = await askChat(trimmed, session.page || 'ask', spec, 'auto', session.messages.map(message => message.question), token, controller.signal);
         if (controller.signal.aborted) return;
         append(reply.answer, reply.spec ? analysisSchema.parse(reply.spec) : undefined, reply.sources, reply.locale, reply.scope);
       } else {
@@ -154,7 +152,7 @@ export function AskWorkspace() {
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 
-  const composer = <div><div className="mb-2"><AskLanguage value={locale} onChange={setLocale} /></div><form onSubmit={event => { event.preventDefault(); void ask(question); }} className={styles.composer}>
+  const composer = <div><form onSubmit={event => { event.preventDefault(); void ask(question); }} className={styles.composer}>
     <label htmlFor="ask-question" className="sr-only">Ask a question about Zcash</label>
     <textarea ref={input} id="ask-question" value={question} onChange={event => setQuestion(event.target.value)} rows={hasMessages ? 2 : 3} maxLength={1000}
       placeholder={hasMessages ? 'Ask a follow-up, or refine this view…' : 'Ask about Zcash. Start with the data.'}

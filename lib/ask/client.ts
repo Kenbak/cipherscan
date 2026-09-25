@@ -15,7 +15,7 @@ export async function askChat(question: string, page: string, context: AnalysisS
   if (meta.network !== 'mainnet') throw new Error('Wrong network');
   return data;
 }
-export interface AskHandoff { turns: AskTurn[]; spec: AnalysisSpec | null; locale: AskLocale; page: string }
+export interface AskHandoff { turns: AskTurn[]; spec: AnalysisSpec | null; page: string }
 // Memory only, never URL parameters, browser storage or analytics.
 let handoff: AskHandoff | null = null;
 export function saveAskHandoff(value: AskHandoff) { handoff = { ...value, turns: value.turns.slice(-12) }; }

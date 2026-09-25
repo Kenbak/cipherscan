@@ -4,8 +4,7 @@ import { useRouter } from 'next/navigation';
 import { describePage } from '@/lib/ask/pages';
 import { askCapability, askChat, saveAskHandoff, type AskCapability } from '@/lib/ask/client';
 import type { AnalysisSpec } from '@/lib/ask/contract';
-import type { AskLocale, AskTurn } from '@/lib/ask/chat';
-import { AskLanguage } from './AskLanguage';
+import type { AskTurn } from '@/lib/ask/chat';
 import { AskChallenge } from './AskChallenge';
 import { AskSources } from './AskSources';
 
@@ -13,7 +12,6 @@ export default function AskPanel({ pathname, open, onClose }: { pathname: string
   const page = describePage(pathname);
   const [turns, setTurns] = useState<AskTurn[]>([]);
   const [question, setQuestion] = useState('');
-  const [locale, setLocale] = useState<AskLocale>('auto');
   const [spec, setSpec] = useState<AnalysisSpec | null>(page.spec || null);
   const [capability, setCapability] = useState<AskCapability>({ mode: 'guided', provider: null });
   const [busy, setBusy] = useState(false);
@@ -43,7 +41,7 @@ export default function AskPanel({ pathname, open, onClose }: { pathname: string
     const timeout = setTimeout(() => controller.abort(), 45000);
     setBusy(true); setError('');
     try {
-      const reply = await askChat(text.trim(), page.id, spec, locale, turns.map(turn => turn.question), token, controller.signal);
+      const reply = await askChat(text.trim(), page.id, spec, 'auto', turns.map(turn => turn.question), token, controller.signal);
       if (controller.signal.aborted) return;
       setTurns(all => [...all, { ...reply, question: text.trim() }].slice(-12));
       if (reply.spec) setSpec(reply.spec);
@@ -55,7 +53,7 @@ export default function AskPanel({ pathname, open, onClose }: { pathname: string
       if (request.current === controller) { request.current = null; setBusy(false); setToken(''); setReset(value => value + 1); }
     }
   }
-  function expand() { saveAskHandoff({ turns, spec, locale, page: page.id }); onClose(); router.push('/ask'); }
+  function expand() { saveAskHandoff({ turns, spec, page: page.id }); onClose(); router.push('/ask'); }
   const suggestions = page.id === 'ironwood' ? ['Explain this page', 'What does migration progress measure?'] : page.id === 'crosschain' ? ['Explain this page', 'Does this include every exchange?'] : page.id === 'pulse' ? ['Explain this page', 'Does an anomaly mean something is wrong?'] : ['Explain this page', 'What is Zodl?', 'What is Zebra?'];
   const blocked = busy || capability.mode === 'ai' && !token;
   return <dialog ref={dialog} id="ask-page-panel" aria-labelledby="ask-panel-title" onCancel={event => { event.preventDefault(); onClose(); }} onClick={event => { if (event.target === dialog.current) onClose(); }} className="fixed inset-y-0 left-auto right-0 m-0 h-dvh max-h-dvh w-full max-w-md border-l border-cipher-border bg-cipher-bg p-0 text-primary shadow-2xl backdrop:bg-black/40">
@@ -67,8 +65,8 @@ export default function AskPanel({ pathname, open, onClose }: { pathname: string
         {turns.map((turn, index) => <article key={index} className="mb-6"><p dir="auto" className="ml-6 rounded-lg border border-cipher-border bg-cipher-surface p-3 text-sm">{turn.question}</p><div dir="auto" lang={turn.locale} className="mt-4 whitespace-pre-wrap text-sm leading-relaxed text-secondary">{turn.answer}</div><AskSources sources={turn.sources} />{turn.scope ? <p className="mt-2 text-caption text-muted">{turn.scope}</p> : null}{turn.spec ? <button onClick={expand} className="mt-3 text-xs text-cipher-gold">Explore this analysis →</button> : null}</article>)}
         {busy ? <p role="status" className="text-sm text-muted">Looking at the context…</p> : null}
       </div>
-      <footer className="border-t border-cipher-border p-4" style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}><AskLanguage value={locale} onChange={setLocale} />
-        <form onSubmit={event => { event.preventDefault(); void send(question); }} className="mt-3 rounded-xl border border-cipher-border bg-cipher-surface p-3"><label htmlFor="ask-widget-question" className="sr-only">Ask about this page</label><textarea id="ask-widget-question" dir="auto" value={question} onChange={event => setQuestion(event.target.value)} maxLength={1000} rows={2} placeholder="Ask about this page…" className="w-full resize-none bg-transparent text-sm outline-none" onKeyDown={event => { if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) { event.preventDefault(); if (!blocked) void send(question); } }} /><div className="flex items-center justify-between gap-2"><span className="text-caption text-muted">{capability.mode === 'ai' ? 'Public sources' : 'Reviewed guides'}</span>{busy ? <button type="button" onClick={() => request.current?.abort()} className="text-xs text-secondary">Stop</button> : <button disabled={blocked || !question.trim()} aria-label="Send question" className="rounded bg-brand-gold px-3 py-1 text-black disabled:opacity-40">↑</button>}</div></form>
+      <footer className="border-t border-cipher-border p-4" style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}>
+        <form onSubmit={event => { event.preventDefault(); void send(question); }} className="rounded-xl border border-cipher-border bg-cipher-surface p-3"><label htmlFor="ask-widget-question" className="sr-only">Ask about this page</label><textarea id="ask-widget-question" dir="auto" value={question} onChange={event => setQuestion(event.target.value)} maxLength={1000} rows={2} placeholder="Ask about this page…" className="w-full resize-none bg-transparent text-sm outline-none" onKeyDown={event => { if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) { event.preventDefault(); if (!blocked) void send(question); } }} /><div className="flex items-center justify-between gap-2"><span className="text-caption text-muted">{capability.mode === 'ai' ? 'Public sources' : 'Reviewed guides'}</span>{busy ? <button type="button" onClick={() => request.current?.abort()} className="text-xs text-secondary">Stop</button> : <button disabled={blocked || !question.trim()} aria-label="Send question" className="rounded bg-brand-gold px-3 py-1 text-black disabled:opacity-40">↑</button>}</div></form>
         <AskChallenge siteKey={capability.siteKey} onToken={setToken} reset={reset} />
         {error ? <p role="alert" className="mt-2 text-xs text-warning">{error}</p> : null}<p className="mt-2 text-caption leading-relaxed text-muted">{capability.mode === 'ai' ? `Questions and recent context go to ${capability.provider}. Never share wallet secrets.` : 'AI is not connected. Reviewed guides are available in English.'}</p>
       </footer>
