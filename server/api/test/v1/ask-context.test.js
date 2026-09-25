@@ -4,7 +4,7 @@ const assert = require('node:assert/strict');
 const express = require('express');
 const { once } = require('node:events');
 const { createAskRouter, providerConfig } = require('../../v1/routes/ask');
-const { chat, guidedReply } = require('../../v1/lib/ask-chat');
+const { chat, guidedReply, answerTaskFor } = require('../../v1/lib/ask-chat');
 const { chatRequestSchema } = require('../../../../lib/ask/chat');
 const { describePage } = require('../../../../lib/ask/pages');
 const { maximumCost, reserve, admit } = require('../../v1/lib/ask-budget');
@@ -62,6 +62,28 @@ test('numeric provenance rejects non-Latin digits as well as invented placeholde
   for (const summary of ['There are ١٢ coins.', 'There are １２ coins.', '{{private_key}}', '<script>alert</script>']) assert.throws(() => renderExplanation({ summary, observations: ['Example'], limitation: 'Example' }, {}));
 });
 
+test('answer decoding schema separates source IDs from exact server fact placeholders', () => {
+  const task = answerTaskFor({ shield_value: '10.00 ZEC', deshield_value: '4.00 ZEC' }, [{ id: 'pools' }]);
+  const valid = { summary: 'Entrées : {{shield_value}}.', observations: ['Sorties : {{deshield_value}}.'], limitation: '', sources: ['pools'] };
+  assert.equal(task.validator.safeParse(valid).success, true);
+  const providerPattern = new RegExp(task.schema.properties.summary.pattern, 'u');
+  for (const summary of ['Entrées : 10.00 ZEC.', 'Entrées : ١٠ ZEC.', 'Entrées : １０ ZEC.', 'Entrées : {{pools}}.', '{{unknown_value}}', '<b>texte</b>']) {
+    assert.equal(task.validator.safeParse({ ...valid, summary }).success, false);
+    assert.equal(providerPattern.test(summary), false);
+  }
+  assert.equal(providerPattern.test(valid.summary), true);
+  assert.equal(task.validator.safeParse({ ...valid, sources: ['zodl'] }).success, false);
+  assert.throws(() => answerTaskFor({ 'bad|id': 'value' }, [{ id: 'pools' }]));
+});
+
+test('knowledge answers with no evidence cannot invent numeric placeholders', () => {
+  const task = answerTaskFor({}, [{ id: 'zebra' }]);
+  const answer = { summary: 'Zebra valide la blockchain.', observations: [], limitation: '', sources: ['zebra'] };
+  assert.equal(task.validator.safeParse(answer).success, true);
+  assert.equal(task.validator.safeParse({ ...answer, summary: '{{zebra}}' }).success, false);
+  assert.equal(task.validator.safeParse({ ...answer, summary: '{{observation_count}}' }).success, false);
+});
+
 test('public page explanations reuse only evidence/locale/model-specific cached answers', async () => {
   const values = new Map(); let calls = 0;
   const cache = { model: ['fixture'], redis: { get: async key => values.get(key), set: async (key, value) => values.set(key, value) } };
@@ -71,7 +93,7 @@ test('public page explanations reuse only evidence/locale/model-specific cached 
   assert.equal(calls, 1);
   await chat({ ...request, locale: 'fr' }, run, null, signal, '', cache); assert.equal(calls, 2);
   await chat(request, run, null, signal, '', { ...cache, model: ['different'] }); assert.equal(calls, 3);
-  for (const key of values.keys()) assert.match(key, /^ask:\{mainnet\}:public-chat:v1:[a-f0-9]{64}$/);
+  for (const key of values.keys()) assert.match(key, /^ask:\{mainnet\}:public-chat:v2:[a-f0-9]{64}$/);
 });
 
 test('monetary config fails closed and charges the UTF-8 bound, not JavaScript character count', () => {

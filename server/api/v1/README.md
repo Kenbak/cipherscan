@@ -120,6 +120,10 @@ It exposes no SQL, arbitrary URL, shell, wallet or write tools to the model.
 Sources come from `lib/ask-knowledge.js`; update their review dates when reviewing
 official material. The private wiki is not a retrieval source. Dynamic record
 pages currently receive conceptual guides, not analysis of that specific record.
+Answer schemas permit only known numeric fact placeholders and supplied source
+IDs. Citations are separate from prose. Final validation still rejects all Unicode
+numeric literals, unknown placeholders and markup; schemas do not prove semantic
+accuracy. The public explanation cache version changes with this constraint.
 
 The global mainnet widget and full Ask workspace share this endpoint. Opening the
 widget or changing chart controls does not invoke paid inference. With no provider,
@@ -163,6 +167,13 @@ end-to-end privacy. Off-topic intent filtering and provenance checks do not prov
 jailbreak resistance or semantic accuracy. Real-model multilingual/adversarial
 evaluation, least-privilege runtime/egress review and live bot/cost tests remain
 launch gates. No paid configuration or production deployment is included here.
+
+A September 25 private GPT-6 Luna probe (`reasoning_effort=none`) passed the final
+15 scripted knowledge/analytics/language/refusal cases and four repeated French
+follow-ups after fixing citation/fact-placeholder confusion. These bounded live
+checks do not establish comprehensive jailbreak resistance, live Turnstile
+verification or production spending enforcement. The key was held only in the
+test process memory; the public feature and loopback preview remain provider-off.
 
 ## Verification
 
