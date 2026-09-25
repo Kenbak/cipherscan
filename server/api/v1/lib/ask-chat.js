@@ -5,7 +5,8 @@ const { analysisSchema, resolveShortcut } = require('../../../../lib/ask/contrac
 const { locales } = require('../../../../lib/ask/chat');
 const { pageById } = require('../../../../lib/ask/pages');
 const { knowledge, knowledgeIds, getKnowledge, publicSources } = require('./ask-knowledge');
-const { loadExplanationEvidence, renderExplanation } = require('./ask-explanation');
+const { loadExplanationEvidence, renderExplanation, evidenceProse } = require('./ask-explanation');
+const { analysisGuidance } = require('./ask-insights');
 
 function task(name, validator, instruction) {
   const schema = z.toJSONSchema(validator); delete schema.$schema;
@@ -20,21 +21,13 @@ const answerTask = task('contextual_answer', answerSchema, `Answer the user's sp
 // Constrain decoding as well as validating afterwards: a small model can
 // otherwise confuse source IDs with fact placeholders or copy literal values.
 function answerTaskFor(facts, records) {
-  const ids = Object.keys(facts);
-  if (ids.some(id => !/^[a-z_]+$/.test(id))) throw new Error('Invalid server fact ID');
-  // Provider schema compilation does not accept Unicode property escapes.
-  // Block common digit scripts here; renderExplanation still rejects all \p{N}.
-  const digits = '0-9\u0660-\u0669\u06f0-\u06f9\uff10-\uff19';
-  const pattern = ids.length
-    ? `^(?:\\{\\{(?:${ids.join('|')})\\}\\}|[^${digits}{}<>])*$`
-    : `^[^${digits}{}<>]*$`;
-  const prose = z.string().regex(new RegExp(pattern, 'u'));
+  const prose = evidenceProse(facts);
   return task(answerTask.name, z.object({
     summary: prose.min(1).max(700),
     observations: z.array(prose.min(1).max(500)).max(2),
     limitation: prose.max(500),
     sources: z.array(z.enum(records.map(record => record.id))).min(1).max(4),
-  }).strict(), answerTask.instruction);
+  }).strict(), `${answerTask.instruction}\n${analysisGuidance}`);
 }
 const unsupported = {
   en: 'I can help explain Zcash, supported wallets and nodes, and public network data. Try a question about this page.',
@@ -74,12 +67,12 @@ async function chat(input, run, internalClient, signal, analysisInstructions, ca
   if (!records.length) return { answer: unsupported[locale], sources: [], spec: null, locale };
   const evidence = spec ? await loadExplanationEvidence(spec, internalClient, signal) : null;
   const responseTask = answerTaskFor(evidence?.facts || {}, records);
-  const cacheKey = publicExplain && cache ? `ask:{mainnet}:public-chat:v2:${createHash('sha256').update(JSON.stringify([cache.model, locale, page.id, spec, records, evidence?.evidenceKey, answerTask.instruction])).digest('hex')}` : null;
+  const cacheKey = publicExplain && cache ? `ask:{mainnet}:public-chat:v3:${createHash('sha256').update(JSON.stringify([cache.model, locale, page.id, spec, records, evidence?.evidenceKey, responseTask.instruction])).digest('hex')}` : null;
   const cached = cacheKey ? await cache.redis.get(cacheKey) : null;
   const raw = cached ? responseTask.validator.parse(JSON.parse(cached)) : await run({ question: input.question, history: input.history, locale, page: { title: page.title, scope: 'Public overview; no individual record or page DOM was supplied.' }, documents: records, evidence: evidence?.input || null }, responseTask);
   if (raw.sources.some(id => !records.some(record => record.id === id))) throw new Error('Unsupported citation');
   // Use the same numeric/markup provenance validation as chart explanations.
-  const rendered = renderExplanation({ summary: raw.summary, observations: raw.observations.length ? raw.observations : [' '], limitation: raw.limitation || ' ' }, evidence?.facts || {});
+  const rendered = renderExplanation({ summary: raw.summary, observations: raw.observations, limitation: raw.limitation }, evidence?.facts || {});
   if (cacheKey && !cached) await cache.redis.set(cacheKey, JSON.stringify(raw), { EX: 300 });
   return { answer: [rendered.summary, ...rendered.observations, rendered.limitation].filter(text => text.trim()).join('\n\n'), sources: publicSources(records.filter(record => raw.sources.includes(record.id))), spec, locale, ...(evidence ? { evidenceKey: evidence.evidenceKey } : {}) };
 }

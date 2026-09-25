@@ -123,7 +123,13 @@ pages currently receive conceptual guides, not analysis of that specific record.
 Answer schemas permit only known numeric fact placeholders and supplied source
 IDs. Citations are separate from prose. Final validation still rejects all Unicode
 numeric literals, unknown placeholders and markup; schemas do not prove semantic
-accuracy. The public explanation cache version changes with this constraint.
+accuracy. Both answer paths constrain decoding to exact fact placeholders. Explanation caches
+use v3. `lib/ask-insights.js` derives combined pool growth/share, observed lead dates,
+complete rolling-week changes, recent pace, peaks/concentration and coverage with
+integer arithmetic. Stock intervals require both endpoints and consecutive dates;
+flow/count comparisons sum complete daily buckets. Missing observations stay unknown.
+Narration leads with comparative findings; generic limitations are optional. No
+extra model calls, SQL access or new public datasets are introduced.
 
 The global mainnet widget and full Ask workspace share this endpoint. Opening the
 widget or changing chart controls does not invoke paid inference. With no provider,

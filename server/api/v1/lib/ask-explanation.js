@@ -5,18 +5,36 @@ const { analysisSchema } = require('../../../../lib/ask/contract');
 const { summarizeEvidence, formatValue, snapshotInput } = require('../../../../lib/ask/data');
 const { loadEvidence } = require('../../../../lib/ask/sources');
 const { buildMeta } = require('./envelope');
+const { buildInsights, analysisGuidance } = require('./ask-insights');
 
 const explainRequestSchema = z.object({ spec: analysisSchema, evidenceKey: z.string().regex(/^[a-f0-9]{64}$/), challenge: z.string().max(2048).optional() }).strict();
 const explanationSchema = z.object({
   summary: z.string().min(1).max(700),
-  observations: z.array(z.string().min(1).max(500)).min(1).max(2),
-  limitation: z.string().min(1).max(500),
+  observations: z.array(z.string().min(1).max(500)).max(2),
+  limitation: z.string().max(500),
 }).strict();
 const schema = z.toJSONSchema(explanationSchema); delete schema.$schema;
 const explanationTask = {
   name: 'explain_analysis', schema, validator: explanationSchema,
-  instruction: `Write a concise plain-language explanation of this Zcash mainnet analysis using only the supplied verified facts and methodology. Return a summary, one or two observations, and one limitation. Every numerical value MUST be a supplied {{fact_id}} placeholder. Do not write literal numbers, URLs or markup. Describe only observable changes and comparisons; never infer private payments, ownership, causes, investment advice or guaranteed privacy. Opposing pool balance changes do not prove migration. Do not call snapshots current when the observation date is older. For flow totals, compare returned buckets only and note partial/missing days. Do not imply monotonic trends from endpoint comparisons. If a value is unavailable, say so; never replace it with zero. The supplied directions and values are authoritative. Keep the complete explanation under two hundred words.`,
+  instruction: `Write a concise, useful explanation of this Zcash mainnet analysis using only verified facts and methodology. Return a summary, up to two observations, and a limitation only when useful (otherwise empty). Every numerical value and date MUST be an exact supplied {{fact_id}} placeholder; facts already include units. No literal digits, URLs, markup or invented placeholders. Keep under two hundred words. ${analysisGuidance}`,
 };
+
+function evidenceProse(facts) {
+  const ids = Object.keys(facts);
+  if (ids.some(id => !/^[a-z_]+$/.test(id))) throw new Error('Invalid server fact ID');
+  // Provider regex compilation rejects Unicode property escapes. The final
+  // renderer still rejects all Unicode numeric categories, not only these.
+  const digits = '0-9\u0660-\u0669\u06f0-\u06f9\uff10-\uff19';
+  const pattern = ids.length ? `^(?:\\{\\{(?:${ids.join('|')})\\}\\}|[^${digits}{}<>])*$` : `^[^${digits}{}<>]*$`;
+  return z.string().regex(new RegExp(pattern, 'u'));
+}
+
+function explanationTaskFor(facts) {
+  const prose = evidenceProse(facts);
+  const validator = z.object({ summary: prose.min(1).max(700), observations: z.array(prose.min(1).max(500)).max(2), limitation: prose.max(500) }).strict();
+  const schema = z.toJSONSchema(validator); delete schema.$schema;
+  return { ...explanationTask, schema, validator };
+}
 
 async function loadExplanationEvidence(spec, internalClient, signal) {
   const evidence = await loadEvidence(spec, async source => {
@@ -41,7 +59,9 @@ async function loadExplanationEvidence(spec, internalClient, signal) {
     facts[`${id}_volume`] = `${formatValue(point.values.volume, evidence.unit)} USD`;
     return { chain: `{{${id}_chain}}`, volume: `{{${id}_volume}}` };
   }) : undefined;
-  return { evidenceKey, facts, input: { metric: spec.metric, rankings, period: spec.period, units: evidence.unit, integerEncoding: evidence.csvUnit, window: { start: summary.start, end: summary.end }, series, facts, methodology: evidence.note, freshness: 'unknown' } };
+  const insights = buildInsights(evidence, spec, summary);
+  Object.assign(facts, insights.facts);
+  return { evidenceKey, facts, input: { metric: spec.metric, rankings, period: spec.period, units: evidence.unit, integerEncoding: evidence.csvUnit, window: { start: summary.start, end: summary.end }, series, analysis: insights.analysis, facts, methodology: evidence.note, freshness: 'unknown' } };
 }
 
 function renderExplanation(raw, facts) {
@@ -57,4 +77,4 @@ function renderExplanation(raw, facts) {
   return { summary: render(parsed.summary), observations: parsed.observations.map(render), limitation: render(parsed.limitation) };
 }
 
-module.exports = { explainRequestSchema, explanationTask, loadExplanationEvidence, renderExplanation };
+module.exports = { explainRequestSchema, explanationTask, explanationTaskFor, evidenceProse, loadExplanationEvidence, renderExplanation };

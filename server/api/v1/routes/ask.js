@@ -10,7 +10,7 @@ const { analysisSchema, requestSchema, resolveShortcut } = require('../../../../
 const { sendSuccess } = require('../lib/envelope');
 const { sendProblem } = require('../lib/problem');
 const { createRateLimiter } = require('../lib/rate-limit');
-const { explainRequestSchema, explanationTask, loadExplanationEvidence, renderExplanation } = require('../lib/ask-explanation');
+const { explainRequestSchema, explanationTaskFor, loadExplanationEvidence, renderExplanation } = require('../lib/ask-explanation');
 
 const outputSchema = z.object({ spec: analysisSchema.nullable() }).strict();
 const jsonSchema = z.toJSONSchema(outputSchema);
@@ -133,7 +133,8 @@ function createAskRouter(env = process.env, dependencies = {}) {
         return { explanation: null, evidenceKey: evidence.evidenceKey, reason: 'source-changed' };
       }
       const redis = redisFor(req);
-      const cacheKey = `ask:{mainnet}:explanation:v2:${createHash('sha256').update(JSON.stringify([config.provider, config.model, explanationTask.instruction, evidence.evidenceKey])).digest('hex')}`;
+      const explanationTask = explanationTaskFor(evidence.facts);
+      const cacheKey = `ask:{mainnet}:explanation:v3:${createHash('sha256').update(JSON.stringify([config.provider, config.model, config.reasoningEffort, explanationTask.instruction, evidence.evidenceKey])).digest('hex')}`;
       const cached = await redis.get(cacheKey);
       if (cached) return { explanation: renderExplanation(JSON.parse(cached), evidence.facts), evidenceKey: evidence.evidenceKey };
       const raw = await run(evidence.input, explanationTask);

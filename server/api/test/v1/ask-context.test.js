@@ -93,7 +93,7 @@ test('public page explanations reuse only evidence/locale/model-specific cached 
   assert.equal(calls, 1);
   await chat({ ...request, locale: 'fr' }, run, null, signal, '', cache); assert.equal(calls, 2);
   await chat(request, run, null, signal, '', { ...cache, model: ['different'] }); assert.equal(calls, 3);
-  for (const key of values.keys()) assert.match(key, /^ask:\{mainnet\}:public-chat:v2:[a-f0-9]{64}$/);
+  for (const key of values.keys()) assert.match(key, /^ask:\{mainnet\}:public-chat:v3:[a-f0-9]{64}$/);
 });
 
 test('monetary config fails closed and charges the UTF-8 bound, not JavaScript character count', () => {
