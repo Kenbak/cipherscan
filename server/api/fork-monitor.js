@@ -1,7 +1,7 @@
 /**
  * Fork Monitor — Multi-node chain tip polling
  *
- * Polls external lightwalletd servers every 60s via gRPC GetLatestBlock,
+ * Polls external lightwalletd, RPC and dashboard sources every 60s,
  * compares their chain tips to ours, and logs mismatches to tip_reports.
  * Purely additive — if this module fails, the rest of the system is unaffected.
  */
@@ -9,6 +9,7 @@
 const POLL_INTERVAL_MS = 60_000;
 const GRPC_DEADLINE_MS = 5_000;
 const { logSafeError } = require('./lib/safe-log');
+const { readNodeSnapshot } = require('./lib/zakura-dashboard');
 
 const MAINNET_NODES = [
   { name: 'Cake Wallet', host: 'zec-node.cakewallet.com', port: 443, tls: true },
@@ -21,6 +22,7 @@ const MAINNET_NODES = [
   { name: 'zec.rocks SA', host: 'sa.zec.rocks', port: 443, tls: true },
   { name: 'zec.rocks EU', host: 'eu.zec.rocks', port: 443, tls: true },
   { name: 'zec.rocks AP', host: 'ap.zec.rocks', port: 443, tls: true },
+  { name: 'Zakura europe-west-0 (dashboard)', host: '159.65.183.89', port: 8090, dashboard: 'europe-west-0' },
 ];
 
 const TESTNET_NODES = [
@@ -56,6 +58,7 @@ class ForkMonitor {
         error: null,
         forkHeight: null,
         commonAncestor: null,
+        ...(node.dashboard ? { source: 'zakura-dashboard', observedAt: null } : {}),
       });
     }
   }
@@ -98,6 +101,7 @@ class ForkMonitor {
 
   _createClients() {
     for (const node of MONITORED_NODES) {
+      if (node.rpc || node.dashboard) continue;
       try {
         const address = `${node.host}:${node.port}`;
         const creds = node.tls
@@ -139,15 +143,16 @@ class ForkMonitor {
     if (node.rpc) return this._checkRpcNode(node, ourTip);
 
     const client = this.clients.get(node.name);
-    if (!client) {
+    if (!client && !node.dashboard) {
       this._updateStatus(node.name, { status: 'offline', error: 'No client' });
       return;
     }
 
     try {
-      const response = await this._getLatestBlock(client);
-      const remoteHeight = parseInt(response.height);
-      const remoteHash = this._hashToHex(response.hash);
+      const snapshot = node.dashboard ? await readNodeSnapshot(node) : null;
+      const response = snapshot || await this._getLatestBlock(client);
+      const remoteHeight = snapshot ? snapshot.height : parseInt(response.height);
+      const remoteHash = snapshot ? snapshot.hash : this._hashToHex(response.hash);
 
       let status = 'syncing';
       let ourHashAtRemoteHeight = null;
@@ -170,17 +175,21 @@ class ForkMonitor {
       }
 
       this._updateStatus(node.name, {
+        ...snapshot,
         height: remoteHeight,
         hash: remoteHash,
         ourHash: ourHashAtRemoteHeight,
         status,
         error: null,
+        forkHeight: null,
+        commonAncestor: null,
       });
 
       if (status === 'fork') {
         console.warn(`   [ForkMonitor] FORK: ${node.name} at height ${remoteHeight} — ${remoteHash.slice(0, 16)} != ${ourHashAtRemoteHeight?.slice(0, 16)}`);
         await this._recordMismatch(node.name, remoteHeight, remoteHash, ourHashAtRemoteHeight);
-        const ancestor = await this._findCommonAncestor(client, node, remoteHeight);
+        // This dashboard supplies a tip, not arbitrary-height RPC access.
+        const ancestor = node.dashboard ? null : await this._findCommonAncestor(client, node, remoteHeight);
         if (ancestor) {
           this._updateStatus(node.name, {
             forkHeight: ancestor.forkHeight,
@@ -191,7 +200,7 @@ class ForkMonitor {
         this._updateStatus(node.name, { forkHeight: null, commonAncestor: null });
       }
     } catch (err) {
-      this._updateStatus(node.name, { status: 'offline', error: err.message });
+      this._updateStatus(node.name, { status: 'offline', error: err.message, forkHeight: null, commonAncestor: null });
     }
   }
 
@@ -254,6 +263,7 @@ class ForkMonitor {
 
   async _fetchNodeInfo() {
     const checks = MONITORED_NODES.map(async (node) => {
+      if (node.dashboard) return; // Metadata arrives with the validated tip snapshot.
       if (node.rpc) return this._fetchRpcNodeInfo(node);
       const client = this.clients.get(node.name);
       if (!client) return;

@@ -336,7 +336,7 @@ router.get('/api/uncles/stats', async (req, res) => {
   }
 });
 
-// GET /api/uncles/nodes — Status of monitored external lightwalletd nodes
+// GET /api/uncles/nodes — Status of monitored external node sources
 router.get('/api/uncles/nodes', (req, res) => {
   const forkMonitor = req.app.locals.forkMonitor;
   if (!forkMonitor) {
