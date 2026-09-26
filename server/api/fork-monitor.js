@@ -22,7 +22,8 @@ const MAINNET_NODES = [
   { name: 'zec.rocks SA', host: 'sa.zec.rocks', port: 443, tls: true },
   { name: 'zec.rocks EU', host: 'eu.zec.rocks', port: 443, tls: true },
   { name: 'zec.rocks AP', host: 'ap.zec.rocks', port: 443, tls: true },
-  { name: 'Zakura europe-west-0 (dashboard)', host: '159.65.183.89', port: 8090, dashboard: 'europe-west-0' },
+  // Keep the stored report identity stable when changing the public label.
+  { name: 'Zakura europe-west-0 (dashboard)', displayName: 'Zakura europe-west-0', host: '159.65.183.89', port: 8090, dashboard: 'europe-west-0' },
 ];
 
 const TESTNET_NODES = [
@@ -45,7 +46,7 @@ class ForkMonitor {
 
     for (const node of MONITORED_NODES) {
       this.nodeStatus.set(node.name, {
-        name: node.name,
+        name: node.displayName || node.name,
         host: `${node.host}:${node.port}`,
         nodeImpl: null,
         version: null,

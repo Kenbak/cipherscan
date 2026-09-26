@@ -61,7 +61,7 @@ test('monitor compares dashboard tips, records only verified mismatches and clea
     if (sql.includes('INSERT INTO tip_reports')) { writes.push(params); return { rows: [] }; }
     return { rows: [{ hash }] };
   } } });
-  const status = () => monitor.getStatus().find(n => n.name === nodeName);
+  const status = () => monitor.getStatus().find(n => n.name === 'Zakura europe-west-0');
   assert.equal(status().source, 'zakura-dashboard');
   await monitor._checkNode(config, { height: data.node.height, hash });
   assert.equal(status().status, 'agree');

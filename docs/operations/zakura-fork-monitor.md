@@ -1,7 +1,7 @@
 # Zakura dashboard observer
 
 Mainnet Fork Watch polls `http://159.65.183.89:8090/data/node/europe-west-0`
-every 60 seconds as **Zakura europe-west-0 (dashboard)**. This is one node's
+every 60 seconds as **Zakura europe-west-0**. This is one node's
 reported tip from the operator's HTTP dashboard, not direct node RPC and not
 the cluster's majority tip. No push integration or credentials are required.
 
@@ -28,6 +28,11 @@ marks the observer offline without inserting evidence. Last successful tip
 fields may remain visible with that offline status. Exact common ancestor and
 fork depth remain unavailable because this feed does not provide arbitrary-
 height RPC access. Historical dashboard reorgs are not imported.
+
+The internal report identity remains `Zakura europe-west-0 (dashboard)` to
+preserve existing evidence identifiers; the public name omits the transport.
+The supplied root URL rejects JSON-RPC POST with HTTP 501. Direct RPC polling
+requires a separate operator-provided RPC endpoint and any access configuration.
 
 No migration, new route or frontend change is required. Existing gRPC/RPC
 observers and the separate Crosslink monitor remain in place. Testnet does not
