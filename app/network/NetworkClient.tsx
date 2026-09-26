@@ -12,7 +12,6 @@ import { blockAgeLabel, observationStatus } from '@/lib/network-overview';
 import { MiningIssuance } from '@/components/network/MiningIssuance';
 import { NetworkSectionNav } from '@/components/network/NetworkSectionNav';
 import { BlockTimeChart } from '@/components/network/BlockTimeChart';
-import { NetworkAccounting } from '@/components/network/NetworkAccounting';
 import { BlockCadenceChart } from '@/components/network/BlockCadenceChart';
 import { FeeDistributionChart, type FeeDistributionResponse } from '@/components/network/FeeDistributionChart';
 import type { NodeLocationsResponse, NodeStatsResponse } from '@/components/NodeMap';
@@ -176,12 +175,8 @@ export default function NetworkClient({ initialData }: { initialData: NetworkPag
         </div>
       </section>
 
-      {!isCrosslink && <section id="network-accounting" className="network-section mb-10" aria-label="Historical block timing and accounting">
-        <SectionHeader label="BLOCK_TIME_AND_ACCOUNTING" />
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-5 items-start">
-          <BlockTimeChart />
-          <NetworkAccounting />
-        </div>
+      {!isCrosslink && <section id="network-accounting" className="network-section mb-10" aria-label="Historical block timing">
+        <BlockTimeChart />
       </section>}
       <MiningIssuance />
       <Card className="network-detail-panel card-static">
