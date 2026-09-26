@@ -59,7 +59,6 @@ export function HalvingPanel({ halving }: { halving: HalvingInfo | null }) {
             />
           </div>
         </div>}
-        {halving.scheduleAssumption && <p className="text-xs text-muted mb-3">{halving.scheduleAssumption}</p>}
         <div className="space-y-2.5">
           <div className="flex justify-between items-center">
             <span className="text-caption text-muted font-mono">Estimated time</span>
@@ -77,20 +76,8 @@ export function HalvingPanel({ halving }: { halving: HalvingInfo | null }) {
               {halving.halvingBlock?.toLocaleString() ?? '—'}
             </span>
           </div>
-          <div className="border-t border-cipher-border my-2" />
-          <div className="flex justify-between items-center">
-            <span className="text-caption text-muted font-mono">Current block subsidy</span>
-            <span className="text-caption font-mono text-cipher-yellow font-semibold">
-              {halving.currentSubsidy} ZEC
-            </span>
-          </div>
-          <div className="flex justify-between items-center">
-            <span className="text-caption text-muted font-mono">Next block subsidy</span>
-            <span className="text-caption font-mono text-cipher-yellow font-semibold">
-              {halving.nextSubsidy != null ? `${halving.nextSubsidy} ZEC` : '—'}
-            </span>
-          </div>
         </div>
+        {halving.halvingStatus !== 'unavailable' && <p className="text-caption text-muted mt-4">Estimate from the current node schedule and recent block timing.</p>}
       </CardBody>
     </Card>
   );

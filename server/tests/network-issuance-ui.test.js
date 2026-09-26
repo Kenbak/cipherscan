@@ -28,7 +28,7 @@ const unavailable = {
 test('server-rendered halving panel explains unknown schedules without guessed progress', () => {
   const html = renderToStaticMarkup(React.createElement(HalvingPanel, { halving: unavailable }));
   assert.match(html, /next halving cannot currently be determined/);
-  assert.match(html, /1\.5625 ZEC/);
+  assert.doesNotMatch(html, /Current block subsidy|Next block subsidy/);
   assert.doesNotMatch(html, /Current era progress|NaN|Invalid Date/);
 });
 
@@ -43,7 +43,8 @@ test('issuance copy describes observed cadence and keeps missing allocations una
   });
   const html = renderToStaticMarkup(React.createElement(MiningIssuance));
   assert.match(html, /recent observed block cadence/);
-  assert.match(html, /unscheduled upgrades may change it/);
+  assert.match(html, /1\.5625/);
+  assert.match(html, /After halving/);
   assert.doesNotMatch(html, /1,152|0 ZEC|NaN/);
 });
 
