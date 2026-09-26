@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { SectionHeader } from '@/components/ui/SectionHeader';
 import { useApiQuery } from '@/hooks/useApiQuery';
 import type { AttestationData, AttestationEndpoint } from '@/lib/attestations';
 import { canaryStatus } from '@/lib/canary-status';
@@ -35,7 +36,7 @@ function timestamp(value: string | null | undefined) {
   return time && Number.isFinite(time.getTime()) ? `${time.toISOString().replace('T', ' ').slice(0, 19)} UTC` : 'Not available';
 }
 function CheckValue({ label, value, color = 'text-secondary' }: { label: string; value: string; color?: string }) {
-  return <div><dt className="text-xs text-muted mb-1.5">{label}</dt><dd className={`text-sm font-medium ${color}`}>{value}</dd></div>;
+  return <div className="flex justify-between gap-4 sm:block"><dt className="type-label text-muted sm:mb-2">{label}</dt><dd className={`text-sm font-mono text-right sm:text-left ${color}`}>{value}</dd></div>;
 }
 function EndpointCard({ endpoint, endpoints, now, apiUrl }: { endpoint: AttestationEndpoint; endpoints: AttestationEndpoint[]; now: number; apiUrl: string }) {
   const check = endpoint.latest;
@@ -47,19 +48,35 @@ function EndpointCard({ endpoint, endpoints, now, apiUrl }: { endpoint: Attestat
   const current = !['stale', 'unavailable', 'not_checked'].includes(status);
   const hub = endpoints.find((item) => item.id === endpoint.hubId);
   const releaseLabels = { unconfirmed: 'Unconfirmed', published_match: 'Published measurements match', reproduced_match: 'Reproduced build matches', mismatch: 'Measurements differ' };
-  return <article id={endpoint.id} className="card @container p-0! overflow-hidden scroll-mt-28">
+  return <article id={endpoint.id} className="card card-static @container p-0! overflow-hidden scroll-mt-36">
     <div className="p-5 sm:p-6">
-      <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
-        <div><div className="flex items-center gap-2 mb-1"><h3 className="font-semibold text-primary">{endpoint.name}</h3><span className="text-xs font-mono uppercase text-muted border border-cipher-border rounded px-1.5 py-0.5">{endpoint.role}</span></div>
+      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
+      <div className="min-w-0">
+        <div><div className="flex items-center gap-2 mb-1"><h3 className="font-mono text-base text-primary">{endpoint.name}</h3><span className="type-label font-mono uppercase text-muted">{endpoint.role}</span></div>
           <p className="font-mono text-xs sm:text-sm text-secondary break-all">{endpoint.hostname}:443</p></div>
-        <span className={`text-xs font-medium flex items-center gap-2 ${state.color}`}><span aria-hidden="true" className="w-1.5 h-1.5 rounded-full bg-current" />{state.label}</span>
+        <span className={`text-caption mt-3 flex items-center gap-2 ${state.color}`}><span aria-hidden="true" className="w-1.5 h-1.5 rounded-full bg-current" />{state.label}</span>
       </div>
-      <dl className="grid grid-cols-1 min-[420px]:grid-cols-3 gap-4 border-t border-cipher-border pt-4">
-        <CheckValue label="Enclave evidence" value={current ? (check?.evidence === 'verified' ? 'Verified' : check?.evidence === 'failed' ? 'Failed' : 'Not checked') : status === 'stale' ? 'Stale' : 'Not checked'} color={current && check?.evidence === 'verified' ? 'text-cipher-green' : 'text-secondary'} />
-        <CheckValue label="TLS certificate" value={current ? (check?.tlsBinding === 'matched' ? 'Matched' : check?.tlsBinding === 'mismatch' ? 'Mismatch' : 'Not checked') : status === 'stale' ? 'Stale' : 'Not checked'} color={current && check?.tlsBinding === 'matched' ? 'text-cipher-green' : 'text-secondary'} />
-        <CheckValue label="Software release" value={current && check ? releaseLabels[check.release] : 'Unconfirmed'} color="text-secondary" />
+      <dl className="grid grid-cols-1 sm:grid-cols-3 gap-4 border-t lg:border-t-0 lg:border-l border-cipher-border pt-4 lg:pt-0 lg:pl-6">
+        <CheckValue label="Enclave evidence" value={current ? (check?.evidence === 'verified' ? 'Verified' : check?.evidence === 'failed' ? 'Failed' : 'Not checked') : status === 'stale' ? 'Stale' : 'Not checked'} color={current && check?.evidence === 'verified' ? 'text-cipher-green' : current && check?.evidence === 'failed' ? 'text-danger' : 'text-secondary'} />
+        <CheckValue label="TLS certificate" value={current ? (check?.tlsBinding === 'matched' ? 'Matched' : check?.tlsBinding === 'mismatch' ? 'Mismatch' : 'Not checked') : status === 'stale' ? 'Stale' : 'Not checked'} color={current && check?.tlsBinding === 'matched' ? 'text-cipher-green' : current && check?.tlsBinding === 'mismatch' ? 'text-danger' : 'text-secondary'} />
+        <CheckValue label="Software release" value={current && check ? releaseLabels[check.release] : 'Unconfirmed'} color={current && check?.release === 'mismatch' ? 'text-danger' : 'text-secondary'} />
       </dl>
-      <dl className="mt-5 grid gap-5 @min-[36rem]:grid-cols-2 border-t border-cipher-border pt-5">
+      </div>
+      <div className="mt-5 border-t border-cipher-border pt-4 text-xs">
+        <div className="flex flex-wrap justify-between gap-2"><span className="font-medium text-secondary">Canary observer</span><span className={canary === 'verified' ? 'text-cipher-green' : canary === 'failed' ? 'text-danger' : canary === 'warning' || canary === 'stale' || canary === 'unreachable' ? 'text-cipher-yellow' : 'text-muted'}>{canaryLabels[canary]}</span></div>
+        {endpoint.canary ? <p className="mt-2 text-muted">Observed {timestamp(endpoint.canary.observedAt)} · expires {timestamp(endpoint.canary.expiresAt)}</p> : null}
+        {endpoint.canary?.transportWarning ? <p className="mt-2 text-cipher-yellow">Latest connection attempt has a warning; a recent signed result may still be retained.</p> : null}
+      </div>
+      {check?.errorCode ? <p className="mt-4 text-sm text-secondary" role="status">{ERRORS[check.errorCode] ?? 'The check could not be completed.'}</p> : null}
+      {check?.release === 'mismatch' ? <p className="mt-4 text-sm text-danger">The measurements differ from the configured release baseline.</p> : null}
+      <p className="mt-5 border-t border-cipher-border pt-3 text-xs text-muted leading-relaxed">
+        Last attempt <time className="tabular-nums" dateTime={check?.checkedAt}>{timestamp(check?.checkedAt)}</time>
+      </p>
+    </div>
+    <details className="border-t border-cipher-border">
+      <summary className="cursor-pointer px-5 sm:px-6 py-3 text-caption font-mono text-secondary hover:bg-glass-3 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cipher-gold">Build, configuration &amp; evidence</summary>
+      <div className="px-5 sm:px-6 pb-5 text-caption space-y-4">
+      <dl className="grid gap-5 @min-[36rem]:grid-cols-2 border-b border-cipher-border pb-5 pt-2">
         <div className="min-w-0">
           <dt className="text-xs font-medium text-muted mb-2">{!endpoint.baseline ? 'Build version' : buildMatches ? 'Running build' : 'Reviewed build'}</dt>
           <dd className="text-sm text-secondary">
@@ -86,20 +103,7 @@ function EndpointCard({ endpoint, endpoints, now, apiUrl }: { endpoint: Attestat
           </dd>
         </div> : null}
       </dl>
-      <div className="mt-5 border-t border-cipher-border pt-4 text-xs">
-        <div className="flex flex-wrap justify-between gap-2"><span className="font-medium text-secondary">Canary · additional observer</span><span className={canary === 'verified' ? 'text-cipher-green' : 'text-muted'}>{canaryLabels[canary]}</span></div>
-        {endpoint.canary ? <p className="mt-2 text-muted">Observed {timestamp(endpoint.canary.observedAt)} · expires {timestamp(endpoint.canary.expiresAt)}</p> : null}
-        {endpoint.canary?.transportWarning ? <p className="mt-2 text-cipher-yellow">Latest connection attempt has a warning; a recent signed result may still be retained.</p> : null}
-      </div>
-      {check?.errorCode ? <p className="mt-4 text-sm text-secondary" role="status">{ERRORS[check.errorCode] ?? 'The check could not be completed.'}</p> : null}
-      {check?.release === 'mismatch' ? <p className="mt-4 text-sm text-danger">The measurements differ from the configured release baseline.</p> : null}
-      <p className="mt-5 border-t border-cipher-border pt-3 text-xs text-muted leading-relaxed">
-        Last attempt <time className="tabular-nums" dateTime={check?.checkedAt}>{timestamp(check?.checkedAt)}</time>
-      </p>
-    </div>
-    <details className="border-t border-cipher-border">
-      <summary className="cursor-pointer px-5 sm:px-6 py-3 text-xs text-secondary hover:text-cipher-gold focus-visible:outline focus-visible:outline-2 focus-visible:outline-cipher-gold">Measurements &amp; source</summary>
-      <div className="px-5 sm:px-6 pb-5 text-xs space-y-4">
+
         <p className="text-muted">Measurements below describe the last attempt. Unsigned source claims are separate from the reviewed build and configuration evidence above.</p>
         {endpoint.baseline ? <div className="space-y-2">
           <p className="text-muted">Deployment source tag; pinned to the reviewed commit. {buildMatches ? 'Running build · reproduced match' : 'Reviewed build · current match unconfirmed'}.</p>
@@ -146,18 +150,17 @@ export default function AttestationsClient({ initialData, initialNow, network, a
   const verified = endpoints.filter((endpoint) => attestationStatus(endpoint.latest, now) === 'verified').length;
   const releaseVerified = endpoints.filter((endpoint) => attestationStatus(endpoint.latest, now) === 'verified' && ['published_match', 'reproduced_match'].includes(endpoint.latest?.release ?? '')).length;
   return <>
-    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-      {[{ value: endpoints.length, label: 'Registered endpoints', note: 'A curated list, not an operator census' }, { value: verified, label: 'Fresh evidence + TLS matches', note: 'Both checks must pass within 15 minutes' }, { value: releaseVerified, label: 'Confirmed software releases', note: 'Requires an independent build baseline' }].map((item) => <div key={item.label} className="card p-5 sm:p-6"><p className="text-xs text-muted mb-2">{item.label}</p><p className="text-3xl font-mono text-primary tabular-nums">{data?.available ? item.value : '—'}</p><p className="text-xs text-muted mt-2">{item.note}</p></div>)}
-    </div>
-    <div className="border border-cipher-border rounded-lg p-4 sm:p-5 mb-8 text-sm text-secondary leading-relaxed">
-      <p><strong className="text-primary">Evidence and release status are separate.</strong> We can check signed enclave evidence and its connection certificate today. Endpoints without independently established build measurements remain release-unconfirmed.</p>
-    </div>
+    <dl className="grid sm:grid-cols-3 border border-cipher-border rounded-lg divide-y sm:divide-y-0 sm:divide-x divide-cipher-border mb-4">
+      {[{ value: endpoints.length, label: 'Registered endpoints', note: 'Curated registry' }, { value: verified, label: 'Evidence + TLS verified', note: 'Fresh within 15 minutes' }, { value: releaseVerified, label: 'Software releases matched', note: 'Independent build baseline' }].map((item) => <div key={item.label} className="grid grid-cols-[1fr_auto] items-center gap-x-3 sm:block p-5 sm:p-6">
+        <dt className="type-label text-muted sm:mb-3">{item.label}</dt><dd className="type-metric font-mono text-primary tabular-nums">{data?.available ? item.value : '—'}</dd><p className="col-span-2 text-caption text-muted mt-2">{item.note}</p>
+      </div>)}
+    </dl>
+    <p className="text-caption text-muted mb-8">Valid enclave evidence and a matching connection do not confirm the software release. Each check is reported separately.</p>
     {query.error || !data?.available ? <p role="status" className="mb-5 text-sm text-cipher-yellow">{data?.available ? 'Could not refresh observations. Retained results expire after 15 minutes.' : 'Observations are currently unavailable. No endpoint is being reported as verified.'}</p> : null}
-    <div className="flex flex-wrap justify-between gap-3 mb-4">
-      <h2 className="font-mono text-sm text-secondary uppercase tracking-wider">Endpoint observations</h2>
-      <p className="text-xs text-muted">Primary checks every 5 minutes · Canary every minute</p>
-    </div>
-    {endpoints.length ? <div className="grid grid-cols-1 xl:grid-cols-2 items-start gap-5">{endpoints.map((endpoint) => <EndpointCard key={endpoint.id} endpoint={endpoint} endpoints={endpoints} now={now} apiUrl={apiUrl} />)}</div>
+    <section id="endpoint-observations" className="scroll-mt-36">
+    <SectionHeader label="ENDPOINT_OBSERVATIONS" actions={<p className="text-caption text-muted">Primary · 5 min <span className="mx-2">/</span> Canary · 1 min</p>} />
+    {endpoints.length ? <div className="space-y-4">{endpoints.map((endpoint) => <EndpointCard key={endpoint.id} endpoint={endpoint} endpoints={endpoints} now={now} apiUrl={apiUrl} />)}</div>
       : <div className="card p-6 text-sm text-muted">{query.loading ? 'Loading the endpoint registry…' : 'The endpoint registry could not be loaded. Please try again shortly.'}</div>}
+    </section>
   </>;
 }

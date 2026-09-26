@@ -22,6 +22,7 @@ const Link = ({ href, children, ...props }) => React.createElement('a', { href, 
 const apiClient = loadTs('lib/api-client.ts');
 const Header = loadTs('components/ui/SectionHeader.tsx');
 const Client = loadTs('app/network/attestations/AttestationsClient.tsx', {
+  '@/components/ui/SectionHeader': Header,
   '@/hooks/useApiQuery': { useApiQuery: (path, _params, options) => { assert.equal(path, '/v1/network/attestations'); return { data: options.initialData ?? null, loading: false, error: null }; } },
   '@/lib/canary-status': require('../../lib/canary-status'),
   '@/lib/attestation-status': require('../../lib/attestation-status'),
