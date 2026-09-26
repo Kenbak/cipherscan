@@ -6,7 +6,6 @@ import { isCrosslink, isMainnet } from '@/lib/config';
 import { useApiQuery } from '@/hooks/useApiQuery';
 
 const DISMISS_KEY = 'ironwood-banner-dismissed';
-const BLOCK_TIME_SECONDS = 75;
 const ACTIVATION_HEIGHT = isMainnet ? 3428143 : 4134000;
 // Same endpoint + interval as IronwoodProgressCard on the homepage. Both
 // components sharing this exact (path, params, refreshInterval) tuple is
@@ -93,11 +92,6 @@ export function IronwoodBanner() {
     setDismissed(true);
   }
 
-  const timeRemaining = state.blocksRemaining * BLOCK_TIME_SECONDS;
-  const days = Math.floor(timeRemaining / 86400);
-  const hours = Math.floor((timeRemaining % 86400) / 3600);
-  const minutes = Math.floor((timeRemaining % 3600) / 60);
-
   const activatedCopy = (
     <span className="text-xs font-mono text-muted group-hover:text-secondary transition-colors">
       <span className="text-cipher-ironwood font-medium">Ironwood is live</span>
@@ -116,10 +110,7 @@ export function IronwoodBanner() {
     <span className="text-xs font-mono text-muted group-hover:text-secondary transition-colors">
       <span className="text-cipher-ironwood font-medium">Ironwood</span>
       <span className="text-muted mx-1.5">·</span>
-      {days > 0 ? `${days}d ${hours}h` : `${hours}h ${minutes}m`} remaining
-      <span className="hidden sm:inline text-muted ml-1.5">
-        ({state.blocksRemaining.toLocaleString()} blocks)
-      </span>
+      {state.blocksRemaining.toLocaleString()} blocks remaining
     </span>
   );
 
@@ -159,7 +150,7 @@ export function IronwoodBanner() {
                 <span className="relative inline-flex h-2 w-2 rounded-full bg-cipher-yellow" />
               </span>
               {activatedCopy}
-              <span className="text-caption text-muted group-hover:text-cipher-yellow/60 transition-colors ml-1">
+              <span className="text-caption text-muted group-hover:text-cipher-ironwood/60 transition-colors ml-1">
                 {actionLabel}
               </span>
             </>
@@ -167,7 +158,7 @@ export function IronwoodBanner() {
             <>
               <span className="h-2 w-2 rounded-full bg-cipher-yellow/50 animate-pulse" />
               {preActivationCopy}
-              <span className="text-caption text-muted group-hover:text-cipher-yellow/60 transition-colors ml-1">
+              <span className="text-caption text-muted group-hover:text-cipher-ironwood/60 transition-colors ml-1">
                 {actionLabel}
               </span>
             </>

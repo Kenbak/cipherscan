@@ -372,5 +372,9 @@
   ],
   "GET /v1/names/status": [],
   "GET /v1/names/:name": [],
-  "GET /v1/names/:name/events": []
+  "GET /v1/names/:name/events": [],
+  "GET /v1/network/block-time": [
+    "period"
+  ],
+  "GET /v1/network/accounting": []
 }

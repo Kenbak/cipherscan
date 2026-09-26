@@ -2,7 +2,7 @@
  * Client-side Zcash Transaction Parser
  *
  * Parses raw transaction hex into structured data per ZIP-225 (v5 transactions)
- * and legacy formats (v1-v4). No node dependency — works entirely in the browser.
+ * and legacy formats (v1-v4), plus ZIP-229 v6. No node dependency — works entirely in the browser.
  *
  * References:
  * - ZIP-225: https://zips.z.cash/zip-0225
@@ -17,12 +17,13 @@ const VERSION_GROUP_IDS: Record<number, string> = {
   0x03c48270: 'Overwinter',
   0x892f2085: 'Sapling',
   0x26a7270a: 'NU5',
+  0xd884b698: 'Ironwood',
 };
 
 // Known consensus branch IDs
 const CONSENSUS_BRANCH_IDS: Record<number, string> = {
   0x00000000: 'Sprout',
-  0x00000001: 'Overwinter',
+  0x5ba81b19: 'Overwinter',
   0x76b809bb: 'Sapling',
   0x2bb40e60: 'Blossom',
   0xf5b9230b: 'Heartwood',
@@ -30,6 +31,9 @@ const CONSENSUS_BRANCH_IDS: Record<number, string> = {
   0xc2d6d0b4: 'NU5',
   0xc8e71055: 'NU6',
   0x4dec4df0: 'NU6.1',
+  0x5437f330: 'NU6.2',
+  0x37a5165b: 'NU6.3',
+  0x77190ad9: 'NU7',
 };
 
 export interface ParsedVin {
@@ -68,6 +72,9 @@ export interface ParsedTransaction {
   nSpendsSapling: number;
   nOutputsSapling: number;
   orchardActions: number;
+  ironwoodActions: number;
+  valueBalanceIronwood?: number;
+  ironwoodFlags?: number;
   valueBalanceOrchard?: number;
   orchardFlags?: number;
   size: number;
@@ -320,11 +327,11 @@ function base58Encode(data: Uint8Array): string {
 
 /**
  * Parse a raw Zcash transaction hex string into structured data.
- * Supports v1 through v5 transaction formats.
+ * Supports v1 through v6 transaction formats.
  */
 export function parseZcashTransaction(hex: string): ParsedTransaction {
   const cleanHex = hex.replace(/\s/g, '').toLowerCase();
-  if (!/^[0-9a-f]+$/.test(cleanHex)) {
+  if (cleanHex.length % 2 !== 0 || !/^[0-9a-f]+$/.test(cleanHex)) {
     throw new Error('Invalid hex string');
   }
   if (cleanHex.length < 20) {
@@ -339,7 +346,7 @@ export function parseZcashTransaction(hex: string): ParsedTransaction {
   const fOverwintered = (header & 0x80000000) !== 0;
   const version = header & 0x7fffffff;
 
-  if (version < 1 || version > 5) {
+  if (version < 1 || version > 6) {
     throw new Error(`Unsupported transaction version: ${version}`);
   }
 
@@ -352,11 +359,12 @@ export function parseZcashTransaction(hex: string): ParsedTransaction {
     nSpendsSapling: 0,
     nOutputsSapling: 0,
     orchardActions: 0,
+    ironwoodActions: 0,
     size: totalSize,
   };
 
   // V5 transactions (NU5+) have a different field ordering per ZIP-225
-  if (version === 5 && fOverwintered) {
+  if (version >= 5 && fOverwintered) {
     return parseV5Transaction(reader, tx);
   }
 
@@ -450,37 +458,21 @@ function parseV5Transaction(reader: HexReader, tx: ParsedTransaction): ParsedTra
     reader.skip(64);
   }
 
-  // === Orchard ===
-  const nActionsOrchard = reader.readCompactSize();
-  tx.orchardActions = nActionsOrchard;
-
-  if (nActionsOrchard > 0) {
-    // Each orchard action: cv(32) + nullifier(32) + rk(32) + cmx(32) + ephemeralKey(32) + encCiphertext(580) + outCiphertext(80) = 820 bytes
-    for (let i = 0; i < nActionsOrchard; i++) {
-      reader.skip(820);
-    }
-
-    // flagsOrchard (1 byte)
-    tx.orchardFlags = reader.readUInt8();
-
-    // valueBalanceOrchard (8 bytes)
-    tx.valueBalanceOrchard = reader.readInt64LE() / 1e8;
-
-    // anchorOrchard (32 bytes)
+  // ZIP-229 appends an Ironwood bundle with the same field layout.
+  for (const pool of tx.version === 6 ? ['orchard', 'ironwood'] as const : ['orchard'] as const) {
+    const actions = reader.readCompactSize();
+    if (pool === 'orchard') tx.orchardActions = actions; else tx.ironwoodActions = actions;
+    if (actions === 0) continue;
+    reader.skip(actions * 820);
+    const flags = reader.readUInt8();
+    const valueBalance = reader.readInt64LE() / 1e8;
+    if (pool === 'orchard') { tx.orchardFlags = flags; tx.valueBalanceOrchard = valueBalance; }
+    else { tx.ironwoodFlags = flags; tx.valueBalanceIronwood = valueBalance; }
     reader.skip(32);
-
-    // proofsOrchard: sizeProof (compactSize) + proof data
-    const proofSize = reader.readCompactSize();
-    reader.skip(proofSize);
-
-    // vSpendAuthSigsOrchard - 64 bytes each
-    for (let i = 0; i < nActionsOrchard; i++) {
-      reader.skip(64);
-    }
-
-    // bindingSigOrchard (64 bytes)
-    reader.skip(64);
+    reader.skip(reader.readCompactSize());
+    reader.skip(actions * 64 + 64);
   }
+  if (reader.remaining() !== 0) throw new Error('Unexpected trailing transaction data');
 
   return tx;
 }

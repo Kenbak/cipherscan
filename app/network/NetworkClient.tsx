@@ -11,6 +11,8 @@ import type { HashrateSnapshot } from '@/lib/hashrate';
 import { blockAgeLabel, observationStatus } from '@/lib/network-overview';
 import { MiningIssuance } from '@/components/network/MiningIssuance';
 import { NetworkSectionNav } from '@/components/network/NetworkSectionNav';
+import { BlockTimeChart } from '@/components/network/BlockTimeChart';
+import { NetworkAccounting } from '@/components/network/NetworkAccounting';
 import { BlockCadenceChart } from '@/components/network/BlockCadenceChart';
 import { FeeDistributionChart, type FeeDistributionResponse } from '@/components/network/FeeDistributionChart';
 import type { NodeLocationsResponse, NodeStatsResponse } from '@/components/NodeMap';
@@ -27,14 +29,15 @@ export interface NetworkStats {
     networkHashrateRaw: number | null;
     hashrateEstimate?: HashrateSnapshot;
     difficulty: number;
-    avgBlockTime: number;
+    avgBlockTime: number | null;
+    targetBlockTime?: number | null;
     blocks24h: number;
-    blockReward: number;
-    minerReward: number;
+    blockReward: number | null;
+    minerReward: number | null;
     fundingStreams: number;
     lockbox: number;
-    dailyRevenue: number;
-    dailyMinerRevenue: number;
+    dailyRevenue: number | null;
+    dailyMinerRevenue: number | null;
   };
   network: {
     peers: number;
@@ -137,9 +140,8 @@ export default function NetworkClient({ initialData }: { initialData: NetworkPag
           <dl id="network-protocol" className="network-section network-summary-grid network-protocol-facts border-b border-cipher-border" aria-label="Protocol parameters">
             {[
               ['Active upgrade', stats?.supply?.activeUpgrade ?? '—'],
-              ['Block subsidy', stats ? `${stats.mining.blockReward} ZEC` : '—'],
+              ['Block subsidy', stats?.mining.blockReward != null ? `${stats.mining.blockReward} ZEC` : '—'],
               ['Maximum supply', '21,000,000 ZEC'],
-              ['Target spacing', '75 seconds'],
             ].map(([label, value]) => <div key={label}>
               <dt className="type-label text-muted uppercase">{label}</dt>
               <dd className="font-mono text-sm text-secondary tabular-nums">{value}</dd>
@@ -148,7 +150,7 @@ export default function NetworkClient({ initialData }: { initialData: NetworkPag
           <dl id="network-overview" className="network-section network-summary-grid network-live-facts" aria-label="Current chain activity">
             {[
               { label: 'Latest block', value: height != null ? <Link href={`/block/${height}`} className="hover:text-cipher-gold">{height.toLocaleString()}</Link> : '—', hint: stats ? `Block timestamp · ${blockAgeLabel(stats.blockchain.latestBlockTime, now)}` : 'Awaiting chain data' },
-              { label: 'Block interval', value: stats ? `${stats.mining.avgBlockTime.toFixed(1)}s` : '—', hint: 'Rolling average · target 75s' },
+              { label: 'Average block interval', value: stats?.mining.avgBlockTime != null ? `${stats.mining.avgBlockTime.toFixed(1)}s` : '—', hint: stats?.mining.targetBlockTime != null ? `Observed · protocol target ${stats.mining.targetBlockTime}s` : 'Observed · protocol target unavailable' },
               { label: 'Transactions · 24h', value: txCount?.toLocaleString() ?? '—', hint: stats?.blockchain.tx24hExclCoinbase != null ? 'Confirmed · coinbase excluded' : 'Confirmed · includes coinbase' },
               { label: 'Estimated hashrate · 24h', value: stats?.mining.hashrateEstimate ? stats.mining.networkHashrate : '—', hint: <Link href="/mining#metrics" className="hover:text-primary underline underline-offset-4">Trailing 24-hour estimate →</Link> },
             ].map(({ label, value, hint }) => <div key={label}>
@@ -169,11 +171,18 @@ export default function NetworkClient({ initialData }: { initialData: NetworkPag
       <section id="network-activity" className="network-section mb-10" aria-label="Block cadence and observed fees">
         <SectionHeader label="ACTIVITY" />
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-5 items-stretch">
-          <BlockCadenceChart initialData={initialData.recentBlocks} initialFetchedAt={initialData.fetchedAt} chainHeight={height} now={now} />
+          <BlockCadenceChart initialData={initialData.recentBlocks} initialFetchedAt={initialData.fetchedAt} chainHeight={height} now={now} targetSeconds={stats?.mining.targetBlockTime ?? null} />
           <div id="network-fees" className="network-section h-full"><FeeDistributionChart initialFetchedAt={initialData.fetchedAt} initialData={initialData.feeDistribution} /></div>
         </div>
       </section>
 
+      {!isCrosslink && <section id="network-accounting" className="network-section mb-10" aria-label="Historical block timing and accounting">
+        <SectionHeader label="BLOCK_TIME_AND_ACCOUNTING" />
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-5 items-start">
+          <BlockTimeChart />
+          <NetworkAccounting />
+        </div>
+      </section>}
       <MiningIssuance />
       <Card className="network-detail-panel card-static">
         <details id="network-technical" className="network-section network-detail-disclosure" open={technicalOpen} onToggle={event => setTechnicalOpen(event.currentTarget.open)}>

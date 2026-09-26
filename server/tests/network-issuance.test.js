@@ -19,6 +19,7 @@ async function request(path, { snapshots = null, trends = [], blockRows = blocks
   } };
   const callZebraRPC = rpc || (async (method, params) => {
     if (method === 'getblockcount') return 3_500_000;
+    if (method === 'getblockchaininfo') return { chain: 'main', blocks: 3_500_000, upgrades: { b: { name: 'Blossom', activationheight: 653600 } } };
     assert.equal(method, 'getblocksubsidy');
     assert.equal(params[0], 3_500_000, 'subsidy is pinned to the observed node height');
     return { totalblocksubsidy: subsidy };
@@ -108,10 +109,10 @@ test('subsidy failures do not hide supply observations or invent daily issuance'
   assert.equal(subsidyZat(0.52083333), 52083333);
 });
 
-test('halving route ignores legacy cached countdowns and does not cache unfamiliar transitions', async () => {
+test('halving route ignores legacy cached countdowns and fails closed on unsupported schedules', async () => {
   const keys = [];
   const { body } = await request('/api/network/halving', {
-    rpc: async (method, params) => method === 'getblockcount' ? 3_500_000 : ({
+    rpc: async (method, params) => method === 'getblockchaininfo' ? { chain: 'unknown', blocks: 3500000, upgrades: { b: { name: 'Blossom', activationheight: 653600 } } } : ({
       totalblocksubsidy: params[0] < 3_600_000 ? 1.5625 : 0.52083333,
     }),
     redisClient: { isOpen: true, async get(key) {
@@ -119,7 +120,7 @@ test('halving route ignores legacy cached countdowns and does not cache unfamili
       return key === 'zcash:halving_info' ? JSON.stringify({ halvingBlock: 3_600_000 }) : null;
     }, async setEx() { assert.fail('unavailable countdown must not be cached'); } },
   });
-  assert.deepEqual(keys, ['zcash:halving_info:v2']);
+  assert.deepEqual(keys, ['zcash:halving_info:v3']);
   assert.equal(body.halvingStatus, 'unavailable');
   assert.equal(body.estimatedSeconds, null);
   assert.equal(body.estimatedDate, null);
@@ -130,7 +131,7 @@ test('halving route extrapolates observed cadence and caches for five minutes', 
   const stored = [];
   const { body } = await request('/api/network/halving', {
     blockRows: blocks(25),
-    rpc: async (method, params) => method === 'getblockcount' ? 3_500_000 : ({ totalblocksubsidy:
+    rpc: async (method, params) => method === 'getblockchaininfo' ? { chain: 'main', blocks: 3500000, upgrades: { b: { name: 'Blossom', activationheight: 653600 } } } : ({ totalblocksubsidy:
       params[0] < 2_726_400 ? 3.125 : params[0] < 4_406_400 ? 1.5625 : 0.78125,
     }),
     redisClient: { isOpen: true, async get() { return null; }, async setEx(...args) { stored.push(args); } },

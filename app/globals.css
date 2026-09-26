@@ -2071,6 +2071,20 @@ main table td { font-variant-numeric: tabular-nums lining-nums; }
   .network-live-facts > div { padding-block: 1.5rem; }
 }
 
+/* Protocol references remain compact; the target lives with observed cadence. */
+@media (min-width: 380px) and (max-width: 639px) {
+  .network-protocol-facts { grid-template-columns: minmax(0, 1fr); }
+  .network-protocol-facts > div { display: flex; }
+  .network-protocol-facts > div:nth-child(n) { border-left: 0; }
+  .network-protocol-facts > div + div { border-top: 1px solid var(--color-border); }
+  .network-protocol-facts dd { margin-top: 0; }
+}
+@media (min-width: 640px) {
+  .network-protocol-facts { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .network-protocol-facts > div:nth-child(n) { border-top: 0; }
+  .network-protocol-facts > div + div { border-left: 1px solid var(--color-border); }
+}
+
 /* Technical disclosure and onward navigation are distinct page regions. */
 .network-detail-panel { padding: 0; overflow: hidden; }
 .network-detail-toggle { display: flex; align-items: center; justify-content: space-between; gap: 1.5rem; padding: 1.25rem; cursor: pointer; list-style: none; }

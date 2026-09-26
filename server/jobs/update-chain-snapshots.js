@@ -6,6 +6,7 @@
  *   0 * * * * cd /root/cipherscan/server/jobs && node update-chain-snapshots.js >> /var/log/chain-snapshots.log 2>&1
  */
 
+const { supplyZat } = require('../api/lib/network-issuance');
 const { log, loadEnv } = require('../lib/job-utils');
 const { getPool, getReadPool } = require('../lib/db-pool');
 const { callZebraRPC } = require('../lib/zebra-rpc');
@@ -41,10 +42,15 @@ async function main() {
 
   const pools = {};
   for (const p of info.valuePools) {
-    pools[p.id] = parseInt(p.chainValueZat, 10) || 0;
+    pools[p.id] = supplyZat(p.chainValueZat);
+    if (pools[p.id] === null) throw new Error('Invalid authoritative pool balance');
   }
 
-  const chainSupply = parseInt(info.chainSupply?.chainValueZat, 10) || 0;
+  const chainSupply = supplyZat(info.chainSupply?.chainValueZat);
+  if (chainSupply === null || chainSupply === 0) throw new Error('Authoritative chain supply unavailable');
+  for (const id of ['sprout', 'sapling', 'orchard', 'ironwood', 'transparent']) {
+    if (pools[id] == null) throw new Error('Required pool balance unavailable');
+  }
   const blockHeight = parseInt(info.blocks, 10) || 0;
   const chainSize = parseInt(info.size_on_disk, 10) || 0;
 

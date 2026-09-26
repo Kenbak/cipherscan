@@ -1,6 +1,7 @@
+const { networkSchedule, targetSeconds, targetSpacing, halvingIndex, halvingHeight } = require('../lib/network-schedule');
 const { cachedHashrateHistory } = require('../lib/hashrate');
 const { logSafeError } = require('../lib/safe-log');
-const { subsidyZat, supplyHistory, dailyNetSupplyChanges, observedBlockCadence } = require('../lib/network-issuance');
+const { subsidyZat, supplyZat, supplyHistory, dailyNetSupplyChanges, observedBlockCadence } = require('../lib/network-issuance');
 /**
  * Network analytics routes — halving, mining history, pool trends, emission, chain size.
  * Requires chain_snapshots table for size history (see docs/network-analytics-setup.md).
@@ -8,7 +9,7 @@ const { subsidyZat, supplyHistory, dailyNetSupplyChanges, observedBlockCadence }
 
 const MAX_SUPPLY_ZEC = 21_000_000;
 // Do not reuse countdowns cached by the old "any subsidy decrease" detector.
-const HALVING_CACHE_KEY = 'zcash:halving_info:v2';
+const HALVING_CACHE_KEY = 'zcash:halving_info:v3';
 const HALVING_CACHE_TTL = 300;
 
 async function getFromRedisCache(redisClient, key) {
@@ -80,113 +81,41 @@ function rollingAverage(values, window) {
   for (let i = 0; i < values.length; i++) {
     const start = Math.max(0, i - window + 1);
     const slice = values.slice(start, i + 1);
-    const avg = slice.reduce((a, b) => a + b, 0) / slice.length;
+    const avg = slice.every(Number.isFinite) ? slice.reduce((a, b) => a + b, 0) / slice.length : null;
     out.push(avg);
   }
   return out;
 }
 
-async function discoverNextHalving(callZebraRPC, currentHeight) {
+async function discoverNextHalving(callZebraRPC, currentHeight, chainInfo) {
   if (!Number.isSafeInteger(currentHeight) || currentHeight < 1) throw new Error('Invalid chain height');
+  const info = chainInfo ?? await callZebraRPC('getblockchaininfo');
+  const schedule = networkSchedule(info);
   const current = await callZebraRPC('getblocksubsidy', [currentHeight]);
-  const currentZat = subsidyZat(current?.totalblocksubsidy);
-  if (currentZat === null) throw new Error('Could not read current block subsidy');
-  const currentTotal = current.totalblocksubsidy;
-  const currentFields = {
-    currentSubsidy: currentTotal,
+  if (subsidyZat(current?.totalblocksubsidy) === null) throw new Error('Could not read current block subsidy');
+  const fields = {
+    currentSubsidy: current.totalblocksubsidy,
     minerReward: subsidyZat(current.miner) === null ? null : current.miner,
     fundingStreams: subsidyZat(current.fundingstreamstotal) === null ? null : current.fundingstreamstotal,
     lockbox: subsidyZat(current.lockboxtotal) === null ? null : current.lockboxtotal,
+    schedule,
+    scheduleAssumption: 'Current node activation schedule; future unscheduled upgrades can change these estimates.',
   };
-  const unavailable = reason => ({
-    ...currentFields,
-    halvingStatus: 'unavailable',
-    halvingUnavailableReason: reason,
-    halvingBlock: null, blocksRemaining: null, nextSubsidy: null,
-    nextMinerReward: null, eraStartBlock: null, eraProgress: null,
-  });
-  if (currentZat === 0) return unavailable('zero-subsidy');
-
-  // This bounded RPC detector is only safe for a constant-subsidy era. An
-  // unfamiliar transition (e.g. block-spacing adjustment or NSM reissuance)
-  // needs consensus schedule support, not a guessed halving identity.
-  const readSubsidy = async height => {
-    const value = await callZebraRPC('getblocksubsidy', [height]);
-    if (subsidyZat(value?.totalblocksubsidy) === null) throw new Error('Subsidy observation unavailable');
-    return value;
-  };
-
-  const coarseStep = 50000;
-  const maxScan = 2_000_000;
-  let coarseHit = null;
-
-  for (let h = currentHeight + coarseStep; h <= currentHeight + maxScan; h += coarseStep) {
-    const sub = await readSubsidy(h);
-    if (subsidyZat(sub.totalblocksubsidy) !== currentZat) {
-      coarseHit = h;
-      break;
-    }
-  }
-
-  if (!coarseHit) {
-    return unavailable('outside-discovery-window');
-  }
-
-  let lo = Math.max(currentHeight + 1, coarseHit - coarseStep);
-  let hi = coarseHit;
-  while (lo < hi) {
-    const mid = Math.floor((lo + hi) / 2);
-    const sub = await readSubsidy(mid);
-    if (subsidyZat(sub.totalblocksubsidy) !== currentZat) hi = mid;
-    else lo = mid + 1;
-  }
-
-  const [priorSubsidy, nextSubsidy] = await Promise.all([readSubsidy(lo - 1), readSubsidy(lo)]);
-  if (subsidyZat(priorSubsidy.totalblocksubsidy) !== currentZat ||
-      subsidyZat(nextSubsidy.totalblocksubsidy) !== Math.floor(currentZat / 2)) {
-    return unavailable('non-halving-subsidy-change');
-  }
-  // Find the prior subsidy transition, then binary-search its exact height.
-  let sameSubsidyHeight = currentHeight;
-  let priorEraHeight = null;
-  while (sameSubsidyHeight > 0) {
-    const probeHeight = Math.max(0, sameSubsidyHeight - coarseStep);
-    const subsidy = await readSubsidy(probeHeight);
-    if (subsidyZat(subsidy.totalblocksubsidy) !== currentZat) {
-      priorEraHeight = probeHeight;
-      break;
-    }
-    if (probeHeight === 0) break;
-    sameSubsidyHeight = probeHeight;
-  }
-
-  let eraStart = null;
-  if (priorEraHeight != null) {
-    let startLo = priorEraHeight + 1;
-    let startHi = sameSubsidyHeight;
-    while (startLo < startHi) {
-      const mid = Math.floor((startLo + startHi) / 2);
-      const subsidy = await readSubsidy(mid);
-      if (subsidyZat(subsidy.totalblocksubsidy) === currentZat) startHi = mid;
-      else startLo = mid + 1;
-    }
-    const previous = await readSubsidy(startLo - 1);
-    // A spacing adjustment does not start a new halving era.
-    if (Math.floor(subsidyZat(previous.totalblocksubsidy) / 2) === currentZat) eraStart = startLo;
-  }
-  const eraLength = eraStart === null ? null : lo - eraStart;
-  const progress = eraLength > 0 ? ((currentHeight - eraStart) / eraLength) * 100 : null;
-
-  return {
-    ...currentFields,
-    halvingStatus: 'available',
-    halvingUnavailableReason: null,
-    halvingBlock: lo,
-    blocksRemaining: lo - currentHeight,
-    eraStartBlock: eraStart,
-    eraProgress: progress === null ? null : Math.min(Math.max(progress, 0), 100),
-    nextSubsidy: nextSubsidy?.totalblocksubsidy ?? null,
-    nextMinerReward: subsidyZat(nextSubsidy.miner) === null ? null : nextSubsidy.miner,
+  const index = halvingIndex(schedule, currentHeight);
+  const nextHeight = index === null ? null : halvingHeight(schedule, index + 1);
+  if (nextHeight === null) return { ...fields, halvingStatus: 'unavailable',
+    halvingUnavailableReason: 'unsupported-node-schedule', halvingBlock: null, blocksRemaining: null,
+    nextSubsidy: null, nextMinerReward: null, eraStartBlock: null, eraProgress: null, targetSecondsRemaining: null };
+  const eraStart = index === 0 ? 0 : halvingHeight(schedule, index);
+  // Future state-dependent NSM payouts may not be known. The halving clock is
+  // still known; unavailable future rewards must not erase its boundary.
+  const next = await callZebraRPC('getblocksubsidy', [nextHeight]).catch(() => null);
+  return { ...fields, halvingStatus: 'available', halvingUnavailableReason: null,
+    halvingBlock: nextHeight, blocksRemaining: nextHeight - currentHeight, eraStartBlock: eraStart,
+    eraProgress: 100 * targetSeconds(schedule, eraStart, currentHeight) / targetSeconds(schedule, eraStart, nextHeight),
+    nextSubsidy: subsidyZat(next?.totalblocksubsidy) === null ? null : next.totalblocksubsidy,
+    nextMinerReward: subsidyZat(next?.miner) === null ? null : next.miner,
+    targetSecondsRemaining: targetSeconds(schedule, currentHeight, nextHeight),
   };
 }
 
@@ -207,6 +136,7 @@ async function columnExists(pool, tableName, columnName) {
 }
 
 function registerNetworkAnalyticsRoutes(router) {
+  require('./network-readiness').registerNetworkReadinessRoutes(router);
   router.get('/api/network/halving', async (req, res) => {
     try {
       const callZebraRPC = req.app.locals.callZebraRPC;
@@ -216,16 +146,17 @@ function registerNetworkAnalyticsRoutes(router) {
 
       // Use Zebra for both height and subsidy so backfills cannot mix a stale
       // database height with live-chain subsidy values.
-      const currentHeight = Number(await callZebraRPC('getblockcount'));
+      const chainInfo = await callZebraRPC('getblockchaininfo');
+      const currentHeight = Number(chainInfo?.blocks);
       if (!Number.isSafeInteger(currentHeight) || currentHeight < 1) {
         throw new Error('Could not read current Zebra height');
       }
       const [halving, cadence] = await Promise.all([
-        discoverNextHalving(callZebraRPC, currentHeight),
+        discoverNextHalving(callZebraRPC, currentHeight, chainInfo),
         observedBlockCadence(req.app.locals.pool, currentHeight).catch(() => null),
       ]);
       const estimatedSeconds = halving.blocksRemaining != null && cadence !== null
-        ? halving.blocksRemaining * cadence.intervalSeconds : null;
+        ? halving.targetSecondsRemaining * cadence.intervalSeconds / targetSpacing(halving.schedule, currentHeight) : null;
       const payload = {
         ...halving,
         currentHeight,
@@ -263,15 +194,15 @@ function registerNetworkAnalyticsRoutes(router) {
 
       const rows = result.rows.reverse();
       const intervals = rows.map((r, i) => {
-        if (i === 0) return 75;
+        if (i === 0) return null;
         const prev = rows[i - 1];
         const delta = parseInt(r.timestamp, 10) - parseInt(prev.timestamp, 10);
-        return delta > 0 && delta < 600 ? delta : 75;
+        return Number(r.height) === Number(prev.height) + 1 ? delta : null;
       });
 
       const difficulties = rows.map((r) => parseFloat(r.difficulty) || 0);
       // Same 2^13 Equihash constant as /api/network/stats — see comment there.
-      const solrates = difficulties.map((d, i) => (d * 8192) / intervals[i]);
+      const solrates = difficulties.map((d, i) => intervals[i] > 0 ? (d * 8192) / intervals[i] : null);
       const fees = rows.map((r) => (parseInt(r.total_fees, 10) || 0) / 1e8);
       const txCounts = rows.map((r) => parseInt(r.transaction_count, 10) || 0);
 
@@ -298,7 +229,7 @@ function registerNetworkAnalyticsRoutes(router) {
         latest: {
           solrate: latest.solrate ?? 0,
           difficulty: latest.difficulty ?? 0,
-          blockTime: latest.blockTime ?? 75,
+          blockTime: latest.blockTime ?? null,
           txFees: latest.txFees ?? 0,
           txCount: latest.txCount ?? 0,
         },
@@ -576,7 +507,9 @@ function registerNetworkAnalyticsRoutes(router) {
           size: parseInt(r.size, 10) || 0,
           minerAddress: r.miner_address,
           fees: (parseInt(r.total_fees, 10) || 0) / 1e8,
-          minerReward: (parseInt(r.coinbase_zat, 10) || 0) / 1e8,
+          // Legacy alias retained; this is transparent coinbase output value, not miner receipts.
+          minerReward: supplyZat(r.coinbase_zat) === null ? null : supplyZat(r.coinbase_zat) / 1e8,
+          coinbaseTransparentOutput: supplyZat(r.coinbase_zat) === null ? null : supplyZat(r.coinbase_zat) / 1e8,
         })),
       });
     } catch (error) {

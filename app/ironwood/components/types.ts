@@ -9,7 +9,7 @@ export interface Overview {
   tipHeight: number;
   activated: boolean;
   blocksUntilActivation: number;
-  avgBlockTimeSecs?: number;
+  avgBlockTimeSecs?: number | null;
   poolSizes: {
     orchardZat: number;
     ironwoodZat: number;
@@ -31,7 +31,7 @@ export interface Overview {
     firstHeight: number | null;
     lastHeight: number | null;
     migratedPercent: number;
-    velocityZatPerHour?: number;
+    velocityZatPerHour?: number | null;
   };
   supplyAudit: {
     orchardOutZat: number;

@@ -30,23 +30,12 @@ export function formatRelativeTime(timestamp: number, now = Date.now()): string 
   }
 }
 
-/**
- * Zcash target block interval in seconds (75s post-Blossom).
- */
-const ZCASH_TARGET_INTERVAL = 75;
-
-/**
- * Format a block-to-block time gap and return a severity class.
- * Returns { label, level } where level drives colour in the UI:
- *   "fast"   — ≤ 0.5× target (≤37s)
- *   "normal" — 0.5×–2× target (38–150s)
- *   "slow"   — 2×–4× target   (151–300s)
- *   "very-slow" — >4× target  (>300s)
- */
-export function formatBlockInterval(seconds: number): { label: string; level: 'fast' | 'normal' | 'slow' | 'very-slow' } {
-  const t = ZCASH_TARGET_INTERVAL;
-  let level: 'fast' | 'normal' | 'slow' | 'very-slow';
-  if (seconds <= t * 0.5) level = 'fast';
+/** Format an observed interval. Classify only when its height's target is known. */
+export function formatBlockInterval(seconds: number, targetSeconds: number | null = null): { label: string; level: 'unknown' | 'fast' | 'normal' | 'slow' | 'very-slow' } {
+  const t = targetSeconds;
+  let level: 'unknown' | 'fast' | 'normal' | 'slow' | 'very-slow';
+  if (t === null || !Number.isFinite(t) || t <= 0) level = 'unknown';
+  else if (seconds <= t * 0.5) level = 'fast';
   else if (seconds <= t * 2) level = 'normal';
   else if (seconds <= t * 4) level = 'slow';
   else level = 'very-slow';

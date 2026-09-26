@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { isCrosslink } from '@/lib/config';
 
 export function NetworkSectionNav({ onTechnicalNavigate }: { onTechnicalNavigate: () => void }) {
   return (
@@ -6,6 +7,7 @@ export function NetworkSectionNav({ onTechnicalNavigate }: { onTechnicalNavigate
       <a href="#network-protocol" className="hover:text-primary">Overview</a>
       <a href="#network-nodes" className="hover:text-primary">Nodes</a>
       <a href="#network-activity" className="hover:text-primary">Activity</a>
+      {!isCrosslink && <a href="#network-accounting" className="hover:text-primary">Accounting</a>}
       <a href="#issuance" className="hover:text-primary">Issuance &amp; halving</a>
       <a href="#network-technical" onClick={onTechnicalNavigate} className="hover:text-primary">Technical details</a>
       <Link href="/network/nodes" className="sm:ml-auto text-secondary hover:text-cipher-gold">Node explorer →</Link>

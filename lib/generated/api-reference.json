@@ -917,6 +917,62 @@
   },
   {
     "method": "GET",
+    "path": "/v1/network/block-time",
+    "description": "Observed block intervals and rolling averages with node-announced target spacing.",
+    "category": "network",
+    "query": [
+      "period"
+    ],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": null,
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [
+      {
+        "name": "period",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string",
+          "enum": [
+            "6h",
+            "24h",
+            "7d"
+          ],
+          "default": "24h",
+          "description": "Trailing block-header observation window."
+        },
+        "description": "Trailing block-header observation window."
+      }
+    ],
+    "requestBody": null
+  },
+  {
+    "method": "GET",
+    "path": "/v1/network/accounting",
+    "description": "Latest canonical block fees, miner receipts and separate authoritative NSM reserve balance.",
+    "category": "network",
+    "query": [],
+    "listKey": null,
+    "zatoshiFields": [
+      "circulatingSupplyZat",
+      "nsmBalanceZat",
+      "block.feesPaidZat",
+      "block.feesToNsmZat",
+      "block.minerFeeAllocationZat",
+      "block.minerSubsidyZat",
+      "block.minerReceiptsZat",
+      "block.reissuanceZat"
+    ],
+    "note": "Reserve is a signed decimal-string zatoshi counter from getblockchaininfo, separate from circulating supply. Block fees and coinbase receipts come from complete indexed transactions after matching the node canonical hash. feesToNsmZat is the consensus minimum, floor(60% of aggregate block fees), not total observed removals. minerFeeAllocationZat is the maximum fee allocation before optional underclaim. Receipts subtract compulsory founders and funding payouts from transparent plus net shielded coinbase creation. Missing fields are null. Reissuance stays null because this RPC release exposes no separate authoritative amount. Node reserve and indexed block have separate heights.",
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [],
+    "requestBody": null
+  },
+  {
+    "method": "GET",
     "path": "/v1/network/stats",
     "description": "Aggregate network statistics. Headline hashrate uses canonical target work over the full trailing 24 hours; mining.hashrateEstimate supplies shared 24h/7d windows and as-of timestamps. Unavailable rates are null.",
     "category": "network",
@@ -1282,7 +1338,7 @@
     "query": [],
     "listKey": null,
     "zatoshiFields": [],
-    "note": "A constant-subsidy RPC detector reports a countdown only for an exact integer-zatoshi halving. Other transitions or an exhausted two-million-block search return halvingStatus unavailable with null countdown fields. Missing miner/funding allocations are null. Cadence uses up to 120 consecutive indexed block intervals ending at the observed node height; estimates assume it continues and do not predict future upgrades. Successful complete results may be cached for 300 seconds.",
+    "note": "Halving boundaries use the public-network consensus subsidy clock, integrating 150/75/25-second target-spacing eras from the serving node activation schedule. Unscheduled future upgrades can change the forecast. Observed cadence scales elapsed-time estimates across the known eras. Unknown schedules and missing observations are unavailable. Future state-dependent rewards may be null even when the halving boundary is known. Complete estimates may be cached for 300 seconds.",
     "ownershipToken": false,
     "pagination": null,
     "parameters": [],
@@ -1466,7 +1522,7 @@
   {
     "method": "GET",
     "path": "/v1/network/blocks/recent-summary",
-    "description": "Lightweight recent-blocks summary for charts (distinct from /v1/blocks).",
+    "description": "Lightweight recent-blocks summary. coinbaseTransparentOutput is transparent coinbase outputs in ZEC, including non-miner payouts; minerReward is a deprecated alias and is not actual miner receipts. Missing amounts are null.",
     "category": "network",
     "query": [
       "limit"

@@ -243,7 +243,7 @@ export function ScanMyTransactions() {
             {/* Scan Period */}
             <div>
               <label className="block text-xs sm:text-sm font-semibold text-secondary mb-2 sm:mb-3 uppercase tracking-wider">
-                Scan Period <span className="text-danger">*</span>
+                Scan Range <span className="text-danger">*</span>
               </label>
               <select
                 value={scanPeriod}
@@ -251,16 +251,16 @@ export function ScanMyTransactions() {
                 disabled={scanning}
                 className="input-field disabled:opacity-50"
               >
-                <option value="1h">Last 1 hour (~48 blocks)</option>
-                <option value="6h">Last 6 hours (~288 blocks)</option>
-                <option value="24h">Last 24 hours (~1,152 blocks)</option>
-                <option value="7d">Last 7 days (~8,064 blocks)</option>
+                <option value="1h">Latest 48 blocks</option>
+                <option value="6h">Latest 288 blocks</option>
+                <option value="24h">Latest 1,152 blocks</option>
+                <option value="7d">Latest 8,064 blocks</option>
                 <option value="birthday">Since wallet birthday 🎂</option>
               </select>
               <p className="text-caption sm:text-xs text-muted mt-2 font-mono">
                 {scanPeriod === 'birthday'
                   ? 'Scan from wallet creation (may take 1-2 minutes)'
-                  : 'How far back to scan for your transactions'}
+                  : 'Fixed block ranges; elapsed time varies with network cadence'}
               </p>
             </div>
 

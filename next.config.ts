@@ -11,14 +11,8 @@ const nextConfig: NextConfig = {
   async rewrites() {
     return {
       beforeFiles: [
-        {
-          source: '/blocks',
-          destination: '/blocks/latest',
-          missing: ['cursor', 'direction', 'page', 'software', 'pool', 'order', 'from', 'to', 'min_height', 'max_height', 'min_interval', 'max_interval', 'min_size', 'max_size', 'min_fees', 'max_fees', 'min_txs', 'max_txs'].map((key) => ({
-            type: 'query' as const,
-            key,
-          })),
-        },
+        // /blocks is handled in proxy.ts: its filters exceed Vercel's
+        // 16-condition limit for a single has/missing routing rule.
         {
           source: '/txs',
           destination: '/txs/latest',

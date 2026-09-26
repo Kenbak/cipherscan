@@ -88,6 +88,25 @@ const REDIRECT_HOSTS = [
 ];
 
 export async function proxy(request: NextRequest) {
+  // Keep filtered archives dynamic and the unfiltered list on its ISR route.
+  // Vercel permits at most 16 has/missing conditions per static routing rule.
+  if (request.nextUrl.pathname === '/blocks') {
+    const host = request.headers.get('host')?.replace(/:\d+$/, '') || '';
+    if (process.env.NODE_ENV !== 'development' && REDIRECT_HOSTS.includes(host)) {
+      return NextResponse.redirect(new URL(request.nextUrl.pathname + request.nextUrl.search, `https://${CANONICAL_HOST}`), 301);
+    }
+    const filterKeys = [
+      'cursor', 'direction', 'page', 'software', 'pool', 'order', 'from', 'to',
+      'min_height', 'max_height', 'min_interval', 'max_interval',
+      'min_size', 'max_size', 'min_fees', 'max_fees', 'min_txs', 'max_txs',
+    ];
+    if (filterKeys.some((key) => request.nextUrl.searchParams.has(key))) {
+      return NextResponse.next();
+    }
+    const url = request.nextUrl.clone();
+    url.pathname = '/blocks/latest';
+    return NextResponse.rewrite(url);
+  }
   // Reject malformed block identifiers before a loading boundary can stream a
   // soft 200. Do not fetch or cache a missing-resource guess for these URLs.
   const blockPath = request.nextUrl.pathname.match(/^\/block\/([^/]+)$/);
@@ -146,5 +165,5 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/api/:path*', '/block/:path*', '/governance/:path*'],
+  matcher: ['/api/:path*', '/block/:path*', '/blocks', '/governance/:path*'],
 };

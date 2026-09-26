@@ -8,6 +8,7 @@ export interface HalvingInfo {
   blocksRemaining: number | null;
   eraProgress?: number | null;
   halvingStatus?: 'available' | 'unavailable';
+  scheduleAssumption?: string;
   currentSubsidy: number;
   nextSubsidy: number | null;
   minerReward: number | null;
@@ -58,7 +59,7 @@ export function HalvingPanel({ halving }: { halving: HalvingInfo | null }) {
             />
           </div>
         </div>}
-
+        {halving.scheduleAssumption && <p className="text-xs text-muted mb-3">{halving.scheduleAssumption}</p>}
         <div className="space-y-2.5">
           <div className="flex justify-between items-center">
             <span className="text-caption text-muted font-mono">Estimated time</span>

@@ -571,13 +571,20 @@ test('legacy migration and swap routes permanently consolidate authority', async
   assert.deepEqual(rewrites.fallback, []);
 
   const latestRoutes = [
-    ['/blocks', '/blocks/latest', ['cursor', 'direction', 'page', 'software', 'pool', 'order', 'from', 'to', 'min_height', 'max_height', 'min_interval', 'max_interval', 'min_size', 'max_size', 'min_fees', 'max_fees', 'min_txs', 'max_txs']],
     ['/txs', '/txs/latest', ['cursor', 'cursor_idx', 'cursor_id', 'direction', 'page', 'type', 'flow_type', 'pool', 'min_zec']],
   ];
   for (const [source, destination, queryKeys] of latestRoutes) {
     const rewrite = rewrites.beforeFiles.find((candidate) => candidate.source === source);
     assert.equal(rewrite.destination, destination);
     assert.deepEqual(rewrite.missing, queryKeys.map((key) => ({ type: 'query', key })));
+  }
+  assert.equal(rewrites.beforeFiles.some((route) => route.source === '/blocks'), false);
+  // https://github.com/vercel/vercel/blob/main/packages/routing-utils/src/schemas.ts
+  // Next accepts larger arrays, but Vercel rejects them after a successful build.
+  for (const route of [...redirects, ...Object.values(rewrites).flat()]) {
+    for (const condition of ['has', 'missing']) {
+      assert.ok((route[condition]?.length ?? 0) <= 16, `${route.source}: too many ${condition} conditions for Vercel`);
+    }
   }
 });
 

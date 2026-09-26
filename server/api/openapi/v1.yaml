@@ -2499,6 +2499,213 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
+  /v1/network/block-time:
+    get:
+      operationId: get_network_Block-time
+      summary: Observed block intervals and rolling averages with node-announced target spacing.
+      tags:
+        - network
+      parameters:
+        - name: period
+          in: query
+          required: false
+          schema:
+            type: string
+            enum:
+              - 6h
+              - 24h
+              - 7d
+            default: 24h
+            description: Trailing block-header observation window.
+          description: Trailing block-header observation window.
+      x-cipherscan-legacy-path: /api/network/block-time
+      x-cipherscan-legacy-method: GET
+      x-cipherscan-classification: public
+      x-cipherscan-v1-status: adapter
+      responses:
+        '200':
+          description: Observed block intervals and rolling averages with node-announced target spacing.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                  - meta
+                properties:
+                  data:
+                    oneOf:
+                      - type: object
+                      - type: array
+                        items: {}
+                  meta:
+                    $ref: '#/components/schemas/Meta'
+        '400':
+          description: Validation error.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '401':
+          description: Preview or endpoint authentication required.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '402':
+          description: >-
+            Payment required. Protocol challenges remain in Payment-Required / WWW-Authenticate; the
+            original challenge is also in problem.paymentRequired.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '403':
+          description: Origin or ownership authorization denied.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '404':
+          description: Resource not found.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '413':
+          description: JSON body exceeds 1 MB.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '429':
+          description: Rate limited (enforced by the legacy endpoint this proxies to).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '500':
+          description: Internal error.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '502':
+          description: Upstream (legacy API) error.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '503':
+          description: Source temporarily unavailable or still building.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '504':
+          description: Upstream (legacy API) timeout.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+  /v1/network/accounting:
+    get:
+      operationId: get_network_Accounting
+      summary: Latest canonical block fees, miner receipts and separate authoritative NSM reserve balance.
+      tags:
+        - network
+      x-cipherscan-legacy-path: /api/network/accounting
+      x-cipherscan-legacy-method: GET
+      x-cipherscan-classification: public
+      x-cipherscan-v1-status: adapter
+      responses:
+        '200':
+          description: >-
+            Latest canonical block fees, miner receipts and separate authoritative NSM reserve
+            balance.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                  - meta
+                properties:
+                  data:
+                    oneOf:
+                      - type: object
+                      - type: array
+                        items: {}
+                  meta:
+                    $ref: '#/components/schemas/Meta'
+        '400':
+          description: Validation error.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '401':
+          description: Preview or endpoint authentication required.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '402':
+          description: >-
+            Payment required. Protocol challenges remain in Payment-Required / WWW-Authenticate; the
+            original challenge is also in problem.paymentRequired.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '403':
+          description: Origin or ownership authorization denied.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '404':
+          description: Resource not found.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '413':
+          description: JSON body exceeds 1 MB.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '429':
+          description: Rate limited (enforced by the legacy endpoint this proxies to).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '500':
+          description: Internal error.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '502':
+          description: Upstream (legacy API) error.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '503':
+          description: Source temporarily unavailable or still building.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '504':
+          description: Upstream (legacy API) timeout.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
   /v1/network/stats:
     get:
       operationId: get_network_Stats
@@ -5125,7 +5332,10 @@ paths:
   /v1/network/blocks/recent-summary:
     get:
       operationId: get_network_Blocks_Recent-summary
-      summary: Lightweight recent-blocks summary for charts (distinct from /v1/blocks).
+      summary: >-
+        Lightweight recent-blocks summary. coinbaseTransparentOutput is transparent coinbase outputs
+        in ZEC, including non-miner payouts; minerReward is a deprecated alias and is not actual
+        miner receipts. Missing amounts are null.
       tags:
         - network
       parameters:
@@ -5141,7 +5351,10 @@ paths:
       x-cipherscan-v1-status: adapter
       responses:
         '200':
-          description: Lightweight recent-blocks summary for charts (distinct from /v1/blocks).
+          description: >-
+            Lightweight recent-blocks summary. coinbaseTransparentOutput is transparent coinbase
+            outputs in ZEC, including non-miner payouts; minerReward is a deprecated alias and is
+            not actual miner receipts. Missing amounts are null.
           content:
             application/json:
               schema:

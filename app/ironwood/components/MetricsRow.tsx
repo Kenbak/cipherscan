@@ -5,12 +5,12 @@ import { fmtValue, type CurrencyMode } from '@/hooks/useCurrencyToggle';
 import type { ChartColors, Overview } from './types';
 import { KpiCell, KpiRow } from './ui';
 
-function CountdownUnit({ value, label }: { value: number; label: string }) {
+function CountdownUnit({ value, label }: { value: number | null; label: string }) {
   return (
     <div className="flex flex-col items-center">
       <div className="w-16 sm:w-20 h-16 sm:h-20 rounded-xl border border-cipher-border/50 bg-glass-3 flex items-center justify-center">
         <span className="text-2xl sm:text-3xl font-semibold font-mono text-primary">
-          {String(value).padStart(2, '0')}
+          {value === null ? '—' : String(value).padStart(2, '0')}
         </span>
       </div>
       <span className="text-caption font-mono text-muted mt-1.5 uppercase tracking-wider">{label}</span>
@@ -50,17 +50,17 @@ export function MetricsRow({
   }, [activated]);
 
   const blocksLeft = Math.max(0, activationHeight - tipHeight);
-  const blockTime = overview?.avgBlockTimeSecs || 75;
-  const etaSecs = blocksLeft * blockTime;
+  const blockTime = overview?.avgBlockTimeSecs;
+  const etaSecs = blockTime != null && blockTime > 0 ? blocksLeft * blockTime : null;
   const progressPct = tipHeight > 0 && activationHeight > 0
     ? Math.min(100, (tipHeight / activationHeight) * 100)
     : 0;
 
-  const days = Math.floor(etaSecs / 86400);
-  const hours = Math.floor((etaSecs % 86400) / 3600);
-  const minutes = Math.floor((etaSecs % 3600) / 60);
+  const days = etaSecs === null ? null : Math.floor(etaSecs / 86400);
+  const hours = etaSecs === null ? null : Math.floor((etaSecs % 86400) / 3600);
+  const minutes = etaSecs === null ? null : Math.floor((etaSecs % 3600) / 60);
 
-  const targetDate = new Date(Date.now() + etaSecs * 1000);
+  const targetDate = etaSecs === null ? null : new Date(Date.now() + etaSecs * 1000);
   const networkLabel = deploymentNetwork === 'mainnet' ? 'Mainnet' : 'Testnet';
 
   if (!activated && blocksLeft > 0) {
@@ -119,9 +119,9 @@ export function MetricsRow({
 
           {/* ETA */}
           <div className="text-center mt-4 text-sm font-mono text-secondary">
-            est. {targetDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
+            {targetDate === null ? 'Estimate unavailable' : 'est.'} {targetDate?.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
             <span className="text-muted mx-1.5">·</span>
-            {targetDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZone: 'UTC', hour12: false })} UTC
+            {targetDate?.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZone: 'UTC', hour12: false })} {targetDate && 'UTC · based on recent observed block times'}
           </div>
 
           {/* Brand footer */}
