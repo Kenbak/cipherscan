@@ -228,6 +228,7 @@ async function fetchNetworkStatsOptimized() {
         networkHashrateRaw: networkHashrate,
         hashrateEstimate: hashrateSnapshot,
         difficulty: difficultyNum,
+        schedule: networkSchedule(blockchainInfo),
         targetBlockTime: targetSpacing(networkSchedule(blockchainInfo), Number(height)),
         dailyRevenueMeaning: 'Current subsidy extrapolated over observed 24-hour block count; excludes fees.',
         avgBlockTime, // in seconds

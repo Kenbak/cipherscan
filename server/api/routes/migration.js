@@ -32,7 +32,7 @@ const ACTIVATION_HEIGHT = {
 };
 
 // Anchor boundary spacing per ZIP-318: height ≡ 0 mod 144
-// (~3h at 75s blocks). Migrations sharing a boundary form an anonymity cohort.
+// (256 blocks, independent of target spacing). Migrations sharing a boundary form an anonymity cohort.
 const BOUNDARY_MODULUS = 144;
 
 let pool, redisClient, callZebraRPC, listCache;
@@ -200,7 +200,7 @@ router.get('/api/migration/overview', async (req, res) => {
     res.set('Cache-Control', 'no-store');
     const network = resolveNetwork();
     const activationHeight = ACTIVATION_HEIGHT[network];
-    const data = await cached(`zcash:migration:overview:v2:${network}`, 5, async () => {
+    const data = await cached(`zcash:migration:overview:v3:${network}`, 5, async () => {
       const dbTipHeight = await getTipHeight();
 
       // Zebra's valuePools are authoritative for the current net pool balances.
@@ -292,7 +292,9 @@ router.get('/api/migration/overview', async (req, res) => {
                            AND NOT is_coinbase AND value_balance_orchard <= 0
                            AND value_balance_sapling <= 0) AS transparent_tx_count,
           MIN(block_height) FILTER (WHERE value_balance_ironwood < 0) AS first_inflow_height,
-          MAX(block_height) FILTER (WHERE value_balance_ironwood < 0) AS last_inflow_height
+          MAX(block_height) FILTER (WHERE value_balance_ironwood < 0) AS last_inflow_height,
+          MIN(block_time) FILTER (WHERE value_balance_ironwood < 0) AS first_inflow_time,
+          MAX(block_time) FILTER (WHERE value_balance_ironwood < 0) AS last_inflow_time
         FROM transactions
         WHERE has_ironwood = true
       `);
@@ -314,13 +316,14 @@ router.get('/api/migration/overview', async (req, res) => {
       const totalMigratedZat = ironwoodInZat;
 
       // Average block time from recent blocks (last 1000 for a stable estimate)
-      let avgBlockTimeSecs = 75;
+      let avgBlockTimeSecs = null;
       try {
         const bt = await pool.query(`
-          SELECT (MAX(timestamp) - MIN(timestamp))::float / NULLIF(COUNT(*) - 1, 0) AS avg_secs
-          FROM (SELECT timestamp FROM blocks ORDER BY height DESC LIMIT 1000) sub
+          SELECT CASE WHEN COUNT(*) = MAX(height) - MIN(height) + 1
+            THEN ((array_agg(timestamp ORDER BY height DESC))[1] - (array_agg(timestamp ORDER BY height))[1])::float / NULLIF(COUNT(*) - 1, 0) END AS avg_secs
+          FROM (SELECT height, timestamp FROM blocks ORDER BY height DESC LIMIT 1000) sub
         `);
-        if (bt.rows.length && bt.rows[0].avg_secs) {
+        if (Number.isFinite(Number(bt.rows[0]?.avg_secs)) && Number(bt.rows[0]?.avg_secs) > 0) {
           avgBlockTimeSecs = Math.round(Number(bt.rows[0].avg_secs) * 10) / 10;
         }
       } catch {}
@@ -329,12 +332,10 @@ router.get('/api/migration/overview', async (req, res) => {
         ? poolSnapshot.ironwoodZat / (poolSnapshot.orchardZat + poolSnapshot.ironwoodZat)
         : 0;
 
-      let velocityZatPerHour = 0;
-      if (firstMigrationHeight && lastMigrationHeight && lastMigrationHeight > firstMigrationHeight) {
-        const blocksElapsed = lastMigrationHeight - firstMigrationHeight;
-        const hoursElapsed = (blocksElapsed * avgBlockTimeSecs) / 3600;
-        if (hoursElapsed > 0) velocityZatPerHour = Math.round(totalMigratedZat / hoursElapsed);
-      }
+      // Use actual elapsed chain timestamps across all spacing eras.
+      const elapsedSeconds = Number(ledger.last_inflow_time) - Number(ledger.first_inflow_time);
+      const velocityZatPerHour = ledger.first_inflow_time != null && ledger.last_inflow_time != null && elapsedSeconds > 0
+        ? Math.round(totalMigratedZat * 3600 / elapsedSeconds) : null;
 
       let migratedTodayZat = 0;
       try {

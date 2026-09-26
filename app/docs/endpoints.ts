@@ -1442,7 +1442,7 @@ export const getEndpoints = (baseUrl: string): ApiEndpoint[] => [
       },
       last_updated: '2026-07-29T20:00:00.000Z'
     },
-    note: 'total_balance preserves the original field but now means reusable P2PKH/P2SH address balance only. directAddressless totals each unspent output once even when a multisig script exposes multiple keys. combined_total_balance is their mutually exclusive sum. Updated with each new block (~75s). Cached 5min fresh / 30min stale.'
+    note: 'total_balance preserves the original field but now means reusable P2PKH/P2SH address balance only. directAddressless totals each unspent output once even when a multisig script exposes multiple keys. combined_total_balance is their mutually exclusive sum. Updated with each new block. Cached 5min fresh / 30min stale.'
   }
 ];
 

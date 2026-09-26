@@ -746,7 +746,7 @@ export default function MiningPage() {
           </h2>
           <div className="space-y-3 text-sm text-muted leading-relaxed">
             <p>
-              Zcash is secured by Equihash proof-of-work mining with a 75-second block target.
+              Zcash is secured by Equihash proof-of-work mining with a block target set by the active network upgrade.
               Pool attribution is derived from coinbase transaction payout addresses. A single
               pool may use multiple addresses; unknown addresses are labeled by region when
               identifiable through peer analysis.

@@ -28,6 +28,7 @@ interface Block {
 const PAGE_SIZE = 25;
 
 const INTERVAL_TEXT_COLORS = {
+  'unknown': 'text-muted',
   'fast':      'text-cipher-cyan',
   'normal':    'text-cipher-green',
   'slow':      'text-amber-400',
@@ -35,6 +36,7 @@ const INTERVAL_TEXT_COLORS = {
 } as const;
 
 const INTERVAL_BAR_COLORS = {
+  'unknown': 'bg-cipher-border',
   'fast':      'bg-cipher-cyan/50',
   'normal':    'bg-cipher-green/50',
   'slow':      'bg-amber-400/50',
@@ -330,12 +332,12 @@ export default function BlocksClient({
         <MetricCard size="compact"
           label="Blocks (24h)"
           value={summary.blocks24h != null ? summary.blocks24h.toLocaleString() : '—'}
-          hint="~1,152/day is normal"
+          hint="Observed canonical blocks in 24 hours"
         />
         <MetricCard size="compact"
           label="Avg Block Time"
           value={summary.avgBlockTime != null ? `${summary.avgBlockTime}s` : '—'}
-          hint="Last 1,000 blocks · target 75s"
+          hint="Last 1,000 blocks · observed timestamps"
         />
         <MetricCard size="compact"
           label="Avg Block Fee (24h)"

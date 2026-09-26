@@ -647,12 +647,9 @@ router.get('/api/privacy/fee-lanes', async (req, res) => {
     const periodDays = { '7d': 7, '30d': 30, '90d': 90, '1y': 365 };
     const days = periodDays[period] || 30;
 
-    const blocksPerDay = 1152;
-    const tipResult = await pool.query('SELECT MAX(height) as tip FROM blocks');
-    const tip = parseInt(tipResult.rows[0].tip);
-    const minHeight = tip - (days * blocksPerDay);
+    const since = Math.floor(Date.now() / 1000) - days * 86400;
 
-    const cacheKey = `fee-lanes:${period}`;
+    const cacheKey = `fee-lanes:time-v2:${period}`;
     if (redisClient) {
       try {
         const cached = await redisClient.get(cacheKey);
@@ -687,7 +684,7 @@ router.get('/api/privacy/fee-lanes', async (req, res) => {
         WITH fee_calc AS (
           SELECT fee, ${CONV_ACTIONS} AS conv_actions
           FROM transactions
-          WHERE block_height >= $1
+          WHERE block_time >= $1
             AND is_coinbase = false
             AND fee > 0
             AND (has_sapling = true OR has_orchard = true OR has_ironwood = true)
@@ -697,13 +694,13 @@ router.get('/api/privacy/fee-lanes', async (req, res) => {
           COUNT(*) FILTER (WHERE ${STANDARD_FILTER}) AS standard,
           COUNT(*) FILTER (WHERE ${PRIORITY_FILTER}) AS priority
         FROM fee_calc
-      `, [minHeight]),
+      `, [since]),
 
       pool.query(`
         WITH fee_calc AS (
           SELECT fee, block_time, ${CONV_ACTIONS} AS conv_actions
           FROM transactions
-          WHERE block_height >= $1
+          WHERE block_time >= $1
             AND is_coinbase = false
             AND fee > 0
             AND (has_sapling = true OR has_orchard = true OR has_ironwood = true)
@@ -716,7 +713,7 @@ router.get('/api/privacy/fee-lanes', async (req, res) => {
         FROM fee_calc
         GROUP BY 1
         ORDER BY 1
-      `, [minHeight]),
+      `, [since]),
     ]);
 
     const s = summaryResult.rows[0];
@@ -774,12 +771,9 @@ router.get('/api/privacy/wallet-fingerprints', async (req, res) => {
     const periodDays = { '7d': 7, '30d': 30, '90d': 90, '1y': 365 };
     const days = periodDays[period] || 30;
 
-    const blocksPerDay = 1152;
-    const tipResult = await pool.query('SELECT MAX(height) as tip FROM blocks');
-    const tip = parseInt(tipResult.rows[0].tip);
-    const minHeight = tip - (days * blocksPerDay);
+    const since = Math.floor(Date.now() / 1000) - days * 86400;
 
-    const cacheKey = `wallet-fingerprints:${period}`;
+    const cacheKey = `wallet-fingerprints:time-v2:${period}`;
     if (redisClient) {
       try {
         const cached = await redisClient.get(cacheKey);
@@ -887,10 +881,10 @@ router.get('/api/privacy/wallet-fingerprints', async (req, res) => {
           WHERE has_sapling = true OR has_orchard = true OR has_ironwood = true
         ) AS total_shielded
       FROM transactions
-      WHERE block_height >= $1
+      WHERE block_time >= $1
         AND is_coinbase = false
         AND fee > 0
-    `, [minHeight]);
+    `, [since]);
 
     const r = result.rows[0];
     const familyExpiry40 = parseInt(r.family_expiry40);
