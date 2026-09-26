@@ -208,11 +208,12 @@ export default function NetworkClient({ initialData }: { initialData: NetworkPag
       </Card>
       <nav aria-labelledby="network-related-heading" className="mt-8">
         <h2 id="network-related-heading" className="type-label text-muted uppercase mb-3">Explore further</h2>
-        <div className="network-related-links">
+        <div className={`network-related-links${isCrosslink ? '' : ' network-related-links--four'}`}>
           {[
             { href: '/mining#metrics', title: 'Mining', description: 'Hashrate, pools and miner rewards' },
             { href: '/pools#supply', title: 'Shielded pools', description: 'Supply distribution and pool flows' },
             { href: '/rich-list#transparent-breakdown', title: 'Transparent balances', description: 'Address categories and script types' },
+            ...(!isCrosslink ? [{ href: '/network/attestations', title: 'Indexer attestations', description: 'Zero Indexer enclave and software checks' }] : []),
           ].map(({ href, title, description }) => <Link key={href} href={href} className="network-related-link">
             <span className="flex items-baseline justify-between gap-3 font-mono text-sm text-secondary"><span>{title}</span><span aria-hidden="true" className="text-muted">→</span></span>
             <span className="block text-caption text-muted mt-1">{description}</span>
