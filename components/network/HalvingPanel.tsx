@@ -1,19 +1,22 @@
 'use client';
 
 import { useMemo } from 'react';
+import { useApiQuery } from '@/hooks/useApiQuery';
 import { Card, CardBody } from '@/components/ui/Card';
 import { formatDuration } from '@/lib/format-numbers';
-import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine, ReferenceDot } from 'recharts';
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getChartColors } from '@/lib/chart-theme';
 
 export interface HalvingInfo {
   halvingBlock: number | null;
   blocksRemaining: number | null;
-  eraProgress?: number;
+  eraProgress?: number | null;
+  halvingStatus?: 'available' | 'unavailable';
+  scheduleAssumption?: string;
   currentSubsidy: number;
   nextSubsidy: number | null;
-  minerReward: number;
+  minerReward: number | null;
   nextMinerReward: number | null;
   estimatedDate: string | null;
   estimatedSeconds: number | null;
@@ -23,11 +26,8 @@ export interface HalvingInfo {
 export function HalvingPanel({ halving }: { halving: HalvingInfo | null }) {
   if (!halving) return null;
 
-  const progress = halving.eraProgress ?? (
-    halving.blocksRemaining != null && halving.halvingBlock
-      ? Math.max(0, Math.min(100, ((halving.halvingBlock - (halving.blocksRemaining ?? 0)) / halving.halvingBlock) * 100))
-      : 0
-  );
+  const progress = halving.eraProgress != null && Number.isFinite(halving.eraProgress)
+    ? Math.max(0, Math.min(100, halving.eraProgress)) : null;
 
   const estDate = halving.estimatedDate
     ? new Date(halving.estimatedDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' })
@@ -48,7 +48,7 @@ export function HalvingPanel({ halving }: { halving: HalvingInfo | null }) {
           <p className="text-[10px] text-muted font-mono mt-1">blocks remaining</p>
         </div>
 
-        <div className="mb-5">
+        {progress != null && <div className="mb-5">
           <div className="flex justify-between text-[10px] text-muted font-mono mb-1.5">
             <span>Current era progress</span>
             <span>{progress.toFixed(1)}%</span>
@@ -59,8 +59,9 @@ export function HalvingPanel({ halving }: { halving: HalvingInfo | null }) {
               style={{ width: `${progress}%` }}
             />
           </div>
-        </div>
-
+        </div>}
+        {halving.halvingStatus === 'unavailable' && <p className="text-sm text-muted mb-3">The next halving cannot currently be determined from the node’s subsidy schedule.</p>}
+        {halving.scheduleAssumption && <p className="text-xs text-muted mb-3">{halving.scheduleAssumption}</p>}
         <div className="space-y-2.5">
           <div className="flex justify-between items-center">
             <span className="text-[11px] text-muted font-mono">Estimated time</span>
@@ -97,54 +98,6 @@ export function HalvingPanel({ halving }: { halving: HalvingInfo | null }) {
   );
 }
 
-function generateEmissionCurve(currentCirculating: number) {
-  const points: { date: string; supply: number; ts: number }[] = [];
-  const genesisDate = new Date('2016-10-28');
-  const maxSupply = 21_000_000;
-
-  // Zcash actual emission schedule (accounting for Blossom halving per-block reward):
-  // Era 1: blocks 0–1,046,399 (Oct 2016 – Nov 2020) — effectively 10 ZEC/block avg (slow start + pre-Blossom)
-  // Era 2: blocks 1,046,400–2,726,399 (Nov 2020 – ~Dec 2024) — 3.125 ZEC/block
-  // Era 3: blocks 2,726,400–4,406,399 (Dec 2024 – ~Nov 2028) — 1.5625 ZEC/block
-  // Era 4: blocks 4,406,400+ (~Nov 2028+) — 0.78125 ZEC/block
-  const eras = [
-    { endBlock: 1_046_400, avgSubsidy: 10.0 },
-    { endBlock: 2_726_400, avgSubsidy: 3.125 },
-    { endBlock: 4_406_400, avgSubsidy: 1.5625 },
-    { endBlock: 6_086_400, avgSubsidy: 0.78125 },
-    { endBlock: 7_766_400, avgSubsidy: 0.390625 },
-  ];
-  const blockTime = 75;
-
-  for (let year = 2016; year <= 2036; year += 1) {
-    for (let month = 0; month < 12; month += 3) {
-      const date = new Date(Date.UTC(year, month, 1));
-      if (date < genesisDate) continue;
-      if (date > new Date(Date.UTC(2036, 0, 1))) break;
-
-      const secondsSinceGenesis = (date.getTime() - genesisDate.getTime()) / 1000;
-      const blockAtDate = Math.floor(secondsSinceGenesis / blockTime);
-
-      let s = 0;
-      let prevEnd = 0;
-      for (const era of eras) {
-        if (blockAtDate <= era.endBlock) {
-          s += (blockAtDate - prevEnd) * era.avgSubsidy;
-          break;
-        }
-        s += (era.endBlock - prevEnd) * era.avgSubsidy;
-        prevEnd = era.endBlock;
-      }
-
-      const cappedSupply = Math.min(s, maxSupply);
-      const label = `${date.toLocaleString('en-US', { month: 'short', timeZone: 'UTC' })} '${String(year).slice(2)}`;
-      points.push({ date: label, supply: cappedSupply, ts: date.getTime() });
-    }
-  }
-
-  return points;
-}
-
 export function SupplyEmissionPanel({
   circulating,
   remaining,
@@ -160,12 +113,12 @@ export function SupplyEmissionPanel({
 }) {
   const { theme } = useTheme();
   const colors = getChartColors(theme);
-  const emissionData = useMemo(() => generateEmissionCurve(circulating), [circulating]);
+  const history = useApiQuery<{ supplyHistory: { date: string; circulating: number | null }[] }>('/api/network/emission', { period: '1y' }, { refreshInterval: 300_000 });
+  const emissionData = useMemo(() => (history.data?.supplyHistory ?? []).map(point => ({
+    date: point.date, supply: point.circulating, ts: new Date(point.date).getTime(),
+  })), [history.data]);
 
-  const nowTs = Date.now();
-  const nowIndex = emissionData.reduce((closest, p, i) =>
-    Math.abs(p.ts - nowTs) < Math.abs(emissionData[closest].ts - nowTs) ? i : closest, 0);
-  const nowPoint = emissionData[nowIndex];
+
 
   return (
     <Card>
@@ -197,6 +150,8 @@ export function SupplyEmissionPanel({
           </div>
         </div>
 
+        {!emissionData.length && <p role="status" className="text-sm text-muted">Supply history unavailable.</p>}
+        {history.error && <p role="status" className="text-sm text-muted">Supply refresh unavailable; any displayed history is from the previous response.</p>}
         <div className="h-[180px]">
           <ResponsiveContainer initialDimension={{ width: 500, height: 300 }} width="100%" height="100%">
             <AreaChart data={emissionData} margin={{ top: 5, right: 5, left: 0, bottom: 0 }}>
@@ -207,10 +162,13 @@ export function SupplyEmissionPanel({
                 </linearGradient>
               </defs>
               <XAxis
-                dataKey="date"
+                dataKey="ts"
+                type="number"
+                domain={['dataMin', 'dataMax']}
+                minTickGap={40}
+                tickFormatter={value => new Date(value).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' })}
                 stroke={colors.axis}
                 tick={{ fill: colors.axis, fontSize: 9 }}
-                interval={7}
                 tickLine={false}
               />
               <YAxis
@@ -222,6 +180,7 @@ export function SupplyEmissionPanel({
                 width={32}
               />
               <Tooltip
+                labelFormatter={value => new Date(Number(value)).toLocaleDateString('en-US', { timeZone: 'UTC' })}
                 cursor={{ stroke: 'rgba(255,255,255,0.1)' }}
                 contentStyle={{
                   backgroundColor: colors.tooltipBg,
@@ -235,18 +194,9 @@ export function SupplyEmissionPanel({
                 formatter={(value) => [`${(Number(value) / 1_000_000).toFixed(2)}M ZEC`, 'Supply']}
               />
               <ReferenceLine y={maxSupply} stroke={colors.axis} strokeDasharray="3 3" strokeOpacity={0.5} />
-              {nowPoint && (
-                <ReferenceDot
-                  x={nowPoint.date}
-                  y={nowPoint.supply}
-                  r={4}
-                  fill="#5B9CF6"
-                  stroke="#fff"
-                  strokeWidth={1.5}
-                />
-              )}
               <Area
-                type="monotone"
+                type="linear"
+                connectNulls={false}
                 dataKey="supply"
                 stroke="#5B9CF6"
                 strokeWidth={2}
@@ -257,7 +207,7 @@ export function SupplyEmissionPanel({
         </div>
 
         <p className="text-[9px] text-muted font-mono text-center mt-2">
-          21M cap · Halving every 840,000 blocks
+          Observed supply history · Decreases and missing observations are preserved. Daily subsidy extrapolates recent cadence; it is not net supply change.
         </p>
       </CardBody>
     </Card>

@@ -224,7 +224,7 @@ export default async function BlocksPage({
           </h2>
           <div className="space-y-3 text-sm text-muted leading-relaxed">
             <p>
-              Zcash produces a new block roughly every 75 seconds. Each block bundles
+              Zcash block timing follows the active network upgrade. Each block bundles
               transparent and shielded transactions, a coinbase reward for the miner, and a
               commitment to the current state of the shielded pools. CipherScan indexes every
               block directly from a Zebra full node, so heights, hashes, sizes, and intervals

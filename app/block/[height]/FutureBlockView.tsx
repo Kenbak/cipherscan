@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/Badge';
 import { getApiUrl } from '@/lib/api-config';
 import { NETWORK_UPGRADES } from '@/lib/config';
 
-const ZCASH_BLOCK_INTERVAL = 75; // seconds
+import { scheduledSeconds, type BlockSchedule } from '@/lib/block-timing';
 
 function formatDuration(seconds: number): string {
   if (seconds < 60) return `${Math.round(seconds)}s`;
@@ -42,26 +42,29 @@ export function FutureBlockView({
   currentHeight: number;
 }) {
   const [currentHeight, setCurrentHeight] = useState(initialCurrentHeight);
+  const [schedule, setSchedule] = useState<BlockSchedule | null>(null);
   const [now, setNow] = useState(() => Date.now());
 
   // Poll for updated tip height every 30s
   useEffect(() => {
     const poll = async () => {
       try {
-        const apiUrl = `${getApiUrl()}/api/info`;
+        const apiUrl = `${getApiUrl()}/api/network/stats`;
         const res = await fetch(apiUrl);
         if (res.ok) {
           const data = await res.json();
-          const h = Number(data.height ?? data.blocks);
-          if (Number.isFinite(h) && h > currentHeight) {
+          setSchedule(data.mining?.schedule ?? null);
+          const h = Number(data.blockchain?.height);
+          if (Number.isSafeInteger(h) && h >= 0) {
             setCurrentHeight(h);
           }
-        }
-      } catch {}
+        } else { setSchedule(null); }
+      } catch { setSchedule(null); }
     };
+    void poll();
     const interval = setInterval(poll, 30_000);
     return () => clearInterval(interval);
-  }, [currentHeight]);
+  }, []);
 
   // Update countdown every second
   useEffect(() => {
@@ -71,8 +74,8 @@ export function FutureBlockView({
 
   const upgrade = NETWORK_UPGRADES[targetHeight] ?? null;
   const blocksRemaining = targetHeight - currentHeight;
-  const secondsRemaining = blocksRemaining * ZCASH_BLOCK_INTERVAL;
-  const estimatedDate = new Date(now + secondsRemaining * 1000);
+  const secondsRemaining = scheduledSeconds(schedule, currentHeight, targetHeight);
+  const estimatedDate = secondsRemaining === null ? null : new Date(now + secondsRemaining * 1000);
   const progress = currentHeight / targetHeight;
 
   // If the block has been mined while we're on this page, link to it
@@ -132,8 +135,8 @@ export function FutureBlockView({
           )}
         </div>
         <p className="mt-3 text-xs sm:text-sm text-secondary">
-          This block has not been mined yet. Below is an estimate based on Zcash&apos;s
-          75-second target block interval.
+          This block has not been mined yet. Estimates use the serving node&apos;s
+          announced target-spacing schedule.
         </p>
       </div>
 
@@ -175,7 +178,7 @@ export function FutureBlockView({
           <div className="text-center py-6">
             {/* Big countdown */}
             <div className="font-mono text-4xl sm:text-5xl font-bold text-primary mb-2 tabular-nums">
-              {formatDuration(secondsRemaining)}
+              {secondsRemaining === null ? 'Unavailable' : formatDuration(secondsRemaining)}
             </div>
             <div className="text-sm text-muted font-mono">estimated time remaining</div>
 
@@ -183,7 +186,7 @@ export function FutureBlockView({
             <div className="mt-6 pt-6 border-t border-cipher-border">
               <div className="text-xs text-muted uppercase tracking-wider mb-1">Estimated arrival</div>
               <div className="font-mono text-sm text-secondary">
-                {formatEstimatedDate(estimatedDate)}
+                {estimatedDate === null ? 'Unavailable' : formatEstimatedDate(estimatedDate)}
               </div>
             </div>
           </div>
@@ -239,7 +242,7 @@ export function FutureBlockView({
               Block Interval
             </div>
             <div className="flex-1 font-mono text-xs sm:text-sm text-muted">
-              ~75 seconds (target)
+              {scheduledSeconds(schedule, currentHeight, currentHeight + 1) != null ? `${scheduledSeconds(schedule, currentHeight, currentHeight + 1)} seconds (target)` : 'Unavailable'}
             </div>
           </div>
 
@@ -261,7 +264,7 @@ export function FutureBlockView({
 
       {/* Disclaimer */}
       <div className="text-center text-xs text-muted font-mono space-y-1">
-        <p>Estimates assume a constant 75-second block interval.</p>
+        <p>Estimates follow known target-spacing changes. Unscheduled upgrades and mining variance can change arrival times.</p>
         <p>Actual times vary due to mining difficulty adjustments and hash rate fluctuations.</p>
       </div>
     </div>

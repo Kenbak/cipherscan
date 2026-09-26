@@ -42,7 +42,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       }
       if (Number(height) > tipHeight) {
         const title = `Zcash Block #${formatNumber(Number(height))} — Estimated Arrival | CipherScan`;
-        const description = `Zcash block #${formatNumber(Number(height))} has not been mined yet. Estimated to arrive in approximately ${formatNumber(Number(height) - tipHeight)} blocks (~${Math.round((Number(height) - tipHeight) * 75 / 3600)} hours).`;
+        const description = `Zcash block #${formatNumber(Number(height))} has not been mined yet. Estimated to arrive in approximately ${formatNumber(Number(height) - tipHeight)} blocks. Arrival time depends on network upgrades and mining variance.`;
         return buildPageMetadata({
           title,
           description,
