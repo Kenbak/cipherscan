@@ -28,6 +28,7 @@ function blockAccounting(row, subsidy, schedule) {
   return { height, hash: row?.hash ?? null, feesPaidZat: paid, feesToNsmZat: recycled,
     minerFeeAllocationZat: minerFees, minerSubsidyZat: minerSubsidy, minerReceiptsZat: receipts,
     feeRule: active === null ? 'unavailable' : active ? 'floor(aggregate-block-fees * 3 / 5)' : 'pre-NU7',
+    feeRemovalMeaning: 'consensus-minimum-not-total-observed-removal',
     reissuanceZat: null, reissuanceUnavailableReason: 'No separate authoritative reissuance field in this RPC release.',
     unavailableReason: !complete || paid === null ? 'Incomplete indexed block accounting.' : null };
 }

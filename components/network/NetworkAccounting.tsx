@@ -21,13 +21,13 @@ export function NetworkAccounting() {
     <p className="text-sm text-muted mb-4">{block ? `Canonical block ${block.height.toLocaleString()}` : loading ? 'Loading block accounting…' : 'Block accounting unavailable.'}</p>
     <dl className="space-y-3 text-sm">
       {([
-        ['Transaction fees paid', block?.feesPaidZat], ['Fees allocated to miners', block?.minerFeeAllocationZat],
-        ['Fees removed into NSM', block?.feesToNsmZat], ['Miner subsidy allocation', block?.minerSubsidyZat],
+        ['Transaction fees paid', block?.feesPaidZat], ['Maximum miner fee allocation', block?.minerFeeAllocationZat],
+        ['Required fee removal (minimum)', block?.feesToNsmZat], ['Miner subsidy allocation', block?.minerSubsidyZat],
         ['Actual miner receipts', block?.minerReceiptsZat], ['Separate reissuance amount', block?.reissuanceZat],
         ['NSM reserve balance', data?.nsmBalanceZat],
       ] as const).map(([label, value]) => <div key={label} className="flex justify-between flex-wrap gap-2"><dt className="text-muted">{label}</dt><dd className="font-mono text-primary">{zec(value)}</dd></div>)}
     </dl>
-    <p className="text-xs text-muted mt-4">NU7 redirects 60% of aggregate block fees into NSM, rounded down once per block. Miner receipts exclude funding and founders’ payouts. The node’s signed NSM reserve counter is separate from circulating supply; the RPC does not separately report reissuance.</p>
+    <p className="text-xs text-muted mt-4">NU7 requires at least 60% of aggregate block fees to be removed, rounded down once per block. The allocation shown is that minimum; total removals for this block are unavailable. Miner receipts exclude funding and founders’ payouts. The node’s signed NSM reserve counter is separate from circulating supply; the RPC does not separately report reissuance.</p>
     {data && <p className="text-xs text-muted mt-2">Reserve observed at node height {data.nodeHeight.toLocaleString()}. Block accounting can lag behind that observation.</p>}
     {error && <p role="status" className="text-xs text-warning mt-2">Accounting refresh unavailable. Any displayed values are from the previous response.</p>}
   </CardBody></Card>;
