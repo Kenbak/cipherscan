@@ -1,3 +1,5 @@
+const { networkSchedule, targetSpacing } = require('../lib/network-schedule');
+const { subsidyZat, supplyZat } = require('../lib/network-issuance');
 /**
  * Network Routes
  * /api/network/stats, /api/network/fees, /api/network/health, /api/network/peers
@@ -40,7 +42,7 @@ router.use((req, res, next) => {
 // CACHE CONFIGURATION
 // ============================================================================
 
-const NETWORK_STATS_CACHE_KEY = 'zcash:network_stats:work-v1';
+const NETWORK_STATS_CACHE_KEY = 'zcash:network_stats:nu7-v1';
 const NETWORK_STATS_CACHE_DURATION = 120; // 2 minutes — network stats don't change fast
 const NETWORK_HEALTH_CACHE_KEY = 'zcash:network_health';
 const NETWORK_HEALTH_CACHE_DURATION = 60;
@@ -152,7 +154,7 @@ async function fetchNetworkStatsOptimized() {
       callZebraRPC('getnetworkinfo').catch(() => null),
       callZebraRPC('getpeerinfo').catch(() => []),
       callZebraRPC('getblockchaininfo').catch(() => null),
-      callZebraRPC('getblocksubsidy').catch(() => null),
+      callZebraRPC('getblocksubsidy', [Number(height)]).catch(() => null),
       loadHashrateSnapshot(pool),
     ]);
 
@@ -164,15 +166,15 @@ async function fetchNetworkStatsOptimized() {
     // Extract supply and pool data from getblockchaininfo
     let supplyData = null;
     if (blockchainInfo) {
-      const chainSupplyZat = blockchainInfo.chainSupply?.chainValueZat || 0;
+      const chainSupplyZat = supplyZat(blockchainInfo.chainSupply?.chainValueZat);
       const valuePools = blockchainInfo.valuePools || [];
 
-      const transparent = valuePools.find(p => p.id === 'transparent')?.chainValueZat || 0;
-      const sprout = valuePools.find(p => p.id === 'sprout')?.chainValueZat || 0;
-      const sapling = valuePools.find(p => p.id === 'sapling')?.chainValueZat || 0;
-      const orchard = valuePools.find(p => p.id === 'orchard')?.chainValueZat || 0;
-      const ironwood = valuePools.find(p => p.id === 'ironwood')?.chainValueZat || 0;
-      const lockbox = valuePools.find(p => p.id === 'lockbox')?.chainValueZat || 0;
+      const transparent = supplyZat(valuePools.find(p => p.id === 'transparent')?.chainValueZat);
+      const sprout = supplyZat(valuePools.find(p => p.id === 'sprout')?.chainValueZat);
+      const sapling = supplyZat(valuePools.find(p => p.id === 'sapling')?.chainValueZat);
+      const orchard = supplyZat(valuePools.find(p => p.id === 'orchard')?.chainValueZat);
+      const ironwood = supplyZat(valuePools.find(p => p.id === 'ironwood')?.chainValueZat);
+      const lockbox = supplyZat(valuePools.find(p => p.id === 'lockbox')?.chainValueZat);
 
       const totalShielded = sprout + sapling + orchard + ironwood;
       const shieldedPercentage = chainSupplyZat > 0 ? (totalShielded / chainSupplyZat) * 100 : 0;
@@ -184,7 +186,7 @@ async function fetchNetworkStatsOptimized() {
         ? activeUpgrades.reduce((latest, u) => u.activationheight > latest.activationheight ? u : latest)
         : null;
 
-      supplyData = {
+      if ([chainSupplyZat, transparent, sprout, sapling, orchard, ironwood, lockbox].every(value => value !== null)) supplyData = {
         chainSupply: chainSupplyZat / 100000000,
         transparent: transparent / 100000000,
         sprout: sprout / 100000000,
@@ -206,18 +208,18 @@ async function fetchNetworkStatsOptimized() {
     const tx24hExclCoinbase = parseInt(tx_24h_excl_coinbase || 0);
     const avgBlockTime = rolling_block_time_secs
       ? Math.round(Number(rolling_block_time_secs) * 10) / 10
-      : (blocks24h > 0 ? Math.round(86400 / blocks24h) : 75);
+      : (blocks24h > 0 ? Math.round(86400 / blocks24h) : null);
     const difficultyNum = parseFloat(difficulty || 0);
     const networkHashrate = hashrateSnapshot.windows['24h'].hashrate;
     const avgBlockFee = avg_block_fee_zat != null ? parseFloat(avg_block_fee_zat) / 100000000 : null;
 
     // Block subsidy from Zebra RPC (dynamic, adjusts at halvings)
-    const totalBlockSubsidy = blockSubsidy?.totalblocksubsidy ?? 1.5625;
-    const minerReward = blockSubsidy?.miner ?? totalBlockSubsidy;
-    const fundingStreamsTotal = blockSubsidy?.fundingstreamstotal ?? 0;
-    const lockboxTotal = blockSubsidy?.lockboxtotal ?? 0;
-    const dailyRevenue = blocks24h * totalBlockSubsidy;
-    const dailyMinerRevenue = blocks24h * minerReward;
+    const totalBlockSubsidy = subsidyZat(blockSubsidy?.totalblocksubsidy) === null ? null : blockSubsidy.totalblocksubsidy;
+    const minerReward = subsidyZat(blockSubsidy?.miner) === null ? null : blockSubsidy.miner;
+    const fundingStreamsTotal = subsidyZat(blockSubsidy?.fundingstreamstotal) === null ? null : blockSubsidy.fundingstreamstotal;
+    const lockboxTotal = subsidyZat(blockSubsidy?.lockboxtotal) === null ? null : blockSubsidy.lockboxtotal;
+    const dailyRevenue = totalBlockSubsidy === null ? null : blocks24h * totalBlockSubsidy;
+    const dailyMinerRevenue = minerReward === null ? null : blocks24h * minerReward;
 
     return {
       success: true,
@@ -226,6 +228,8 @@ async function fetchNetworkStatsOptimized() {
         networkHashrateRaw: networkHashrate,
         hashrateEstimate: hashrateSnapshot,
         difficulty: difficultyNum,
+        targetBlockTime: targetSpacing(networkSchedule(blockchainInfo), Number(height)),
+        dailyRevenueMeaning: 'Current subsidy extrapolated over observed 24-hour block count; excludes fees.',
         avgBlockTime, // in seconds
         avgBlockFee, // in ZEC, null if no blocks in the last 24h
         blocks24h,

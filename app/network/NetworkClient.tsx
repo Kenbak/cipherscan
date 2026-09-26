@@ -1,4 +1,6 @@
 'use client';
+import { BlockTimeChart } from '@/components/network/BlockTimeChart';
+import { NetworkAccounting } from '@/components/network/NetworkAccounting';
 
 import { useEffect, useState, lazy, Suspense, type ReactNode } from 'react';
 import Link from 'next/link';
@@ -50,10 +52,12 @@ function getUpgradeUrl(name: string | null): string | undefined {
 export interface HalvingInfo {
   halvingBlock: number | null;
   blocksRemaining: number | null;
-  eraProgress?: number;
+  eraProgress?: number | null;
+  halvingStatus?: 'available' | 'unavailable';
+  scheduleAssumption?: string;
   currentSubsidy: number;
   nextSubsidy: number | null;
-  minerReward: number;
+  minerReward: number | null;
   nextMinerReward: number | null;
   estimatedDate: string | null;
   estimatedSeconds: number | null;
@@ -73,14 +77,15 @@ export interface NetworkStats {
     networkHashrateRaw: number | null;
     hashrateEstimate?: HashrateSnapshot;
     difficulty: number;
-    avgBlockTime: number;
+    avgBlockTime: number | null;
+    targetBlockTime?: number | null;
     blocks24h: number;
-    blockReward: number;
-    minerReward: number;
+    blockReward: number | null;
+    minerReward: number | null;
     fundingStreams: number;
     lockbox: number;
-    dailyRevenue: number;
-    dailyMinerRevenue: number;
+    dailyRevenue: number | null;
+    dailyMinerRevenue: number | null;
   };
   network: {
     peers: number;
@@ -215,7 +220,7 @@ export default function NetworkClient({ initialData }: { initialData: NetworkPag
         <PageHeader
           eyebrow="NETWORK_STATUS"
           title="Network Overview"
-          subtitle="Live Zcash network statistics: block height, hashrate, difficulty, peer count, circulating supply, shielded pool balances, and mining pool distribution — indexed directly from a Zebra full node."
+          subtitle="Live Zcash network statistics: block height, hashrate, difficulty, peer count, circulating supply, shielded pool balances, and mining pool distribution — indexed directly from a Zakura full node."
         />
         <div className="mb-6 h-24 bg-cipher-border-alpha/30 rounded-lg animate-pulse" />
         <div className="mb-8 h-[300px] bg-cipher-border-alpha/30 rounded-lg animate-pulse" />
@@ -264,7 +269,7 @@ export default function NetworkClient({ initialData }: { initialData: NetworkPag
       <PageHeader
         eyebrow="NETWORK_STATUS"
         title="Network Overview"
-        subtitle="Live Zcash network statistics: block height, hashrate, difficulty, peer count, circulating supply, shielded pool balances, and mining pool distribution — indexed directly from a Zebra full node."
+        subtitle="Live Zcash network statistics: block height, hashrate, difficulty, peer count, circulating supply, shielded pool balances, and mining pool distribution — indexed directly from a Zakura full node."
       />
 
       {error ? (
@@ -318,7 +323,7 @@ export default function NetworkClient({ initialData }: { initialData: NetworkPag
                   circulating={emission?.circulating ?? stats.supply.chainSupply}
                   remaining={emission?.remaining ?? Math.max(0, 21_000_000 - stats.supply.chainSupply)}
                   circulatingPct={emission?.circulatingPct ?? (stats.supply.chainSupply / 21_000_000) * 100}
-                  dailyEmission={emission?.dailyEmissionEstimate ?? stats.mining.dailyRevenue}
+                  dailyEmission={emission?.dailyEmissionEstimate ?? null}
                 />
               </Suspense>
               <Suspense fallback={<div className="card h-48 animate-pulse" />}>
@@ -337,6 +342,10 @@ export default function NetworkClient({ initialData }: { initialData: NetworkPag
         </div>
       </section>
 
+      {!isCrosslink && <section id="network-activity" className="scroll-mt-36 mb-16">
+        <SectionHeading title="Block time & accounting" subtitle="Observed block cadence, fees, miner receipts and NSM reserve" />
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6"><BlockTimeChart /><NetworkAccounting /></div>
+      </section>}
       {stats.supply && (
         <>
           {/* ── SUPPLY ── */}
@@ -507,7 +516,7 @@ export default function NetworkClient({ initialData }: { initialData: NetworkPag
                       <div className="flex items-center gap-4 text-[11px] font-mono text-muted">
                         <span>Hashrate · 24h: <span className="text-primary">{stats.mining.hashrateEstimate ? stats.mining.networkHashrate : 'Unavailable'}</span></span>
                         <span>Difficulty: <span className="text-primary">{(stats.mining.difficulty / 1e6).toFixed(1)}M</span></span>
-                        <span>Block time: <span className="text-primary">~{stats.mining.avgBlockTime}s</span></span>
+                        <span>Block time: <span className="text-primary">{stats.mining.avgBlockTime != null ? `~${stats.mining.avgBlockTime}s` : 'Unavailable'}</span></span>
                       </div>
                     </div>
                     <Link
@@ -686,7 +695,7 @@ function ChainInfoStrip({
         label="Latest block"
         value={<RelativeTime timestamp={stats.blockchain.latestBlockTime} />}
         subtitle={new Date(stats.blockchain.latestBlockTime * 1000).toISOString().slice(11, 19) + ' UTC'}
-        tooltip="Time since the most recent block was mined. Zcash targets a new block every 75 seconds."
+        tooltip={`Time since the most recent block was mined. Current node-announced target: ${stats.mining.targetBlockTime != null ? `${stats.mining.targetBlockTime} seconds` : 'unavailable'}.`}
       />
       <HoverTip tip="The currently active Zcash network upgrade.">
         <div className="card p-3 h-full cursor-help">
