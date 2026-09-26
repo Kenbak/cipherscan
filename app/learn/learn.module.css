@@ -43,6 +43,7 @@
 .primaryButton:hover { background: var(--color-gold-accent); filter: brightness(.95); }
 .sectionNote { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px 24px; margin-top: 16px; font-size: .75rem; color: var(--color-text-muted); line-height: 1.6; }
 .sectionNote .textLink { font-size: .75rem; }
+.sectionNote .inlineLinks { flex-wrap: wrap; gap: 12px 24px; }
 .funding { display: grid; grid-template-columns: 1.1fr 1fr; }
 .fundingMain, .fundingAside { padding: 24px; }
 .fundingMain h3 { font-size: 1.5rem; font-weight: 600; letter-spacing: -.025em; margin-top: 10px; }

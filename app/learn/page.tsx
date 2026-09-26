@@ -178,7 +178,13 @@ export default function LearnPage() {
         <div className={styles.directory}><h3>Nodes & indexing</h3><ResourceList items={nodes} /></div>
         <div className={styles.directory}><h3>APIs, libraries & specifications</h3><ResourceList items={development} /></div>
       </div>
-      <div className={styles.sectionNote}><p>Developing an integration? Use testnet coins and addresses for testing; they are separate from mainnet ZEC.</p><Destination href="https://testnet.cipherscan.app/" className={styles.textLink}>Open testnet explorer <Arrow external /></Destination></div>
+      <div className={styles.sectionNote}>
+        <p>Testing transactions? Use testnet ZEC (TAZ) and a testnet address. Testnet coins have no monetary value.</p>
+        <div className={styles.inlineLinks}>
+          <Destination href="http://pool.tazminer.com:3000" className={styles.textLink}>Mine testnet ZEC in browser <Arrow external /></Destination>
+          <Destination href="https://testnet.cipherscan.app/" className={styles.textLink}>Open testnet explorer <Arrow external /></Destination>
+        </div>
+      </div>
       <SectionTransition href="#reading" label="Further reading" />
     </section>
 
