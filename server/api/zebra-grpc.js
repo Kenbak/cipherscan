@@ -127,7 +127,7 @@ class StreamSupervisor {
   }
 
   _connect() {
-    if (this.stopped) return;
+    if (this.stopped || this.stream) return;
 
     let stream;
     try {
@@ -142,6 +142,7 @@ class StreamSupervisor {
     this.lastActivityAt = this.now();
 
     stream.on('data', (msg) => {
+      if (this.stopped || this.stream !== stream) return;
       this.lastActivityAt = this.now();
       if (!this.connected) {
         this.connected = true;
@@ -153,12 +154,14 @@ class StreamSupervisor {
     });
 
     stream.on('error', (err) => {
+      if (this.stopped || this.stream !== stream) return;
       if (err.code === grpc.status.CANCELLED) return;
       this.onLog('error', `stream error: ${err.message}`);
       this._handleDisconnect();
     });
 
     stream.on('end', () => {
+      if (this.stopped || this.stream !== stream) return;
       this.onLog('warn', 'stream ended');
       this._handleDisconnect();
     });
@@ -166,8 +169,10 @@ class StreamSupervisor {
 
   _closeStream() {
     if (this.stream) {
+      const stream = this.stream;
+      this.stream = null; // Ignore synchronous cancellation and late terminal events.
       try {
-        this.stream.cancel();
+        stream.cancel();
       } catch {
         // Already closed/cancelled — nothing to do.
       }
@@ -186,7 +191,7 @@ class StreamSupervisor {
   }
 
   _scheduleReconnect() {
-    if (this.stopped) return;
+    if (this.stopped || this.reconnectTimer !== null) return;
     // Half-jitter: 50%-100% of the current backoff step. Keeps the delay
     // bounded below by something reasonable while avoiding synchronized
     // reconnect storms if the mempool and chain-tip streams (or, in a
@@ -195,7 +200,10 @@ class StreamSupervisor {
     const jitterFactor = 0.5 + this.random() * 0.5;
     const delay = Math.round(this.reconnectDelay * jitterFactor);
     this.onLog('info', `reconnecting in ${(delay / 1000).toFixed(1)}s`);
-    this.reconnectTimer = this.setTimeoutFn(() => this._connect(), delay);
+    this.reconnectTimer = this.setTimeoutFn(() => {
+      this.reconnectTimer = null;
+      this._connect();
+    }, delay);
     this.reconnectDelay = Math.min(this.reconnectDelay * 2, this.maxReconnectDelayMs);
   }
 

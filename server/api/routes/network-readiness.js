@@ -3,6 +3,7 @@ const { cadencePoints } = require('../lib/block-cadence');
 const { signedZat, blockAccounting } = require('../lib/network-accounting');
 const { supplyZat } = require('../lib/network-issuance');
 const { logSafeError } = require('../lib/safe-log');
+const { HISTORY_SQL, historyPoints } = require('../lib/accounting-history');
 const cadenceCache = new WeakMap();
 
 function registerNetworkReadinessRoutes(router) {
@@ -39,6 +40,38 @@ function registerNetworkReadinessRoutes(router) {
       logSafeError('[BLOCK-TIME]', error);
       res.set('Cache-Control', 'no-store');
       return res.status(503).json({ success: false, error: 'Block time observations unavailable' });
+    }
+  });
+
+  router.get('/api/network/accounting/history', async (req, res) => {
+    const limit = req.query.limit === undefined ? 120 : Number(req.query.limit);
+    const before = req.query.before === undefined ? null : Number(req.query.before);
+    if (!/^[0-9]+$/.test(String(req.query.limit ?? 120)) || !Number.isSafeInteger(limit) || limit < 1 || limit > 1000 ||
+        (before !== null && (!/^[0-9]+$/.test(String(req.query.before)) || !Number.isSafeInteger(before) || before < 0 || before > 499999999))) {
+      return res.status(400).json({ success: false, error: 'limit must be 1–1000; before must be a valid block height' });
+    }
+    res.set('Cache-Control', 'no-store');
+    try {
+      const { pool, callZebraRPC } = req.app.locals;
+      const info = await callZebraRPC('getblockchaininfo');
+      const schedule = networkSchedule(info);
+      const { rows } = await pool.query(HISTORY_SQL, [info.blocks, before, limit]);
+      const last = rows.at(-1);
+      if (last && await callZebraRPC('getblockhash', [Number(last.height)]) !== last.hash) {
+        return res.status(503).json({ success: false, error: 'Indexed history is reconciling with the node' });
+      }
+      const points = historyPoints(rows, schedule, info.chain);
+      return res.json({ success: true, nodeHeight: info.blocks, indexedHeight: last ? Number(last.height) : null,
+        observedAt: new Date().toISOString(), schedule, points,
+        nextBefore: rows.length === limit ? Number(rows[0].height) : null,
+        coverage: { blocks: points.length, feeBlocks: points.filter(p => p.feesPaidZat !== null).length,
+          nsmSamples: points.filter(p => p.nsmBalanceZat !== null).length },
+        source: 'canonical-indexed-transactions-and-hash-matched-node-observations',
+        nsmChangeMeaning: 'Net reserve change between consecutive observed blocks, not gross fee removal or reissuance.',
+        sampling: 'Node tips sampled every second. Missed tips and pre-collection balances remain null; no interpolation.' });
+    } catch (error) {
+      logSafeError('[ACCOUNTING-HISTORY]', error);
+      return res.status(503).json({ success: false, error: 'Accounting history unavailable' });
     }
   });
 

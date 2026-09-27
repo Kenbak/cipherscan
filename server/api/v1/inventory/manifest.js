@@ -36,6 +36,7 @@
 /** @typedef {{ next: (pagination: object) => object|null, prev: (pagination: object) => object|null }} CursorMap */
 
 const MANIFEST = [
+  { method: 'GET', legacyPath: '/api/network/accounting/history', file: 'server/api/routes/network-readiness.js', classification: 'public', domain: 'network', auth: 'none', description: 'Canonical block fee allocations, shielded activity and sampled NSM/supply history.', v1: { path: '/v1/network/accounting/history', status: 'adapter', shape: 'passthrough', notes: 'All Zat amounts are exact decimal strings or null. Bounded to 120 blocks by default, at most 1000; before is an exclusive height cursor. Fee removal is floor(aggregate block fees * 3 / 5) per active block, never rounded after aggregation. Reserves, supply, pools and subsidy use retained hash-matched node observations; missed/pre-collection tips remain null. NSM net change requires consecutive observations and is neither gross removals nor reissuance. Orphan observations are retained but excluded by a canonical height/hash join. Reissuance remains unavailable. Requires database migration 027 and the accounting observer.' } },
   // ---------------------------------------------------------------------
   // system / health (blocks.js)
   // ---------------------------------------------------------------------
