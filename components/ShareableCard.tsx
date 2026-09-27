@@ -2,6 +2,7 @@
 
 import { useRef, useState, type ReactNode } from 'react';
 import { BrandLogo } from '@/components/BrandLogo';
+import { withChartAttribution } from '@/lib/chart-export';
 import { ChartWatermark } from '@/components/ChartWatermark';
 
 export function ShareableCard({title,children,sourceHeight=0,isLive=false,shareText,fileName='zecblock.png',footerNote,className='mt-4',branding='logo',exportDisabled=false,compact=false}: {
@@ -15,10 +16,11 @@ export function ShareableCard({title,children,sourceHeight=0,isLive=false,shareT
   const capture=async()=>{
     if(!cardRef.current) throw new Error('Chart unavailable');
     const {toPng}=await import('html-to-image');
-    const dataUrl=await toPng(cardRef.current,{
-      backgroundColor:getComputedStyle(cardRef.current).backgroundColor,pixelRatio:2,
+    const element = cardRef.current;
+    const dataUrl=await withChartAttribution(element, () => toPng(element,{
+      backgroundColor:getComputedStyle(element).backgroundColor,pixelRatio:2,
       filter:node=>!(node instanceof HTMLElement && node.dataset.html2canvasIgnore),
-    });
+    }));
     return (await fetch(dataUrl)).blob();
   };
   const save=async()=>{
@@ -48,7 +50,7 @@ export function ShareableCard({title,children,sourceHeight=0,isLive=false,shareT
     </div>
     {children}
     <div className="mt-auto pt-3"><div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-t border-cipher-border/40 pt-3 text-caption font-mono text-muted">
-      <div className="flex items-center gap-2">{branding==='logo'&&<BrandLogo compact/>}<ChartWatermark className="!p-0"/></div>
+      <div className="chart-export-attribution items-center gap-2">{branding==='logo'&&<BrandLogo compact/>}<ChartWatermark className="!p-0"/></div>
       <span>{footerNote ?? `${isLive?'Live feed':'Snapshot'}${sourceHeight>0?` · block ${sourceHeight.toLocaleString()}`:''}`}</span>
     </div></div>
     {status&&<p role="status" className="mt-3 text-caption text-muted" data-html2canvas-ignore="true">{status}</p>}

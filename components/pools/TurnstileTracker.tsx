@@ -1,4 +1,6 @@
 'use client';
+import { formatDateLabelUTC } from '@/lib/utils';
+import { CHART_DATE_AXIS } from '@/lib/chart-theme';
 
 import { ApiError, readApiData } from '@/lib/api-client';
 import { ChartWatermark } from '@/components/ChartWatermark';
@@ -149,7 +151,7 @@ export function TurnstileTracker({ showCardHeader = false }: TurnstileTrackerPro
           setTimeseries(turnstileData.timeseries.map((p: TurnstilePoint) => ({
             ...p,
             bridge: p.bridge ?? 0,
-            dateLabel: new Date(p.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+            dateLabel: formatDateLabelUTC(p.date),
           })));
         }
         if (flowsData?.points) {
@@ -451,7 +453,7 @@ export function TurnstileTracker({ showCardHeader = false }: TurnstileTrackerPro
 
           <p className="text-xs text-secondary font-sans mt-6 leading-relaxed">
             Tracks what happens after ZEC leaves a shielded pool — held, reshielded, transferred, bridged cross-chain, or sent to exchanges.
-            {lastUpdated && ` Updated ${new Date(lastUpdated).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} at ${new Date(lastUpdated).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}.`}
+            {lastUpdated && ` Updated ${new Date(lastUpdated).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' })} at ${new Date(lastUpdated).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}.`}
             {!lastUpdated && ' Updated daily.'}
           </p>
           {(period === 'all' || period === '1y') && (
@@ -477,7 +479,7 @@ export function TurnstileTracker({ showCardHeader = false }: TurnstileTrackerPro
                   dataKey="dateLabel"
                   stroke={colors.axis}
                   tick={{ fill: colors.axis, fontSize: 12 }}
-                  interval="preserveStartEnd"
+                  {...CHART_DATE_AXIS}
                 />
                 <YAxis
                   stroke={colors.axis}

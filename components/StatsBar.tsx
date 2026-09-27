@@ -58,7 +58,7 @@ const STAT_MENU_LABELS: Record<StatId, string> = {
   mempool: 'Mempool',
   totalTxs: 'Total TXs',
   shieldedPool: 'Shielded Pool',
-  shieldedPct: '% TXs Shielded',
+  shieldedPct: 'Shielded TXs · all time',
   ironwoodPool: 'Ironwood Pool',
   ironwoodPct: '% Migrated',
   privacyScore: 'Privacy Score',
@@ -350,7 +350,7 @@ export function StatsBar() {
         ) : null;
       case 'shieldedPct':
         return stats.shieldedPct !== null ? (
-          <StatItem href="/privacy" label="% TXs Shielded">{stats.shieldedPct.toFixed(1)}%</StatItem>
+          <StatItem href="/privacy" label="Shielded TXs · all time" title="All-time shielded transactions divided by non-coinbase transactions">{stats.shieldedPct.toFixed(1)}%</StatItem>
         ) : null;
       case 'privacyScore':
         return stats.privacyScore !== null ? (

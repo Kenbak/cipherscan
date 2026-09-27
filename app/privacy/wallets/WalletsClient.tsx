@@ -1,4 +1,6 @@
 'use client';
+import { formatDateLabelUTC } from '@/lib/utils';
+import { CHART_DATE_AXIS } from '@/lib/chart-theme';
 import { ChartWatermark } from '@/components/ChartWatermark';
 import { PageLoadingBody } from '@/components/ui/PageLoading';
 
@@ -67,10 +69,7 @@ interface FingerprintData {
   wallets: WalletFingerprint[];
 }
 
-const formatDate = (dateStr: string) => {
-  const d = new Date(dateStr);
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-};
+const formatDate = formatDateLabelUTC;
 
 const formatNumber = (n: number) => n.toLocaleString();
 
@@ -151,11 +150,15 @@ export default function WalletsClient() {
                 <h3 className="text-sm font-medium text-secondary mb-4">
                   Fee patterns over time
                 </h3>
+                <p className="text-xs text-muted mb-3">
+                  {feeLanes.history.length ? `Latest observation: ${feeLanes.history.map(row => row.date).sort().at(-1)?.slice(0, 10)} (UTC). Daily samples; today may be incomplete.` : 'Fee history unavailable.'}
+                </p>
                 <><ResponsiveContainer initialDimension={{ width: 500, height: 300 }} width="100%" height={300}>
-                  <AreaChart data={feeLanes.history}>
+                  <AreaChart data={feeLanes.history} margin={{ right: 16, left: 0 }}>
                     <CartesianGrid strokeDasharray="2 6" stroke={colors.grid} opacity={0.5} />
                     <XAxis
                       dataKey="date"
+                      {...CHART_DATE_AXIS}
                       stroke={colors.axis}
                       tickFormatter={formatDate}
                       tick={{ fontSize: 12 }}

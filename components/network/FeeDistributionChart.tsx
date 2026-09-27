@@ -1,4 +1,6 @@
 'use client';
+import { formatDateLabelUTC } from '@/lib/utils';
+import { CHART_DATE_AXIS } from '@/lib/chart-theme';
 import { ChartWatermark } from '@/components/ChartWatermark';
 import { ChartSkeleton } from '@/components/ui/Skeleton';
 
@@ -28,7 +30,7 @@ export function FeeDistributionChart({ initialData, initialFetchedAt }: { initia
   const points = (data?.daily ?? []).map(day => ({ date: day.date, txCount: day.txCount, ...feeBand(day) }));
   const usable = points.some(p => p.median != null);
   const last = [...points].reverse().find(p => p.median != null);
-  const dateLabel = (date: string) => new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
+  const dateLabel = formatDateLabelUTC;
   return <Card className="h-full"><CardBody>
     <SectionHeader label="OBSERVED_FEES" actions={<div className="flex gap-1" aria-label="Fee history range">{PERIODS.map(value => <button key={value} onClick={() => setPeriod(value)} aria-pressed={period === value} className={`filter-btn ${period === value ? 'filter-btn-active' : ''}`}>{value.toUpperCase()}</button>)}</div>} />
     <p className="text-caption text-muted mb-4">Daily median and 10th–90th percentile range. Observed fees, not a fee quote.</p>
@@ -36,7 +38,7 @@ export function FeeDistributionChart({ initialData, initialFetchedAt }: { initia
       <><ResponsiveContainer width="100%" height={228} initialDimension={{ width: 400, height: 228 }}>
         <ComposedChart data={points} margin={{ top: 18, right: 8, left: 0, bottom: 0 }}>
           <CartesianGrid vertical={false} stroke={colors.grid} />
-          <XAxis dataKey="date" tickFormatter={dateLabel} minTickGap={48} tick={{ fill: colors.axis, fontSize: 12 }} tickLine={false} axisLine={false} />
+          <XAxis dataKey="date" tickFormatter={dateLabel} {...CHART_DATE_AXIS} tick={{ fill: colors.axis, fontSize: 12 }} tickLine={false} axisLine={false} />
           <YAxis width={56} tickCount={4} tickFormatter={v => Number(v).toLocaleString(undefined, { maximumFractionDigits: 2 })} tick={{ fill: colors.axis, fontSize: 12 }} tickLine={false} axisLine={false} domain={[0, 'auto']} />
           <Tooltip labelFormatter={label => new Date(String(label)).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'UTC' })}
             contentStyle={{ background: colors.tooltipBg, border: `1px solid ${colors.tooltipBorder}`, color: colors.tooltipText, fontSize: 12 }}

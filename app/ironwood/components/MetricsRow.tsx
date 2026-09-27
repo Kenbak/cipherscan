@@ -138,10 +138,10 @@ export function MetricsRow({
   }
 
   const blocksSince = (tipHeight - activationHeight) || 0;
-  const velocityValue = overview?.migration?.velocityZatPerHour
+  const velocityValue = overview?.migration?.velocityZatPerHour != null
     ? `${fmtValue(overview.migration.velocityZatPerHour, currencyMode, zecPrice)}/hr`
     : '—';
-  const txValue = overview?.migration?.txCount
+  const txValue = overview?.migration?.txCount != null
     ? overview.migration.txCount.toLocaleString()
     : '—';
   const todayZat = overview?.migration?.migratedTodayZat ?? 0;
@@ -176,9 +176,9 @@ export function MetricsRow({
             toneColor={colors.ironwoodPool}
           />
           <KpiRow
-            label="Migration velocity"
+            label="Migration speed · lifetime avg"
             value={velocityValue}
-            hint="Rolling hourly rate"
+            hint="First to latest observed inflow"
             scrollTo="#migration-activity"
             toneColor={colors.ironwoodPool}
           />
@@ -220,7 +220,7 @@ export function MetricsRow({
           toneColor={colors.ironwoodPool}
         />
         <KpiCell
-          label="Migration velocity"
+          label="Migration speed · lifetime avg"
           value={velocityValue}
           hint="Activity chart"
           scrollTo="#migration-activity"

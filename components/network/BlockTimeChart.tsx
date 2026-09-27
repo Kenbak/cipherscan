@@ -35,7 +35,7 @@ export function BlockTimeChart() {
     {points.length ? <ResponsiveContainer width="100%" height={270} initialDimension={{ width: 400, height: 270 }}>
       <LineChart data={points} margin={{ top: 12, right: 40, bottom: 12, left: 0 }}>
         <CartesianGrid vertical={false} stroke={colors.grid} />
-        <XAxis dataKey="height" type="number" domain={['dataMin', 'dataMax']} tickFormatter={v => Number(v).toLocaleString()} minTickGap={55} tick={{ fill: colors.axis, fontSize: 12 }} tickLine={false} axisLine={false} />
+        <XAxis dataKey="height" type="number" domain={['dataMin', 'dataMax']} tickFormatter={v => Number(v).toLocaleString()} minTickGap={55} padding={{ left: 16, right: 32 }} tick={{ fill: colors.axis, fontSize: 12 }} tickLine={false} axisLine={false} />
         <YAxis width={48} unit="s" tick={{ fill: colors.axis, fontSize: 12 }} tickLine={false} axisLine={false} />
         <Tooltip labelFormatter={height => `Block ${Number(height).toLocaleString()}`}
           formatter={(value, name) => [value == null ? 'Unavailable' : `${Number(value).toFixed(1)}s`, name]} />

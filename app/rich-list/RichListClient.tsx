@@ -279,12 +279,13 @@ export default function RichListClient({
           <Card variant="compact">
             <CardBody>
               <div className="text-caption sm:text-xs text-muted font-mono uppercase tracking-wider mb-1">
-                Transparent Supply
+                Indexed transparent balance
               </div>
               <div className="text-2xl font-semibold text-primary font-mono">
                 {formatZec(concentration.totalTransparent)} ZEC
               </div>
               <div className="text-xs text-muted mt-0.5">
+                Address balances + addressless outputs; excludes deferred funding.
                 {labeledCount > 0 && (
                   <Badge color="gold">{labeledCount} labeled</Badge>
                 )}

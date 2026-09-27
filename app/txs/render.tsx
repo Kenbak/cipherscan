@@ -1,3 +1,4 @@
+import { shieldedListParams } from '@/lib/transaction-list';
 import { readApiCollection, parseApiCursor } from '@/lib/api-client';
 import { parseTransactionListItems, type TransactionListItem } from '@/lib/transaction-list';
 import { getApiUrl } from '@/lib/api-config';
@@ -119,9 +120,7 @@ async function getInitialCollection<T>(request: TransactionsRequest, unavailable
   try {
     const params = new URLSearchParams({ limit: String(PAGE_SIZE) });
     if (shielded) {
-      params.set('flow_type', request.flow);
-      params.set('pool', request.pool);
-      if (request.minZec > 0) params.set('min_zec', String(request.minZec));
+      for (const [key, value] of Object.entries(shieldedListParams(request.flow, request.pool, request.minZec))) params.set(key, value);
     } else params.set('type', request.type);
     if (request.cursor) params.set('cursor', request.cursor);
     const response = await fetchWithDeadline(`${API_URL}/v1/transactions${shielded ? '/shielded' : ''}?${params}`, {

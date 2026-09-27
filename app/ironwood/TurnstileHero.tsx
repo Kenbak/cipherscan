@@ -12,6 +12,7 @@
 import { ChartWatermark } from '@/components/ChartWatermark';
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import dynamic from 'next/dynamic';
+import { withChartAttribution } from '@/lib/chart-export';
 import { toPng } from 'html-to-image';
 import { fmtValue, type CurrencyMode } from '@/hooks/useCurrencyToggle';
 
@@ -272,14 +273,15 @@ export function TurnstileHero(props: TurnstileHeroProps) {
 
   const captureCard = useCallback(async () => {
     if (!cardRef.current) return null;
-    const dataUrl = await toPng(cardRef.current, {
+    const element = cardRef.current;
+    const dataUrl = await withChartAttribution(element, () => toPng(element, {
       backgroundColor: '#0f1419',
       pixelRatio: 2,
       filter: (node) => {
         if (node instanceof HTMLElement && node.dataset.html2canvasIgnore) return false;
         return true;
       },
-    });
+    }));
     return (await fetch(dataUrl)).blob();
   }, []);
 

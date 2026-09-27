@@ -7,7 +7,7 @@ export interface PriceData {
 
 export interface Transaction {
   txid: string;
-  timestamp: number;
+  timestamp: number | null;
   amount: number;
   type: 'received' | 'sent';
   memo?: string;

@@ -2102,3 +2102,7 @@ main table td { font-variant-numeric: tabular-nums lining-nums; }
 @media (min-width: 1024px) {
   .network-related-links--four { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }
+
+/* Attribution stays out of charts and legends on screen; image exports temporarily reveal it. */
+.chart-signature,
+.chart-export-attribution { display: none; }

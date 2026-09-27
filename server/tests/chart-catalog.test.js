@@ -4,7 +4,7 @@ const {CHART_CATALOG,catalogRows,formatCatalogValue}=load('lib/chart-catalog.ts'
 test('pool balances require verified balance history; flow responses cannot become pool balances',()=>{
  assert.deepEqual(catalogRows(chart('pool-balances'),{points:[{date:'2026-01-01',shield:50}]}),[]);
  const rows=catalogRows(chart('pool-balances'),{hasVerifiedPerPoolBreakdown:true,points:[{date:'2026-01-01',orchard:100,ironwood:0,sapling:null}]});
- assert.equal(rows[0].orchard,100);assert.equal(rows[0].ironwood,0);assert.equal(rows[0].sapling,null);
+ assert.equal(rows[0].orchard,null);assert.equal(rows[0].ironwood,null);assert.equal(rows[0].sapling,null);
 });
 test('gaps are not zero; dates sort chronologically and retain elapsed time',()=>{
  const rows=catalogRows(chart('network-hashrate'),{points:[{date:'2026-01-05',hashrate:25e9},{date:'2026-01-01',hashrate:null}]});
@@ -34,5 +34,15 @@ test('leading pool shares are fractions; derived rows do not mutate shared respo
 });
 test('catalogue identifiers are unique and all entries have source contracts',()=>{
  assert.equal(new Set(CHART_CATALOG.map(c=>c.id)).size,CHART_CATALOG.length);
- for(const c of CHART_CATALOG){assert.ok(c.endpoint.startsWith('/api/'));assert.ok(c.unit&&c.description&&c.window&&c.series.length);}
+ for(const c of CHART_CATALOG){assert.ok(c.endpoint.startsWith('/v1/'));assert.ok(c.unit&&c.description&&c.window&&c.series.length);}
+});
+
+test('partial final pool points are gaps instead of a false supply crash; real declines remain',()=>{
+ const rows=catalogRows(chart('pool-balances'),{hasVerifiedPerPoolBreakdown:true,points:[
+ {date:'2026-09-25',sprout:1,sapling:2,orchard:3,ironwood:94,shielded:100,hasPoolBreakdown:true},
+ {date:'2026-09-26',sprout:1,sapling:2,orchard:3,ironwood:90,shielded:96,hasPoolBreakdown:true},
+ {date:'2026-09-27',sprout:1,sapling:2,orchard:3,ironwood:0,shielded:96,hasPoolBreakdown:true}
+ ]});
+ assert.equal(rows[0].ironwood,94);assert.equal(rows[1].ironwood,90);
+ assert.equal(rows[2].ironwood,null);assert.equal(rows[2].orchard,null);
 });

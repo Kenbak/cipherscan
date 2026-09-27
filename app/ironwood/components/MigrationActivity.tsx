@@ -14,6 +14,7 @@ import {
 import { ChartTooltip as Tooltip } from '@/components/charts/ChartTooltip';
 import { ShareableCard } from '@/components/ShareableCard';
 import { fmtValue, type CurrencyMode } from '@/hooks/useCurrencyToggle';
+import { CHART_DATE_AXIS } from '@/lib/chart-theme';
 import { zatToZec } from '@/lib/format-numbers';
 import type {
   ActivityView,
@@ -42,7 +43,7 @@ function mapActivityBuckets(activity: MigrationActivityData): VelocityBucket[] {
     return {
       label,
       ts: bucket.bucketStart * 1000,
-      volume: Math.round(zec(bucket.volumeZat) * 100) / 100,
+      volume: zec(bucket.volumeZat),
       txCount: bucket.txCount,
     };
   });
@@ -127,7 +128,7 @@ export function MigrationActivity({
         </span>
       </>
     )
-    : <>ZEC migrated from Orchard to Ironwood per {periodLabel} (UTC).{timeAvg > 0 ? <> Avg: <span className="font-mono text-primary">{fmtValue(Math.round(timeAvg * 1e8), currencyMode, zecPrice)}/{periodLabel}</span>.</> : null}</>;
+    : <>ZEC migrated from Orchard to Ironwood per {periodLabel} (UTC).{timeAvg > 0 ? <> Avg per reported {periodLabel}: <span className="font-mono text-primary">{fmtValue(Math.round(timeAvg * 1e8), currencyMode, zecPrice)}/{periodLabel}</span>.</> : null}</>;
 
   const statsRowClass = 'mb-4 flex flex-col gap-2 text-caption font-mono leading-snug text-muted sm:mb-3 sm:flex-row sm:flex-wrap sm:gap-x-5 sm:gap-y-1 sm:text-caption';
 
@@ -140,20 +141,21 @@ export function MigrationActivity({
         sourceHeight={tipHeight}
         isLive={activated}
         shareText={shareText}
-        fileName="cipherscan-migration-activity.png"
+        fileName="zecblock-migration-activity.png"
+        footerNote={view !== 'cohorts' && timeBuckets.length > 0 ? `${timeBuckets[0].label} – ${timeBuckets[timeBuckets.length - 1].label} UTC · latest bucket may be incomplete` : undefined}
       >
         <p className="mb-5 max-w-2xl text-xs leading-[1.65] text-muted sm:mb-4 sm:leading-relaxed">{subtitle}</p>
 
         {/* Stats row */}
         {view === 'cohorts' && activeCohorts > 0 ? (
           <div className={statsRowClass}>
-            <span>Total migrated <span className="text-cipher-ironwood">{totalVolumeZec.toLocaleString(undefined, { maximumFractionDigits: 0 })} ZEC</span></span>
+            <span>Volume in view <span className="text-cipher-ironwood">{totalVolumeZec.toLocaleString(undefined, { maximumFractionDigits: 0 })} ZEC</span></span>
             <span>Peak cohort <span className="text-primary">{cohortPeak.toLocaleString(undefined, { maximumFractionDigits: 0 })} ZEC</span></span>
             <span>Active cohorts <span className="text-primary">{activeCohorts}</span>{avgCohort > 0 ? <span className="text-muted sm:hidden"> · avg {avgCohort.toFixed(1)} txs</span> : null}</span>
           </div>
         ) : view !== 'cohorts' && timeTotalTxs > 0 ? (
           <div className={statsRowClass}>
-            <span>Total migrated <span className="text-cipher-ironwood">{fmtValue(Math.round(timeTotalVolume * 1e8), currencyMode, zecPrice)}</span></span>
+            <span>Volume in view <span className="text-cipher-ironwood">{fmtValue(Math.round(timeTotalVolume * 1e8), currencyMode, zecPrice)}</span></span>
             <span>Peak {periodLabel} <span className="text-primary">{fmtValue(Math.round((timePeak?.volume ?? 0) * 1e8), currencyMode, zecPrice)}</span></span>
             <span>Transactions <span className="text-primary">{timeTotalTxs.toLocaleString()}</span></span>
           </div>
@@ -209,18 +211,17 @@ export function MigrationActivity({
                 <XAxis
                   dataKey="label"
                   tick={{ fontSize: 12, fill: colors.axis }}
-                  interval={view === 'hourly' ? Math.max(0, Math.floor(timeBuckets.length / 12) - 1) : 'preserveStartEnd'}
-                  angle={view === 'hourly' ? -35 : 0}
-                  textAnchor={view === 'hourly' ? 'end' : 'middle'}
-                  height={view === 'hourly' ? 48 : 32}
-                  label={{ value: 'Time (UTC)', position: 'insideBottom', offset: view === 'hourly' ? -4 : -8, style: { fontSize: 12, fill: colors.axis, fontFamily: 'var(--font-geist-mono)' } }}
+                  {...CHART_DATE_AXIS}
+                  angle={0}
+                  textAnchor="middle"
+                  height={32}
                 />
                 <YAxis
                   tick={{ fontSize: 12, fill: colors.axis }}
                   width={50}
                   domain={[0, yMax]}
                   tickFormatter={(v) => Number(v).toLocaleString()}
-                  label={{ value: currencyMode === 'zec' ? 'Volume (ZEC)' : 'Volume (USD)', angle: -90, position: 'insideLeft', dx: -6, style: { textAnchor: 'middle', fontSize: 12, fill: colors.axis, fontFamily: 'var(--font-geist-mono)' } }}
+                  label={{ value: 'Volume (ZEC)', angle: -90, position: 'insideLeft', dx: -6, style: { textAnchor: 'middle', fontSize: 12, fill: colors.axis, fontFamily: 'var(--font-geist-mono)' } }}
                 />
                 <Tooltip
                   contentStyle={{ backgroundColor: colors.tooltipBg, border: `1px solid ${colors.tooltipBorder}`, borderRadius: '8px', fontSize: 12 }}

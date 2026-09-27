@@ -84,9 +84,15 @@ export function catalogRows(chart: CatalogChart, payload: unknown): ChartRow[] {
     const x = chart.axis === 'category' ? String(sourceX) : chart.axis === 'height' ? numeric(sourceX) : typeof sourceX === 'number' ? (sourceX < 1e12 ? sourceX * 1000 : sourceX) : Date.parse(String(sourceX));
     if (x == null || (typeof x === 'number' && !Number.isFinite(x))) continue;
     const row: ChartRow = {x};
+    const poolValues = chart.requireVerifiedPools ? chart.series.map(s => numeric(p[s.key])) : [];
+    const shielded = numeric(p.shielded);
+    const validPools = !chart.requireVerifiedPools || (
+      p.hasPoolBreakdown !== false && poolValues.every(value => value != null && value >= 0) &&
+      (shielded == null || Math.abs(poolValues.reduce<number>((sum, value) => sum + (value ?? 0), 0) - shielded) < 0.000001)
+    );
     for (const s of chart.series) {
       const value = numeric(p[s.field ?? s.key]);
-      row[s.key] = chart.id === 'sopr' && p.soprSource !== 'transparent_spends' ? null : value == null ? null : value * (s.scale ?? 1);
+      row[s.key] = !validPools ? null : chart.id === 'sopr' && p.soprSource !== 'transparent_spends' ? null : value == null ? null : value * (s.scale ?? 1);
     }
     rows.push(row);
   }

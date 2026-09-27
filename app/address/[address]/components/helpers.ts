@@ -1,4 +1,5 @@
-import { zatToZec } from '@/lib/format-numbers';
+import { parseTransactionTimestamp } from '@/lib/transaction-list';
+import { parseSafeZatoshi, zatToZec } from '@/lib/format-numbers';
 import type { AddressData, Transaction } from './types';
 
 export function transformTransactions(apiData: { address: string }, txList: unknown[]): Transaction[] {
@@ -17,6 +18,8 @@ export function transformTransactions(apiData: { address: string }, txList: unkn
       outputValue?: number;
       senderCount?: number;
     };
+    const inputValue = tx.inputValue == null ? null : parseSafeZatoshi(tx.inputValue);
+    const outputValue = tx.outputValue == null ? null : parseSafeZatoshi(tx.outputValue);
     const hasShieldedActivity = tx.hasOrchard || tx.hasSapling || tx.hasIronwood;
     const isReceiving = tx.netChange > 0;
     const isSending = tx.netChange < 0;
@@ -45,14 +48,14 @@ export function transformTransactions(apiData: { address: string }, txList: unkn
       hasIronwood: tx.hasIronwood,
       hasOrchard: tx.hasOrchard,
       hasSapling: tx.hasSapling,
-      timestamp: tx.blockTime,
+      timestamp: parseTransactionTimestamp(tx.blockTime),
       amount: Math.abs(zatToZec(tx.netChange)),
       type: isReceiving ? 'received' as const : 'sent' as const,
       blockHeight: tx.blockHeight,
       from,
       to,
-      isCoinbase: tx.txIndex === 0 && tx.inputValue === 0 && !hasShieldedActivity && tx.senderCount === 0,
-      isShielded: hasShieldedActivity && tx.inputValue === 0 && tx.outputValue === 0,
+      isCoinbase: tx.txIndex === 0 && inputValue === 0 && !hasShieldedActivity && tx.senderCount === 0,
+      isShielded: hasShieldedActivity && inputValue === 0 && outputValue === 0,
       isDeshielding: !tx.counterparty && (tx.outputValue ?? 0) > 0 && hasShieldedActivity && isReceiving,
       isShielding: !tx.counterparty && hasShieldedActivity && isSending,
     };

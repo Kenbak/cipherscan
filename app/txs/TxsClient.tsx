@@ -1,4 +1,6 @@
 'use client';
+import { formatDateUTC } from '@/lib/utils';
+import { nonCoinbaseActivity, shieldedListParams } from '@/lib/transaction-list';
 import { readApiData } from '@/lib/api-client';
 import { ChartWatermark } from '@/components/ChartWatermark';
 import { ChartSkeleton } from '@/components/ui/Skeleton';
@@ -367,15 +369,7 @@ function useShieldedFlowsList({
     endpoint: '/v1/transactions/shielded',
     pageSize: PAGE_SIZE,
     archiveBasePath: '/txs',
-    buildParams: () => {
-      const params: Record<string, string> = {
-        type: 'shielded',
-        flow_type: flowFilter,
-        pool: poolFilter,
-      };
-      if (minZec > 0) params.min_zec = String(minZec);
-      return params;
-    },
+    buildParams: () => shieldedListParams(flowFilter, poolFilter, minZec),
     getLatestKey: (flow) => `${flow.txid}:${flow.flowType}`,
     buildArchiveHref: (cursor, cursorId, direction, targetPage) => {
       const params = new URLSearchParams();
@@ -680,9 +674,9 @@ export default function TxsClient({
   const [generalSummary, setGeneralSummary] = useState<{
     totalTxs: number | null;
     txs24h: number | null;
-    shieldedPct24h: number | null;
+    shieldedPctToday: number | null;
     txsPerBlock: number | null;
-  }>({ totalTxs: null, txs24h: null, shieldedPct24h: null, txsPerBlock: null });
+  }>({ totalTxs: null, txs24h: null, shieldedPctToday: null, txsPerBlock: null });
 
   const [shieldedSummary, setShieldedSummary] = useState<{
     shieldedPct: number | null;
@@ -700,18 +694,19 @@ export default function TxsClient({
       let txsPerBlock: number | null = null;
       if (networkRes.status === 'fulfilled' && networkRes.value.ok) {
         const data = await readApiData(networkRes.value);
-        txs24h = data.blockchain?.tx24h ? Number(data.blockchain.tx24h) : null;
-        const blocks24h = data.mining?.blocks24h ? Number(data.mining.blocks24h) : null;
-        txsPerBlock = txs24h && blocks24h ? Math.round((txs24h / blocks24h) * 10) / 10 : null;
+        ({ txs24h, txsPerBlock } = nonCoinbaseActivity(data.blockchain, data.mining));
       }
-      let shieldedPct24h: number | null = null;
+      let totalTxs: number | null = null;
+      let shieldedPctToday: number | null = null;
       let avgPerDay: number | null = null;
       let poolSize: string | null = null;
       if (privacyRes.status === 'fulfilled' && privacyRes.value.ok) {
         const data = await readApiData(privacyRes.value);
-        const dailyTrends = data.trends?.daily || [];
+        totalTxs = data.totals?.totalTx != null ? Number(data.totals.totalTx) : null;
+        const today = new Date().toISOString().slice(0, 10);
+        const dailyTrends = (data.trends?.daily || []).filter((row: { date: string }) => row.date.slice(0, 10) === today);
         if (dailyTrends.length > 0) {
-          shieldedPct24h = dailyTrends[0].shieldedPercentage;
+          shieldedPctToday = dailyTrends[0].shieldedPercentage;
         }
         const pct = data.metrics?.shieldedPercentage != null ? Number(data.metrics.shieldedPercentage) : null;
         avgPerDay = data.metrics?.avgShieldedPerDay != null ? Math.round(Number(data.metrics.avgShieldedPerDay)) : null;
@@ -723,7 +718,7 @@ export default function TxsClient({
           : null;
         setShieldedSummary({ shieldedPct: pct, avgPerDay, poolSize });
       }
-      setGeneralSummary({ totalTxs: null, txs24h, shieldedPct24h, txsPerBlock });
+      setGeneralSummary({ totalTxs, txs24h, shieldedPctToday, txsPerBlock });
     });
   }, []);
 
@@ -786,7 +781,7 @@ export default function TxsClient({
           <span className="text-xs font-mono text-muted">
             {!activeList.dataAvailable
               ? 'Transaction data temporarily unavailable'
-              : `${activeList.pagination.total.toLocaleString()} ${isShielded ? 'shielded txs' : 'transactions'}`}
+              : isShielded ? 'Public shielding flows and shielded activity' : 'Confirmed on-chain activity'}
           </span>
         }
       />
@@ -796,14 +791,14 @@ export default function TxsClient({
         {isShielded ? (
           <>
             <MetricCard size="compact"
-              label="Shielded Txs"
-              value={activeList.pagination.total > 0 ? activeList.pagination.total.toLocaleString() : '—'}
-              hint="Total shielded flows"
+              label="Matching transactions"
+              value={activeList.dataAvailable ? activeList.pagination.total.toLocaleString() : '—'}
+              hint="Current shielded filters"
             />
             <MetricCard size="compact"
-              label="% Shielded"
+              label="Shielded · all time"
               value={shieldedSummary.shieldedPct != null ? `${shieldedSummary.shieldedPct.toFixed(1)}%` : '—'}
-              hint="Of all network activity"
+              hint="Of non-coinbase txs"
             />
             <MetricCard size="compact"
               label="Avg Shielded / Day"
@@ -820,8 +815,8 @@ export default function TxsClient({
           <>
             <MetricCard size="compact"
               label="Total Transactions"
-              value={activeList.pagination.total > 0 ? activeList.pagination.total.toLocaleString() : '—'}
-              hint="All confirmed Zcash txs"
+              value={generalSummary.totalTxs != null ? generalSummary.totalTxs.toLocaleString() : '—'}
+              hint="All time · includes coinbase"
             />
             <MetricCard size="compact"
               label="Transactions (24h)"
@@ -829,13 +824,13 @@ export default function TxsClient({
               hint="Excluding coinbase"
             />
             <MetricCard size="compact"
-              label="% Shielded (24h)"
-              value={generalSummary.shieldedPct24h != null ? `${generalSummary.shieldedPct24h.toFixed(1)}%` : '—'}
+              label="Shielded · today (UTC)"
+              value={generalSummary.shieldedPctToday != null ? `${generalSummary.shieldedPctToday.toFixed(1)}%` : '—'}
               hint="Of non-coinbase txs"
             />
             <MetricCard size="compact"
-              label="Txs Per Block"
-              value={generalSummary.txsPerBlock != null ? generalSummary.txsPerBlock.toLocaleString() : '—'}
+              label="Txs Per Block · 24h"
+              value={generalSummary.txsPerBlock != null ? generalSummary.txsPerBlock.toLocaleString(undefined, { maximumFractionDigits: 1 }) : '—'}
               hint="Coinbase not counted"
             />
           </>
@@ -880,6 +875,12 @@ export default function TxsClient({
             ))}
           </FilterGroup>
         </div>
+      )}
+
+      {isShielded && shieldedList.flows[0]?.blockTime != null && (
+        <p className="mb-3 text-xs text-muted">
+          Newest transaction in this view: {formatDateUTC(Number(shieldedList.flows[0].blockTime))}. Indexed observations can lag the chain tip.
+        </p>
       )}
 
       {/* Data Table */}

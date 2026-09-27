@@ -1,3 +1,4 @@
+import { normalizeMigrationData } from './components/api-data';
 import { readApiData } from '@/lib/api-client';
 import { MigrationClient } from './MigrationClient';
 import { getApiUrl, getBaseUrl, getNetwork } from '@/lib/seo';
@@ -17,7 +18,7 @@ async function fetchJson(
   try {
     const res = await fetchWithDeadline(`${apiBase}${path}`, { next: { revalidate } });
     if (!res.ok) return null;
-    const data = await readApiData(res);
+    const data = normalizeMigrationData(await readApiData(res));
     return !!(data) && data.network === expectedNetwork ? data : null;
   } catch {
     return null;

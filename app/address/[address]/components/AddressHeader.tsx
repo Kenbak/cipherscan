@@ -55,7 +55,7 @@ export function AddressHeader({
           csvMapper={(tx: Transaction) => [
             tx.txid,
             String(tx.blockHeight || ''),
-            new Date(tx.timestamp * 1000).toISOString(),
+            tx.timestamp == null ? '' : new Date(tx.timestamp * 1000).toISOString(),
             tx.type,
             tx.amount.toFixed(8),
           ]}

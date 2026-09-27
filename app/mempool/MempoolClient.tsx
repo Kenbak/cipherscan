@@ -187,9 +187,9 @@ export default function MempoolClient() {
       {/* Stats Row */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-8 animate-fade-in-up stagger-2">
         <MetricCard label="Total TXs" value={data?.count ?? 0} hint="Pending in the node’s mempool" />
-        <MetricCard label="Shielded" value={summary.shielded} accent="shielded" hint="Excludes mixed transactions" />
+        <MetricCard label="Fully shielded" value={summary.shielded} accent="shielded" hint="Excludes mixed transactions" />
         <MetricCard label="Transparent" value={summary.transparent} hint="Public inputs and outputs" />
-        <MetricCard label="Shielded share" value={summary.shieldedShare === null ? '—' : `${summary.shieldedShare}%`} accent="shielded" hint="Shown TXs · includes mixed" />
+        <MetricCard label="Shielded + partial share" value={summary.shieldedShare === null ? '—' : `${summary.shieldedShare}%`} accent="shielded" hint="Shown TXs · includes mixed" />
       </div>
 
       {/* Bubble Visualization - always mounted to avoid layout shift */}

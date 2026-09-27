@@ -32,7 +32,7 @@ function HashratePeriodSelector({ value, onChange }: { value: Period; onChange: 
           onClick={() => onChange(p)}
           className={`px-1.5 py-0.5 text-caption font-mono rounded transition whitespace-nowrap ${
             value === p
-              ? 'bg-brand-gold/15 text-cipher-gold font-semibold'
+              ? 'bg-glass-5 text-primary font-semibold'
               : 'text-muted hover:text-primary'
           }`}
         >
@@ -55,7 +55,7 @@ export function NetworkHashrateChart() {
   const [window, setWindow] = useState<HashrateWindow>('24h');
   const stats = useApiQuery<HashrateStats>('/v1/network/stats', undefined, { refreshInterval: 30_000 });
 
-  const { data, loading } = useApiQuery<HashrateHistoryResponse>(
+  const { data, loading, error } = useApiQuery<HashrateHistoryResponse>(
     '/v1/mining/hashrate-history',
     { period, window },
     { refreshInterval: 300_000, timeoutMs: 30_000 },
@@ -79,7 +79,7 @@ export function NetworkHashrateChart() {
       </div>}
     >
       <p className="text-xs font-mono text-muted mb-3">
-        Estimated hashrate · 24h: <span className="text-cipher-gold font-semibold">{snapshot ? stats.data?.mining?.networkHashrate : '—'}</span>
+        Estimated hashrate · 24h: <span className="text-primary font-semibold">{snapshot ? stats.data?.mining?.networkHashrate : '—'}</span>
         {current && <span className="block text-muted">{current.blockCount.toLocaleString()} blocks · As of {current.windowEnd.replace('T', ' ').replace('Z', ' UTC')}</span>}
       </p>
       <p className="text-xs text-muted mb-3">
@@ -88,6 +88,7 @@ export function NetworkHashrateChart() {
         Estimates use block-header timestamps and exclude orphaned blocks.
       </p>
       {(stats.error || stats.isRefreshing) && <p className="text-xs text-muted" role="status">{stats.error ? 'Live refresh delayed; showing the last available snapshot.' : 'Refreshing estimate…'}</p>}
+      {error && <p role="status" className="text-xs text-muted">History refresh unavailable. Any retained samples are shown below.</p>}
       {!points.some(point => point.hashrate != null) ? (
         <div className="flex items-center justify-center h-[260px]">
           {loading ? <ChartSkeleton height={260} /> : <p className="text-xs text-muted">Hashrate history unavailable</p>}
@@ -98,7 +99,8 @@ export function NetworkHashrateChart() {
             <CartesianGrid vertical={false} strokeDasharray="2 6" stroke={colors.grid} opacity={0.5} />
             <XAxis
               dataKey="timestamp"
-              minTickGap={32}
+              minTickGap={40}
+              padding={{ left: 12, right: 20 }}
               type="number"
               scale="time"
               domain={['dataMin', 'dataMax']}
@@ -132,7 +134,7 @@ export function NetworkHashrateChart() {
               dataKey="hashrate"
               stroke={colors.gold}
               strokeWidth={2}
-              dot={false}
+              dot={points.filter(point => point.hashrate != null).length === 1 ? { r: 3 } : false}
             />
           </LineChart>
         </ResponsiveContainer>

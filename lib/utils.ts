@@ -124,3 +124,10 @@ export function displayPubkey(hex: string | null | undefined): string {
 export function normalizePubkeyForQuery(hex: string): string {
   return displayPubkey(hex.toLowerCase().trim());
 }
+
+/** Short chart date from a UTC date/ISO string or Unix seconds. */
+export function formatDateLabelUTC(value: string | number): string {
+  const date = new Date(typeof value === 'number' ? value * 1000 : value);
+  if (!Number.isFinite(date.getTime())) return '—';
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
+}

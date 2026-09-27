@@ -2,6 +2,25 @@
 
 export const ZATOSHI_PER_ZEC = 100_000_000;
 
+/** Parse an exact integer wire amount before arithmetic; reject lossy conversions. */
+export function parseSafeZatoshi(value: unknown): number {
+  if ((typeof value !== 'number' && typeof value !== 'string') ||
+      (typeof value === 'string' && !/^-?(0|[1-9]\d*)$/.test(value))) {
+    throw new TypeError('Invalid zatoshi amount');
+  }
+  const amount = Number(value);
+  if (!Number.isSafeInteger(amount)) throw new RangeError('Unsafe zatoshi amount');
+  return amount;
+}
+
+/** Aggregate in integer space, checking the result before chart/display conversion. */
+export function sumZatoshis(values: readonly (number | string)[]): number {
+  const total = values.reduce<bigint>((sum, value) => sum + BigInt(parseSafeZatoshi(value)), BigInt(0));
+  const result = Number(total);
+  if (!Number.isSafeInteger(result)) throw new RangeError('Unsafe zatoshi total');
+  return result;
+}
+
 /** Convert zatoshis to ZEC. Accepts number, string, or bigint. */
 export const zatToZec = (zat: number | string | bigint): number =>
   Number(zat) / ZATOSHI_PER_ZEC;

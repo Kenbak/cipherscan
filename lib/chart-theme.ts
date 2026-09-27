@@ -65,3 +65,10 @@ export function getChartTooltipStyle(colors: ReturnType<typeof getChartColors>) 
     boxShadow: 'none',
   };
 }
+
+/** Responsive categorical date axes leave room for the final label. */
+export const CHART_DATE_AXIS = {
+  interval: 'preserveStartEnd' as const,
+  minTickGap: 48,
+  padding: { left: 12, right: 24 },
+};

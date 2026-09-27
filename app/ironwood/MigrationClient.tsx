@@ -1,5 +1,6 @@
 'use client';
 
+import { normalizeMigrationData, completedDayActivity } from './components/api-data';
 import { readApiData } from '@/lib/api-client';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { getApiUrl } from '@/lib/api-config';
@@ -103,6 +104,7 @@ export function MigrationClient({
     const fetchJson = (path: string) =>
       fetch(`${base}${path}`, { cache: 'no-store' })
         .then((r) => (r.ok ? readApiData(r) : null))
+        .then(normalizeMigrationData)
         .catch(() => null);
 
     const loadOverview = () => {
@@ -252,12 +254,7 @@ export function MigrationClient({
     ? (orchardToIronwoodZat / originalOrchard) * 100
     : 0;
   const activitySummary = useMemo(() => {
-    const recentBuckets = activityHourly?.buckets.slice(-24) ?? [];
-    if (recentBuckets.length === 0) return null;
-    return {
-      txCount24h: recentBuckets.reduce((sum, bucket) => sum + bucket.txCount, 0),
-      volumeZat24h: recentBuckets.reduce((sum, bucket) => sum + bucket.volumeZat, 0),
-    };
+    return completedDayActivity(activityHourly, Date.now() / 1000);
   }, [activityHourly]);
 
   return (
@@ -366,7 +363,7 @@ export function MigrationClient({
               <div ref={scatterSectionRef} aria-hidden="true" />
               {!scatter && activitySummary && (
                 <p className="mt-6 text-xs font-mono text-muted" role="status" aria-live="polite">
-                  {activitySummary.txCount24h.toLocaleString()} migrations in the last 24h ({fmtZec(activitySummary.volumeZat24h)} ZEC) — transaction-level privacy detail loads as you scroll.
+                  {activitySummary.txCount24h.toLocaleString()} migrations in the last 24 complete UTC hours ({fmtZec(activitySummary.volumeZat24h)} ZEC) — transaction-level privacy detail loads as you scroll.
                 </p>
               )}
               <MigrationActivity
@@ -385,7 +382,7 @@ export function MigrationClient({
               />
               <PrivacyScore
                 scatter={scatter}
-                scatterLoading={hasMigrations && scatterNearViewport && !scatterAttempted}
+                scatterLoading={hasMigrations && !scatterAttempted}
                 scatterUnavailable={hasMigrations && scatterAttempted && !scatter}
                 activated={activated}
                 colors={colors}

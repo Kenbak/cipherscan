@@ -1,0 +1,22 @@
+{
+  "network": "mainnet",
+  "granularity": "hour",
+  "bucketSeconds": 3600,
+  "buckets": [
+    {
+      "bucketStart": 1789297200,
+      "txCount": 5,
+      "volumeZat": "34000000"
+    },
+    {
+      "bucketStart": 1789300800,
+      "txCount": 4,
+      "volumeZat": "2222000000"
+    },
+    {
+      "bucketStart": 1789304400,
+      "txCount": 3,
+      "volumeZat": "250437933"
+    }
+  ]
+}
