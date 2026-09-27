@@ -206,6 +206,210 @@
       "routeGroup": "/ask",
       "path": "/ask",
       "core": true
+    },
+    {
+      "id": "chart-pool-balances",
+      "routeGroup": "/charts/[slug]",
+      "path": "/charts/pool-balances",
+      "core": true
+    },
+    {
+      "id": "chart-supply",
+      "routeGroup": "/charts/[slug]",
+      "path": "/charts/supply",
+      "core": true
+    },
+    {
+      "id": "chart-shielded-supply",
+      "routeGroup": "/charts/[slug]",
+      "path": "/charts/shielded-supply",
+      "core": true
+    },
+    {
+      "id": "chart-turnstile",
+      "routeGroup": "/charts/[slug]",
+      "path": "/charts/turnstile",
+      "core": true
+    },
+    {
+      "id": "chart-pool-share",
+      "routeGroup": "/charts/[slug]",
+      "path": "/charts/pool-share",
+      "core": true
+    },
+    {
+      "id": "chart-search-interest",
+      "routeGroup": "/charts/[slug]",
+      "path": "/charts/search-interest",
+      "core": true
+    },
+    {
+      "id": "chart-daily-activity",
+      "routeGroup": "/charts/[slug]",
+      "path": "/charts/daily-activity",
+      "core": true
+    },
+    {
+      "id": "chart-privacy-adoption",
+      "routeGroup": "/charts/[slug]",
+      "path": "/charts/privacy-adoption",
+      "core": true
+    },
+    {
+      "id": "chart-privacy-score",
+      "routeGroup": "/charts/[slug]",
+      "path": "/charts/privacy-score",
+      "core": true
+    },
+    {
+      "id": "chart-flow-volume",
+      "routeGroup": "/charts/[slug]",
+      "path": "/charts/flow-volume",
+      "core": true
+    },
+    {
+      "id": "chart-net-flow",
+      "routeGroup": "/charts/[slug]",
+      "path": "/charts/net-flow",
+      "core": true
+    },
+    {
+      "id": "chart-flow-thresholds",
+      "routeGroup": "/charts/[slug]",
+      "path": "/charts/flow-thresholds",
+      "core": true
+    },
+    {
+      "id": "chart-flow-buckets",
+      "routeGroup": "/charts/[slug]",
+      "path": "/charts/flow-buckets",
+      "core": true
+    },
+    {
+      "id": "chart-network-hashrate",
+      "routeGroup": "/charts/[slug]",
+      "path": "/charts/network-hashrate",
+      "core": true
+    },
+    {
+      "id": "chart-mining-distribution",
+      "routeGroup": "/charts/[slug]",
+      "path": "/charts/mining-distribution",
+      "core": true
+    },
+    {
+      "id": "chart-miner-rewards",
+      "routeGroup": "/charts/[slug]",
+      "path": "/charts/miner-rewards",
+      "core": true
+    },
+    {
+      "id": "chart-block-time",
+      "routeGroup": "/charts/[slug]",
+      "path": "/charts/block-time",
+      "core": true
+    },
+    {
+      "id": "chart-difficulty",
+      "routeGroup": "/charts/[slug]",
+      "path": "/charts/difficulty",
+      "core": true
+    },
+    {
+      "id": "chart-block-fees",
+      "routeGroup": "/charts/[slug]",
+      "path": "/charts/block-fees",
+      "core": true
+    },
+    {
+      "id": "chart-tx-per-block",
+      "routeGroup": "/charts/[slug]",
+      "path": "/charts/tx-per-block",
+      "core": true
+    },
+    {
+      "id": "chart-fees",
+      "routeGroup": "/charts/[slug]",
+      "path": "/charts/fees",
+      "core": true
+    },
+    {
+      "id": "chart-node-storage",
+      "routeGroup": "/charts/[slug]",
+      "path": "/charts/node-storage",
+      "core": true
+    },
+    {
+      "id": "chart-price-vs-realized",
+      "routeGroup": "/charts/[slug]",
+      "path": "/charts/price-vs-realized",
+      "core": true
+    },
+    {
+      "id": "chart-mvrv",
+      "routeGroup": "/charts/[slug]",
+      "path": "/charts/mvrv",
+      "core": true
+    },
+    {
+      "id": "chart-nupl",
+      "routeGroup": "/charts/[slug]",
+      "path": "/charts/nupl",
+      "core": true
+    },
+    {
+      "id": "chart-sopr",
+      "routeGroup": "/charts/[slug]",
+      "path": "/charts/sopr",
+      "core": true
+    },
+    {
+      "id": "chart-realized-cap",
+      "routeGroup": "/charts/[slug]",
+      "path": "/charts/realized-cap",
+      "core": true
+    },
+    {
+      "id": "chart-dormancy",
+      "routeGroup": "/charts/[slug]",
+      "path": "/charts/dormancy",
+      "core": true
+    },
+    {
+      "id": "chart-coin-days",
+      "routeGroup": "/charts/[slug]",
+      "path": "/charts/coin-days",
+      "core": true
+    },
+    {
+      "id": "chart-hodl-waves",
+      "routeGroup": "/charts/[slug]",
+      "path": "/charts/hodl-waves",
+      "core": true
+    },
+    {
+      "id": "chart-swap-volume",
+      "routeGroup": "/charts/[slug]",
+      "path": "/charts/swap-volume",
+      "core": true
+    },
+    {
+      "id": "chart-swap-count",
+      "routeGroup": "/charts/[slug]",
+      "path": "/charts/swap-count",
+      "core": true
+    },
+    {
+      "id": "chart-protocol-commitments",
+      "routeGroup": "/charts/[slug]",
+      "path": "/charts/protocol-commitments",
+      "core": true
+    },
+    {
+      "id": "chart-protocol-nullifiers",
+      "routeGroup": "/charts/[slug]",
+      "path": "/charts/protocol-nullifiers",
+      "core": true
     }
   ]
 }

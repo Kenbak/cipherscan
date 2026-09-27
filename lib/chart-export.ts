@@ -15,3 +15,14 @@ export async function withChartAttribution<T>(root: HTMLElement, capture: () => 
     });
   }
 }
+
+/** Legacy interactive panels keep their full visual snapshot; catalog plots use ChartExport. */
+export async function captureElementPng(element: HTMLElement): Promise<Blob> {
+  const { toBlob } = await import('html-to-image');
+  const blob = await withChartAttribution(element, () => toBlob(element, {
+    backgroundColor: getComputedStyle(element).backgroundColor, pixelRatio: 2,
+    filter: node => !(node instanceof HTMLElement && node.dataset.html2canvasIgnore),
+  }));
+  if (!blob) throw new Error('Image unavailable');
+  return blob;
+}
