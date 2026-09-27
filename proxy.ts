@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { resolveGovernanceRequest } from './lib/governance-request';
 import { getConfiguredNetwork } from './lib/network';
+import { CHART_CATALOG } from './lib/chart-catalog';
 
 // Simple in-memory rate limiter
 // Format: Map<IP, { count: number, resetTime: number }>
@@ -122,6 +123,13 @@ export async function proxy(request: NextRequest) {
     }
   }
   const governancePath = request.nextUrl.pathname;
+  const chartPath = governancePath.match(/^\/charts\/([^/]+)\/?$/);
+  if (chartPath && !CHART_CATALOG.some(chart => chart.id === chartPath[1])) {
+    return new NextResponse('<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="robots" content="noindex, follow"><title>Chart not found | ZecBlock</title></head><body><main><h1>Chart not found</h1><p>This chart is not in the catalog.</p><a href="/charts">Browse charts</a></main></body></html>', {
+      status: 404,
+      headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store', 'X-Robots-Tag': 'noindex, follow' },
+    });
+  }
   if (governancePath === '/governance' || governancePath.startsWith('/governance/')) {
     const result = await resolveGovernanceRequest(governancePath, getConfiguredNetwork() ?? 'testnet');
     if (result.status === 308) return NextResponse.redirect(new URL(result.location, request.url), 308);
@@ -165,5 +173,5 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/api/:path*', '/block/:path*', '/blocks', '/governance/:path*'],
+  matcher: ['/api/:path*', '/block/:path*', '/blocks', '/governance/:path*', '/charts/:slug'],
 };

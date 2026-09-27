@@ -5,13 +5,6 @@ import { buildPageMetadata, getBaseUrl } from '@/lib/seo';
 import { findShareChart, chartSource, normalizeChartRange, selectedChartSeries, chartSharePath, chartImagePath, chartRangeRows, chartDateRange, EXPORT_SIZE } from '@/lib/chart-sharing';
 import { loadShareChart } from '@/lib/chart-share-server';
 import { CatalogCard } from '../ChartsClient';
-import { CHART_CATALOG } from '@/lib/chart-catalog';
-
-// Reject unknown slugs before the parent loading boundary starts streaming.
-export const dynamicParams = false;
-export function generateStaticParams() {
-  return CHART_CATALOG.map(chart => ({ slug: chart.id }));
-}
 
 type Props = { params: Promise<{ slug: string }>; searchParams: Promise<Record<string, string | string[] | undefined>> };
 export async function generateMetadata({ params, searchParams }: Props) {

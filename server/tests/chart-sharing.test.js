@@ -66,8 +66,6 @@ test('range and series social URLs retain the variant while canonical and robots
   for(const network of ['mainnet','testnet','crosslink-testnet']) {
    process.env.NEXT_PUBLIC_NETWORK=network;
    const page=loadRoute('app/charts/[slug]/page.tsx',{'@/lib/chart-share-server':{loadShareChart:async()=>null}});
-   assert.equal(page.dynamicParams,false);
-   assert.deepEqual(page.generateStaticParams().map(p=>p.slug),CHART_CATALOG.map(c=>c.id));
    const metadata=await page.generateMetadata({params:Promise.resolve({slug:'supply'}),searchParams:Promise.resolve({range:'1y',series:'shielded'})});
    assert.ok(String(metadata.alternates.canonical).endsWith('/charts/supply'));assert.equal(String(metadata.alternates.canonical).includes('?'),false);
    assert.ok(metadata.openGraph.images[0].url.endsWith('/charts/supply/image?range=1y&series=shielded'));
@@ -80,4 +78,12 @@ test('image route returns real 404 and uncached 503 for invalid or unavailable c
  const route=loadRoute('app/charts/[slug]/image/route.tsx',{'next/og':{ImageResponse:class{}},'@/lib/chart-share-server':{loadShareChart:async()=>null}});
  const unknown=await route.GET(new Request('http://localhost/charts/unknown/image'),{params:Promise.resolve({slug:'unknown'})});assert.equal(unknown.status,404);
  const unavailable=await route.GET(new Request('http://localhost/charts/supply/image'),{params:Promise.resolve({slug:'supply'})});assert.equal(unavailable.status,503);assert.equal(unavailable.headers.get('Cache-Control'),'no-store');
+});
+test('unknown chart pages return 404 before a loading boundary can stream',async()=>{
+ const vm=require('node:vm');const exports={};const {NextRequest,NextResponse}=require('next/server');
+ vm.runInNewContext(ts.transpileModule(fs.readFileSync('proxy.ts','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS}}).outputText,{exports,URL,process:{env:{NODE_ENV:'development'}},setInterval:()=>{},require:name=>({'next/server':{NextResponse},'./lib/chart-catalog':{CHART_CATALOG},'./lib/governance-request':{},'./lib/network':{}})[name]});
+ assert.ok(exports.config.matcher.includes('/charts/:slug'));
+ const missing=await exports.proxy(new NextRequest('http://localhost/charts/not-a-chart'));
+ assert.equal(missing.status,404);assert.equal(missing.headers.get('X-Robots-Tag'),'noindex, follow');
+ for(const chart of CHART_CATALOG)assert.equal((await exports.proxy(new NextRequest('http://localhost/charts/'+chart.id))).status,200);
 });
