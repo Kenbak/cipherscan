@@ -25,6 +25,7 @@ const nodes: Resource[] = [
   { name: 'lightwalletd', description: 'Backend service that supplies compact blockchain data to light wallets.', href: 'https://github.com/zcash/lightwalletd' },
 ];
 const development: Resource[] = [
+  { name: 'Thus Spoke Zakura', description: 'Local Zcash development environment with wallets, a faucet, mining controls and an explorer. Uses an isolated Regtest chain, separate from public testnet.', href: 'https://github.com/zcashlabs/thus-spoke-zakura' },
   { name: 'ZecBlock API', description: 'Explorer endpoints, data definitions and integration examples.', href: '/docs' },
   { name: 'librustzcash', description: 'Rust libraries for Zcash transactions, keys and wallet functionality.', href: 'https://github.com/zcash/librustzcash' },
   { name: 'Zingolib', description: 'Light-wallet library for building Zcash applications.', href: 'https://github.com/zingolabs/zingolib' },
@@ -176,10 +177,10 @@ export default function LearnPage() {
       <SectionTitle number="04" title="Build on Zcash. Verify it yourself." description="Full nodes verify the chain. Indexers and libraries help applications use it." />
       <div className={styles.twoColumns}>
         <div className={styles.directory}><h3>Nodes & indexing</h3><ResourceList items={nodes} /></div>
-        <div className={styles.directory}><h3>APIs, libraries & specifications</h3><ResourceList items={development} /></div>
+        <div className={styles.directory}><h3>Developer tools & references</h3><ResourceList items={development} /></div>
       </div>
       <div className={styles.sectionNote}>
-        <p>Testing transactions? Use testnet ZEC (TAZ) and a testnet address. Testnet coins have no monetary value.</p>
+        <p>Testing on public testnet? Use testnet ZEC (TAZ) and a testnet address. Testnet coins have no monetary value.</p>
         <div className={styles.inlineLinks}>
           <Destination href="http://pool.tazminer.com:3000" className={styles.textLink}>Mine testnet ZEC in browser <Arrow external /></Destination>
           <Destination href="https://testnet.cipherscan.app/" className={styles.textLink}>Open testnet explorer <Arrow external /></Destination>
