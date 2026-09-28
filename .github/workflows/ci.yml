@@ -31,8 +31,8 @@ jobs:
     name: Frontend (Next.js)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-node@v6
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version-file: ${{ env.NODE_VERSION_FILE }}
           cache: npm
@@ -84,8 +84,8 @@ jobs:
       run:
         working-directory: server/api
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-node@v6
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version-file: .node-version
       - name: Install dependencies
@@ -120,8 +120,8 @@ jobs:
       run:
         working-directory: server/indexer
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-node@v6
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version-file: .node-version
       - name: Install dependencies
@@ -139,8 +139,8 @@ jobs:
       run:
         working-directory: packages/zcash-decoder
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-node@v6
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version-file: .node-version
       - name: Install dependencies (skip postinstall banner)
@@ -158,7 +158,7 @@ jobs:
       run:
         working-directory: wasm
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Install Rust toolchain
         run: |
           rustup toolchain install 1.97.1 --profile minimal \
@@ -186,8 +186,8 @@ jobs:
       run:
         working-directory: server/jobs
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-python@v6
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.13"
       - name: Install dependencies
@@ -202,7 +202,7 @@ jobs:
     name: Shellcheck
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Install shellcheck
         run: sudo apt-get update && sudo apt-get install -y shellcheck
       - name: Run shellcheck
