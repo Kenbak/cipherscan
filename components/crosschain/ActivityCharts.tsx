@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useId, useState } from "react";
 import {
   BarChart,
   Bar,
@@ -17,6 +17,8 @@ import { ChartCard } from "@/components/network/ChartCard";
 import { useTheme } from "@/contexts/ThemeContext";
 import { getChartColors, getChartTooltipStyle } from "@/lib/chart-theme";
 import { Analytics, Unit, value } from "./model";
+import { dailyTrends } from "./timeline";
+import { TimelineComparison } from "./TimelineComparison";
 const BUCKETS = [
   "<$10",
   "$10–50",
@@ -40,10 +42,15 @@ export function ActivityCharts({
   const { theme } = useTheme(),
     colors = getChartColors(theme);
   const [view, setView] = useState<"volume" | "count">("volume");
-  const points = data.trends.map((p) => ({
+  const [comparison, setComparison] = useState<"none" | "price" | "shielding">(
+    "none",
+  );
+  const syncId = useId();
+  const daily = comparison !== "none";
+  const points = (daily ? dailyTrends(data.trends) : data.trends).map((p) => ({
     ...p,
     label:
-      data.granularity === "hour"
+      data.granularity === "hour" && !daily
         ? p.bucket.slice(5, 16).replace("T", " ")
         : p.bucket.slice(0, 10),
     Inflow: p[`inflow_${unit}`] == null ? null : Number(p[`inflow_${unit}`]),
@@ -94,12 +101,32 @@ export function ActivityCharts({
             </div>
           }
         >
-          <p className="text-xs text-muted mb-4">
-            {data.granularity === "hour" ? "Hourly" : "Daily"} activity · UTC
-          </p>
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+            <p className="text-xs text-muted">
+              {data.granularity === "hour" && !daily ? "Hourly" : "Daily"}{" "}
+              activity · UTC{daily ? " · boundary days partial" : ""}
+            </p>
+            <label className="text-xs text-muted flex items-center gap-2">
+              Compare with
+              <select
+                aria-label="Compare activity with"
+                className="bg-cipher-bg border border-cipher-border rounded-lg px-2 py-1 text-xs text-secondary"
+                value={comparison}
+                onChange={(e) =>
+                  setComparison(e.target.value as typeof comparison)
+                }
+              >
+                <option value="none">None</option>
+                <option value="price">ZEC price</option>
+                <option value="shielding">Net shielding</option>
+              </select>
+            </label>
+          </div>
           <ResponsiveContainer width="100%" height={260} minWidth={0}>
             <ComposedChart
               data={points}
+              syncId={syncId}
+              syncMethod="value"
               stackOffset="sign"
               margin={{ left: 0, right: 8 }}
             >
@@ -110,6 +137,7 @@ export function ActivityCharts({
               />
               <XAxis
                 dataKey="label"
+                padding={{ left: 12, right: 12 }}
                 minTickGap={45}
                 tick={{ fill: colors.axis, fontSize: 12 }}
               />
@@ -168,6 +196,15 @@ export function ActivityCharts({
               )}
             </ComposedChart>
           </ResponsiveContainer>
+          {comparison !== "none" && (
+            <TimelineComparison
+              key={`${comparison}:${data.period}`}
+              kind={comparison}
+              period={data.period}
+              dates={points.map((p) => p.label)}
+              syncId={syncId}
+            />
+          )}
         </ChartCard>
       )}
       {panel === "sizes" && (

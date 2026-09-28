@@ -1,4 +1,5 @@
 "use client";
+import { useState } from "react";
 import {
   SwapFilterLink,
   updateSwapUrl,
@@ -157,6 +158,7 @@ export function SwapExplorer({
   statuses: string[];
 }) {
   const searchParams = useSwapSearchParams();
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const params: Record<string, string> = {};
   for (const key of [
     "period",
@@ -181,63 +183,128 @@ export function SwapExplorer({
   const field =
     "bg-cipher-bg border border-cipher-border rounded-lg px-3 py-2 text-sm w-full";
   return (
-    <section id="swaps" className="card space-y-4">
-      <div>
+    <section className="card space-y-4" aria-label="Recent swaps">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-sm font-mono text-secondary">Recent swaps</h2>
-        <p className="text-xs text-muted mt-2">
-          Select a swap for amounts and transaction links.
-        </p>
-      </div>
-      {IS_DEMO && (
-        <p className="text-xs text-cipher-orange">
-          Demo swaps · “fixture-” addresses and transaction IDs are examples.
-        </p>
-      )}
-      <div className="flex flex-wrap items-center gap-3">
-        <nav aria-label="Swap direction" className="filter-group">
-          {[
-            ["", "All"],
-            ["inflow", "Into ZEC"],
-            ["outflow", "Out of ZEC"],
-          ].map(([direction, label]) => (
-            <SwapFilterLink
-              key={label}
-              className={`filter-btn ${(params.direction || "") === direction ? "filter-btn-active" : ""}`}
-              aria-current={
-                (params.direction || "") === direction ? "page" : undefined
-              }
-              href={
-                href(params, {
-                  direction,
-                  cursor: undefined,
-                  sourceAsset: undefined,
-                  destAsset: undefined,
-                }) + "#swaps"
-              }
-            >
-              {label}
-            </SwapFilterLink>
-          ))}
-        </nav>
-        {Object.entries(params).some(
-          ([key, val]) =>
-            val && !["period", "cursor", "direction"].includes(key),
-        ) && (
-          <span className="text-xs text-muted">
-            Filtered swaps ·{" "}
-            <SwapFilterLink
-              className="text-cipher-gold"
-              href={href({ period: params.period || "30d" }) + "#swaps"}
-            >
-              Clear filters
-            </SwapFilterLink>
+        {IS_DEMO && (
+          <span
+            className="text-xs text-cipher-orange"
+            title="Simulated swaps: fixture addresses and transaction IDs are examples."
+          >
+            Demo data
           </span>
         )}
       </div>
-      <details>
-        <summary className="text-xs text-muted cursor-pointer mb-3">
-          Search & filters
-        </summary>
+      <div className="space-y-2">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <nav aria-label="Swap direction" className="filter-group">
+            {[
+              ["", "All"],
+              ["inflow", "Into ZEC"],
+              ["outflow", "Out of ZEC"],
+            ].map(([direction, label]) => (
+              <SwapFilterLink
+                key={label}
+                className={`filter-btn ${(params.direction || "") === direction ? "filter-btn-active" : ""}`}
+                aria-current={
+                  (params.direction || "") === direction ? "page" : undefined
+                }
+                href={
+                  href(params, {
+                    direction,
+                    cursor: undefined,
+                    sourceAsset: undefined,
+                    destAsset: undefined,
+                  }) + "#swaps"
+                }
+              >
+                {label}
+              </SwapFilterLink>
+            ))}
+          </nav>
+          <button
+            type="button"
+            aria-expanded={filtersOpen}
+            aria-controls="swap-filter-form"
+            aria-label="Search & filters"
+            onClick={() => setFiltersOpen(!filtersOpen)}
+            className={`filter-btn ${filtersOpen ? "filter-btn-active" : ""}`}
+          >
+            <span className="hidden sm:inline">Search & </span>Filters{" "}
+            <span aria-hidden="true">{filtersOpen ? "−" : "+"}</span>
+          </button>
+        </div>
+        {Object.keys(params).some(
+          (key) => !["period", "cursor"].includes(key),
+        ) && (
+          <div
+            className="flex flex-wrap gap-2 items-center text-xs"
+            aria-label="Active swap filters"
+          >
+            {Object.entries(params)
+              .filter(([key]) => !["period", "cursor"].includes(key))
+              .map(([key, val]) => {
+                const labels: Record<string, string> = {
+                  direction: "Direction",
+                  status: "Outcome",
+                  chain: "Chain",
+                  token: "Token",
+                  minUsd: "Min USD",
+                  maxUsd: "Max USD",
+                  from: "From",
+                  to: "Until",
+                  search: "Search",
+                  sourceAsset: "From asset",
+                  destAsset: "To asset",
+                  referral: "Referral",
+                };
+                const display =
+                  key === "chain"
+                    ? CHAINS[val] || val
+                    : key === "direction"
+                      ? {
+                          inflow: "Into ZEC",
+                          outflow: "Out of ZEC",
+                          internal: "Zcash → Zcash",
+                        }[val] || val
+                      : key === "status"
+                        ? {
+                            SUCCESS: "Completed",
+                            REFUNDED: "Refunded",
+                            FAILED: "Failed",
+                            PROCESSING: "Processing",
+                            PENDING_DEPOSIT: "Awaiting deposit",
+                            INCOMPLETE_DEPOSIT: "Incomplete deposit",
+                          }[val] || val
+                        : val;
+                return (
+                  <SwapFilterLink
+                    key={key}
+                    title={`${labels[key] || key}: ${display}`}
+                    aria-label={`Remove ${labels[key] || key} filter: ${display}`}
+                    href={
+                      href(params, { [key]: undefined, cursor: undefined }) +
+                      "#swaps"
+                    }
+                    className="inline-flex items-center gap-2 min-h-8 rounded-lg border border-cipher-border px-3 py-1 text-secondary hover:text-cipher-gold"
+                  >
+                    <span className="max-w-[220px] truncate">
+                      {labels[key] || key}: {display}
+                    </span>
+                    <span aria-hidden="true">×</span>
+                  </SwapFilterLink>
+                );
+              })}
+            <SwapFilterLink
+              className="inline-flex items-center min-h-8 text-cipher-gold px-3 py-1"
+              href={href({ period: params.period }) + "#swaps"}
+            >
+              Clear filters
+            </SwapFilterLink>
+          </div>
+        )}
+      </div>
+      <div id="swap-filter-form" hidden={!filtersOpen}>
         <form
           key={JSON.stringify(params)}
           onSubmit={(event) => {
@@ -390,7 +457,7 @@ export function SwapExplorer({
             </button>
           </div>
         </form>
-      </details>
+      </div>
       <SwapResults key={JSON.stringify(params)} params={params} unit={unit} />
     </section>
   );

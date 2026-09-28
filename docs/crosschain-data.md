@@ -1,6 +1,6 @@
 # Cross-chain data: authority, validation and staged rollout
 
-Updated: 2026-09-28. Implemented locally on `new/crosschain-data-depth`, based on
+Updated: 2026-09-29. Implemented locally on `new/crosschain-data-depth`, based on
 `codex/zecblock-assay-rebrand`. **Not deployed; production schema, cron and reader
 flags have not changed.** Do not deploy this whole branch as an API hotfix: it
 also inherits the unshipped ZecBlock redesign.
@@ -273,3 +273,54 @@ survived feed changes. Global 7d selection and Back to 30d synchronized correctl
 Final build/TypeScript, scoped/design lint and 20 query/frontend checks passed;
 clean/filtered raw HTML retained the correct canonical, robots, one H1 and HTTP
 200. Browser logged no errors. Local preview only; production unchanged.
+
+
+## Progressive analytics views — 2026-09-29 (local preview)
+
+Navigation is Overview / Flows / Swaps / Ecosystem. Period and USD/ZEC controls
+sit together above metrics. Existing icons, signed flow bars, swap sizes, top pairs,
+amount-first recent swaps and wrapped supply remain. Confirmation timing, referrals
+and methodology are secondary disclosures. Feed filters remain local and removable
+chips describe active values; chart links clear unrelated filters and reset pagination.
+
+Analytics adds three fields, on both legacy and v2 readers, without schema changes:
+- `tokenFlows`: successful external swaps grouped by counterparty chain and reported
+  token symbol. Same-symbol records within one chain are grouped; this is not an
+  assertion of identical asset contracts. Counts and USD/native-ZEC amounts have the
+  same semantics as `flows`. Groups are computed before the top-100 exact-route cap.
+- `chainHistory`: observed successful swaps grouped by counterparty chain and UTC
+  Monday week; `bucket`, `swaps`, `missing_zec`, `net_zec` (numeric string/null).
+  Net is native ZEC acquired minus native ZEC exchanged. Any missing ZEC amount
+  leaves that week's net null. First/last weeks are restricted to the selected
+  interval and labeled partial. Empty cells become zero only within verified,
+  fresh continuous history; otherwise they remain unknown.
+- `chainOutcomes`: counterparty chain + latest status + count for all external
+  records created in the period. Stacked bars include outstanding statuses instead
+  of implying all quotes completed. Legacy success-only coverage is explicit.
+  Segments link to the corresponding status/chain feed; weeks link to UTC bounds.
+
+Optional price/net-shielding comparisons are fetched only when selected. Activity
+is aggregated to UTC days while comparing; unknown hourly data leaves a daily gap.
+Both charts use matching date keys and synchronized hover with separate y scales.
+The first/last activity days can be partial. Price is historical USD/ZEC from
+`/v1/valuation/history`; net public shielding is ZEC from
+`/v1/shielded-pools/flows`, shielding minus deshielding, not balance change.
+The shielding API supports at most 1y, so all-history comparison explicitly labels
+that limit. Missing reference dates stay null without interpolation or forward fill.
+The local preview serves clearly labeled synthetic daily comparison fixtures. No causal link or
+tracing of individual swap proceeds into shielding is claimed.
+
+Production has not been deployed, migrated or backfilled by these changes.
+
+
+Reference calendar correction: valuation history now projects `m.date::text` and
+uses a UTC cutoff, keeping the database calendar day independent of the Node host
+timezone. Public flow daily projections and raw-flow fallback use UTC/text dates;
+hourly fallback bucketing is explicitly UTC. Both reference cache namespaces are
+versioned to avoid serving shifted old daily keys after deployment. History date
+strings are YYYY-MM-DD; clients must not interpret them in viewer-local time.
+Deploy these API corrections before the frontend comparisons. No database
+migration or new production writer is needed.
+
+Before release, verify the existing `flow_daily` materialized view was built and
+refreshed under UTC. This local UI task does not certify production view timezone.

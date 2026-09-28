@@ -310,6 +310,36 @@ test(
       assert.equal(data.flows[0].inflow_zec, "3.23456789");
       assert.equal(data.flows[0].outflow_zec, "3");
       assert.equal(data.summary.volume_zec, "6.23456789");
+      assert.equal(data.tokenFlows.length, 1);
+      assert.equal(data.tokenFlows[0].chain, "eth");
+      assert.equal(data.tokenFlows[0].token, "ETH");
+      assert.equal(data.tokenFlows[0].swaps, 3);
+      assert.equal(data.tokenFlows[0].inflow_zec, "3.23456789");
+      assert.deepEqual(data.chainHistory, [
+        {
+          bucket: "2026-09-14T00:00:00.000Z",
+          chain: "eth",
+          swaps: 3,
+          missing_zec: 0,
+          net_zec: "0.23456789",
+        },
+      ]);
+      assert.equal(
+        data.chainOutcomes.reduce((n, r) => n + r.count, 0),
+        5,
+      );
+      assert.equal(
+        data.chainOutcomes.find(
+          (r) => r.chain === "eth" && r.status === "REFUNDED",
+        ).count,
+        1,
+      );
+      assert.equal(
+        data.chainOutcomes.find(
+          (r) => r.chain === "eth" && r.status === "FAILED",
+        ).count,
+        1,
+      );
       assert.equal(data.summary.sender_addresses, 2); // same address on two chains
       assert.equal(
         data.distribution.reduce((n, b) => n + b.swaps, 0),
@@ -511,8 +541,36 @@ test(
       assert.equal(missing.flows[0].outflow_usd, "0");
       assert.equal(missing.summary.volume_zec, null);
       assert.equal(missing.summary.missing_usd, 1);
+      assert.equal(missing.tokenFlows[0].inflow_zec, null);
+      assert.equal(missing.chainHistory[0].net_zec, null);
+      assert.equal(missing.chainHistory[0].missing_zec, 1);
       assert.equal(missing.distribution.length, 0);
       assert.equal(missing.trends.find((t) => t.swaps === 1).inflow_usd, null);
+      await db.query(`INSERT INTO crosschain_swaps_v2
+        (deposit_address,deposit_memo,status,swap_created_at,source_chain,source_token,dest_chain,dest_token,source_amount,dest_amount,source_amount_usd,payload)
+        SELECT 'extra-'||i,'','SUCCESS','2026-09-20T00:00:00Z','zec','ZEC','test'||i,'TOK',1,2,100,
+          jsonb_build_object('originAsset','zec','destinationAsset','asset-'||i)
+        FROM generate_series(1,105)i`);
+      const expanded = await readAnalytics(
+        db,
+        { period: "30d" },
+        { v2: true, now },
+      );
+      assert.equal(expanded.routes.length, 100);
+      assert.equal(expanded.flows.length, 106);
+      assert.equal(expanded.tokenFlows.length, 106);
+      assert.equal(
+        expanded.tokenFlows.reduce((n, r) => n + r.swaps, 0),
+        expanded.summary.swaps,
+      );
+      assert.equal(
+        expanded.chainHistory.reduce((n, r) => n + r.swaps, 0),
+        expanded.summary.swaps,
+      );
+      assert.equal(
+        expanded.chainOutcomes.reduce((n, r) => n + r.count, 0),
+        expanded.statuses.reduce((n, r) => n + r.count, 0),
+      );
     } finally {
       if (db) await db.end();
       await admin.query(`DROP DATABASE IF EXISTS ${name}`);

@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useApiQuery } from "@/hooks/useApiQuery";
 import { TokenChainIcon } from "@/components/TokenChainIcon";
 import { LatencyComparisonChart } from "./LatencyComparisonChart";
+import { ChainHistory } from "./ChainHistory";
+import { OutcomeBreakdown } from "./OutcomeBreakdown";
 import { ChainFlowOverview } from "./ChainFlowOverview";
 import { PageSectionNav } from "@/components/PageSectionNav";
 import { ActivityCharts } from "./ActivityCharts";
@@ -22,9 +24,8 @@ import {
 } from "./model";
 const SECTIONS = [
   { id: "overview", label: "Overview" },
-  { id: "flows", label: "Chain flows" },
-  { id: "routes", label: "Top pairs" },
-  { id: "swaps", label: "Recent swaps" },
+  { id: "flows", label: "Flows" },
+  { id: "swaps", label: "Swaps" },
   { id: "ecosystem", label: "Ecosystem" },
 ];
 export function CrosschainDashboard({
@@ -120,12 +121,8 @@ export function CrosschainDashboard({
           </p>
         </aside>
       )}
-      <PageSectionNav
-        sections={SECTIONS}
-        ariaLabel="Cross-chain sections"
-        actions={unitToggle}
-      />
-      <section id="overview" className="space-y-4">
+      <PageSectionNav sections={SECTIONS} ariaLabel="Cross-chain sections" />
+      <section id="overview" className="space-y-4 scroll-mt-40">
         <div className="flex flex-wrap justify-between items-center gap-3">
           <nav aria-label="Analytics period" className="filter-group flex-wrap">
             {PERIODS.map((p) => (
@@ -139,9 +136,7 @@ export function CrosschainDashboard({
               </Link>
             ))}
           </nav>
-          <span className="text-xs text-muted font-mono">
-            {date(data.start)} — {date(data.end)}
-          </span>
+          {unitToggle}
         </div>
         <p className="text-xs text-muted">
           History from {c.earliest ? date(c.earliest).slice(0, 10) : "unknown"}
@@ -181,160 +176,195 @@ export function CrosschainDashboard({
         </div>
         <ActivityCharts data={data} unit={unit} />
       </section>
-      <ChainFlowOverview flows={data.flows || []} unit={unit} period={period} />
-      <div id="routes" className="grid lg:grid-cols-2 gap-4">
-        <ActivityCharts data={data} unit={unit} panel="sizes" />
-        <section className="card space-y-4">
-          <h2 className="text-sm text-secondary font-mono">Top pairs</h2>
-          <p className="text-xs text-muted">
-            Most swapped pairs. Select a pair to see its swaps.
-          </p>
-          <div className="space-y-2">
-            {routes.map((r, i) => (
+      <section id="flows" className="space-y-4 scroll-mt-40">
+        <ChainFlowOverview
+          flows={data.flows || []}
+          tokenFlows={data.tokenFlows}
+          unit={unit}
+          period={period}
+        />
+        <ChainHistory data={data} />
+        <div id="routes" className="grid lg:grid-cols-2 gap-4">
+          <ActivityCharts data={data} unit={unit} panel="sizes" />
+          <section className="card space-y-4">
+            <h2 className="text-sm text-secondary font-mono">Top pairs</h2>
+            <p className="text-xs text-muted">
+              Most swapped pairs. Select a pair to see its swaps.
+            </p>
+            <div className="space-y-2">
+              {routes.map((r, i) => (
+                <SwapFilterLink
+                  scrollToSwaps
+                  key={i}
+                  title={`Median ${value(r[`median_${unit}`], unit)} · ${r.source_asset || r.source_token} → ${r.dest_asset || r.dest_token}`}
+                  className="relative flex items-center justify-between gap-3 rounded-lg px-3 py-3 hover:bg-glass-3"
+                  href={
+                    href({
+                      period,
+                      direction: r.direction,
+                      status: "SUCCESS",
+                      sourceAsset: r.source_asset || "",
+                      destAsset: r.dest_asset || "",
+                      chain:
+                        r.direction === "inflow"
+                          ? r.source_chain
+                          : r.dest_chain,
+                      token:
+                        r.direction === "inflow"
+                          ? r.source_token
+                          : r.dest_token,
+                    }) + "#swaps"
+                  }
+                >
+                  <span
+                    className="absolute inset-y-0 left-0 rounded-lg bg-glass-3"
+                    style={{
+                      width: `${(r.swaps / Math.max(1, data.routes[0]?.swaps || 1)) * 100}%`,
+                    }}
+                    aria-hidden="true"
+                  />
+                  <span className="relative text-xs">
+                    <span className="flex items-center gap-2 text-secondary">
+                      <TokenChainIcon
+                        token={r.source_token}
+                        chain={r.source_chain}
+                        size={22}
+                      />
+                      {r.source_token} →
+                      <TokenChainIcon
+                        token={r.dest_token}
+                        chain={r.dest_chain}
+                        size={22}
+                      />
+                      {r.dest_token}
+                    </span>
+                    <span className="block text-muted mt-1">
+                      {CHAINS[r.source_chain] || r.source_chain} →{" "}
+                      {CHAINS[r.dest_chain] || r.dest_chain}
+                    </span>
+                  </span>
+                  <span className="relative text-right text-xs whitespace-nowrap">
+                    <span className="block font-mono">
+                      {r.swaps.toLocaleString()} swaps
+                    </span>
+                    <span className="text-muted">
+                      {value(r[`volume_${unit}`], unit)}
+                    </span>
+                  </span>
+                </SwapFilterLink>
+              ))}
+            </div>
+            {!routes.length && (
+              <p className="text-xs text-muted">No pairs in this period.</p>
+            )}
+            {data.routes.length > 6 && (
+              <button
+                className="text-xs text-cipher-gold"
+                onClick={() => setAllRoutes(!allRoutes)}
+              >
+                {allRoutes
+                  ? "Show fewer pairs"
+                  : `Show ${data.routes.length - 6} more pairs →`}
+              </button>
+            )}
+          </section>
+        </div>
+      </section>
+      <section id="swaps" className="space-y-4 scroll-mt-40">
+        <section className="card space-y-4" aria-label="Swap outcomes">
+          <h2
+            className="text-sm text-secondary font-mono"
+            title="Latest observed statuses for records created in the selected period. Awaiting deposits may be unfunded quotes."
+          >
+            Swap outcomes
+          </h2>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+            {[
+              "SUCCESS",
+              "REFUNDED",
+              "FAILED",
+              "PROCESSING",
+              "PENDING_DEPOSIT",
+              "INCOMPLETE_DEPOSIT",
+            ].map((status) => (
               <SwapFilterLink
                 scrollToSwaps
-                key={i}
-                title={`Median ${value(r[`median_${unit}`], unit)} · ${r.source_asset || r.source_token} → ${r.dest_asset || r.dest_token}`}
-                className="relative flex items-center justify-between gap-3 rounded-lg px-3 py-3 hover:bg-glass-3"
-                href={
-                  href({
-                    period,
-                    direction: r.direction,
-                    status: "SUCCESS",
-                    sourceAsset: r.source_asset || "",
-                    destAsset: r.dest_asset || "",
-                    chain:
-                      r.direction === "inflow" ? r.source_chain : r.dest_chain,
-                    token:
-                      r.direction === "inflow" ? r.source_token : r.dest_token,
-                  }) + "#swaps"
-                }
+                key={status}
+                href={href({ period, status }) + "#swaps"}
+                className="rounded-lg bg-glass-3 p-3 hover:bg-glass-5"
               >
-                <span
-                  className="absolute inset-y-0 left-0 rounded-lg bg-glass-3"
-                  style={{
-                    width: `${(r.swaps / Math.max(1, data.routes[0]?.swaps || 1)) * 100}%`,
-                  }}
-                  aria-hidden="true"
-                />
-                <span className="relative text-xs">
-                  <span className="flex items-center gap-2 text-secondary">
-                    <TokenChainIcon
-                      token={r.source_token}
-                      chain={r.source_chain}
-                      size={22}
-                    />
-                    {r.source_token} →
-                    <TokenChainIcon
-                      token={r.dest_token}
-                      chain={r.dest_chain}
-                      size={22}
-                    />
-                    {r.dest_token}
-                  </span>
-                  <span className="block text-muted mt-1">
-                    {CHAINS[r.source_chain] || r.source_chain} →{" "}
-                    {CHAINS[r.dest_chain] || r.dest_chain}
-                  </span>
-                </span>
-                <span className="relative text-right text-xs whitespace-nowrap">
-                  <span className="block font-mono">
-                    {r.swaps.toLocaleString()} swaps
-                  </span>
-                  <span className="text-muted">
-                    {value(r[`volume_${unit}`], unit)}
-                  </span>
-                </span>
+                <p className="text-caption text-muted break-words">
+                  {
+                    (
+                      {
+                        SUCCESS: "Completed",
+                        REFUNDED: "Refunded",
+                        FAILED: "Failed",
+                        PROCESSING: "Processing",
+                        PENDING_DEPOSIT: "Awaiting deposit",
+                        INCOMPLETE_DEPOSIT: "Incomplete deposit",
+                      } as Record<string, string>
+                    )[status]
+                  }
+                </p>
+                <p className="font-mono text-lg mt-1">
+                  {c.statusesAvailable.includes(status)
+                    ? (
+                        data.statuses.find((s) => s.status === status)?.count ||
+                        0
+                      ).toLocaleString()
+                    : "Unavailable"}
+                </p>
               </SwapFilterLink>
             ))}
           </div>
-          {!routes.length && (
-            <p className="text-xs text-muted">No pairs in this period.</p>
-          )}
-          {data.routes.length > 6 && (
-            <button
-              className="text-xs text-cipher-gold"
-              onClick={() => setAllRoutes(!allRoutes)}
-            >
-              {allRoutes
-                ? "Show fewer pairs"
-                : `Show ${data.routes.length - 6} more pairs →`}
-            </button>
-          )}
+          <OutcomeBreakdown data={data} />
         </section>
-      </div>
-      <section className="card space-y-4" aria-label="Swap outcomes">
-        <h2
-          className="text-sm text-secondary font-mono"
-          title="Latest observed statuses for records created in the selected period. Awaiting deposits may be unfunded quotes."
-        >
-          Swap outcomes
-        </h2>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-          {[
-            "SUCCESS",
-            "REFUNDED",
-            "FAILED",
-            "PROCESSING",
-            "PENDING_DEPOSIT",
-            "INCOMPLETE_DEPOSIT",
-          ].map((status) => (
-            <SwapFilterLink
-              scrollToSwaps
-              key={status}
-              href={href({ period, status }) + "#swaps"}
-              className="rounded-lg bg-glass-3 p-3 hover:bg-glass-5"
-            >
-              <p className="text-caption text-muted break-words">
-                {
-                  (
-                    {
-                      SUCCESS: "Completed",
-                      REFUNDED: "Refunded",
-                      FAILED: "Failed",
-                      PROCESSING: "Processing",
-                      PENDING_DEPOSIT: "Awaiting deposit",
-                      INCOMPLETE_DEPOSIT: "Incomplete deposit",
-                    } as Record<string, string>
-                  )[status]
-                }
-              </p>
-              <p className="font-mono text-lg mt-1">
-                {c.statusesAvailable.includes(status)
-                  ? (
-                      data.statuses.find((s) => s.status === status)?.count || 0
-                    ).toLocaleString()
-                  : "Unavailable"}
-              </p>
-            </SwapFilterLink>
-          ))}
-        </div>
+        <SwapExplorer unit={unit} statuses={c.statusesAvailable} />
       </section>
-      <SwapExplorer unit={unit} statuses={c.statusesAvailable} />
-      {data.latency.length > 0 && (
-        <LatencyComparisonChart
-          inbound={data.latency
-            .filter((r) => r.direction === "inflow")
-            .map((r) => ({
-              chain: r.chain,
-              chainName: CHAINS[r.chain] || r.chain,
-              medianMinutes: r.median_minutes,
-              swapCount: r.samples,
-            }))}
-          outbound={data.latency
-            .filter((r) => r.direction === "outflow")
-            .map((r) => ({
-              chain: r.chain,
-              chainName: CHAINS[r.chain] || r.chain,
-              medianMinutes: r.median_minutes,
-              swapCount: r.samples,
-            }))}
-        />
-      )}
+      <section id="ecosystem" className="space-y-3 scroll-mt-40">
+        {wrapped.data && (
+          <WrappedZecTracker
+            assets={wrapped.data.assets}
+            totalWrapped={wrapped.data.totalWrapped}
+            unit="zec"
+          />
+        )}
+        {wrapped.error && (
+          <p className="text-xs text-muted">
+            Wrapped-token supply is temporarily unavailable.
+          </p>
+        )}
+        <p className="text-xs text-muted">
+          Token supplies are separate contract observations, not swap volumes or
+          a proof of reserves. Their sum is not a measure of unique backing.
+        </p>
+      </section>
       <details className="card">
         <summary className="cursor-pointer text-sm text-secondary font-mono">
-          More analytics
+          Confirmation times & more
         </summary>
+        {data.latency.length > 0 && (
+          <LatencyComparisonChart
+            inbound={data.latency
+              .filter((r) => r.direction === "inflow")
+              .map((r) => ({
+                chain: r.chain,
+                chainName: CHAINS[r.chain] || r.chain,
+                medianMinutes: r.median_minutes,
+                swapCount: r.samples,
+              }))}
+            outbound={data.latency
+              .filter((r) => r.direction === "outflow")
+              .map((r) => ({
+                chain: r.chain,
+                chainName: CHAINS[r.chain] || r.chain,
+                medianMinutes: r.median_minutes,
+                swapCount: r.samples,
+              }))}
+          />
+        )}
+
         <div className="grid sm:grid-cols-2 gap-4 my-4 text-xs text-muted">
           <p>
             Median swap:{" "}
@@ -421,24 +451,6 @@ export function CrosschainDashboard({
           </div>
         </section>
       </details>
-      <section id="ecosystem" className="space-y-3">
-        {wrapped.data && (
-          <WrappedZecTracker
-            assets={wrapped.data.assets}
-            totalWrapped={wrapped.data.totalWrapped}
-            unit="zec"
-          />
-        )}
-        {wrapped.error && (
-          <p className="text-xs text-muted">
-            Wrapped-token supply is temporarily unavailable.
-          </p>
-        )}
-        <p className="text-xs text-muted">
-          Token supplies are separate contract observations, not swap volumes or
-          a proof of reserves. Their sum is not a measure of unique backing.
-        </p>
-      </section>
       <details id="data-details" className="card text-xs text-muted space-y-3">
         <summary className="cursor-pointer text-sm text-secondary">
           Data coverage & methodology
@@ -507,6 +519,20 @@ export function CrosschainDashboard({
         <p>
           Swap sizes use reported dollar values; swaps with missing USD values
           are excluded.
+        </p>
+        <p>
+          Chain history shows weekly net native ZEC on successful external
+          routes. Missing ZEC amounts leave the cell unavailable; unverified
+          empty intervals stay gaps. Token flows group reported symbols within
+          each chain; matching symbols are not proof of identical assets.
+        </p>
+        <p>
+          Timeline comparisons use separate daily reference datasets. Swap
+          activity is aggregated daily while a comparison is open; an unknown
+          hour leaves a daily gap. First and last days can be partial. Price
+          comes from valuation history; net shielding is public shielding minus
+          deshielding, not a change in total shielded balances or evidence of
+          swap proceeds being shielded.
         </p>
         <p>{c.note}</p>
         <p>{data.volumeDefinition}</p>

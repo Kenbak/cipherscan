@@ -115,7 +115,7 @@ router.get('/api/pools/flows', async (req, res) => {
     const format = req.query.format || 'zec'; // 'zec' (default) or 'zatoshi'
     const useZat = format === 'zatoshi';
     const isHourly = granularity === 'hourly';
-    const cacheKey = `zcash:pools:flows:${period}:${poolFilter}:${granularity}:${format}`;
+    const cacheKey = `zcash:pools:flows:v3:${period}:${poolFilter}:${granularity}:${format}`;
     const cacheTtl = isHourly ? 120 : 300;
 
     const data = await cached(cacheKey, cacheTtl, async () => {
@@ -130,7 +130,7 @@ router.get('/api/pools/flows', async (req, res) => {
       let result;
       if (isHourly) {
         result = await pool.query(`
-          SELECT DATE_TRUNC('hour', TO_TIMESTAMP(block_time)) as bucket,
+          SELECT DATE_TRUNC('hour', TO_TIMESTAMP(block_time) AT TIME ZONE 'UTC') AT TIME ZONE 'UTC' as bucket,
                  flow_type, pool,
                  SUM(amount_zat) as total_zat, COUNT(*) as tx_count
           FROM shielded_flows
@@ -141,14 +141,14 @@ router.get('/api/pools/flows', async (req, res) => {
       } else {
         try {
           result = await pool.query(`
-            SELECT date, flow_type, pool, total_zat, tx_count
+            SELECT date::text AS date, flow_type, pool, total_zat, tx_count
             FROM flow_daily
-            WHERE date >= DATE(TO_TIMESTAMP($1))${poolFilter !== 'all' ? ' AND pool = $2' : ''}
+            WHERE date >= (TO_TIMESTAMP($1) AT TIME ZONE 'UTC')::date${poolFilter !== 'all' ? ' AND pool = $2' : ''}
             ORDER BY date
           `, params);
         } catch {
           result = await pool.query(`
-            SELECT DATE(TO_TIMESTAMP(block_time)) as date, flow_type, pool,
+            SELECT (TO_TIMESTAMP(block_time) AT TIME ZONE 'UTC')::date::text as date, flow_type, pool,
                    SUM(amount_zat) as total_zat, COUNT(*) as tx_count
             FROM shielded_flows
             WHERE block_time >= $1${poolClause}

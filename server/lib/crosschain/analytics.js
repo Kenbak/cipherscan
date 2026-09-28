@@ -282,6 +282,40 @@ async function readAnalytics(pool, q, { v2 = false, now = new Date() } = {}) {
         params,
       )
     ).rows;
+    const tokenFlows = (
+      await db.query(
+        `${base} SELECT
+      CASE WHEN direction='inflow' THEN source_chain ELSE dest_chain END AS chain,
+      CASE WHEN direction='inflow' THEN source_token ELSE dest_token END AS token,
+      NULL::text AS asset,
+      count(*)::int AS swaps,
+      count(*) FILTER (WHERE direction='inflow')::int AS buy_swaps,
+      count(*) FILTER (WHERE direction='outflow')::int AS sell_swaps,${flowColumns}
+      FROM successful GROUP BY 1,2 ORDER BY count(*) DESC,1,2`,
+        params,
+      )
+    ).rows;
+    const chainHistory = (
+      await db.query(
+        `${base} SELECT
+      date_trunc('week',swap_created_at) AS bucket,
+      CASE WHEN direction='inflow' THEN source_chain ELSE dest_chain END AS chain,
+      count(*)::int AS swaps,
+      count(*) FILTER (WHERE zec_amount IS NULL)::int AS missing_zec,
+      CASE WHEN count(zec_amount)<count(*) THEN NULL
+        ELSE sum(CASE WHEN direction='inflow' THEN zec_amount ELSE -zec_amount END)::text END AS net_zec
+      FROM successful GROUP BY 1,2 ORDER BY 1,2`,
+        params,
+      )
+    ).rows.map((r) => ({ ...r, bucket: iso(r.bucket) }));
+    const chainOutcomes = (
+      await db.query(
+        `${base} SELECT
+      CASE WHEN direction='inflow' THEN source_chain ELSE dest_chain END AS chain,
+      status,count(*)::int AS count FROM selected GROUP BY 1,2 ORDER BY 1,2`,
+        params,
+      )
+    ).rows;
     const routes = (
       await db.query(
         `${base} SELECT source_chain,source_token,dest_chain,dest_token,direction,
@@ -333,6 +367,9 @@ async function readAnalytics(pool, q, { v2 = false, now = new Date() } = {}) {
       distribution,
       routes,
       flows,
+      tokenFlows,
+      chainHistory,
+      chainOutcomes,
       latency,
       referrals,
       latencyDefinition:

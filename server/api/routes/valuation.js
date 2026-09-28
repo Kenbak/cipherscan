@@ -87,11 +87,11 @@ router.get('/api/valuation/snapshot', async (req, res) => {
 router.get('/api/valuation/history', async (req, res) => {
   try {
     const days = parsePeriod(req.query.period);
-    const cacheKey = `zcash:valuation:v2:history:${days}`;
+    const cacheKey = `zcash:valuation:v3:history:${days}`;
 
     const data = await cached(cacheKey, 600, async () => {
       const { rows } = await pool.query(`
-        SELECT m.date,
+        SELECT m.date::text AS date,
                p.price_usd,
                m.realized_price,
                m.mvrv,
@@ -103,7 +103,7 @@ router.get('/api/valuation/history', async (req, res) => {
                m.shielded_realized_cap_usd
         FROM mvrv_daily m
         LEFT JOIN zec_price_daily p ON p.date = m.date
-        WHERE m.date >= CURRENT_DATE - $1::int
+        WHERE m.date >= (NOW() AT TIME ZONE 'UTC')::date - $1::int
         ORDER BY m.date ASC
       `, [days]);
 

@@ -144,6 +144,18 @@ export interface Analytics {
     inflow_zec: Amount;
     outflow_zec: Amount;
   }[];
+  tokenFlows?: (Analytics["flows"][number] & {
+    token: string;
+    asset: string | null;
+  })[];
+  chainHistory?: {
+    bucket: string;
+    chain: string;
+    swaps: number;
+    missing_zec: number;
+    net_zec: Amount;
+  }[];
+  chainOutcomes?: { chain: string; status: string; count: number }[];
   routes: Route[];
   distribution: {
     bucket: number;

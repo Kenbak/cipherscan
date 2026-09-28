@@ -19,20 +19,36 @@ import { Analytics, CHAINS, Unit, href, value } from "./model";
 
 export function ChainFlowOverview({
   flows,
+  tokenFlows,
   unit,
   period,
 }: {
   flows: Analytics["flows"];
+  tokenFlows: Analytics["tokenFlows"];
   unit: Unit;
   period: string;
 }) {
+  const [group, setGroup] = useState<"chains" | "tokens">("chains");
   const [showAll, setShowAll] = useState(false);
   const [metric, setMetric] = useState<"volume" | "count">("volume");
   const { theme } = useTheme();
   const colors = getChartColors(theme);
-  const rows = flows
+  const grouped =
+    group === "chains"
+      ? flows.map((f) => ({
+          ...f,
+          token: f.chain,
+          asset: null as string | null,
+          label: CHAINS[f.chain] || f.chain,
+        }))
+      : (tokenFlows || []).map((f) => ({
+          ...f,
+          label: `${f.token} · ${CHAINS[f.chain] || f.chain}`,
+        }));
+  const rows = grouped
     .map((f) => ({
       ...f,
+      key: JSON.stringify([f.chain, f.token, f.asset]),
       incoming:
         metric === "count"
           ? f.buy_swaps
@@ -68,9 +84,9 @@ export function ChainFlowOverview({
       ? Math.abs(v).toLocaleString()
       : value(Math.abs(v), unit).replace(" ZEC", "");
   return (
-    <section id="flows">
+    <section>
       <ChartCard
-        title="Flow by chain"
+        title={group === "chains" ? "Flow by chain" : "Flow by token"}
         height={180}
         controls={
           <div
@@ -91,6 +107,25 @@ export function ChainFlowOverview({
           </div>
         }
       >
+        <div
+          className="filter-group mb-4"
+          role="group"
+          aria-label="Flow grouping"
+        >
+          {(["chains", "tokens"] as const).map((key) => (
+            <button
+              key={key}
+              aria-pressed={group === key}
+              onClick={() => {
+                setGroup(key);
+                setShowAll(false);
+              }}
+              className={`filter-btn ${group === key ? "filter-btn-active" : ""}`}
+            >
+              {key === "chains" ? "Chains" : "Tokens"}
+            </button>
+          ))}
+        </div>
         <p className="text-xs text-muted mb-5">
           Out of ZEC on the left. Into ZEC on the right. Hover for details.
         </p>
@@ -121,40 +156,44 @@ export function ChainFlowOverview({
                 />
                 <YAxis
                   type="category"
-                  dataKey="chain"
-                  width={122}
+                  dataKey="key"
+                  width={group === "tokens" ? 170 : 122}
                   tickLine={false}
                   axisLine={false}
-                  tick={({ x, y, payload }) => (
-                    <foreignObject
-                      x={Number(x) - 120}
-                      y={Number(y) - 16}
-                      width={112}
-                      height={32}
-                    >
-                      <SwapFilterLink
-                        scrollToSwaps
-                        className="flex h-full items-center justify-end gap-2 text-xs text-secondary hover:text-cipher-gold"
-                        href={
-                          href({
-                            period,
-                            chain: String(payload.value),
-                            status: "SUCCESS",
-                          }) + "#swaps"
-                        }
-                        aria-label={`View swaps for ${CHAINS[payload.value] || payload.value}`}
+                  tick={({ x, y, payload }) => {
+                    const row = rows.find((r) => r.key === payload.value)!;
+                    return (
+                      <foreignObject
+                        x={Number(x) - (group === "tokens" ? 168 : 120)}
+                        y={Number(y) - 16}
+                        width={group === "tokens" ? 160 : 112}
+                        height={32}
                       >
-                        <span className="truncate">
-                          {CHAINS[payload.value] || payload.value}
-                        </span>
-                        <TokenChainIcon
-                          token={payload.value}
-                          chain={payload.value}
-                          size={20}
-                        />
-                      </SwapFilterLink>
-                    </foreignObject>
-                  )}
+                        <SwapFilterLink
+                          scrollToSwaps
+                          className="flex h-full items-center justify-end gap-2 text-xs text-secondary hover:text-cipher-gold"
+                          href={
+                            href({
+                              period,
+                              chain: row.chain,
+                              ...(group === "tokens"
+                                ? { token: row.token }
+                                : {}),
+                              status: "SUCCESS",
+                            }) + "#swaps"
+                          }
+                          aria-label={`View swaps for ${row.label}`}
+                        >
+                          <span className="truncate">{row.label}</span>
+                          <TokenChainIcon
+                            token={row.token}
+                            chain={row.chain}
+                            size={20}
+                          />
+                        </SwapFilterLink>
+                      </foreignObject>
+                    );
+                  }}
                 />
                 <ReferenceLine x={0} stroke={colors.axis} />
                 <ChartTooltip
@@ -163,9 +202,7 @@ export function ChainFlowOverview({
                       (typeof rows)[number] | undefined;
                     return active && row ? (
                       <div style={getChartTooltipStyle(colors)}>
-                        <p className="text-secondary mb-2">
-                          {CHAINS[row.chain] || row.chain}
-                        </p>
+                        <p className="text-secondary mb-2">{row.label}</p>
                         <p className="text-cipher-orange">
                           Out of ZEC: {value(row[`outflow_${unit}`], unit)} ·{" "}
                           {row.sell_swaps.toLocaleString()} swaps
@@ -206,15 +243,13 @@ export function ChainFlowOverview({
                 onClick={() => setShowAll(!showAll)}
               >
                 {showAll
-                  ? "Show fewer chains"
-                  : `Show ${rows.length - 8} more chains →`}
+                  ? `Show fewer ${group}`
+                  : `Show ${rows.length - 8} more ${group} →`}
               </button>
             )}
           </>
         ) : (
-          <p className="text-xs text-muted py-8">
-            No chain flows in this period.
-          </p>
+          <p className="text-xs text-muted py-8">No flows in this period.</p>
         )}
       </ChartCard>
     </section>
