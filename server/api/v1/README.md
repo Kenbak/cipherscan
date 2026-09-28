@@ -208,6 +208,18 @@ AI in `dev:v1` or constitute production bot-protection verification.
 Only generic public explanations are cached for five minutes by model, locale,
 recipe, reviewed documents and evidence fingerprint. Arbitrary questions/history
 are not cached or logged by Ask. Audit infrastructure/APM logging separately.
+
+Page/chart explanations lead with measured findings and their significance,
+using server-calculated changes, concentration and recent pace. Balance overviews
+include exact totals and concentration across every selected pool; unknown
+endpoints and single snapshots do not produce aggregate change comparisons.
+The public-flow chart's **Explain this chart** action passes its validated pool
+and period recipe into the widget and starts one explanation. The backend fetches
+public observations again; browser HTML, rendered values and arbitrary queries
+are not evidence. Other chart controls are not automatically shared with Ask.
+English AI answers offer relevant follow-up questions; the shared allowlist
+preserves the exact recipe and skips classification for these bounded requests. The same model, provider-call caps and spending controls apply.
+
 The provider processes submitted text; `store:false` is not zero retention or
 end-to-end privacy. Off-topic intent filtering and provenance checks do not prove
 jailbreak resistance or semantic accuracy. Real-model multilingual/adversarial

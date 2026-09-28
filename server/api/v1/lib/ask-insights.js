@@ -9,7 +9,7 @@ const percentage = (numerator, denominator) => denominator > 0n
   ? ((abs(numerator) * 10000n + denominator / 2n) / denominator) * (numerator < 0n ? -1n : 1n) : null;
 const dateBefore = (date, days) => new Date(Date.parse(date) - days * DAY).toISOString().slice(0, 10);
 
-const analysisGuidance = `For data questions, lead with the strongest relevant finding and explain its significance, not a list of ending values. Use the supplied analysis: comparisons, changes in share, peak concentration, observed timing and recent pace. Choose at most two supporting observations that add different information. For an Orchard/Ironwood comparison, open with the shift in dominance and the combined percentage growth, using the two-pool denominator. Put at most one timing or pace finding next. Do not open by listing each pool's absolute movement when these stronger comparisons are available. Explain significance in plain language. Avoid analyst boilerplate such as "returned daily snapshot", "supplied window", or "not an exact crossing time"; say "first led in the daily records". Keep the whole answer around one hundred words. Name the denominator: the two pools' combined balance is not all shielded supply. Balance growth beyond an offsetting decline means redistribution alone cannot explain the combined change; it does not prove new capital, buying or an exact transfer route. A first-observed lead is a daily snapshot in this window, not a protocol activation date or an exact transfer time. Recent pace compares the two explicitly dated windows; it is not a forecast. When numeric change starts with a sign, prefer the unsigned movement fact with the supplied direction ("rose by", not "rose by +"). Use calendar coverage and null counts to qualify incomplete results. Do not call source observations current without a known observation date. Put any necessary methodological qualification in the limitation field only, never repeat cautions across summary and observations. Name denominators naturally in the finding rather than adding a separate exclusion disclaimer. Add a single short, relevant caveat only when it changes the interpretation; do not repeat generic statements about private wallets, identities, or missing causes. Do not say "the supplied data/documents" or narrate internal tools. If asked why, distinguish what the data demonstrates from causes that would need other evidence. Never invent a cause, trace private transfers, or calculate new numerical claims in prose. If an insight is unavailable, omit it rather than inventing one.`;
+const analysisGuidance = `For data questions, lead with the strongest relevant finding and explain its significance, not a list of ending values. Use the supplied analysis: comparisons, changes in share, peak concentration, observed timing and recent pace. Choose at most two supporting observations that add different information. For an Orchard/Ironwood comparison, open with the shift in dominance and the combined percentage growth, using the two-pool denominator. Put at most one timing or pace finding next. Do not open by listing each pool's absolute movement when these stronger comparisons are available. Explain significance in plain language. Avoid analyst boilerplate such as "returned daily snapshot", "supplied window", or "not an exact crossing time"; say "first led in the daily records". Keep the whole answer around one hundred words. Name the denominator naturally, for example 'across Orchard and Ironwood' or 'across the selected pools'; do not follow an already explicit denominator with an exclusion disclaimer. Balance growth beyond an offsetting decline means redistribution alone cannot explain the combined change; it does not prove new capital, buying or an exact transfer route. A first-observed lead is a daily snapshot in this window, not a protocol activation date or an exact transfer time. Recent pace compares the two explicitly dated windows; it is not a forecast. When numeric change starts with a sign, prefer the unsigned movement fact with the supplied direction ("rose by", not "rose by +"). Use calendar coverage and null counts to qualify incomplete results. Do not call source observations current without a known observation date. Put any necessary methodological qualification in the limitation field only, never repeat cautions across summary and observations. Name denominators naturally in the finding rather than adding a separate exclusion disclaimer. Leave limitation empty by default. Add a single short, relevant caveat only when an actual coverage issue or a causal question changes the interpretation; do not repeat generic statements about private wallets, identities, or missing causes. Do not say "the supplied data/documents" or narrate internal tools. If asked why, distinguish what the data demonstrates from causes that would need other evidence. Never invent a cause, trace private transfers, or calculate new numerical claims in prose. If an insight is unavailable, omit it rather than inventing one.`;
 
 function buildInsights(evidence, spec, summary) {
   const facts = {};
@@ -121,7 +121,25 @@ function buildInsights(evidence, spec, summary) {
       scope: 'Totals of returned days in these two categories only. Shielding difference is public net flow; swap difference is tracked swap imbalance; transaction difference is a count comparison. None measures net capital or unique users.',
     };
   }
-  return { facts, analysis: { coverage, series: details, comparison } };
+  let selectedPools = null;
+  if (spec.metric === 'balances' && series.length > 1 && points.length > 1) {
+    const first = points[0]; const last = points.at(-1);
+    if (series.every(({ key }) => first.values[key] !== null && last.values[key] !== null)) {
+      const initial = series.reduce((sum, { key }) => sum + BigInt(first.values[key]), 0n);
+      const final = series.reduce((sum, { key }) => sum + BigInt(last.values[key]), 0n);
+      const leader = series.reduce((best, item) => BigInt(last.values[item.key]) > BigInt(last.values[best.key]) ? item : best);
+      selectedPools = {
+        denominator: series.map(item => item.label).join(' + '),
+        endBalance: quantity('selected_pools_balance', final),
+        movement: movement('selected_pools_movement', final - initial), direction: direction(final - initial),
+        relativeChange: percent('selected_pools_relative_change', percentage(abs(final - initial), initial)),
+        leadingPool: fact('selected_pools_leader', leader.label),
+        leadingShare: percent('selected_pools_leader_share', percentage(BigInt(last.values[leader.key]), final)),
+        scope: 'Selected pools only. Balance changes are not trading volume, unique users or proof of a transfer route.',
+      };
+    }
+  }
+  return { facts, analysis: { coverage, series: details, comparison, selectedPools } };
 }
 
 module.exports = { buildInsights, analysisGuidance };

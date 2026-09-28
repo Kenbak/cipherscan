@@ -33,6 +33,56 @@ test('pool comparison derives exact combined growth, shares and observed timing'
   assert.match(analysis.comparison.denominator, /not all shielded/);
 });
 
+test('overview totals and concentration use every selected pool, not only the migration pair', () => {
+  const evidence = sample('balances', 2);
+  evidence.series.push({ key: 'sapling', label: 'Sapling' });
+  evidence.points[0].values.sapling = zat(2000);
+  evidence.points[1].values.sapling = zat(2000);
+  const { facts, analysis } = analyze(evidence);
+  assert.equal(facts.selected_pools_balance, '3,030.00 ZEC');
+  assert.equal(facts.selected_pools_movement, '30.00 ZEC');
+  assert.equal(facts.selected_pools_relative_change, '1.00 %');
+  assert.equal(facts.selected_pools_leader, 'Sapling');
+  assert.equal(facts.selected_pools_leader_share, '66.01 %');
+  assert.equal(analysis.selectedPools.denominator, 'ironwood + orchard + Sapling');
+  evidence.points[0].values.sapling = null;
+  assert.equal(analyze(evidence).analysis.selectedPools, null);
+});
+
+test('page explanations receive analytical instructions and facts without another selection call', async () => {
+  let calls = 0;
+  const rows = Array.from({ length: 15 }, (_, i) => ({ date: day(i), ironwoodZat: zat(i * 80), orchardZat: zat(1000 - i * 50), saplingZat: zat(100), sproutZat: zat(10), hasPoolBreakdown: true }));
+  const source = { dispatch: async () => ({ ok: true, body: { points: rows } }) };
+  const result = await chat({ question: 'Explain this page', page: 'pools', context: spec, history: [], locale: 'en' }, async (body, task) => {
+    calls++;
+    assert.ok(body.evidence.analysis.selectedPools);
+    assert.equal(body.evidence.pool, spec.pool);
+    assert.match(body.page.scope, /Interpret the server-fetched/);
+    assert.match(task.instruction, /fact placeholders in the opening sentence/);
+    return { summary: 'Selected pools increased by {{selected_pools_movement}}.', observations: [], limitation: '', sources: ['pools'] };
+  }, source, AbortSignal.timeout(1000), '');
+  assert.equal(calls, 1);
+  assert.match(result.answer, /420.00 ZEC/);
+  assert.deepEqual(result.spec, spec);
+});
+
+test('suggested follow-ups retain the exact chart recipe without classification', async () => {
+  const { analysisFollowUps } = require('../../../../lib/ask/follow-ups');
+  const selected = { ...spec, pool: 'orchard', start: day(0), end: day(14) };
+  const rows = Array.from({ length: 15 }, (_, i) => ({ date: day(i), orchardZat: zat(1000 - i * 50), hasPoolBreakdown: true }));
+  let calls = 0;
+  const result = await chat({ question: analysisFollowUps(selected)[1], page: 'pools', context: selected, history: ['Explain this chart'], locale: 'auto' }, async (body, task) => {
+    calls++;
+    assert.equal(task.name, 'contextual_answer');
+    assert.equal(body.evidence.pool, 'orchard');
+    assert.equal(body.evidence.period, '90d');
+    return { summary: 'Orchard decreased by {{orchard_movement}}.', observations: [], limitation: '', sources: ['pools'] };
+  }, { dispatch: async () => ({ ok: true, body: { points: rows } }) }, AbortSignal.timeout(1000), '');
+  assert.equal(calls, 1);
+  assert.deepEqual(result.spec, selected);
+  assert.match(result.answer, /700.00 ZEC/);
+});
+
 test('missing observations never create daily windows or a false exact crossover', () => {
   const evidence = sample();
   evidence.points.splice(7, 1);
@@ -58,6 +108,7 @@ test('unknown endpoints, zero denominators and single snapshots do not invent co
   assert.equal(zero.analysis.comparison.firstObservedIronwoodLead, undefined);
   assert.equal(zero.analysis.series[0].strongestWeek, undefined);
   assert.equal(analyze(sample('balances', 1)).analysis.comparison, null);
+  assert.equal(analyze(sample('balances', 1)).analysis.selectedPools, null);
 });
 
 test('negative stock changes keep their direction, and already-leading pools get no invented crossover', () => {

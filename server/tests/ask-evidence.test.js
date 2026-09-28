@@ -18,6 +18,18 @@ const { formatValue, summarizeEvidence, fetchEvidence } = load('lib/ask/evidence
   './sources': require('../../lib/ask/sources'),
 });
 const sample = starters[0].spec;
+test('chart handoff carries a validated selection, with no page text or supplied facts', t => {
+  const originalWindow = global.window;
+  t.after(() => { if (originalWindow === undefined) delete global.window; else global.window = originalWindow; });
+  let event;
+  global.window = { location: { pathname: '/pools' }, dispatchEvent: value => { event = value; } };
+  const { openAskChart } = load('lib/ask/widget-context.ts', { './contract': require('../../lib/ask/contract') });
+  const selected = { ...sample, metric: 'flows', pool: 'orchard', period: '90d', view: 'bar' };
+  openAskChart(selected);
+  assert.deepEqual(event.detail, { pathname: '/pools', spec: selected });
+  assert.throws(() => openAskChart({ ...selected, pool: 'secret', facts: 'untrusted' }));
+  assert.match(require('../../lib/ask/follow-ups').analysisFollowUps(selected)[0], /busiest day/);
+});
 test('local dummy verification cannot activate in production, on remote hosts or with real keys', async t => {
   const originalEnv = process.env.NODE_ENV;
   const originalWindow = global.window;
