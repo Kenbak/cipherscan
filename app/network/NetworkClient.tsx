@@ -343,8 +343,8 @@ export default function NetworkClient({ initialData }: { initialData: NetworkPag
       </section>
 
       {!isCrosslink && <section id="network-activity" className="scroll-mt-36 mb-16">
-        <SectionHeading title="Block time & accounting" subtitle="Observed block cadence, fees, miner receipts and NSM reserve" />
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6"><BlockTimeChart /><NetworkAccounting /></div>
+        <SectionHeading title="Network activity" subtitle="Observed block cadence and active network accounting" />
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 [&>*:only-child]:col-span-full"><BlockTimeChart /><NetworkAccounting /></div>
       </section>}
       {stats.supply && (
         <>

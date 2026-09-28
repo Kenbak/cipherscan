@@ -1,11 +1,11 @@
 'use client';
 import { useState } from 'react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
-import { CURRENCY } from '@/lib/config';
+import { CURRENCY, NETWORK } from '@/lib/config';
 import { useApiQuery } from '@/hooks/useApiQuery';
 import { Card, CardBody } from '@/components/ui/Card';
 
-type Accounting = { success: boolean; nodeHeight: number; nsmBalanceZat: number | string | null; observedAt: string;
+type Accounting = { success: boolean; schedule: { network: string; nu7Height: number | null } | null; nodeHeight: number; nsmBalanceZat: number | string | null; observedAt: string;
   block: { height: number; feesPaidZat: number | string | null; feesToNsmZat: number | string | null; minerFeeAllocationZat: number | string | null;
     minerSubsidyZat: number | string | null; minerReceiptsZat: number | string | null; reissuanceZat: number | string | null } | null };
 
@@ -26,9 +26,15 @@ const historySeries = {
 
 export function NetworkAccounting() {
   const { data, loading, error } = useApiQuery<Accounting>('/api/network/accounting', undefined, { refreshInterval: 30_000 });
+  const activationHeight = data?.schedule?.nu7Height;
+  const expectedChain = NETWORK === 'mainnet' ? 'main' : NETWORK === 'testnet' ? 'test' : null;
+  const nu7Active = !error && data?.success === true && expectedChain !== null &&
+    data.schedule?.network === expectedChain && activationHeight != null &&
+    Number.isSafeInteger(activationHeight) && activationHeight > 0 && activationHeight <= 499_999_999 &&
+    Number.isSafeInteger(data.nodeHeight) && data.nodeHeight >= activationHeight && data.nodeHeight <= 499_999_999;
   const block = data?.block;
   const [metric, setMetric] = useState<keyof typeof historySeries>('fees');
-  const history = useApiQuery<History>('/api/network/accounting/history', { limit: 120 }, { refreshInterval: 15_000 });
+  const history = useApiQuery<History>('/api/network/accounting/history', { limit: 120 }, { enabled: nu7Active, refreshInterval: 15_000 });
   const points = (history.data?.points ?? []).flatMap((point, i, all) => {
     const plotted = { ...point, ...Object.fromEntries(Object.entries(point).filter(([key]) => key.endsWith('Zat'))
       .map(([key, value]) => [key + 'Display', value === null ? null : Number(value) / 1e8])) };
@@ -38,6 +44,7 @@ export function NetworkAccounting() {
   });
   const series = historySeries[metric];
   const hasValues = history.data?.points.some(point => series.some(([key]) => point[key] !== null));
+  if (!nu7Active) return null;
   return <Card><CardBody>
     <h2 className="text-sm font-mono text-primary mb-3">Fees, miner receipts &amp; NSM</h2>
     <p className="text-sm text-muted mb-4">{block ? `Canonical block ${block.height.toLocaleString()}` : loading ? 'Loading block accounting…' : 'Block accounting unavailable.'}</p>
