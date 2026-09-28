@@ -3,6 +3,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useApiQuery } from "@/hooks/useApiQuery";
 import { TokenChainIcon } from "@/components/TokenChainIcon";
+import { LatencyComparisonChart } from "./LatencyComparisonChart";
 import { ChainFlowOverview } from "./ChainFlowOverview";
 import { PageSectionNav } from "@/components/PageSectionNav";
 import { ActivityCharts } from "./ActivityCharts";
@@ -21,9 +22,8 @@ import {
 const SECTIONS = [
   { id: "overview", label: "Overview" },
   { id: "flows", label: "Chain flows" },
-  { id: "routes", label: "Routes" },
-  { id: "execution", label: "Outcomes & timing" },
-  { id: "swaps", label: "Swap explorer" },
+  { id: "routes", label: "Top pairs" },
+  { id: "swaps", label: "Recent swaps" },
   { id: "ecosystem", label: "Ecosystem" },
 ];
 export function CrosschainDashboard({
@@ -85,15 +85,11 @@ export function CrosschainDashboard({
   const missing = unit === "usd" ? s.missing_usd : s.missing_zec;
   const metrics = [
     [
-      "Observed volume",
+      "Volume",
       value(volume, unit),
       `${s.swaps.toLocaleString()} successful external swaps`,
     ],
-    [
-      "Swaps",
-      s.swaps.toLocaleString(),
-      "Successful external swaps in this period",
-    ],
+    ["Swaps", s.swaps.toLocaleString(), "Completed in the selected period"],
     [
       "Net flow",
       value(
@@ -102,27 +98,15 @@ export function CrosschainDashboard({
           : Number(inflow) - Number(outflow),
         unit,
       ),
-      "ZEC acquired minus ZEC exchanged",
+      `${value(inflow, unit)} in · ${value(outflow, unit)} out`,
     ],
     [
       "Average swap",
       value(s[`average_${unit}`], unit),
-      "Mean of swaps with a reported value",
-    ],
-    ["ZEC acquired", value(inflow, unit), "Destination asset is native ZEC"],
-    ["ZEC exchanged", value(outflow, unit), "Source asset is native ZEC"],
-    [
-      "Median swap",
-      value(s[`median_${unit}`], unit),
-      "Middle value among reported swap amounts",
-    ],
-    [
-      "Source addresses",
-      s.sender_addresses.toLocaleString(),
-      "Distinct chain + sender; not a count of people",
+      `Median ${value(s[`median_${unit}`], unit)}`,
     ],
   ];
-  const routes = allRoutes ? data.routes : data.routes.slice(0, 12);
+  const routes = allRoutes ? data.routes : data.routes.slice(0, 6);
   return (
     <div className="space-y-6" aria-busy={isRefreshing}>
       {IS_DEMO && (
@@ -130,13 +114,8 @@ export function CrosschainDashboard({
           className="card border-cipher-orange text-sm"
           aria-label="Preview data notice"
         >
-          <p className="text-cipher-orange font-mono">
-            Preview · simulated swap data
-          </p>
-          <p className="text-muted mt-2">
-            Charts and swaps use test records. IDs starting with “fixture-” are
-            examples, not real addresses or transactions. Production data has
-            not changed.
+          <p className="text-cipher-orange">
+            Demo preview · simulated swaps, not live market activity.
           </p>
         </aside>
       )}
@@ -163,6 +142,309 @@ export function CrosschainDashboard({
             {date(data.start)} — {date(data.end)}
           </span>
         </div>
+        <p className="text-xs text-muted">
+          History from {c.earliest ? date(c.earliest).slice(0, 10) : "unknown"}
+          {" · "}
+          <a href="#data-details" className="underline">
+            Coverage details
+          </a>
+          {(c.stale || error) && (
+            <span className="text-cipher-orange">
+              {" "}
+              ·{" "}
+              {error
+                ? "Refresh failed; showing last snapshot"
+                : "Data may be out of date"}
+            </span>
+          )}
+          {missing > 0 && (
+            <span className="text-cipher-orange">
+              {" "}
+              · {missing.toLocaleString()} swaps missing {unit.toUpperCase()}{" "}
+              values
+            </span>
+          )}
+        </p>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          {metrics.map(([label, v, hint]) => (
+            <div key={label} className="card">
+              <p className="text-caption text-muted uppercase font-mono">
+                {label}
+              </p>
+              <p className="text-2xl sm:text-3xl text-primary font-mono tabular-nums mt-2 break-words">
+                {v}
+              </p>
+              <p className="text-xs text-muted mt-2">{hint}</p>
+            </div>
+          ))}
+        </div>
+        <ActivityCharts data={data} unit={unit} />
+      </section>
+      <ChainFlowOverview flows={data.flows || []} unit={unit} period={period} />
+      <div id="routes" className="grid lg:grid-cols-2 gap-4">
+        <ActivityCharts data={data} unit={unit} panel="sizes" />
+        <section className="card space-y-4">
+          <h2 className="text-sm text-secondary font-mono">Top pairs</h2>
+          <p className="text-xs text-muted">
+            Most swapped pairs. Select a pair to see its swaps.
+          </p>
+          <div className="space-y-2">
+            {routes.map((r, i) => (
+              <Link
+                key={i}
+                title={`Median ${value(r[`median_${unit}`], unit)} · ${r.source_asset || r.source_token} → ${r.dest_asset || r.dest_token}`}
+                className="relative flex items-center justify-between gap-3 rounded-lg px-3 py-3 hover:bg-glass-3"
+                href={
+                  href({
+                    period,
+                    direction: r.direction,
+                    status: "SUCCESS",
+                    sourceAsset: r.source_asset || "",
+                    destAsset: r.dest_asset || "",
+                    chain:
+                      r.direction === "inflow" ? r.source_chain : r.dest_chain,
+                    token:
+                      r.direction === "inflow" ? r.source_token : r.dest_token,
+                  }) + "#swaps"
+                }
+              >
+                <span
+                  className="absolute inset-y-0 left-0 rounded-lg bg-glass-3"
+                  style={{
+                    width: `${(r.swaps / Math.max(1, data.routes[0]?.swaps || 1)) * 100}%`,
+                  }}
+                  aria-hidden="true"
+                />
+                <span className="relative text-xs">
+                  <span className="flex items-center gap-2 text-secondary">
+                    <TokenChainIcon
+                      token={r.source_token}
+                      chain={r.source_chain}
+                      size={22}
+                    />
+                    {r.source_token} →
+                    <TokenChainIcon
+                      token={r.dest_token}
+                      chain={r.dest_chain}
+                      size={22}
+                    />
+                    {r.dest_token}
+                  </span>
+                  <span className="block text-muted mt-1">
+                    {CHAINS[r.source_chain] || r.source_chain} →{" "}
+                    {CHAINS[r.dest_chain] || r.dest_chain}
+                  </span>
+                </span>
+                <span className="relative text-right text-xs whitespace-nowrap">
+                  <span className="block font-mono">
+                    {r.swaps.toLocaleString()} swaps
+                  </span>
+                  <span className="text-muted">
+                    {value(r[`volume_${unit}`], unit)}
+                  </span>
+                </span>
+              </Link>
+            ))}
+          </div>
+          {!routes.length && (
+            <p className="text-xs text-muted">No pairs in this period.</p>
+          )}
+          {data.routes.length > 6 && (
+            <button
+              className="text-xs text-cipher-gold"
+              onClick={() => setAllRoutes(!allRoutes)}
+            >
+              {allRoutes
+                ? "Show fewer pairs"
+                : `Show ${data.routes.length - 6} more pairs →`}
+            </button>
+          )}
+        </section>
+      </div>
+      <section className="card space-y-4" aria-label="Swap outcomes">
+        <h2
+          className="text-sm text-secondary font-mono"
+          title="Latest observed statuses for records created in the selected period. Awaiting deposits may be unfunded quotes."
+        >
+          Swap outcomes
+        </h2>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+          {[
+            "SUCCESS",
+            "REFUNDED",
+            "FAILED",
+            "PROCESSING",
+            "PENDING_DEPOSIT",
+            "INCOMPLETE_DEPOSIT",
+          ].map((status) => (
+            <Link
+              key={status}
+              href={href({ period, status }) + "#swaps"}
+              className="rounded-lg bg-glass-3 p-3 hover:bg-glass-5"
+            >
+              <p className="text-caption text-muted break-words">
+                {
+                  (
+                    {
+                      SUCCESS: "Completed",
+                      REFUNDED: "Refunded",
+                      FAILED: "Failed",
+                      PROCESSING: "Processing",
+                      PENDING_DEPOSIT: "Awaiting deposit",
+                      INCOMPLETE_DEPOSIT: "Incomplete deposit",
+                    } as Record<string, string>
+                  )[status]
+                }
+              </p>
+              <p className="font-mono text-lg mt-1">
+                {c.statusesAvailable.includes(status)
+                  ? (
+                      data.statuses.find((s) => s.status === status)?.count || 0
+                    ).toLocaleString()
+                  : "Unavailable"}
+              </p>
+            </Link>
+          ))}
+        </div>
+      </section>
+      <SwapExplorer
+        key={JSON.stringify(params)}
+        params={{ ...params, period }}
+        unit={unit}
+        statuses={c.statusesAvailable}
+      />
+      {data.latency.length > 0 && (
+        <LatencyComparisonChart
+          inbound={data.latency
+            .filter((r) => r.direction === "inflow")
+            .map((r) => ({
+              chain: r.chain,
+              chainName: CHAINS[r.chain] || r.chain,
+              medianMinutes: r.median_minutes,
+              swapCount: r.samples,
+            }))}
+          outbound={data.latency
+            .filter((r) => r.direction === "outflow")
+            .map((r) => ({
+              chain: r.chain,
+              chainName: CHAINS[r.chain] || r.chain,
+              medianMinutes: r.median_minutes,
+              swapCount: r.samples,
+            }))}
+        />
+      )}
+      <details className="card">
+        <summary className="cursor-pointer text-sm text-secondary font-mono">
+          More analytics
+        </summary>
+        <div className="grid sm:grid-cols-2 gap-4 my-4 text-xs text-muted">
+          <p>
+            Median swap:{" "}
+            <span className="text-primary">
+              {value(s[`median_${unit}`], unit)}
+            </span>
+          </p>
+          <p>
+            Distinct source addresses:{" "}
+            <span className="text-primary">
+              {s.sender_addresses.toLocaleString()}
+            </span>{" "}
+            (not a count of people)
+          </p>
+        </div>
+        <section id="execution" className="grid lg:grid-cols-2 gap-4">
+          <div className="card space-y-4">
+            <h2 className="text-sm text-secondary font-mono">
+              Reported referrals
+            </h2>
+            {data.referrals.length > 0 && (
+              <details>
+                <summary className="text-xs cursor-pointer text-secondary">
+                  Distribution channels · reported referrals
+                </summary>
+                <ul className="mt-3 text-xs space-y-2">
+                  {data.referrals.map((r) => (
+                    <li
+                      key={r.referral || "unknown"}
+                      className="flex gap-3 justify-between"
+                    >
+                      <span className="break-all">
+                        {r.referral || "Not reported"}
+                      </span>
+                      <span className="text-muted whitespace-nowrap">
+                        {r.successful} successful · {r.refunded} refunded ·{" "}
+                        {r.failed} failed / {r.observed}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </details>
+            )}
+          </div>
+          <div className="card space-y-4">
+            <h2 className="text-sm text-secondary font-mono">
+              Zcash confirmation leg
+            </h2>
+            <p className="text-xs text-muted">{data.latencyDefinition}</p>
+            <div className="overflow-x-auto max-h-[280px]">
+              <table className="w-full text-xs">
+                <thead className="text-muted text-left">
+                  <tr>
+                    <th className="py-2 font-normal">Route</th>
+                    <th className="font-normal">Median</th>
+                    <th className="font-normal">P90</th>
+                    <th className="font-normal">Samples</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.latency.map((r) => (
+                    <tr
+                      key={r.chain + r.direction}
+                      className="border-t border-cipher-border"
+                    >
+                      <td className="py-2 pr-3">
+                        {r.direction === "inflow"
+                          ? `${CHAINS[r.chain] || r.chain} → ZEC`
+                          : `ZEC → ${CHAINS[r.chain] || r.chain}`}
+                      </td>
+                      <td>{r.median_minutes.toFixed(1)}m</td>
+                      <td>{r.p90_minutes.toFixed(1)}m</td>
+                      <td>{r.samples.toLocaleString()}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {!data.latency.length && (
+              <p className="text-xs text-muted">
+                No qualifying matched samples.
+              </p>
+            )}
+          </div>
+        </section>
+      </details>
+      <section id="ecosystem" className="space-y-3">
+        {wrapped.data && (
+          <WrappedZecTracker
+            assets={wrapped.data.assets}
+            totalWrapped={wrapped.data.totalWrapped}
+            unit="zec"
+          />
+        )}
+        {wrapped.error && (
+          <p className="text-xs text-muted">
+            Wrapped-token supply is temporarily unavailable.
+          </p>
+        )}
+        <p className="text-xs text-muted">
+          Token supplies are separate contract observations, not swap volumes or
+          a proof of reserves. Their sum is not a measure of unique backing.
+        </p>
+      </section>
+      <details id="data-details" className="card text-xs text-muted space-y-3">
+        <summary className="cursor-pointer text-sm text-secondary">
+          Data coverage & methodology
+        </summary>
         <div className="rounded-lg border border-cipher-border p-4 text-xs text-muted space-y-2">
           <p>
             <span className="text-secondary">Indexed history:</span>{" "}
@@ -206,19 +488,6 @@ export function CrosschainDashboard({
             </p>
           )}
         </div>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          {metrics.map(([label, v, hint]) => (
-            <div key={label} className="card">
-              <p className="text-caption text-muted uppercase font-mono">
-                {label}
-              </p>
-              <p className="text-2xl sm:text-3xl text-primary font-mono tabular-nums mt-2 break-words">
-                {v}
-              </p>
-              <p className="text-xs text-muted mt-2">{hint}</p>
-            </div>
-          ))}
-        </div>
         <p className="text-xs text-muted">
           {unit === "zec"
             ? "ZEC uses actual reported swap amounts, never conversion at today’s price."
@@ -227,253 +496,20 @@ export function CrosschainDashboard({
           identity. Direction follows the asset route; an Intents-balance trade
           does not itself prove an on-chain deposit or withdrawal.
         </p>
-        <ActivityCharts data={data} unit={unit} />
-      </section>
-      <ChainFlowOverview flows={data.flows || []} unit={unit} period={period} />
-      <section id="routes" className="card space-y-4">
-        <div className="flex justify-between flex-wrap gap-3">
-          <div>
-            <h2 className="text-sm text-secondary font-mono">Routes</h2>
-            <p className="text-xs text-muted mt-2">
-              Each route summarizes an asset pair across successful swaps in
-              this period. Open “View swaps” to see its individual transactions.
-              Ranked by count; up to 100 routes.
-            </p>
-          </div>
-          <button
-            onClick={() => setAllRoutes(!allRoutes)}
-            className="filter-btn"
-          >
-            {allRoutes ? "Show top 12" : "Show all routes"}
-          </button>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-xs text-left">
-            <thead className="text-muted">
-              <tr>
-                {[
-                  "Route",
-                  "Direction",
-                  "Swaps",
-                  `Volume · ${unit.toUpperCase()}`,
-                  `Median · ${unit.toUpperCase()}`,
-                  "Explore",
-                ].map((h) => (
-                  <th
-                    key={h}
-                    className="py-3 px-2 font-normal whitespace-nowrap"
-                  >
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {routes.map((r, i) => (
-                <tr key={i} className="border-t border-cipher-border">
-                  <td
-                    className="py-3 px-2 min-w-[200px]"
-                    title={`${r.source_asset || "Unknown asset"} → ${r.dest_asset || "Unknown asset"}`}
-                  >
-                    <span className="text-secondary flex items-center gap-2">
-                      <TokenChainIcon
-                        token={r.source_token}
-                        chain={r.source_chain}
-                        size={22}
-                      />
-                      {r.source_token}{" "}
-                      <span className="text-muted">
-                        {CHAINS[r.source_chain] || r.source_chain}
-                      </span>{" "}
-                      →{" "}
-                      <TokenChainIcon
-                        token={r.dest_token}
-                        chain={r.dest_chain}
-                        size={22}
-                      />{" "}
-                      {r.dest_token}{" "}
-                      <span className="text-muted">
-                        {CHAINS[r.dest_chain] || r.dest_chain}
-                      </span>
-                    </span>
-                  </td>
-                  <td
-                    className={
-                      r.direction === "inflow"
-                        ? "text-cipher-green"
-                        : "text-cipher-orange"
-                    }
-                  >
-                    {r.direction === "inflow"
-                      ? "ZEC acquired"
-                      : "ZEC exchanged"}
-                  </td>
-                  <td className="px-2 font-mono">{r.swaps.toLocaleString()}</td>
-                  <td className="px-2 font-mono whitespace-nowrap">
-                    {value(r[`volume_${unit}`], unit)}
-                  </td>
-                  <td className="px-2 font-mono whitespace-nowrap">
-                    {value(r[`median_${unit}`], unit)}
-                  </td>
-                  <td className="px-2">
-                    <Link
-                      className="text-cipher-gold"
-                      href={
-                        href({
-                          period,
-                          direction: r.direction,
-                          chain:
-                            r.direction === "inflow"
-                              ? r.source_chain
-                              : r.dest_chain,
-                          token:
-                            r.direction === "inflow"
-                              ? r.source_token
-                              : r.dest_token,
-                          status: "SUCCESS",
-                          sourceAsset: r.source_asset || "",
-                          destAsset: r.dest_asset || "",
-                        }) + "#swaps"
-                      }
-                    >
-                      View swaps →
-                    </Link>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        {!routes.length && (
-          <p className="text-muted text-sm">
-            No indexed successful external routes in this period.
-          </p>
-        )}
-      </section>
-      <section id="execution" className="grid lg:grid-cols-2 gap-4">
-        <div className="card space-y-4">
-          <h2 className="text-sm text-secondary font-mono">
-            Observed outcomes
-          </h2>
-          <p className="text-xs text-muted">
-            Statuses of swaps created in the selected period, as last observed.
-            These are counts in the index, not a guaranteed venue-wide success
-            rate. Pending deposits can be unfunded quotes and are not failed
-            trades.
-          </p>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            {[
-              "SUCCESS",
-              "REFUNDED",
-              "FAILED",
-              "PROCESSING",
-              "PENDING_DEPOSIT",
-              "INCOMPLETE_DEPOSIT",
-            ].map((status) => (
-              <div key={status}>
-                <p className="text-caption text-muted break-words">
-                  {status.replaceAll("_", " ")}
-                </p>
-                <p className="font-mono text-lg mt-1">
-                  {c.statusesAvailable.includes(status)
-                    ? (
-                        data.statuses.find((s) => s.status === status)?.count ||
-                        0
-                      ).toLocaleString()
-                    : "Unavailable"}
-                </p>
-              </div>
-            ))}
-          </div>
-          {data.referrals.length > 0 && (
-            <details>
-              <summary className="text-xs cursor-pointer text-secondary">
-                Distribution channels · reported referrals
-              </summary>
-              <ul className="mt-3 text-xs space-y-2">
-                {data.referrals.map((r) => (
-                  <li
-                    key={r.referral || "unknown"}
-                    className="flex gap-3 justify-between"
-                  >
-                    <span className="break-all">
-                      {r.referral || "Not reported"}
-                    </span>
-                    <span className="text-muted whitespace-nowrap">
-                      {r.successful} successful · {r.refunded} refunded ·{" "}
-                      {r.failed} failed / {r.observed}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </details>
-          )}
-        </div>
-        <div className="card space-y-4">
-          <h2 className="text-sm text-secondary font-mono">
-            Zcash confirmation leg
-          </h2>
-          <p className="text-xs text-muted">{data.latencyDefinition}</p>
-          <div className="overflow-x-auto max-h-[280px]">
-            <table className="w-full text-xs">
-              <thead className="text-muted text-left">
-                <tr>
-                  <th className="py-2 font-normal">Route</th>
-                  <th className="font-normal">Median</th>
-                  <th className="font-normal">P90</th>
-                  <th className="font-normal">Samples</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.latency.map((r) => (
-                  <tr
-                    key={r.chain + r.direction}
-                    className="border-t border-cipher-border"
-                  >
-                    <td className="py-2 pr-3">
-                      {r.direction === "inflow"
-                        ? `${CHAINS[r.chain] || r.chain} → ZEC`
-                        : `ZEC → ${CHAINS[r.chain] || r.chain}`}
-                    </td>
-                    <td>{r.median_minutes.toFixed(1)}m</td>
-                    <td>{r.p90_minutes.toFixed(1)}m</td>
-                    <td>{r.samples.toLocaleString()}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          {!data.latency.length && (
-            <p className="text-xs text-muted">No qualifying matched samples.</p>
-          )}
-        </div>
-      </section>
-      <SwapExplorer
-        key={JSON.stringify(params)}
-        params={{ ...params, period }}
-        unit={unit}
-        statuses={c.statusesAvailable}
-      />
-      <section id="ecosystem" className="space-y-3">
-        {wrapped.data && (
-          <WrappedZecTracker
-            assets={wrapped.data.assets}
-            totalWrapped={wrapped.data.totalWrapped}
-            unit="zec"
-          />
-        )}
-        {wrapped.error && (
-          <p className="text-xs text-muted">
-            Wrapped-token supply is temporarily unavailable.
-          </p>
-        )}
-        <p className="text-xs text-muted">
-          Token supplies are separate contract observations, not swap volumes or
-          a proof of reserves. Their sum is not a measure of unique backing.
+
+        <p>
+          Outcomes show the latest observed status for each record created in
+          the selected period. Awaiting deposits may be unfunded quotes. They
+          are not completed or failed swaps.
         </p>
-      </section>
-      <section className="text-xs text-muted space-y-2">
-        <h2 className="text-sm text-secondary">Data coverage & methodology</h2>
+        <p>
+          Charts use UTC intervals. The first and last intervals may be partial;
+          gaps indicate unknown coverage.
+        </p>
+        <p>
+          Swap sizes use reported dollar values; swaps with missing USD values
+          are excluded.
+        </p>
         <p>{c.note}</p>
         <p>{data.volumeDefinition}</p>
         <p>
@@ -489,7 +525,7 @@ export function CrosschainDashboard({
         >
           NEAR Explorer API definitions ↗
         </a>
-      </section>
+      </details>
     </div>
   );
 }

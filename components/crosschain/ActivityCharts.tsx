@@ -31,9 +31,11 @@ const BUCKETS = [
 export function ActivityCharts({
   data,
   unit,
+  panel = "volume",
 }: {
   data: Analytics;
   unit: Unit;
+  panel?: "volume" | "sizes";
 }) {
   const { theme } = useTheme(),
     colors = getChartColors(theme);
@@ -68,176 +70,177 @@ export function ActivityCharts({
     color: colors.tooltipText,
   };
   return (
-    <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
-      <ChartCard
-        title="Volume & activity"
-        className="xl:col-span-2"
-        height={300}
-        controls={
-          <div className="filter-group">
-            <button
-              className={`filter-btn ${view === "volume" ? "filter-btn-active" : ""}`}
-              aria-pressed={view === "volume"}
-              onClick={() => setView("volume")}
+    <>
+      {panel === "volume" && (
+        <ChartCard
+          title="Volume & activity"
+          height={300}
+          controls={
+            <div className="filter-group">
+              <button
+                className={`filter-btn ${view === "volume" ? "filter-btn-active" : ""}`}
+                aria-pressed={view === "volume"}
+                onClick={() => setView("volume")}
+              >
+                Volume
+              </button>
+              <button
+                className={`filter-btn ${view === "count" ? "filter-btn-active" : ""}`}
+                aria-pressed={view === "count"}
+                onClick={() => setView("count")}
+              >
+                Swaps
+              </button>
+            </div>
+          }
+        >
+          <p className="text-xs text-muted mb-4">
+            {data.granularity === "hour" ? "Hourly" : "Daily"} activity · UTC
+          </p>
+          <ResponsiveContainer width="100%" height={260} minWidth={0}>
+            <ComposedChart
+              data={points}
+              stackOffset="sign"
+              margin={{ left: 0, right: 8 }}
             >
-              Volume
-            </button>
-            <button
-              className={`filter-btn ${view === "count" ? "filter-btn-active" : ""}`}
-              aria-pressed={view === "count"}
-              onClick={() => setView("count")}
-            >
-              Swaps
-            </button>
-          </div>
-        }
-      >
-        <p className="text-xs text-muted mb-4">
-          {data.granularity === "hour" ? "Hourly" : "Daily"} UTC buckets ·
-          boundary buckets are partial · gaps are unknown.
-        </p>
-        <ResponsiveContainer width="100%" height={260} minWidth={0}>
-          <ComposedChart
-            data={points}
-            stackOffset="sign"
-            margin={{ left: 0, right: 8 }}
-          >
-            <CartesianGrid
-              stroke={colors.grid}
-              strokeDasharray="2 6"
-              vertical={false}
-            />
-            <XAxis
-              dataKey="label"
-              minTickGap={45}
-              tick={{ fill: colors.axis, fontSize: 12 }}
-            />
-            <YAxis
-              width={65}
-              tick={{ fill: colors.axis, fontSize: 12 }}
-              tickFormatter={(v) =>
-                view === "count"
-                  ? Number(v).toLocaleString()
-                  : value(v, unit).replace(" ZEC", "")
-              }
-            />
-            <Tooltip
-              contentStyle={tooltipStyle}
-              labelFormatter={(l) => `${l} UTC`}
-              formatter={(v, name) =>
-                view === "count"
-                  ? Number(v).toLocaleString()
-                  : value(
-                      v == null
-                        ? null
-                        : name === "Outflow"
-                          ? Math.abs(Number(v))
-                          : Number(v),
-                      unit,
-                    )
-              }
-            />
-            <ReferenceLine y={0} stroke={colors.axis} />
-            <Legend />
-            {view === "count" ? (
-              <Bar
-                dataKey="swaps"
-                name="Observed swaps"
-                fill="var(--color-cipher-gold)"
+              <CartesianGrid
+                stroke={colors.grid}
+                strokeDasharray="2 6"
+                vertical={false}
               />
-            ) : (
-              <>
+              <XAxis
+                dataKey="label"
+                minTickGap={45}
+                tick={{ fill: colors.axis, fontSize: 12 }}
+              />
+              <YAxis
+                width={65}
+                tick={{ fill: colors.axis, fontSize: 12 }}
+                tickFormatter={(v) =>
+                  view === "count"
+                    ? Number(v).toLocaleString()
+                    : value(v, unit).replace(" ZEC", "")
+                }
+              />
+              <Tooltip
+                contentStyle={tooltipStyle}
+                labelFormatter={(l) => `${l} UTC`}
+                formatter={(v, name) =>
+                  view === "count"
+                    ? Number(v).toLocaleString()
+                    : value(
+                        v == null
+                          ? null
+                          : name === "Outflow"
+                            ? Math.abs(Number(v))
+                            : Number(v),
+                        unit,
+                      )
+                }
+              />
+              <ReferenceLine y={0} stroke={colors.axis} />
+              <Legend />
+              {view === "count" ? (
                 <Bar
-                  stackId="flow"
-                  dataKey="Inflow"
-                  fill="var(--color-cipher-green)"
+                  dataKey="swaps"
+                  name="Observed swaps"
+                  fill="var(--color-cipher-gold)"
                 />
-                <Bar
-                  stackId="flow"
-                  dataKey="Outflow"
-                  fill="var(--color-cipher-orange)"
-                />
-                <Line
-                  dataKey="Net"
-                  stroke={colors.axis}
-                  dot={false}
-                  connectNulls={false}
-                />
-              </>
-            )}
-          </ComposedChart>
-        </ResponsiveContainer>
-      </ChartCard>
-      <ChartCard
-        title="Swap sizes"
-        height={300}
-        controls={
-          <div className="filter-group">
-            <button
-              className={`filter-btn ${sizeView === "count" ? "filter-btn-active" : ""}`}
-              aria-pressed={sizeView === "count"}
-              onClick={() => setSizeView("count")}
+              ) : (
+                <>
+                  <Bar
+                    stackId="flow"
+                    dataKey="Inflow"
+                    fill="var(--color-cipher-green)"
+                  />
+                  <Bar
+                    stackId="flow"
+                    dataKey="Outflow"
+                    fill="var(--color-cipher-orange)"
+                  />
+                  <Line
+                    dataKey="Net"
+                    stroke={colors.axis}
+                    dot={false}
+                    connectNulls={false}
+                  />
+                </>
+              )}
+            </ComposedChart>
+          </ResponsiveContainer>
+        </ChartCard>
+      )}
+      {panel === "sizes" && (
+        <ChartCard
+          title="Swap sizes"
+          height={300}
+          controls={
+            <div className="filter-group">
+              <button
+                className={`filter-btn ${sizeView === "count" ? "filter-btn-active" : ""}`}
+                aria-pressed={sizeView === "count"}
+                onClick={() => setSizeView("count")}
+              >
+                Count
+              </button>
+              <button
+                className={`filter-btn ${sizeView === "volume" ? "filter-btn-active" : ""}`}
+                aria-pressed={sizeView === "volume"}
+                onClick={() => setSizeView("volume")}
+              >
+                Volume
+              </button>
+            </div>
+          }
+        >
+          <p className="text-xs text-muted mb-4">
+            Swaps grouped by dollar value.
+          </p>
+          <ResponsiveContainer width="100%" height={260} minWidth={0}>
+            <BarChart
+              data={distribution}
+              layout="vertical"
+              margin={{ left: 5, right: 12 }}
             >
-              Count
-            </button>
-            <button
-              className={`filter-btn ${sizeView === "volume" ? "filter-btn-active" : ""}`}
-              aria-pressed={sizeView === "volume"}
-              onClick={() => setSizeView("volume")}
-            >
-              Volume
-            </button>
-          </div>
-        }
-      >
-        <p className="text-xs text-muted mb-4">
-          One successful swap per USD bucket. Both directions; missing USD
-          values excluded.
-        </p>
-        <ResponsiveContainer width="100%" height={260} minWidth={0}>
-          <BarChart
-            data={distribution}
-            layout="vertical"
-            margin={{ left: 5, right: 12 }}
-          >
-            <XAxis
-              type="number"
-              tick={{ fill: colors.axis, fontSize: 12 }}
-              tickFormatter={(v) =>
-                sizeView === "count"
-                  ? Number(v).toLocaleString()
-                  : value(v, unit).replace(" ZEC", "")
-              }
-            />
-            <YAxis
-              type="category"
-              dataKey="label"
-              width={78}
-              tick={{ fill: colors.axis, fontSize: 12 }}
-            />
-            <Tooltip
-              content={({ active, payload }) => {
-                const row = payload?.[0]?.payload as
-                  | { label: string; swaps: number; volume: number | null }
-                  | undefined;
-                return active && row ? (
-                  <div style={getChartTooltipStyle(colors)}>
-                    <p className="text-muted mb-2">{row.label}</p>
-                    <p>{row.swaps.toLocaleString()} swaps</p>
-                    <p>{value(row.volume, unit)} volume</p>
-                  </div>
-                ) : null;
-              }}
-            />
-            <Bar
-              dataKey={sizeView === "count" ? "swaps" : "volume"}
-              name={sizeView === "count" ? "Swaps" : "Volume"}
-              fill="var(--color-cipher-gold)"
-              radius={[0, 3, 3, 0]}
-            />
-          </BarChart>
-        </ResponsiveContainer>
-      </ChartCard>
-    </div>
+              <XAxis
+                type="number"
+                tick={{ fill: colors.axis, fontSize: 12 }}
+                tickFormatter={(v) =>
+                  sizeView === "count"
+                    ? Number(v).toLocaleString()
+                    : value(v, unit).replace(" ZEC", "")
+                }
+              />
+              <YAxis
+                type="category"
+                dataKey="label"
+                width={78}
+                tick={{ fill: colors.axis, fontSize: 12 }}
+              />
+              <Tooltip
+                content={({ active, payload }) => {
+                  const row = payload?.[0]?.payload as
+                    | { label: string; swaps: number; volume: number | null }
+                    | undefined;
+                  return active && row ? (
+                    <div style={getChartTooltipStyle(colors)}>
+                      <p className="text-muted mb-2">{row.label}</p>
+                      <p>{row.swaps.toLocaleString()} swaps</p>
+                      <p>{value(row.volume, unit)} volume</p>
+                    </div>
+                  ) : null;
+                }}
+              />
+              <Bar
+                dataKey={sizeView === "count" ? "swaps" : "volume"}
+                name={sizeView === "count" ? "Swaps" : "Volume"}
+                fill="var(--color-cipher-gold)"
+                radius={[0, 3, 3, 0]}
+              />
+            </BarChart>
+          </ResponsiveContainer>
+        </ChartCard>
+      )}
+    </>
   );
 }

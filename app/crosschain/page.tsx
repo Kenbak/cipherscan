@@ -88,8 +88,7 @@ export default async function CrosschainPage({
           title="ZEC Cross-Chain Analytics"
           subtitle={
             <span className="text-muted">
-              Indexed ZEC swaps, historical volume, routes and observed outcomes
-              through{" "}
+              Follow ZEC moving between chains through{" "}
               <a
                 href="https://near.org/intents"
                 target="_blank"

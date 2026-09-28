@@ -1,8 +1,22 @@
 "use client";
 import { useState } from "react";
 import Link from "next/link";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  ResponsiveContainer,
+  ReferenceLine,
+} from "recharts";
 import { TokenChainIcon } from "@/components/TokenChainIcon";
+import { ChartCard } from "@/components/network/ChartCard";
+import { ChartTooltip } from "@/components/charts/ChartTooltip";
+import { useTheme } from "@/contexts/ThemeContext";
+import { getChartColors, getChartTooltipStyle } from "@/lib/chart-theme";
 import { Analytics, CHAINS, Unit, href, value } from "./model";
+
 export function ChainFlowOverview({
   flows,
   unit,
@@ -12,196 +26,196 @@ export function ChainFlowOverview({
   unit: Unit;
   period: string;
 }) {
-  const [direction, setDirection] = useState<"all" | "inflow" | "outflow">(
-    "outflow",
+  const [showAll, setShowAll] = useState(false);
+  const [metric, setMetric] = useState<"volume" | "count">("volume");
+  const { theme } = useTheme();
+  const colors = getChartColors(theme);
+  const rows = flows
+    .map((f) => ({
+      ...f,
+      incoming:
+        metric === "count"
+          ? f.buy_swaps
+          : f[`inflow_${unit}`] == null
+            ? null
+            : Number(f[`inflow_${unit}`]),
+      outgoing:
+        metric === "count"
+          ? -f.sell_swaps
+          : f[`outflow_${unit}`] == null
+            ? null
+            : -Number(f[`outflow_${unit}`]),
+    }))
+    .sort(
+      (a, b) =>
+        Math.abs(b.incoming || 0) +
+          Math.abs(b.outgoing || 0) -
+          (Math.abs(a.incoming || 0) + Math.abs(a.outgoing || 0)) ||
+        a.chain.localeCompare(b.chain),
+    );
+  const visible = showAll ? rows : rows.slice(0, 8);
+  const peak = Math.max(
+    1,
+    ...visible.flatMap((r) => [
+      Math.abs(r.incoming || 0),
+      Math.abs(r.outgoing || 0),
+    ]),
   );
-  const [metric, setMetric] = useState<"count" | "volume">("count");
-  const score = (flow: Analytics["flows"][number]) => {
-    if (metric === "count")
-      return direction === "all"
-        ? flow.swaps
-        : direction === "inflow"
-          ? flow.buy_swaps
-          : flow.sell_swaps;
-    const incoming = flow[`inflow_${unit}`],
-      outgoing = flow[`outflow_${unit}`];
-    if (direction === "inflow")
-      return incoming == null ? -Infinity : Number(incoming);
-    if (direction === "outflow")
-      return outgoing == null ? -Infinity : Number(outgoing);
-    return incoming == null && outgoing == null
-      ? -Infinity
-      : Number(incoming || 0) + Number(outgoing || 0);
-  };
-  const rows = [...flows].sort(
-    (a, b) => score(b) - score(a) || a.chain.localeCompare(b.chain),
-  );
+  const step = 10 ** Math.max(0, Math.floor(Math.log10(peak)) - 1);
+  const extent = Math.ceil((peak * 1.08) / (2 * step)) * 2 * step;
+  const format = (v: number) =>
+    metric === "count"
+      ? Math.abs(v).toLocaleString()
+      : value(Math.abs(v), unit).replace(" ZEC", "");
   return (
-    <section id="flows" className="card space-y-4">
-      <h2 className="text-sm text-secondary font-mono">
-        Where ZEC is bought & sold
-      </h2>
-      <p className="text-xs text-muted">
-        Buy swaps acquire ZEC from the listed source chain; sell swaps exchange
-        ZEC into the listed destination chain. Rank every indexed chain by swap
-        count or volume in the selected period. Successful external routes only.
-      </p>
-      <div className="flex flex-wrap justify-between gap-3">
-        <div
-          role="group"
-          aria-label="Rank chains by direction"
-          className="filter-group"
-        >
-          {(
-            [
-              ["outflow", "ZEC sells"],
-              ["inflow", "ZEC buys"],
-              ["all", "All swaps"],
-            ] as const
-          ).map(([key, label]) => (
-            <button
-              key={key}
-              onClick={() => setDirection(key)}
-              aria-pressed={direction === key}
-              className={`filter-btn ${direction === key ? "filter-btn-active" : ""}`}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-        <div
-          role="group"
-          aria-label="Chain ranking metric"
-          className="filter-group"
-        >
-          {(["count", "volume"] as const).map((key) => (
-            <button
-              key={key}
-              onClick={() => setMetric(key)}
-              aria-pressed={metric === key}
-              className={`filter-btn ${metric === key ? "filter-btn-active" : ""}`}
-            >
-              {key === "count" ? "Swap count" : "Volume"}
-            </button>
-          ))}
-        </div>
-      </div>
-      <p className="text-xs text-muted">
-        Ranked by{" "}
-        {direction === "outflow"
-          ? "ZEC sells"
-          : direction === "inflow"
-            ? "ZEC buys"
-            : "all swaps"}{" "}
-        · {metric === "count" ? "swap count" : `${unit.toUpperCase()} volume`}.
-        Select a count to inspect those swaps.
-      </p>
-      <div className="overflow-x-auto">
-        <table
-          className="w-full text-xs text-left"
-          aria-label="Chain buy and sell ranking"
-        >
-          <thead className="text-muted">
-            <tr>
-              {[
-                "Rank",
-                "Chain",
-                "Buy swaps",
-                "Sell swaps",
-                `Acquired · ${unit.toUpperCase()}`,
-                `Exchanged · ${unit.toUpperCase()}`,
-                `Net · ${unit.toUpperCase()}`,
-              ].map((h) => (
-                <th key={h} className="py-3 px-2 font-normal whitespace-nowrap">
-                  {h}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((f, i) => {
-              const incoming = f[`inflow_${unit}`],
-                outgoing = f[`outflow_${unit}`];
-              const net =
-                incoming == null || outgoing == null
-                  ? null
-                  : Number(incoming) - Number(outgoing);
-              return (
-                <tr key={f.chain} className="border-t border-cipher-border">
-                  <td className="px-2 font-mono text-muted">{i + 1}</td>
-                  <td className="px-2 py-3">
-                    <Link
-                      className="text-cipher-gold inline-flex items-center gap-2"
-                      href={
-                        href({ period, chain: f.chain, status: "SUCCESS" }) +
-                        "#swaps"
-                      }
-                    >
-                      <TokenChainIcon
-                        token={f.chain}
-                        chain={f.chain}
-                        size={22}
-                      />
-                      {CHAINS[f.chain] || f.chain} →
-                    </Link>
-                  </td>
-                  <td className="px-2 font-mono">
-                    <Link
-                      className="text-cipher-green hover:underline"
-                      aria-label={`View ${f.buy_swaps} ZEC buys from ${CHAINS[f.chain] || f.chain}`}
-                      href={
-                        href({
-                          period,
-                          chain: f.chain,
-                          status: "SUCCESS",
-                          direction: "inflow",
-                        }) + "#swaps"
-                      }
-                    >
-                      {f.buy_swaps.toLocaleString()}
-                    </Link>
-                  </td>
-                  <td className="px-2 font-mono">
-                    <Link
-                      className="text-cipher-orange hover:underline"
-                      aria-label={`View ${f.sell_swaps} ZEC sells to ${CHAINS[f.chain] || f.chain}`}
-                      href={
-                        href({
-                          period,
-                          chain: f.chain,
-                          status: "SUCCESS",
-                          direction: "outflow",
-                        }) + "#swaps"
-                      }
-                    >
-                      {f.sell_swaps.toLocaleString()}
-                    </Link>
-                  </td>
-                  <td className="px-2 font-mono whitespace-nowrap text-cipher-green">
-                    {value(incoming, unit)}
-                  </td>
-                  <td className="px-2 font-mono whitespace-nowrap text-cipher-orange">
-                    {value(outgoing, unit)}
-                  </td>
-                  <td className="px-2 font-mono whitespace-nowrap">
-                    {net != null && net > 0 ? "+" : ""}
-                    {value(net, unit)}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-      <p className="text-xs text-muted">
-        Positive net means more ZEC acquired than exchanged. Missing values are
-        excluded as disclosed above.
-      </p>
-      {!flows.length && (
-        <p className="text-xs text-muted">
-          No indexed successful external flows in this period.
+    <section id="flows">
+      <ChartCard
+        title="Flow by chain"
+        height={180}
+        controls={
+          <div
+            className="filter-group"
+            role="group"
+            aria-label="Chain flow metric"
+          >
+            {(["volume", "count"] as const).map((key) => (
+              <button
+                key={key}
+                aria-pressed={metric === key}
+                onClick={() => setMetric(key)}
+                className={`filter-btn ${metric === key ? "filter-btn-active" : ""}`}
+              >
+                {key === "volume" ? "Volume" : "Swaps"}
+              </button>
+            ))}
+          </div>
+        }
+      >
+        <p className="text-xs text-muted mb-5">
+          Out of ZEC on the left. Into ZEC on the right. Hover for details.
         </p>
-      )}
+        {visible.length ? (
+          <>
+            <ResponsiveContainer
+              width="100%"
+              height={Math.max(210, visible.length * 48 + 45)}
+              minWidth={0}
+            >
+              <BarChart
+                data={visible}
+                layout="vertical"
+                stackOffset="sign"
+                margin={{ left: 0, right: 12, top: 8, bottom: 8 }}
+              >
+                <CartesianGrid
+                  stroke={colors.grid}
+                  strokeDasharray="2 6"
+                  horizontal={false}
+                />
+                <XAxis
+                  type="number"
+                  domain={[-extent, extent]}
+                  ticks={[-extent, -extent / 2, 0, extent / 2, extent]}
+                  tickFormatter={format}
+                  tick={{ fill: colors.axis, fontSize: 12 }}
+                />
+                <YAxis
+                  type="category"
+                  dataKey="chain"
+                  width={122}
+                  tickLine={false}
+                  axisLine={false}
+                  tick={({ x, y, payload }) => (
+                    <foreignObject
+                      x={Number(x) - 120}
+                      y={Number(y) - 16}
+                      width={112}
+                      height={32}
+                    >
+                      <Link
+                        className="flex h-full items-center justify-end gap-2 text-xs text-secondary hover:text-cipher-gold"
+                        href={
+                          href({
+                            period,
+                            chain: String(payload.value),
+                            status: "SUCCESS",
+                          }) + "#swaps"
+                        }
+                        aria-label={`View swaps for ${CHAINS[payload.value] || payload.value}`}
+                      >
+                        <span className="truncate">
+                          {CHAINS[payload.value] || payload.value}
+                        </span>
+                        <TokenChainIcon
+                          token={payload.value}
+                          chain={payload.value}
+                          size={20}
+                        />
+                      </Link>
+                    </foreignObject>
+                  )}
+                />
+                <ReferenceLine x={0} stroke={colors.axis} />
+                <ChartTooltip
+                  content={({ active, payload }) => {
+                    const row = payload?.[0]?.payload as
+                      (typeof rows)[number] | undefined;
+                    return active && row ? (
+                      <div style={getChartTooltipStyle(colors)}>
+                        <p className="text-secondary mb-2">
+                          {CHAINS[row.chain] || row.chain}
+                        </p>
+                        <p className="text-cipher-orange">
+                          Out of ZEC: {value(row[`outflow_${unit}`], unit)} ·{" "}
+                          {row.sell_swaps.toLocaleString()} swaps
+                        </p>
+                        <p className="text-cipher-green">
+                          Into ZEC: {value(row[`inflow_${unit}`], unit)} ·{" "}
+                          {row.buy_swaps.toLocaleString()} swaps
+                        </p>
+                      </div>
+                    ) : null;
+                  }}
+                />
+                <Bar
+                  stackId="flow"
+                  dataKey="outgoing"
+                  name="Out of ZEC"
+                  fill="var(--color-cipher-orange)"
+                  maxBarSize={24}
+                  radius={[4, 0, 0, 4]}
+                />
+                <Bar
+                  stackId="flow"
+                  dataKey="incoming"
+                  name="Into ZEC"
+                  fill="var(--color-cipher-green)"
+                  maxBarSize={24}
+                  radius={[0, 4, 4, 0]}
+                />
+              </BarChart>
+            </ResponsiveContainer>
+            <div className="flex justify-center gap-5 text-xs mt-3">
+              <span className="text-cipher-orange">■ Out of ZEC</span>
+              <span className="text-cipher-green">■ Into ZEC</span>
+            </div>
+            {rows.length > 8 && (
+              <button
+                className="text-xs text-cipher-gold mt-5"
+                onClick={() => setShowAll(!showAll)}
+              >
+                {showAll
+                  ? "Show fewer chains"
+                  : `Show ${rows.length - 8} more chains →`}
+              </button>
+            )}
+          </>
+        ) : (
+          <p className="text-xs text-muted py-8">
+            No chain flows in this period.
+          </p>
+        )}
+      </ChartCard>
     </section>
   );
 }

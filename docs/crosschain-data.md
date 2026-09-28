@@ -213,3 +213,40 @@ passed. Browser checks confirmed equal date X positions and widths for paired ba
 loaded route logos, successful buy/sell and count/volume ranking controls, themed
 hover fill `rgba(156,164,176,0.07)` in dark mode, count+volume tooltip, and no console
 errors. Clean and filtered raw HTML retained one H1 and correct canonical/robots.
+
+## Visual layout correction — 2026-09-29 (local only)
+
+The preview builds on the original visual layout: four headline cards (volume,
+swap count, net flow and average), full-width aligned volume history, a diverging
+flow-by-chain chart with existing logos, swap sizes beside Top Pairs, compact
+clickable outcome counts, and recent swaps with direction tabs. Chain flows use
+one shared symmetric scale and can switch between volume and swap count; the
+first eight chains rank by combined activity, with all remaining chains expandable.
+Chain labels link to filtered swaps. Hover shows both direction values and counts;
+it does not yet restore the legacy per-token hover breakdown.
+
+The large chain-ranking and route tables are replaced by these visuals. Top Pairs
+still uses exact-asset routes and links to their records. Search and the complete
+advanced filter form remain under “Search & filters”; active filters are flagged
+with a clear action. Existing confirmation-time charts return when matched samples
+exist. Median, source-address counts, p90/sample details and referrals remain in
+expandable analytics. Outcome counts stay visible; status links filter the feed.
+Verbose definitions and coverage details move into an expandable section while
+stale-data and missing-value warnings remain visible. Demo labeling stays explicit.
+The selected period remains 30 days by default. No ingestion, API, database or
+production configuration changed in this UI correction; deeper ingestion remains
+implemented but undeployed/unrun in production.
+
+Recent swaps also restores the original asset hierarchy: a 32px token/chain icon
+beside a prominent amount + symbol, with the chain on a smaller muted line below.
+From/To column headings align with the asset cells; value and status are aligned
+separately. Full provider amount strings remain intact, including in expanded
+record details; no precision or amount calculation changed.
+
+Verification: final optimized build and TypeScript passed, targeted ESLint/design
+checks passed, and 31 frontend regression checks passed. Browser verified restored
+flow graphics, volume/count switching, outcome links, submitted status/chain
+filters, and the amount-first swap layout with all 50 feed icons loaded and no
+console errors. Clean/filtered raw HTML returned 200, one H1, canonical ZecBlock
+URL, appropriate index/noindex, social tags and valid JSON-LD. Preview is local
+mainnet-mode demo on port 3110; no production rollout or backfill occurred.
