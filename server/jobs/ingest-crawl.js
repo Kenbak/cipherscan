@@ -248,6 +248,8 @@ async function ingestCrawl({ rpc = callCrawlerRPC, crunch = runCruncher, torExit
               WHEN EXCLUDED.last_verified_at > ${targetTable}.last_verified_at THEN COALESCE(${targetTable}.crawl_seen_count, 0) + 1
               ELSE ${targetTable}.crawl_seen_count END,
             crawl_miss_count = CASE WHEN ${targetTable}.last_verified_at IS NULL THEN 0 ELSE ${targetTable}.crawl_miss_count END
+          WHERE ${targetTable}.last_verified_at IS NULL
+            OR EXCLUDED.last_verified_at >= ${targetTable}.last_verified_at
           RETURNING (xmax = 0) AS is_insert
         `, [
           ip, port,
