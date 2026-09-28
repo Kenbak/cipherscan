@@ -107,3 +107,27 @@ test('timed-out source windows split under one transaction and preserve exact su
  assert.equal(r.spends.length,2);assert.ok(calls.includes('ROLLBACK TO SAVEPOINT analytics_sources'));
  assert.ok(!calls.includes('COMMIT'));
 });
+
+test('miner destination query preserves classification priority and excludes held/funding outputs', {skip:!databaseUrl},async()=>{
+ const {Client}=require('pg');const c=new Client({connectionString:databaseUrl});await c.connect();
+ try {
+  await c.query(`BEGIN;
+   CREATE TEMP TABLE blocks(height int,timestamp bigint,miner_address text);
+   CREATE TEMP TABLE transactions(txid text,block_height int,is_coinbase boolean);
+   CREATE TEMP TABLE transaction_outputs(txid text,vout_index int,value bigint,address text);
+   CREATE TEMP TABLE transaction_inputs(txid text,prev_txid text,prev_vout int);
+   CREATE TEMP TABLE shielded_flows(txid text,flow_type text);
+   CREATE TEMP TABLE address_labels(address text,category text);
+   INSERT INTO blocks VALUES(1,${day*86400},'miner'),(2,${day*86400},'t3cFfPt1Bcvgez9ZbMBFWeZsskxTkPzGCow');
+   INSERT INTO transactions VALUES('coinbase',1,true),('funding',2,true);
+   INSERT INTO transaction_outputs VALUES
+   ('coinbase',0,100,'miner'),('coinbase',1,200,'miner'),('coinbase',2,300,'miner'),('coinbase',3,400,'miner'),('coinbase',4,500,'miner'),('coinbase',5,999,'not-miner'),
+   ('funding',0,700,'t3cFfPt1Bcvgez9ZbMBFWeZsskxTkPzGCow'),
+   ('shield',0,100,'exchange'),('exchange',0,100,'exchange'),('exchange',1,100,'bridge'),('bridge',0,300,'bridge'),('other',0,400,'unlabeled');
+   INSERT INTO transaction_inputs VALUES('shield','coinbase',0),('exchange','coinbase',1),('bridge','coinbase',2),('other','coinbase',3);
+   INSERT INTO shielded_flows VALUES('shield','shield');
+   INSERT INTO address_labels VALUES('exchange','exchange'),('bridge','bridge');`);
+  const result=await require('../jobs/snapshot-miner-destinations').readDay(c,date);
+  assert.deepEqual(result,{Other:{shielded:100n,exchange:200n,bridge:300n,other:400n}});
+ }finally{await c.query('ROLLBACK');await c.end();}
+});

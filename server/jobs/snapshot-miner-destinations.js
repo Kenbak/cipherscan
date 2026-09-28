@@ -81,17 +81,23 @@ async function readDay(reader, dateStr) {
         AND b.miner_address IS NOT NULL
         AND b.miner_address NOT IN ('t3cFfPt1Bcvgez9ZbMBFWeZsskxTkPzGCow', 't2HifwjUj9uyxr9bknR8LFuQbc98c3vkXtu')
     ),
+    -- Resolve by transaction first: address bitmap intersections can scan a
+    -- large pool/exchange address index once per reward. Classify each output once.
     cbo AS MATERIALIZED (
       SELECT ct.miner_address, o.txid AS cbtxid, o.vout_index, o.value
       FROM cb ct
-      JOIN transaction_outputs o ON o.txid = ct.txid AND o.address = ct.miner_address
+      CROSS JOIN LATERAL (
+        SELECT txid,vout_index,value,address FROM transaction_outputs
+        WHERE txid=ct.txid OFFSET 0
+      ) o
+      WHERE o.address = ct.miner_address
     ),
     sp AS MATERIALIZED (
       SELECT c.miner_address, c.value, ti.txid AS stx
       FROM cbo c
       LEFT JOIN transaction_inputs ti ON ti.prev_txid = c.cbtxid AND ti.prev_vout = c.vout_index
     ),
-    cls AS (
+    cls AS MATERIALIZED (
       SELECT miner_address, value,
         CASE
           WHEN stx IS NULL THEN 'held'
@@ -100,14 +106,12 @@ async function readDay(reader, dateStr) {
             WHERE sf.txid = stx AND sf.flow_type = 'shield'
           ) THEN 'shielded'
           WHEN EXISTS (
-            SELECT 1 FROM transaction_outputs o
+            SELECT 1 FROM (SELECT address FROM transaction_outputs WHERE txid=stx OFFSET 0) o
             JOIN address_labels al ON al.address = o.address AND al.category = 'exchange'
-            WHERE o.txid = stx
           ) THEN 'exchange'
           WHEN EXISTS (
-            SELECT 1 FROM transaction_outputs o
+            SELECT 1 FROM (SELECT address FROM transaction_outputs WHERE txid=stx OFFSET 0) o
             JOIN address_labels al ON al.address = o.address AND al.category = 'bridge'
-            WHERE o.txid = stx
           ) THEN 'bridge'
           ELSE 'other'
         END AS cat
