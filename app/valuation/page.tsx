@@ -256,7 +256,7 @@ export default function ValuationPage() {
                   />
                   <Tooltip
                     contentStyle={tooltipStyle}
-                    labelFormatter={d => new Date(d).toLocaleDateString()}
+                    labelFormatter={d => typeof d === 'string' || typeof d === 'number' ? new Date(d).toLocaleDateString() : ''}
                     formatter={(v, name) => [
                       `$${Number(v)?.toFixed(2)}`,
                       name === 'priceUsd' ? 'Market Price' : 'Realized Price',
@@ -320,7 +320,7 @@ export default function ValuationPage() {
                   />
                   <Tooltip
                     contentStyle={tooltipStyle}
-                    labelFormatter={d => new Date(d).toLocaleDateString()}
+                    labelFormatter={d => typeof d === 'string' || typeof d === 'number' ? new Date(d).toLocaleDateString() : ''}
                     formatter={(v) => [Number(v)?.toFixed(3), 'MVRV']}
                   />
                   <ReferenceLine y={1} stroke={colors.referenceLine} strokeDasharray="4 4" label={{ value: 'Fair Value (1.0)', fill: colors.axis, fontSize: 10 }} />
@@ -370,7 +370,7 @@ export default function ValuationPage() {
                   />
                   <Tooltip
                     contentStyle={tooltipStyle}
-                    labelFormatter={d => new Date(d).toLocaleDateString()}
+                    labelFormatter={d => typeof d === 'string' || typeof d === 'number' ? new Date(d).toLocaleDateString() : ''}
                     formatter={(v) => [Number(v)?.toFixed(4), 'SOPR']}
                   />
                   <ReferenceLine y={1} stroke={colors.referenceLine} strokeDasharray="4 4" label={{ value: 'Break-even (1.0)', fill: colors.axis, fontSize: 10 }} />
@@ -421,7 +421,7 @@ export default function ValuationPage() {
                   />
                   <Tooltip
                     contentStyle={tooltipStyle}
-                    labelFormatter={d => new Date(d).toLocaleDateString()}
+                    labelFormatter={d => typeof d === 'string' || typeof d === 'number' ? new Date(d).toLocaleDateString() : ''}
                     formatter={(v) => [`${(Number(v) * 100).toFixed(1)}%`, 'NUPL']}
                   />
                   <ReferenceLine y={0} stroke={colors.referenceLine} strokeDasharray="4 4" label={{ value: 'Break-even', fill: colors.axis, fontSize: 10 }} />
@@ -473,7 +473,7 @@ export default function ValuationPage() {
                   />
                   <Tooltip
                     contentStyle={tooltipStyle}
-                    labelFormatter={d => new Date(d).toLocaleDateString()}
+                    labelFormatter={d => typeof d === 'string' || typeof d === 'number' ? new Date(d).toLocaleDateString() : ''}
                     formatter={(v, name) => {
                       const labels: Record<string, string> = {
                         lt1m: '< 1 month',
@@ -555,7 +555,7 @@ export default function ValuationPage() {
                   />
                   <Tooltip
                     contentStyle={tooltipStyle}
-                    labelFormatter={d => new Date(d).toLocaleDateString()}
+                    labelFormatter={d => typeof d === 'string' || typeof d === 'number' ? new Date(d).toLocaleDateString() : ''}
                     formatter={(v, name) => {
                       if (name === 'cdd') return [Number(v).toLocaleString(), 'Coin Days Destroyed'];
                       return [`${Number(v).toFixed(1)} days`, 'Avg Dormancy'];

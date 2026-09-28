@@ -212,7 +212,7 @@ export function PrivacyTrendsSection({
                 />
                 <RechartsTooltip
                   contentStyle={tooltipStyle}
-                  labelFormatter={(label) => formatTrendDate(label)}
+                  labelFormatter={(label) => typeof label === 'string' || typeof label === 'number' ? formatTrendDate(label) : ''}
                   formatter={(v) => [`${Number(v).toFixed(1)}%`, 'Shielded tx share']}
                 />
                 <Line
@@ -246,7 +246,7 @@ export function PrivacyTrendsSection({
                 />
                 <RechartsTooltip
                   contentStyle={tooltipStyle}
-                  labelFormatter={(label) => formatTrendDate(label)}
+                  labelFormatter={(label) => typeof label === 'string' || typeof label === 'number' ? formatTrendDate(label) : ''}
                 />
                 <Legend wrapperStyle={{ fontSize: 11, color: colors.axis }} />
                 <Bar dataKey="shielded" name="Shielded" fill={colors.cyan} radius={[3, 3, 0, 0]} />
@@ -286,7 +286,7 @@ export function PrivacyTrendsSection({
                 />
                 <RechartsTooltip
                   contentStyle={tooltipStyle}
-                  labelFormatter={(label) => formatTrendDate(label)}
+                  labelFormatter={(label) => typeof label === 'string' || typeof label === 'number' ? formatTrendDate(label) : ''}
                   formatter={(v) => [`${Number(v).toFixed(0)} / 100`, 'Privacy Score']}
                 />
                 <Area
