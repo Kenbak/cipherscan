@@ -30,3 +30,11 @@ test('truncated, odd-length, and trailing modern transaction data are rejected',
     assert.throws(() => parseZcashTransaction(fixture.hex + '0'));
   }
 });
+for (const fixture of require('./fixtures/nu7-staging-transactions.json')) {
+  test(`browser decodes real ${fixture.key}`, () => {
+    const decoded = parseZcashTransaction(fixture.hex);
+    for (const [key, value] of Object.entries(fixture.expected)) assert.equal(decoded[key], value, key);
+    assert.equal(decoded.vout.length, fixture.outputsZat.length);
+    decoded.vout.forEach((out, i) => assert.equal(Math.round(out.value * 1e8), fixture.outputsZat[i]));
+  });
+}

@@ -359,3 +359,27 @@ test('ZebraGrpcClient.start() is a no-op (polling fallback only) when no gRPC UR
   assert.equal(streamsByRpc.ChainTipChange.length, 0);
   assert.deepEqual(client.getStatus(), { mempool: false, chainTip: false });
 });
+
+test('error followed by end schedules one reconnect and ignores late events from old streams', () => {
+  const { StreamSupervisor } = loadZebraGrpcModule({
+    '@grpc/grpc-js': fakeGrpcModule(), '@grpc/proto-loader': fakeProtoLoaderModule(class {}),
+  });
+  const timers = manualTimers(); const opened = []; const received = [];
+  const supervisor = new StreamSupervisor({ name: 'reconnect-regression',
+    openStream: () => { const s = new FakeStream(); opened.push(s); return s; },
+    onData: value => received.push(value), onConnectionChange: () => {}, staleAfterMs: 999999,
+    now: timers.now, random: () => 0, setTimeoutFn: timers.setTimeoutFn, clearTimeoutFn: timers.clearTimeoutFn,
+    setIntervalFn: timers.setIntervalFn, clearIntervalFn: timers.clearIntervalFn,
+  });
+  supervisor.start();
+  opened[0].emit('error', new Error('node restarting'));
+  opened[0].emit('end');
+  timers.advance(1500);
+  assert.equal(opened.length, 2);
+  opened[0].emit('data', 'stale'); opened[0].emit('end');
+  opened[1].emit('data', 'current');
+  timers.advance(30000);
+  assert.equal(opened.length, 2, 'late end cannot open a competing stream');
+  assert.deepEqual(received, ['current']);
+  supervisor.stop();
+});

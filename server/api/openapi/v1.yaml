@@ -214,6 +214,70 @@ components:
         Integer amount in zatoshis (1 ZEC = 100,000,000 zatoshis), encoded as a decimal string to
         avoid float precision loss. Never a JSON number.
 paths:
+  /v1/network/accounting/history:
+    get:
+      operationId: get_network_Accounting_History
+      summary: Canonical block fee allocations, shielded activity and sampled NSM/supply history.
+      tags:
+        - network
+      x-cipherscan-legacy-path: /api/network/accounting/history
+      x-cipherscan-legacy-method: GET
+      x-cipherscan-classification: public
+      x-cipherscan-v1-status: adapter
+      responses:
+        '200':
+          description: Canonical block fee allocations, shielded activity and sampled NSM/supply history.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                  - meta
+                properties:
+                  data:
+                    oneOf:
+                      - type: object
+                      - type: array
+                        items: {}
+                  meta:
+                    $ref: '#/components/schemas/Meta'
+        '400':
+          description: Validation error.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '404':
+          description: Resource not found.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '429':
+          description: Rate limited (enforced by the legacy endpoint this proxies to).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '500':
+          description: Internal error.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '502':
+          description: Upstream (legacy API) error.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '504':
+          description: Upstream (legacy API) timeout.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
   /v1/system/health:
     get:
       operationId: get_system_Health
