@@ -26,7 +26,7 @@ import { PeriodPillTags } from '@/components/ui/PeriodPillTags';
 import { openAskChart } from '@/lib/ask/widget-context';
 import { NETWORK } from '@/lib/api-config';
 
-type Period = '30d' | '90d' | '1y';
+type Period = '30d' | '90d' | '1y' | 'all';
 type PoolFilter = 'all' | 'ironwood' | 'sapling' | 'orchard';
 
 interface FlowPoint {
@@ -49,6 +49,7 @@ const PERIOD_OPTIONS: { key: Period; label: string }[] = [
   { key: '30d', label: '30D' },
   { key: '90d', label: '90D' },
   { key: '1y', label: '1Y' },
+  { key: 'all', label: 'ALL' },
 ];
 
 function FlowTooltip({
@@ -94,7 +95,7 @@ export function FlowVolumeChart() {
   const { theme } = useTheme();
   const colors = getChartColors(theme);
   const flowColors = getFlowColors(theme);
-  const [period, setPeriod] = useState<Period>('30d');
+  const [period, setPeriod] = useState<Period>('all');
   const [poolFilter, setPoolFilter] = useState<PoolFilter>('all');
   const [hiddenSeries, setHiddenSeries] = useState<Set<string>>(new Set());
 
@@ -117,7 +118,7 @@ export function FlowVolumeChart() {
 
   const controls = (
     <div className="mb-4 flex flex-wrap items-center justify-end gap-2" data-html2canvas-ignore="true">
-      {NETWORK === 'mainnet' ? <button type="button" disabled={loading || !points.length} onClick={() => openAskChart({ version: 1, metric: 'flows', period, pool: poolFilter, view: 'bar', start: null, end: null })} className="mr-auto text-xs text-cipher-gold hover:underline disabled:opacity-40">Explain this chart</button> : null}
+      {NETWORK === 'mainnet' ? <button type="button" disabled={loading || !points.length} onClick={() => openAskChart({ version: 1, metric: 'flows', period: period === 'all' ? '1y' : period, pool: poolFilter, view: 'bar', start: null, end: null })} className="mr-auto text-xs text-cipher-gold hover:underline disabled:opacity-40">{period === 'all' ? 'Explain the last year' : 'Explain this chart'}</button> : null}
       <PeriodPillTags
         options={POOL_OPTIONS}
         value={poolFilter}

@@ -1741,7 +1741,9 @@
           "enum": [
             "7d",
             "30d",
-            "90d"
+            "90d",
+            "1y",
+            "all"
           ]
         },
         "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
@@ -1931,9 +1933,22 @@
         "in": "query",
         "required": false,
         "schema": {
-          "type": "string"
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 7,
+              "maximum": 1000
+            },
+            {
+              "type": "string",
+              "enum": [
+                "all"
+              ]
+            }
+          ],
+          "default": 30
         },
-        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+        "description": "All returns every retained daily observation without a row cap."
       }
     ],
     "requestBody": null
@@ -3410,9 +3425,18 @@
         "in": "query",
         "required": false,
         "schema": {
-          "type": "string"
+          "type": "string",
+          "enum": [
+            "30d",
+            "90d",
+            "180d",
+            "1y",
+            "2y",
+            "all"
+          ],
+          "default": "1y"
         },
-        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+        "description": "All returns the complete available daily history."
       }
     ],
     "requestBody": null
@@ -3436,9 +3460,18 @@
         "in": "query",
         "required": false,
         "schema": {
-          "type": "string"
+          "type": "string",
+          "enum": [
+            "30d",
+            "90d",
+            "180d",
+            "1y",
+            "2y",
+            "all"
+          ],
+          "default": "1y"
         },
-        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+        "description": "All returns the complete available daily history."
       }
     ],
     "requestBody": null
@@ -3462,9 +3495,18 @@
         "in": "query",
         "required": false,
         "schema": {
-          "type": "string"
+          "type": "string",
+          "enum": [
+            "30d",
+            "90d",
+            "180d",
+            "1y",
+            "2y",
+            "all"
+          ],
+          "default": "1y"
         },
-        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+        "description": "All returns the complete available daily history."
       }
     ],
     "requestBody": null

@@ -70,7 +70,7 @@ export function MiningSoftwareSection() {
     conflicting: colors.distinctive,
     missing: colors.deshielding,
   };
-  const [period, setPeriod] = useState("30d");
+  const [period, setPeriod] = useState("all");
   const [range, setRange] = useState<{ from: string; to: string } | null>(null);
   const [bucket, setBucket] = useState("auto");
   const [data, setData] = useState<History | null>(null);

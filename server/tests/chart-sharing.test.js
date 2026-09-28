@@ -38,9 +38,9 @@ test('CSV retains numeric precision, quotes values, distinguishes missing, neutr
  const csv=sharing.chartCsv({chart:c,rows:[{x:'=HYPERLINK("evil")',value:0},{x:'missing',value:null},{x:'exact',value:.00000001}]});
  assert.ok(csv.includes('"\'=HYPERLINK(""evil"")"'));assert.ok(csv.includes('"missing",""'));assert.ok(csv.includes('"exact","1e-8"'));assert.ok(csv.includes('"0"'));
 });
-test('relative turnstile endpoint is computed at request time',()=>{
- const c=CHART_CATALOG.find(c=>c.id==='turnstile');
- assert.notEqual(sharing.chartEndpoint(c,Date.parse('2026-01-31')),sharing.chartEndpoint(c,Date.parse('2026-02-28')));
+test('turnstile all-history requests are stable and include the entire retained series',()=>{
+ const chart=sharing.findShareChart('turnstile');
+ assert.equal(sharing.chartEndpoint(chart),'/v1/shielded-pools/turnstile?since=2016-10-28');
 });
 
 test('category snapshot labels use the source timestamp, never the current time',()=>{

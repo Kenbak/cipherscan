@@ -8,7 +8,7 @@ test('pool balances require verified balance history; flow responses cannot beco
 });
 test('gaps are not zero; dates sort chronologically and retain elapsed time',()=>{
  const rows=catalogRows(chart('network-hashrate'),{points:[{date:'2026-01-05',hashrate:25e9},{date:'2026-01-01',hashrate:null}]});
- assert.equal(rows[1].hashrate,25);assert.equal(rows[0].hashrate,null);assert.equal(rows[1].x-rows[0].x,4*86400000);
+ assert.equal(rows.at(-1).hashrate,25);assert.equal(rows[0].hashrate,null);assert.equal(rows.at(-1).x-rows[0].x,4*86400000);assert.equal(rows[1].hashrate,null);assert.equal(rows[1].x-rows[0].x,86400000);
  assert.deepEqual(catalogRows(chart('network-hashrate'),{success:false,points:[{date:'2026-01-01',hashrate:1}]}),[]);
 });
 test('fee percentiles convert zatoshis to mZEC, rewards convert zatoshis to ZEC',()=>{

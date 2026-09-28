@@ -35,6 +35,9 @@ const softwareFilters = {
   bucket: {type:'string',enum:['auto','day','week'],default:'auto',description:'Auto selects weekly for ranges longer than 121 days. Weekly buckets start Monday; boundary weeks contain only requested days.'},
 };
 function getQueryConstraint(route, name) {
+  if (route === '/v1/privacy/stats' && name === 'days') return { required: false, schema: { anyOf: [{type:'integer',minimum:7,maximum:1000},{type:'string',enum:['all']}], default:30 }, description:'All returns every retained daily observation without a row cap.' };
+  if (route.startsWith('/v1/valuation/') && name === 'period') return { required:false, schema:{type:'string',enum:['30d','90d','180d','1y','2y','all'],default:'1y'}, description:'All returns the complete available daily history.' };
+
   if (route === '/v1/network/accounting/history') {
     if (name === 'limit') return { required: false, schema: { type: 'integer', minimum: 1, maximum: 1000, default: 120 } };
     if (name === 'before') return { required: false, schema: { type: 'integer', minimum: 0, maximum: 499999999, description: 'Exclusive canonical block-height cursor.' } };

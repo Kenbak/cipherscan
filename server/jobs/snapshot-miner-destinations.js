@@ -15,27 +15,24 @@
  *
  * Modes:
  *   node snapshot-miner-destinations.js              — incremental (last 7 days)
- *   node snapshot-miner-destinations.js --days=400   — backfill last 400 days
+ *   node snapshot-miner-destinations.js --from=2020-01-01 --to=2020-01-31 — bounded complete UTC days
  *
  * Cron (after the behavior job):
  *   15 5 * * * cd /root/cipherscan/server/jobs && node snapshot-miner-destinations.js >> /var/log/miner-destinations.log 2>&1
  */
 
 const { log, loadEnv, withAdvisoryLock } = require('../lib/job-utils');
-loadEnv(__dirname);
+if (require.main === module) loadEnv(__dirname);
 
 const { getPool, getReadPool } = require('../lib/db-pool');
 
-const pool = getPool({ max: 3 });
-// Same pattern as snapshot-mining-behavior.js: read (classify) and write
-// (DELETE + INSERT) per day are separate, already-autocommitted statement
-// groups with no explicit transaction spanning them, so the read half is
-// safe to offload to the replica.
-const readPool = getReadPool({ max: 3 });
+const pool = require.main === module ? getPool({ max: 2 }) : null;
+// Classification uses a repeatable read on the replica. The per-day replacement
+// is atomic on the primary after verifying its canonical source anchor.
+const readPool = require.main === module ? getReadPool({ max: 1 }) : null;
 
 const LOCK_ID = 839276;
-const DAYS_FLAG = process.argv.find((a) => a.startsWith('--days='));
-const INCREMENTAL_DAYS = DAYS_FLAG ? parseInt(DAYS_FLAG.split('=')[1]) : 7;
+const { selectDays } = require('../lib/utxo-age');
 
 // Mirrors server/api/mining-pools.js / snapshot-mining-behavior.js (synced 2026-08-16)
 const POOL_MAP = {
@@ -70,11 +67,11 @@ function getPoolNameForAddress(address) {
  * Classify a single day's spent coinbase rewards by destination.
  * Priority: shielded > exchange > bridge > other (matches the turnstile job).
  */
-async function computeDay(client, dateStr) {
+async function readDay(reader, dateStr) {
   const dayStart = Math.floor(new Date(dateStr + 'T00:00:00Z').getTime() / 1000);
   const dayEnd = dayStart + 86400;
 
-  const result = await readPool.query(
+  const result = await reader.query(
     `
     WITH cb AS MATERIALIZED (
       SELECT b.miner_address, t.txid
@@ -140,6 +137,10 @@ async function computeDay(client, dateStr) {
     e.other += BigInt(row.other || 0);
   }
 
+  return poolAgg;
+}
+
+async function writeDay(client, dateStr, poolAgg) {
   await client.query('DELETE FROM miner_destination_daily WHERE date = $1', [dateStr]);
 
   for (const [poolName, d] of Object.entries(poolAgg)) {
@@ -166,26 +167,26 @@ async function run() {
   const client = await pool.connect();
   try {
     await withAdvisoryLock(client, LOCK_ID, async (client) => {
-      log(`Starting miner destination snapshot (last ${INCREMENTAL_DAYS} days)...`);
-
-      const startDate = new Date();
-      startDate.setDate(startDate.getDate() - INCREMENTAL_DAYS);
-      const endDate = new Date();
-      endDate.setDate(endDate.getDate() - 1);
-
-      // Process most-recent first so the common short windows (30D/90D) become
-      // accurate quickly during a long backfill.
-      let current = new Date(endDate);
-      let daysProcessed = 0;
-      while (current >= startDate) {
-        const dateStr = current.toISOString().slice(0, 10);
-        const poolCount = await computeDay(client, dateStr);
-        daysProcessed++;
-        if (daysProcessed % 30 === 0) log(`  ${dateStr}: ${poolCount} pools`);
-        current.setDate(current.getDate() - 1);
+      const dates = selectDays(process.argv.slice(2));
+      for (const dateStr of dates) {
+        const reader = await readPool.connect();
+        let data, anchor;
+        try {
+          await reader.query('BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY');
+          anchor = (await reader.query('SELECT height,hash,timestamp FROM blocks ORDER BY height DESC LIMIT 1')).rows[0];
+          if (!anchor || Number(anchor.timestamp) < Date.parse(dateStr+'T00:00:00Z')/1000+86400) throw new Error('Incomplete source day');
+          data = await readDay(reader,dateStr);
+          await reader.query('COMMIT');
+        } catch (error) { await reader.query('ROLLBACK'); throw error; }
+        finally { reader.release(); }
+        await client.query('BEGIN');
+        try {
+          if (!(await client.query('SELECT 1 FROM blocks WHERE height=$1 AND hash=$2',[anchor.height,anchor.hash])).rowCount) throw new Error('Source chain changed');
+          await writeDay(client,dateStr,data);
+          await client.query('COMMIT');
+        } catch(error) { await client.query('ROLLBACK'); throw error; }
+        log(`Completed ${dateStr}`);
       }
-
-      log(`Done. Processed ${daysProcessed} days.`);
     });
   } catch (error) {
     log(`ERROR: ${error.message}`);
@@ -198,4 +199,5 @@ async function run() {
   }
 }
 
-run();
+if (require.main === module) run();
+module.exports = { readDay, writeDay };

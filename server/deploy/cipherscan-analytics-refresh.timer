@@ -1,0 +1,9 @@
+[Unit]
+Description=Daily completeness and recent-history repair
+[Timer]
+OnCalendar=*-*-* 06:30:00 UTC
+Persistent=true
+RandomizedDelaySec=120
+Unit=cipherscan-analytics-refresh.service
+[Install]
+WantedBy=timers.target

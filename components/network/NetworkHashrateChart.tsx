@@ -51,7 +51,7 @@ function HashratePeriodSelector({ value, onChange }: { value: Period; onChange: 
 export function NetworkHashrateChart() {
   const { theme } = useTheme();
   const colors = getChartColors(theme);
-  const [period, setPeriod] = useState<Period>('1y');
+  const [period, setPeriod] = useState<Period>('all');
   const [window, setWindow] = useState<HashrateWindow>('24h');
   const stats = useApiQuery<HashrateStats>('/v1/network/stats', undefined, { refreshInterval: 30_000 });
 

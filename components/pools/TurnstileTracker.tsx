@@ -27,7 +27,7 @@ const PERIOD_SINCE: Record<TurnstilePeriod, string> = {
   '30d': '',
   '90d': '',
   '1y': '',
-  'all': '2018-10-28',
+  'all': '2016-10-28',
 };
 
 function getSinceDate(p: TurnstilePeriod): string {
@@ -42,14 +42,13 @@ function getSinceDate(p: TurnstilePeriod): string {
 /** Flows API only supports fixed lookbacks — pick one that covers the turnstile window. */
 function getFlowsApiPeriod(p: TurnstilePeriod): string {
   switch (p) {
-    case 'nu6.2':
+    case 'nu6.2': return 'all';
     case '30d':
       return '30d';
     case '90d':
       return '90d';
-    case '1y':
-    case 'all':
-      return '1y';
+    case '1y': return '1y';
+    case 'all': return 'all';
   }
 }
 
@@ -114,7 +113,7 @@ export function TurnstileTracker({ showCardHeader = false }: TurnstileTrackerPro
   const { theme } = useTheme();
   const colors = getChartColors(theme);
   const flowColors = getFlowColors(theme);
-  const [period, setPeriod] = useState<TurnstilePeriod>('nu6.2');
+  const [period, setPeriod] = useState<TurnstilePeriod>('all');
   const [summary, setSummary] = useState<TurnstileSummary | null>(null);
   const [totalShielded, setTotalShielded] = useState<number | null>(null);
   const [timeseries, setTimeseries] = useState<TurnstilePoint[]>([]);

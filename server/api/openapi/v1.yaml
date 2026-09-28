@@ -6087,6 +6087,8 @@ paths:
               - 7d
               - 30d
               - 90d
+              - 1y
+              - all
           description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
       x-cipherscan-legacy-path: /api/crosschain/trends
       x-cipherscan-legacy-method: GET
@@ -6817,8 +6819,15 @@ paths:
           in: query
           required: false
           schema:
-            type: string
-          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
+            anyOf:
+              - type: integer
+                minimum: 7
+                maximum: 1000
+              - type: string
+                enum:
+                  - all
+            default: 30
+          description: All returns every retained daily observation without a row cap.
       x-cipherscan-legacy-path: /api/privacy-stats
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -11263,7 +11272,15 @@ paths:
           required: false
           schema:
             type: string
-          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
+            enum:
+              - 30d
+              - 90d
+              - 180d
+              - 1y
+              - 2y
+              - all
+            default: 1y
+          description: All returns the complete available daily history.
       x-cipherscan-legacy-path: /api/valuation/history
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -11366,7 +11383,15 @@ paths:
           required: false
           schema:
             type: string
-          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
+            enum:
+              - 30d
+              - 90d
+              - 180d
+              - 1y
+              - 2y
+              - all
+            default: 1y
+          description: All returns the complete available daily history.
       x-cipherscan-legacy-path: /api/valuation/hodl-waves
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -11469,7 +11494,15 @@ paths:
           required: false
           schema:
             type: string
-          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
+            enum:
+              - 30d
+              - 90d
+              - 180d
+              - 1y
+              - 2y
+              - all
+            default: 1y
+          description: All returns the complete available daily history.
       x-cipherscan-legacy-path: /api/valuation/dormancy
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public

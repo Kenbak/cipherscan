@@ -435,14 +435,14 @@ function TrendsChart() {
   const { theme } = useTheme();
   const colors = getChartColors(theme);
   const [hidden, setHidden] = useState<Record<string, boolean>>({});
-  const [period, setPeriod] = useState<TrendPeriod>('30');
+  const [period, setPeriod] = useState<TrendPeriod>('all');
   const [data, setData] = useState<TrendDay[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setLoading(true);
     const base = getApiUrl();
-    const days = period === 'all' ? 1000 : Number(period);
+    const days = period === 'all' ? 'all' : Number(period);
     fetch(`${base}/v1/privacy/stats?days=${days}`)
       .then(res => res.ok ? readApiData(res) : null)
       .then(json => {

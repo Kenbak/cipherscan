@@ -36,10 +36,10 @@ async function cached(key, ttlSeconds, fn) {
   return data;
 }
 
-const VALID_PERIODS = { '30d': 30, '90d': 90, '180d': 180, '1y': 365, '2y': 730, 'all': 9999 };
+const VALID_PERIODS = { '30d': 30, '90d': 90, '180d': 180, '1y': 365, '2y': 730, 'all': null };
 
 function parsePeriod(raw) {
-  return VALID_PERIODS[raw] || VALID_PERIODS['1y'];
+  return Object.hasOwn(VALID_PERIODS, raw) ? VALID_PERIODS[raw] : VALID_PERIODS['1y'];
 }
 
 // Public read only; importing runs on the server with database credentials.
@@ -58,15 +58,16 @@ router.get('/api/valuation/search-interest', async (req, res) => {
 
 router.get('/api/valuation/snapshot', async (req, res) => {
   try {
-    const data = await cached('zcash:valuation:v2:snapshot', 600, async () => {
+    const data = await cached('zcash:valuation:v3:snapshot', 600, async () => {
       const { rows } = await pool.query(`
-        SELECT m.date, m.market_cap_usd, m.realized_cap_usd,
-               m.transparent_realized_cap_usd, m.shielded_realized_cap_usd,
+        SELECT m.date::text AS date, m.market_cap_usd, m.realized_cap_usd,
+               COALESCE(a.transparent_realized_cap_usd,m.transparent_realized_cap_usd) AS transparent_realized_cap_usd, m.shielded_realized_cap_usd,
                m.mvrv, m.realized_price,
-               m.sopr, m.shielded_sopr, m.nupl,
+               a.sopr, a.method AS transparent_method, a.computed_at, m.shielded_sopr, m.nupl,
                p.price_usd
         FROM mvrv_daily m
         LEFT JOIN zec_price_daily p ON p.date = m.date
+        LEFT JOIN analytics_history_daily a ON a.date = m.date AND EXISTS(SELECT 1 FROM blocks b WHERE b.height=a.anchor_height AND b.hash=a.anchor_hash)
         ORDER BY m.date DESC LIMIT 1
       `);
       if (!rows[0]) return null;
@@ -87,30 +88,32 @@ router.get('/api/valuation/snapshot', async (req, res) => {
 router.get('/api/valuation/history', async (req, res) => {
   try {
     const days = parsePeriod(req.query.period);
-    const cacheKey = `zcash:valuation:v2:history:${days}`;
+    const cacheKey = `zcash:valuation:v3:history:${days}`;
 
     const data = await cached(cacheKey, 600, async () => {
       const { rows } = await pool.query(`
-        SELECT m.date,
+        SELECT p.date::text AS date,
                p.price_usd,
                m.realized_price,
                m.mvrv,
-               m.sopr, m.shielded_sopr,
+               a.sopr, a.method AS transparent_method, a.computed_at, m.shielded_sopr,
                m.nupl,
                m.market_cap_usd,
                m.realized_cap_usd,
-               m.transparent_realized_cap_usd,
+               COALESCE(a.transparent_realized_cap_usd,m.transparent_realized_cap_usd) AS transparent_realized_cap_usd,
                m.shielded_realized_cap_usd
-        FROM mvrv_daily m
-        LEFT JOIN zec_price_daily p ON p.date = m.date
-        WHERE m.date >= CURRENT_DATE - $1::int
-        ORDER BY m.date ASC
+        FROM zec_price_daily p
+        LEFT JOIN mvrv_daily m ON m.date = p.date
+        LEFT JOIN analytics_history_daily a ON a.date = p.date AND EXISTS(SELECT 1 FROM blocks b WHERE b.height=a.anchor_height AND b.hash=a.anchor_hash)
+        WHERE ($1::int IS NULL OR p.date >= CURRENT_DATE - $1::int)
+          AND p.date < CURRENT_DATE
+        ORDER BY p.date ASC
       `, [days]);
 
       return rows.map(valuationRow);
     });
 
-    res.json({ success: true, period: `${days}d`, points: data });
+    res.json({ success: true, period: days === null ? 'all' : `${days}d`, points: data });
   } catch (err) {
     logSafeError('valuation/history error:', err);
     res.status(500).json({ error: 'Internal server error' });
@@ -122,7 +125,7 @@ router.get('/api/valuation/history', async (req, res) => {
 router.get('/api/valuation/hodl-waves', async (req, res) => {
   try {
     const days = parsePeriod(req.query.period);
-    const cacheKey = `zcash:valuation:hodl-waves:${days}`;
+    const cacheKey = `zcash:valuation:v3:hodl-waves:${days}`;
 
     const data = await cached(cacheKey, 600, async () => {
       const { rows } = await pool.query(`
@@ -131,7 +134,7 @@ router.get('/api/valuation/hodl-waves', async (req, res) => {
                b_6_12m_zat, b_1_2y_zat, gt_2y_zat,
                total_unspent_zat, utxo_count
         FROM utxo_age_daily
-        WHERE date >= (NOW() AT TIME ZONE 'UTC')::date - $1::int
+        WHERE ($1::int IS NULL OR date >= (NOW() AT TIME ZONE 'UTC')::date - $1::int)
           AND date < (NOW() AT TIME ZONE 'UTC')::date
         ORDER BY date ASC
       `, [days]);
@@ -149,7 +152,7 @@ router.get('/api/valuation/hodl-waves', async (req, res) => {
       }));
     });
 
-    res.json({ success: true, period: `${days}d`, points: data });
+    res.json({ success: true, period: days === null ? 'all' : `${days}d`, points: data });
   } catch (err) {
     logSafeError('valuation/hodl-waves error:', err);
     res.status(500).json({ error: 'Internal server error' });
@@ -161,13 +164,13 @@ router.get('/api/valuation/hodl-waves', async (req, res) => {
 router.get('/api/valuation/dormancy', async (req, res) => {
   try {
     const days = parsePeriod(req.query.period);
-    const cacheKey = `zcash:valuation:v2:dormancy:${days}`;
+    const cacheKey = `zcash:valuation:v3:dormancy:${days}`;
 
     const data = await cached(cacheKey, 600, async () => {
       const { rows } = await pool.query(`
         SELECT date::text AS date, cdd, avg_dormancy_days, spent_count
         FROM utxo_age_daily
-        WHERE date >= (NOW() AT TIME ZONE 'UTC')::date - $1::int
+        WHERE ($1::int IS NULL OR date >= (NOW() AT TIME ZONE 'UTC')::date - $1::int)
           AND date < (NOW() AT TIME ZONE 'UTC')::date
         ORDER BY date ASC
       `, [days]);
@@ -180,7 +183,7 @@ router.get('/api/valuation/dormancy', async (req, res) => {
       }));
     });
 
-    res.json({ success: true, period: `${days}d`, points: data });
+    res.json({ success: true, period: days === null ? 'all' : `${days}d`, points: data });
   } catch (err) {
     logSafeError('valuation/dormancy error:', err);
     res.status(500).json({ error: 'Internal server error' });

@@ -384,7 +384,7 @@ function registerNetworkAnalyticsRoutes(router) {
         const snap = await pool.query(
           `SELECT snapshot_time, chain_supply_zat, block_height
            FROM chain_snapshots
-           WHERE snapshot_time >= NOW() - INTERVAL '${interval}'
+           WHERE ${period === 'all' ? 'TRUE' : `snapshot_time >= NOW() - INTERVAL '${interval}'`}
            ORDER BY snapshot_time ASC`
         );
         supplyPoints = supplyHistory(snap.rows, 'chain_snapshots');
@@ -459,7 +459,7 @@ function registerNetworkAnalyticsRoutes(router) {
       const result = await pool.query(
         `SELECT snapshot_time, chain_size_bytes, block_height
          FROM chain_snapshots
-         WHERE snapshot_time >= NOW() - INTERVAL '${interval}'
+         WHERE ${period === 'all' ? 'TRUE' : `snapshot_time >= NOW() - INTERVAL '${interval}'`}
          ORDER BY snapshot_time ASC`
       );
 

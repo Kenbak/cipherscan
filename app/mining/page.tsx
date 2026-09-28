@@ -35,7 +35,7 @@ const SECTIONS = [
   { id: 'methodology', label: 'Methodology' },
 ] as const;
 
-const PERIODS = ['24h', '3d', '7d', '30d', '90d', '1y'] as const;
+const PERIODS = ['24h', '3d', '7d', '30d', '90d', '1y', 'all'] as const;
 type Period = typeof PERIODS[number];
 
 
@@ -314,7 +314,7 @@ function ChartModeToggle({ mode, onChange }: { mode: ChartMode; onChange: (m: Ch
 function HashrateShareSection() {
   const { theme } = useTheme();
   const colors = getChartColors(theme);
-  const [period, setPeriod] = useState<Period>('30d');
+  const [period, setPeriod] = useState<Period>('all');
   const [chartMode, setChartMode] = useState<ChartMode>('line');
   const [series, setSeries] = useState<HashratePoint[]>([]);
   const [allPools, setAllPools] = useState<string[]>([]);
@@ -510,7 +510,7 @@ function HashrateShareSection() {
 function MinerBehaviorSection() {
   const { theme } = useTheme();
   const colors = getChartColors(theme);
-  const [period, setPeriod] = useState<Period>('90d');
+  const [period, setPeriod] = useState<Period>('all');
   const [series, setSeries] = useState<BehaviorPoint[]>([]);
   const [summary, setSummary] = useState<BehaviorSummary | null>(null);
   const [message, setMessage] = useState<string | null>(null);

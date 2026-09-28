@@ -116,7 +116,7 @@ router.get('/api/privacy-stats', async (req, res) => {
     }
 
     // Get daily trends (configurable period for charts)
-    const trendDays = Math.min(Math.max(parseInt(req.query.days) || 30, 7), 1000);
+    const trendDays = req.query.days === 'all' ? null : Math.min(Math.max(parseInt(req.query.days) || 30, 7), 1000);
     const trendsResult = await pool.query(`
       SELECT
         date::text AS date,

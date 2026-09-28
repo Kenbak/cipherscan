@@ -37,9 +37,8 @@ export function chartImagePath(path: string): string {
   const [base, query] = path.split('?');
   return `${base}/image${query ? `?${query}` : ''}`;
 }
-export function chartEndpoint(chart: CatalogChart, now = Date.now()): string {
-  if (chart.id !== 'turnstile') return chart.endpoint;
-  return `/v1/shielded-pools/turnstile?since=${new Date(now - 30 * 86400000).toISOString().slice(0, 10)}`;
+export function chartEndpoint(chart: CatalogChart): string {
+  return chart.endpoint;
 }
 export function chartObservationLabel(chart: CatalogChart, x: string | number): string {
   if (chart.axis === 'category') return String(x);

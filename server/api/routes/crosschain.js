@@ -290,7 +290,7 @@ router.get('/api/crosschain/trends', validate('crosschainTrends'), async (req, r
 
     const pool = req.app.locals.pool;
 
-    const days = period === '7d' ? 7 : period === '90d' ? 90 : 30;
+    const days = period === 'all' ? null : period === '1y' ? 365 : period === '7d' ? 7 : period === '90d' ? 90 : 30;
     const granIsWeekly = granularity === 'weekly';
 
     const { rows } = granIsWeekly
@@ -298,13 +298,13 @@ router.get('/api/crosschain/trends', validate('crosschainTrends'), async (req, r
           SELECT DATE_TRUNC('week', day) as period, direction,
             SUM(swap_count)::int as swap_count, SUM(volume_usd)::float as volume_usd
           FROM mv_crosschain_trends
-          WHERE day >= (CURRENT_DATE - ($1 || ' days')::INTERVAL)
+          WHERE ($1::int IS NULL OR day >= CURRENT_DATE - $1::int)
           GROUP BY period, direction ORDER BY period
         `, [days])
       : await pool.query(`
           SELECT day as period, direction, swap_count, volume_usd
           FROM mv_crosschain_trends
-          WHERE day >= (CURRENT_DATE - ($1 || ' days')::INTERVAL)
+          WHERE ($1::int IS NULL OR day >= CURRENT_DATE - $1::int)
           ORDER BY day
         `, [days]);
 
