@@ -784,14 +784,17 @@ router.get('/api/network/nodes/stats', async (req, res) => {
             pool.query(`
               SELECT
                 (SELECT active_nodes FROM node_snapshots
-                 WHERE 1=1 ${SNAPSHOT_FILTER} AND snapshot_time >= NOW() - INTERVAL '24 hours'
-                 ORDER BY snapshot_time ASC LIMIT 1) as nodes_24h_ago,
+                 WHERE 1=1 ${SNAPSHOT_FILTER} AND snapshot_time <= NOW() - INTERVAL '24 hours'
+                   AND snapshot_time > NOW() - INTERVAL '25 hours'
+                 ORDER BY snapshot_time DESC LIMIT 1) as nodes_24h_ago,
                 (SELECT active_nodes FROM node_snapshots
-                 WHERE 1=1 ${SNAPSHOT_FILTER} AND snapshot_time >= NOW() - INTERVAL '7 days'
-                 ORDER BY snapshot_time ASC LIMIT 1) as nodes_7d_ago,
+                 WHERE 1=1 ${SNAPSHOT_FILTER} AND snapshot_time <= NOW() - INTERVAL '7 days'
+                   AND snapshot_time > NOW() - INTERVAL '7 days 1 hour'
+                 ORDER BY snapshot_time DESC LIMIT 1) as nodes_7d_ago,
                 (SELECT active_nodes FROM node_snapshots
-                 WHERE 1=1 ${SNAPSHOT_FILTER} AND snapshot_time >= NOW() - INTERVAL '30 days'
-                 ORDER BY snapshot_time ASC LIMIT 1) as nodes_30d_ago
+                 WHERE 1=1 ${SNAPSHOT_FILTER} AND snapshot_time <= NOW() - INTERVAL '30 days'
+                   AND snapshot_time > NOW() - INTERVAL '30 days 1 hour'
+                 ORDER BY snapshot_time DESC LIMIT 1) as nodes_30d_ago
             `).catch(() => ({ rows: [{}] })),
             pool.query(`
               SELECT client_impl, COUNT(*)::int AS node_count
