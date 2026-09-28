@@ -87,6 +87,10 @@ test('all census routes exclude legacy/stale rows and incompatible history again
     await ingestCrawl(options);
     const secondWrite = (await db.query('SELECT last_verified_at, last_seen, crawl_seen_count FROM nodes WHERE id=1')).rows[0];
     assert.deepEqual(secondWrite, firstWrite, 'replaying a snapshot must not refresh time or add successes');
+    const older = { ...metrics, node_info: [{ ...metrics.node_info[0], last_verified_at_ms: verifiedAt - 1000 }] };
+    await ingestCrawl({ ...options, rpc: async () => older });
+    const afterOlder = (await db.query('SELECT last_verified_at, last_seen, crawl_seen_count FROM nodes WHERE id=1')).rows[0];
+    assert.deepEqual(afterOlder, firstWrite, 'a lagging path cannot replace a newer verification already stored');
     assert.equal((await db.query('SELECT count(*)::int AS count FROM nodes WHERE is_active')).rows[0].count, 1);
     assert.equal((await db.query('SELECT census_version FROM node_snapshots ORDER BY id DESC LIMIT 1')).rows[0].census_version, 1);
     await assert.rejects(ingestCrawl({ ...options, rpc: async () => ({ ...metrics, generated_at_ms: Date.now()-200000 }) }), /timestamp/);
