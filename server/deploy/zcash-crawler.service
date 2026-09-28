@@ -3,6 +3,9 @@ Description=Ziggurat Zcash Network Crawler
 After=network-online.target
 Wants=network-online.target
 
+StartLimitIntervalSec=900
+StartLimitBurst=3
+
 [Service]
 Type=simple
 WorkingDirectory=/opt/zcash-crawler
@@ -13,6 +16,11 @@ ExecStart=/opt/zcash-crawler/target/release/crawler \
 Restart=always
 RestartSec=10
 TimeoutStopSec=30
+
+LimitNOFILE=4096
+MemoryMax=2G
+MemoryHigh=1536M
+CPUQuota=50%
 
 NoNewPrivileges=true
 PrivateTmp=true

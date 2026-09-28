@@ -27,7 +27,9 @@ let redisClient;
 let listCache;
 
 const NODE_SOURCE = process.env.NODE_SOURCE || 'peer';
-const NODES_TABLE = 'nodes';
+const { censusTable, CENSUS_VERSION } = require('../../lib/node-census');
+const NODES_TABLE = censusTable(NODE_SOURCE);
+const SNAPSHOT_FILTER = NODE_SOURCE === 'crawl' ? `AND census_version = ${CENSUS_VERSION}` : '';
 
 // Middleware to inject dependencies
 router.use((req, res, next) => {
@@ -46,7 +48,7 @@ const NETWORK_STATS_CACHE_KEY = 'zcash:network_stats:nu7-v1';
 const NETWORK_STATS_CACHE_DURATION = 120; // 2 minutes — network stats don't change fast
 const NETWORK_HEALTH_CACHE_KEY = 'zcash:network_health';
 const NETWORK_HEALTH_CACHE_DURATION = 60;
-const NETWORK_TOPOLOGY_CACHE_KEY = 'zcash:network_topology';
+const NETWORK_TOPOLOGY_CACHE_KEY = 'zcash:network_topology:census-v1';
 const NETWORK_TOPOLOGY_CACHE_DURATION = 300; // 5 minutes — aligned with crawler ingest cycle
 
 // Fallback in-memory cache (if Redis fails)
@@ -696,9 +698,9 @@ router.get('/api/network/nodes', async (req, res) => {
     // never a raw IP.
     const cachedResult = await getOrLoadRoute({
       family: 'network-node-locations',
-      params: { source: NODE_SOURCE },
+      params: { source: NODE_SOURCE, censusVersion: CENSUS_VERSION },
       freshTtlSeconds: 300,
-      staleTtlSeconds: 1800,
+      staleTtlSeconds: 301,
       load: async ({ measure }) => {
         const result = await measure('database_read', () => pool.query(`
           SELECT
@@ -711,7 +713,7 @@ router.get('/api/network/nodes', async (req, res) => {
             MODE() WITHIN GROUP (ORDER BY client_impl) as top_client,
             MODE() WITHIN GROUP (ORDER BY isp) as top_isp
           FROM ${NODES_TABLE}
-          WHERE is_active = TRUE AND lat IS NOT NULL
+          WHERE census_active = TRUE AND lat IS NOT NULL
           GROUP BY country, country_code, ROUND(lat::numeric, 0), ROUND(lon::numeric, 0)
           ORDER BY node_count DESC
         `));
@@ -732,7 +734,7 @@ router.get('/api/network/nodes', async (req, res) => {
       },
     });
     applyListCacheHeaders(res, cachedResult);
-    res.set('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=1800');
+    res.set('Cache-Control', 'public, max-age=60, s-maxage=300, must-revalidate');
     res.json(cachedResult.value);
   } catch (error) {
     logSafeError('❌ [NODES] Error fetching node locations:', error);
@@ -751,9 +753,9 @@ router.get('/api/network/nodes/stats', async (req, res) => {
   try {
     const cachedResult = await getOrLoadRoute({
       family: 'network-node-stats',
-      params: { source: NODE_SOURCE },
+      params: { source: NODE_SOURCE, censusVersion: CENSUS_VERSION },
       freshTtlSeconds: 300,
-      staleTtlSeconds: 1800,
+      staleTtlSeconds: 301,
       load: async ({ measure }) => {
         const sourceFilter = NODE_SOURCE === 'crawl' ? '' : "AND observed_via = 'peer'";
         const [statsResult, topCountries, trends, clients, versions] = await measure(
@@ -761,20 +763,20 @@ router.get('/api/network/nodes/stats', async (req, res) => {
           () => Promise.all([
             pool.query(`
               SELECT
-                COUNT(*) FILTER (WHERE is_active) as active_nodes,
+                COUNT(*) FILTER (WHERE census_active) as active_nodes,
                 COUNT(*) as total_nodes,
-                COUNT(DISTINCT country_code) FILTER (WHERE is_active) as countries,
-                COUNT(DISTINCT city) FILTER (WHERE is_active) as cities,
-                ROUND(AVG(ping_ms) FILTER (WHERE is_active AND ping_ms > 0)::numeric, 1) as avg_ping_ms,
-                COUNT(*) FILTER (WHERE is_active AND is_tor) as tor_nodes,
-                MAX(last_seen) as last_updated
+                COUNT(DISTINCT country_code) FILTER (WHERE census_active) as countries,
+                COUNT(DISTINCT city) FILTER (WHERE census_active) as cities,
+                ROUND(AVG(ping_ms) FILTER (WHERE census_active AND ping_ms > 0)::numeric, 1) as avg_ping_ms,
+                COUNT(*) FILTER (WHERE census_active AND is_tor) as tor_nodes,
+                MAX(${NODE_SOURCE === 'crawl' ? 'last_verified_at' : 'last_seen'}) as last_updated
               FROM ${NODES_TABLE}
             `),
             pool.query(`
               SELECT country_code, MODE() WITHIN GROUP (ORDER BY country) as country,
                      COUNT(*) as node_count
               FROM ${NODES_TABLE}
-              WHERE is_active = TRUE AND country_code IS NOT NULL
+              WHERE census_active = TRUE AND country_code IS NOT NULL
               GROUP BY country_code
               ORDER BY node_count DESC
               LIMIT 10
@@ -782,26 +784,26 @@ router.get('/api/network/nodes/stats', async (req, res) => {
             pool.query(`
               SELECT
                 (SELECT active_nodes FROM node_snapshots
-                 WHERE snapshot_time >= NOW() - INTERVAL '24 hours'
+                 WHERE 1=1 ${SNAPSHOT_FILTER} AND snapshot_time >= NOW() - INTERVAL '24 hours'
                  ORDER BY snapshot_time ASC LIMIT 1) as nodes_24h_ago,
                 (SELECT active_nodes FROM node_snapshots
-                 WHERE snapshot_time >= NOW() - INTERVAL '7 days'
+                 WHERE 1=1 ${SNAPSHOT_FILTER} AND snapshot_time >= NOW() - INTERVAL '7 days'
                  ORDER BY snapshot_time ASC LIMIT 1) as nodes_7d_ago,
                 (SELECT active_nodes FROM node_snapshots
-                 WHERE snapshot_time >= NOW() - INTERVAL '30 days'
+                 WHERE 1=1 ${SNAPSHOT_FILTER} AND snapshot_time >= NOW() - INTERVAL '30 days'
                  ORDER BY snapshot_time ASC LIMIT 1) as nodes_30d_ago
             `).catch(() => ({ rows: [{}] })),
             pool.query(`
               SELECT client_impl, COUNT(*)::int AS node_count
               FROM ${NODES_TABLE}
-              WHERE is_active = TRUE ${sourceFilter}
+              WHERE census_active = TRUE ${sourceFilter}
               GROUP BY client_impl
               ORDER BY node_count DESC, client_impl ASC
             `),
             pool.query(`
               SELECT client_impl, client_version, COUNT(*)::int AS node_count
               FROM ${NODES_TABLE}
-              WHERE is_active = TRUE ${sourceFilter} AND client_version IS NOT NULL
+              WHERE census_active = TRUE ${sourceFilter} AND client_version IS NOT NULL
               GROUP BY client_impl, client_version
               ORDER BY node_count DESC, client_impl ASC, client_version DESC
               LIMIT 12
@@ -835,6 +837,8 @@ router.get('/api/network/nodes/stats', async (req, res) => {
             avgPingMs: row.avg_ping_ms ? parseFloat(row.avg_ping_ms) : null,
             torNodes: parseInt(row.tor_nodes) || 0,
             lastUpdated: row.last_updated,
+            ...(NODE_SOURCE === 'crawl' ? { censusVersion: CENSUS_VERSION,
+              observationWindowSeconds: 3600, scope: 'handshake-verified-unique-ips' } : {}),
           },
           trends: {
             change24h: calcChange(trendRow.nodes_24h_ago),
@@ -864,7 +868,7 @@ router.get('/api/network/nodes/stats', async (req, res) => {
       },
     });
     applyListCacheHeaders(res, cachedResult);
-    res.set('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=1800');
+    res.set('Cache-Control', 'public, max-age=60, s-maxage=300, must-revalidate');
     res.json(cachedResult.value);
   } catch (error) {
     logSafeError('❌ [NODES] Error fetching node stats:', error);
@@ -897,7 +901,7 @@ router.get('/api/network/node-history', async (req, res) => {
         identified_client_nodes,
         client_counts
       FROM node_snapshots
-      WHERE snapshot_time >= NOW() - INTERVAL '${interval}'
+      WHERE 1=1 ${SNAPSHOT_FILTER} AND snapshot_time >= NOW() - INTERVAL '${interval}'
       ORDER BY snapshot_time ASC
     `);
 
@@ -1118,9 +1122,8 @@ router.get('/api/network/topology', async (req, res) => {
     // Privacy: topology_nodes.addr / ip are server-side identity/join keys only.
     // They are NEVER returned — the client receives a synthetic per-response id.
     // "Reachable" = we have a recent successful handshake. Use the accumulated
-    // nodes table (is_active = last_seen < 1h) OR the crawler's live snapshot flag,
-    // which keeps this consistent with the rest of the page and resilient to crawler
-    // restarts (which reset the live handshake state).
+    // nodes table uses the actual protocol verification timestamp. A stale
+    // topology snapshot must never override that timestamp.
     //
     // Nodes are collapsed to ONE per IP: the gossip graph lists the same host under
     // several ports, so keying by ip:port would double-count reachable nodes vs the
@@ -1129,7 +1132,7 @@ router.get('/api/network/topology', async (req, res) => {
       SELECT
         tn.addr,
         tn.ip,
-        (tn.reachable OR n.id IS NOT NULL) AS reachable,
+        (n.id IS NOT NULL) AS reachable,
         COALESCE(NULLIF(n.client_impl, 'Unknown'), NULLIF(tn.client_impl, 'Unknown')) AS client_impl,
         (tn.is_tor OR COALESCE(n.is_tor, FALSE)) AS is_tor,
         COALESCE(n.country_code, tn.country_code) AS country_code,
@@ -1137,7 +1140,7 @@ router.get('/api/network/topology', async (req, res) => {
         tn.betweenness,
         tn.closeness
       FROM topology_nodes tn
-      LEFT JOIN ${NODES_TABLE} n ON n.ip = tn.ip AND n.is_active = TRUE
+      LEFT JOIN ${NODES_TABLE} n ON n.ip = tn.ip AND n.census_active = TRUE
       ORDER BY tn.degree DESC NULLS LAST
     `);
 
@@ -1243,7 +1246,7 @@ router.get('/api/network/nodes/list', async (req, res) => {
           n.is_tor,
           n.tor_type,
           n.ping_ms,
-          n.is_active,
+          n.census_active,
           n.first_seen,
           n.last_seen,
           n.observed_via,
@@ -1252,12 +1255,12 @@ router.get('/api/network/nodes/list', async (req, res) => {
           n.betweenness,
           n.closeness
         FROM ${NODES_TABLE} n
-        LEFT JOIN nodes zn ON zn.ip = n.ip AND n.client_impl = 'Unknown' AND zn.client_impl IS NOT NULL AND zn.client_impl != 'Unknown'
-        WHERE n.is_active = TRUE
+        LEFT JOIN ${NODES_TABLE} zn ON zn.ip = n.ip AND n.client_impl = 'Unknown' AND zn.client_impl IS NOT NULL AND zn.client_impl != 'Unknown'
+        WHERE n.census_active = TRUE
         ORDER BY ${orderCol} ${orderDir} NULLS LAST
         LIMIT $1 OFFSET $2
       `, [limit, offset]),
-      pool.query(`SELECT COUNT(*)::int AS total FROM ${NODES_TABLE} WHERE is_active = TRUE`),
+      pool.query(`SELECT COUNT(*)::int AS total FROM ${NODES_TABLE} WHERE census_active = TRUE`),
     ]);
 
     res.json({
@@ -1275,7 +1278,7 @@ router.get('/api/network/nodes/list', async (req, res) => {
         isTor: n.is_tor,
         torType: n.tor_type,
         pingMs: n.ping_ms ? parseFloat(n.ping_ms) : null,
-        isActive: n.is_active,
+        isActive: n.census_active,
         firstSeen: n.first_seen,
         lastSeen: n.last_seen,
         source: n.observed_via,
@@ -1305,35 +1308,35 @@ router.get('/api/network/nodes/health-score', async (req, res) => {
     const [connectivityResult, versionResult, clientResult, geoResult, reliabilityResult] = await Promise.all([
       pool.query(`
         SELECT
-          AVG(degree) FILTER (WHERE is_active AND degree > 0) AS avg_degree,
-          MAX(degree) FILTER (WHERE is_active) AS max_degree,
-          COUNT(*) FILTER (WHERE is_active AND degree <= 1) AS poorly_connected,
-          COUNT(*) FILTER (WHERE is_active AND degree > 0) AS connected_nodes,
-          COUNT(*) FILTER (WHERE is_active) AS total_active
-        FROM nodes
+          AVG(degree) FILTER (WHERE census_active AND degree > 0) AS avg_degree,
+          MAX(degree) FILTER (WHERE census_active) AS max_degree,
+          COUNT(*) FILTER (WHERE census_active AND degree <= 1) AS poorly_connected,
+          COUNT(*) FILTER (WHERE census_active AND degree > 0) AS connected_nodes,
+          COUNT(*) FILTER (WHERE census_active) AS total_active
+        FROM ${NODES_TABLE}
       `),
       pool.query(`
         SELECT protocol_version, COUNT(*)::int AS cnt
-        FROM nodes WHERE is_active = TRUE AND protocol_version IS NOT NULL
+        FROM ${NODES_TABLE} WHERE census_active = TRUE AND protocol_version IS NOT NULL
         GROUP BY protocol_version ORDER BY cnt DESC
       `),
       pool.query(`
         SELECT COALESCE(client_impl, 'Unidentified') AS client_impl, COUNT(*)::int AS cnt
-        FROM nodes WHERE is_active = TRUE
+        FROM ${NODES_TABLE} WHERE census_active = TRUE
         GROUP BY client_impl ORDER BY cnt DESC
       `),
       pool.query(`
         SELECT
-          COUNT(DISTINCT country_code) FILTER (WHERE is_active AND country_code IS NOT NULL) AS countries,
-          COUNT(DISTINCT SUBSTRING(ip FROM '^[0-9]+\\.[0-9]+\\.[0-9]+')) FILTER (WHERE is_active) AS unique_subnets
-        FROM nodes
+          COUNT(DISTINCT country_code) FILTER (WHERE census_active AND country_code IS NOT NULL) AS countries,
+          COUNT(DISTINCT SUBSTRING(ip FROM '^[0-9]+\\.[0-9]+\\.[0-9]+')) FILTER (WHERE census_active) AS unique_subnets
+        FROM ${NODES_TABLE}
       `),
       pool.query(`
         SELECT
           AVG(crawl_seen_count::numeric / NULLIF(crawl_seen_count + COALESCE(crawl_miss_count, 0), 0))
-            FILTER (WHERE is_active AND (crawl_seen_count + COALESCE(crawl_miss_count, 0)) >= 3) AS avg_reliability,
-          COUNT(*) FILTER (WHERE is_active AND (crawl_seen_count + COALESCE(crawl_miss_count, 0)) >= 3) AS scored_nodes
-        FROM nodes
+            FILTER (WHERE census_active AND (crawl_seen_count + COALESCE(crawl_miss_count, 0)) >= 3) AS avg_reliability,
+          COUNT(*) FILTER (WHERE census_active AND (crawl_seen_count + COALESCE(crawl_miss_count, 0)) >= 3) AS scored_nodes
+        FROM ${NODES_TABLE}
       `),
     ]);
 
@@ -1417,8 +1420,8 @@ router.get('/api/network/nodes/reliability', async (req, res) => {
           crawl_seen_count,
           COALESCE(crawl_miss_count, 0) AS crawl_miss_count,
           ROUND((crawl_seen_count::numeric / NULLIF(crawl_seen_count + COALESCE(crawl_miss_count, 0), 0)) * 100, 1) AS reliability_pct
-        FROM nodes
-        WHERE is_active = TRUE AND (crawl_seen_count + COALESCE(crawl_miss_count, 0)) >= 3
+        FROM ${NODES_TABLE}
+        WHERE census_active = TRUE AND (crawl_seen_count + COALESCE(crawl_miss_count, 0)) >= 3
         ORDER BY reliability_pct DESC NULLS LAST, crawl_seen_count DESC, ping_ms ASC NULLS LAST
         LIMIT 12
       `),
@@ -1431,11 +1434,11 @@ router.get('/api/network/nodes/reliability', async (req, res) => {
           COUNT(*) FILTER (WHERE ping_ms >= 500) AS b4,
           ROUND(percentile_cont(0.5) WITHIN GROUP (ORDER BY ping_ms) FILTER (WHERE ping_ms > 0)::numeric, 0) AS median_ms,
           COUNT(*) FILTER (WHERE ping_ms > 0) AS measured
-        FROM nodes WHERE is_active = TRUE
+        FROM ${NODES_TABLE} WHERE census_active = TRUE
       `),
       pool.query(`
         SELECT services, COUNT(*)::int AS cnt
-        FROM nodes WHERE is_active = TRUE AND services IS NOT NULL
+        FROM ${NODES_TABLE} WHERE census_active = TRUE AND services IS NOT NULL
         GROUP BY services ORDER BY cnt DESC
       `),
       pool.query(`
@@ -1444,7 +1447,7 @@ router.get('/api/network/nodes/reliability', async (req, res) => {
             FILTER (WHERE (crawl_seen_count + COALESCE(crawl_miss_count, 0)) >= 3) * 100, 1) AS avg_reliability_pct,
           MAX(crawl_seen_count) AS max_seen,
           COUNT(*) FILTER (WHERE services IS NOT NULL) AS services_known
-        FROM nodes WHERE is_active = TRUE
+        FROM ${NODES_TABLE} WHERE census_active = TRUE
       `),
     ]);
 
@@ -1510,8 +1513,8 @@ router.get('/api/network/nodes/upgrade-readiness', async (req, res) => {
           COUNT(*)::int AS node_count,
           ARRAY_AGG(DISTINCT client_impl) AS clients,
           ROUND(AVG(degree) FILTER (WHERE degree > 0)::numeric, 1) AS avg_degree
-        FROM nodes
-        WHERE is_active = TRUE AND protocol_version IS NOT NULL
+        FROM ${NODES_TABLE}
+        WHERE census_active = TRUE AND protocol_version IS NOT NULL
         GROUP BY protocol_version
         ORDER BY node_count DESC
       `),
@@ -1520,7 +1523,7 @@ router.get('/api/network/nodes/upgrade-readiness', async (req, res) => {
           DATE(snapshot_time) AS day,
           client_counts
         FROM node_snapshots
-        WHERE snapshot_time >= NOW() - INTERVAL '30 days'
+        WHERE 1=1 ${SNAPSHOT_FILTER} AND snapshot_time >= NOW() - INTERVAL '30 days'
         ORDER BY snapshot_time DESC
         LIMIT 30
       `).catch(() => ({ rows: [] })),
@@ -1568,8 +1571,8 @@ router.get('/api/network/nodes/concentration', async (req, res) => {
           SUBSTRING(ip FROM '^([0-9]+\\.[0-9]+\\.[0-9]+)') AS subnet,
           COUNT(*)::int AS node_count,
           ARRAY_AGG(DISTINCT client_impl) AS clients
-        FROM nodes
-        WHERE is_active = TRUE AND ip !~ ':' AND ip != '127.0.0.1'
+        FROM ${NODES_TABLE}
+        WHERE census_active = TRUE AND ip !~ ':' AND ip != '127.0.0.1'
         GROUP BY subnet
         HAVING COUNT(*) >= 3
         ORDER BY node_count DESC
@@ -1579,19 +1582,19 @@ router.get('/api/network/nodes/concentration', async (req, res) => {
         SELECT
           COALESCE(isp, 'Unresolved') AS isp,
           COUNT(*)::int AS node_count,
-          ROUND((COUNT(*)::numeric / NULLIF((SELECT COUNT(*) FROM nodes WHERE is_active), 0)) * 100, 1) AS pct
-        FROM nodes
-        WHERE is_active = TRUE
+          ROUND((COUNT(*)::numeric / NULLIF((SELECT COUNT(*) FROM ${NODES_TABLE} WHERE census_active), 0)) * 100, 1) AS pct
+        FROM ${NODES_TABLE}
+        WHERE census_active = TRUE
         GROUP BY isp
         ORDER BY node_count DESC
         LIMIT 10
       `),
       pool.query(`
         SELECT
-          COUNT(*) FILTER (WHERE degree > 50 AND is_active) AS high_degree_nodes,
-          COUNT(*) FILTER (WHERE is_active AND degree > 0) AS total_with_degree,
-          MAX(degree) FILTER (WHERE is_active) AS max_degree
-        FROM nodes
+          COUNT(*) FILTER (WHERE degree > 50 AND census_active) AS high_degree_nodes,
+          COUNT(*) FILTER (WHERE census_active AND degree > 0) AS total_with_degree,
+          MAX(degree) FILTER (WHERE census_active) AS max_degree
+        FROM ${NODES_TABLE}
       `),
     ]);
 

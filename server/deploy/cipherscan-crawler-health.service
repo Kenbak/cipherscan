@@ -1,0 +1,12 @@
+[Unit]
+Description=Verify crawler progress and recover stalled collectors
+After=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/root/cipherscan
+ExecStart=/usr/bin/node /root/cipherscan/server/jobs/check-crawler-health.js
+TimeoutStartSec=100
+MemoryMax=128M
+CPUQuota=25%
+NoNewPrivileges=true
