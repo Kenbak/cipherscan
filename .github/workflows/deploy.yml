@@ -32,7 +32,7 @@ jobs:
     if: github.event.workflow_run.conclusion == 'success'
     steps:
       - name: Checkout the exact commit CI tested
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           ref: ${{ github.event.workflow_run.head_sha }}
           # Full history so the "did anything relevant change" diff below
