@@ -62,7 +62,8 @@ test('all census routes exclude legacy/stale rows and incompatible history again
         if (sql === 'BEGIN') return db.query('SAVEPOINT ingest_fixture');
         if (sql === 'COMMIT') return db.query('RELEASE SAVEPOINT ingest_fixture');
         if (sql === 'ROLLBACK') return db.query('ROLLBACK TO SAVEPOINT ingest_fixture');
-        if (sql.includes('pg_try_advisory_lock')) return { rows: [{ acquired: true }] };
+        // Simulate refresh-turnstile holding its lock during the same cron tick.
+        if (sql.includes('pg_try_advisory_lock')) return { rows: [{ acquired: params[0] !== 839271 }] };
         if (sql.includes('pg_advisory_unlock')) return { rows: [{}] };
         return db.query(sql, params);
       }, release() {},

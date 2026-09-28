@@ -37,7 +37,7 @@ const MAXMIND_DB_PATH = process.env.MAXMIND_DB_PATH || '/opt/zcash-crawler/data/
 const NODE_SOURCE = process.env.NODE_SOURCE || 'peer';
 const DRY_RUN = process.argv.includes('--dry-run');
 const INACTIVE_THRESHOLD_HOURS = 1;
-const ADVISORY_LOCK_ID = 839271;
+const ADVISORY_LOCK_ID = 839272; // 839271 belongs to refresh-turnstile.js.
 
 const pool = getPool({ max: 3, idleTimeoutMillis: 10000 });
 
