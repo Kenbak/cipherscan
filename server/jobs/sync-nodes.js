@@ -140,6 +140,11 @@ async function syncNodes() {
   const startTime = Date.now();
 
   try {
+    if (process.env.NODE_SOURCE === 'crawl') {
+      console.log('[NodeSync] Crawler owns the census; peer/DNS writer skipped.');
+      return;
+    }
+
     // 1. Fetch peers from Zebra RPC
     console.log('📡 [NodeSync] Fetching peers from Zebra RPC...');
     const peers = await callZebraRPC('getpeerinfo');

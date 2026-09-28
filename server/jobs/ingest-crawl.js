@@ -23,6 +23,7 @@ const http = require('http');
 const { log, loadEnv, withAdvisoryLock } = require('../lib/job-utils');
 const { getPool } = require('../lib/db-pool');
 const { parsePeerClient } = require('../lib/peer-client');
+const { CENSUS_VERSION, validateCrawlSnapshot, mergeVerifiedNodes } = require('../lib/node-census');
 
 const execFileAsync = promisify(execFile);
 
@@ -140,38 +141,36 @@ async function ingestCrawl() {
   log(`Starting crawl ingestion (target: ${targetTable}, dry-run: ${DRY_RUN})`);
 
   const metrics = await callCrawlerRPC('getmetrics');
-  if (!metrics) {
-    throw new Error('getmetrics returned null/undefined');
-  }
+  validateCrawlSnapshot(metrics);
 
   log(`Crawler reports: ${metrics.num_good_nodes} good / ${metrics.num_known_nodes} known nodes, ${metrics.num_known_connections} connections`);
 
   // Poll Tor crawler (best-effort — may not be running)
   let torMetrics = null;
   try {
-    torMetrics = await callCrawlerRPC('getmetrics', CRAWLER_TOR_RPC_PORT);
+    torMetrics = validateCrawlSnapshot(await callCrawlerRPC('getmetrics', CRAWLER_TOR_RPC_PORT));
     if (torMetrics && torMetrics.num_good_nodes > 0) {
       log(`Tor crawler reports: ${torMetrics.num_good_nodes} good / ${torMetrics.num_known_nodes} known nodes`);
     }
   } catch {
-    log('Tor crawler not available (skipping)');
+    torMetrics = null;
+    log('Tor crawler unavailable or stale (skipping)');
   }
 
-  // Merge Tor-discovered nodes into the main metrics before crunching
-  if (torMetrics && Array.isArray(torMetrics.node_info) && torMetrics.node_info.length > 0) {
-    const existingAddrs = new Set((metrics.node_info || []).map(n => n.addr));
-    let torAdded = 0;
-    for (const torNode of torMetrics.node_info) {
-      if (torNode.addr && !existingAddrs.has(torNode.addr)) {
-        metrics.node_info.push(torNode);
-        existingAddrs.add(torNode.addr);
-        torAdded++;
-      }
-    }
-    if (torAdded > 0) {
-      log(`Merged ${torAdded} unique nodes from Tor crawler`);
-    }
+  // Keep the newest actual protocol verification for each IP, across both paths.
+  const verified = mergeVerifiedNodes(torMetrics ? [metrics, torMetrics] : [metrics]);
+  const verifiedAt = new Map(verified.map(node => [node.addr, node.last_verified_at_ms]));
+  // A filtered/reordered list no longer has the original adjacency indices.
+  const originalAddrs = (metrics.node_info || []).map(node => node.addr);
+  if (verified.length !== originalAddrs.length || verified.some((node, i) => node.addr !== originalAddrs[i])) {
+    const originalIndex = new Map(originalAddrs.map((addr, i) => [addr, i]));
+    const newIndex = new Map(verified.map((node, i) => [node.addr, i]));
+    metrics.nodes_indices = verified.map(node => (metrics.nodes_indices?.[originalIndex.get(node.addr)] || [])
+      .map(i => newIndex.get(originalAddrs[i])).filter(i => i !== undefined));
   }
+  metrics.node_info = verified;
+  metrics.node_addrs = verified.map(node => node.addr);
+  metrics.num_good_nodes = verified.length;
 
   const enriched = await runCruncher(metrics);
   if (!enriched || !Array.isArray(enriched.nodes)) {
@@ -212,12 +211,12 @@ async function ingestCrawl() {
             ping_ms, is_tor, is_active, user_agent, client_impl,
             client_version, protocol_version, observed_via, onion_address,
             tor_type, betweenness, closeness, degree, network_type,
-            start_height, services, crawl_seen_count
+            start_height, services, crawl_seen_count, last_verified_at, last_seen
           )
           VALUES (
             $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, TRUE,
             $11, $12, $13, $14, 'crawl', $15, $16, $17, $18, $19, $20,
-            $21, $22, 1
+            $21, $22, 1, $23, $23
           )
           ON CONFLICT (ip) DO UPDATE SET
             port = EXCLUDED.port,
@@ -235,7 +234,8 @@ async function ingestCrawl() {
             client_version = CASE WHEN EXCLUDED.user_agent IS NOT NULL THEN EXCLUDED.client_version ELSE ${targetTable}.client_version END,
             protocol_version = COALESCE(EXCLUDED.protocol_version, ${targetTable}.protocol_version),
             observed_via = 'crawl',
-            last_seen = NOW(),
+            last_seen = EXCLUDED.last_seen,
+            last_verified_at = EXCLUDED.last_verified_at,
             onion_address = COALESCE(EXCLUDED.onion_address, ${targetTable}.onion_address),
             tor_type = COALESCE(EXCLUDED.tor_type, ${targetTable}.tor_type),
             betweenness = EXCLUDED.betweenness,
@@ -244,7 +244,10 @@ async function ingestCrawl() {
             network_type = EXCLUDED.network_type,
             start_height = COALESCE(EXCLUDED.start_height, ${targetTable}.start_height),
             services = COALESCE(EXCLUDED.services, ${targetTable}.services),
-            crawl_seen_count = COALESCE(${targetTable}.crawl_seen_count, 0) + 1
+            crawl_seen_count = CASE WHEN ${targetTable}.last_verified_at IS NULL THEN 1
+              WHEN EXCLUDED.last_verified_at > ${targetTable}.last_verified_at THEN COALESCE(${targetTable}.crawl_seen_count, 0) + 1
+              ELSE ${targetTable}.crawl_seen_count END,
+            crawl_miss_count = CASE WHEN ${targetTable}.last_verified_at IS NULL THEN 0 ELSE ${targetTable}.crawl_miss_count END
           RETURNING (xmax = 0) AS is_insert
         `, [
           ip, port,
@@ -267,7 +270,8 @@ async function ingestCrawl() {
           node.degree ?? null,
           node.network_type || null,
           node.start_height || null,
-          node.services || null,
+          node.services ?? null,
+          new Date(verifiedAt.get(node.addr)),
         ]);
 
         if (result.rows[0]?.is_insert) newNodes++;
@@ -313,9 +317,8 @@ async function ingestCrawl() {
       `);
       await client.query(`
         UPDATE ${targetTable} SET is_active = FALSE
-        WHERE last_seen < NOW() - INTERVAL '${INACTIVE_THRESHOLD_HOURS} hours'
-          AND is_active = TRUE
-          AND observed_via = 'crawl'
+        WHERE is_active = TRUE AND (observed_via <> 'crawl' OR last_verified_at IS NULL
+          OR last_verified_at <= NOW() - INTERVAL '${INACTIVE_THRESHOLD_HOURS} hours')
       `);
 
       // Persist topology edges
@@ -432,7 +435,6 @@ async function ingestCrawl() {
           COUNT(*) FILTER (WHERE is_active AND tor_type = 'relay') AS tor_hidden,
           ROUND(AVG(ping_ms) FILTER (WHERE is_active AND ping_ms > 0)::numeric, 3) AS avg_ping
         FROM ${targetTable}
-        WHERE observed_via = 'crawl'
       `);
 
       const clientResult = await client.query(`
@@ -451,20 +453,20 @@ async function ingestCrawl() {
         .filter(r => r.client_impl && r.client_impl !== 'Unknown')
         .reduce((sum, r) => sum + Number(r.node_count), 0);
 
-      if (!DRY_RUN) {
+      if (!DRY_RUN && NODE_SOURCE === 'crawl') {
         await client.query(`
           INSERT INTO node_snapshots (
             active_nodes, total_nodes, countries, tor_nodes,
             inbound_nodes, outbound_nodes, avg_ping_ms,
-            identified_client_nodes, client_counts, tor_hidden_nodes
+            identified_client_nodes, client_counts, tor_hidden_nodes, census_version
           )
-          VALUES ($1, $2, $3, $4, 0, $1, $5, $6, $7, $8)
+          VALUES ($1, $2, $3, $4, 0, $1, $5, $6, $7, $8, $9)
         `, [
           parseInt(snap.active), parseInt(snap.total),
           parseInt(snap.countries), parseInt(snap.tor),
           snap.avg_ping ? parseFloat(snap.avg_ping) : null,
           identifiedClientNodes, JSON.stringify(clientCounts),
-          parseInt(snap.tor_hidden || 0),
+          parseInt(snap.tor_hidden || 0), CENSUS_VERSION,
         ]);
       }
 

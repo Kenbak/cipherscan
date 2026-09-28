@@ -1,0 +1,11 @@
+[Unit]
+Description=Check crawler freshness every two minutes
+
+[Timer]
+OnBootSec=3min
+OnUnitActiveSec=2min
+AccuracySec=10s
+Unit=cipherscan-crawler-health.service
+
+[Install]
+WantedBy=timers.target
