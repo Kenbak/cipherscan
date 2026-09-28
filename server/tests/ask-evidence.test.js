@@ -18,6 +18,40 @@ const { formatValue, summarizeEvidence, fetchEvidence } = load('lib/ask/evidence
   './sources': require('../../lib/ask/sources'),
 });
 const sample = starters[0].spec;
+test('local dummy verification cannot activate in production, on remote hosts or with real keys', async t => {
+  const originalEnv = process.env.NODE_ENV;
+  const originalWindow = global.window;
+  t.after(() => {
+    if (originalEnv === undefined) delete process.env.NODE_ENV;
+    else process.env.NODE_ENV = originalEnv;
+    if (originalWindow === undefined) delete global.window;
+    else global.window = originalWindow;
+  });
+  for (const [environment, hostname, siteKey, local] of [
+    ['development', 'localhost', '1x00000000000000000000AA', true],
+    ['development', '127.0.0.1', '1x00000000000000000000AA', true],
+    ['production', 'localhost', '1x00000000000000000000AA', false],
+    ['test', 'localhost', '1x00000000000000000000AA', false],
+    ['development', 'zecblock.com', '1x00000000000000000000AA', false],
+    ['development', 'localhost.evil.test', '1x00000000000000000000AA', false],
+    ['development', 'localhost', 'real-site-key', false],
+  ]) {
+    process.env.NODE_ENV = environment;
+    let effect; let rendered = 0;
+    const tokens = [];
+    global.window = { location: { hostname }, turnstile: { render: () => { rendered++; return 'widget'; }, remove: () => {} } };
+    const { AskChallenge } = load('components/ask/AskChallenge.tsx', {
+      react: { useEffect: fn => { effect = fn; }, useRef: () => ({ current: {} }), useState: () => [false, () => {}] },
+    });
+    AskChallenge({ siteKey, onToken: token => tokens.push(token), reset: 0 });
+    const cleanup = effect();
+    await Promise.resolve();
+    assert.equal(tokens.includes('XXXX.DUMMY.TOKEN.XXXX'), local, `${environment}/${hostname}/${siteKey}`);
+    assert.equal(rendered, local ? 0 : 1);
+    cleanup();
+    if (local) assert.equal(tokens.at(-1), '');
+  }
+});
 const evidence = { unit: 'ZEC', series: [{ key: 'orchard', label: 'Orchard', color: 'orchard' }], points: [
   { date: '2026-08-01', values: { orchard: '90071992547409930000' } },
   { date: '2026-08-02', values: { orchard: null } },

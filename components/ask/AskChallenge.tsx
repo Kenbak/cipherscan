@@ -22,6 +22,14 @@ export function AskChallenge({ siteKey, onToken, reset }: { siteKey?: string | n
     if (!siteKey) return;
     let cancelled = false; let id: string | undefined;
     onToken(''); setError(false);
+    // Only the loopback development harness accepts this official dummy token.
+    // Production builds, remote hosts and real site keys still use Turnstile.
+    if (process.env.NODE_ENV === 'development'
+      && ['localhost', '127.0.0.1', '[::1]'].includes(window.location.hostname)
+      && siteKey === '1x00000000000000000000AA') {
+      onToken('XXXX.DUMMY.TOKEN.XXXX');
+      return () => onToken('');
+    }
     load().then(() => {
       if (cancelled || !host.current || !window.turnstile) return;
       id = window.turnstile.render(host.current, { sitekey: siteKey, action: 'ask', size: 'flexible', theme: 'auto', callback: (token: string) => { if (!cancelled) onToken(token); }, 'expired-callback': () => onToken(''), 'error-callback': () => { onToken(''); setError(true); } });

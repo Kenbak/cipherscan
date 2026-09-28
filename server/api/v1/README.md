@@ -193,6 +193,18 @@ deadlines, 35-second operation deadlines and bounded bodies limit work. Missing
 configuration, Redis failures or exhausted allowances fail closed. Also configure
 provider-side controls; deployment-reviewed tokenization/pricing remains necessary.
 
+For OpenAI, configure a project monthly spend limit with **Enforce a hard limit**
+enabled; alerts alone do not stop requests. Enforcement can lag slightly behind
+usage. See [OpenAI spend limits](https://developers.openai.com/api/docs/guides/spend-limits).
+Application quotas do not protect against direct use of a leaked provider key.
+
+For the private loopback AI harness, `AskChallenge` supplies Cloudflare's official
+dummy token only with `NODE_ENV=development`, an exact localhost/loopback hostname,
+and the official always-pass test site key. This avoids development-widget stalls.
+Production builds, remote hosts and real site keys still load the widget. Server
+validation and spending reservations remain required; this does not enable paid
+AI in `dev:v1` or constitute production bot-protection verification.
+
 Only generic public explanations are cached for five minutes by model, locale,
 recipe, reviewed documents and evidence fingerprint. Arbitrary questions/history
 are not cached or logged by Ask. Audit infrastructure/APM logging separately.
