@@ -90,6 +90,27 @@
   "GET /v1/network/blocks/recent-summary": [
     "limit"
   ],
+  "GET /v1/crosschain/analytics": [
+    "granularity",
+    "period"
+  ],
+  "GET /v1/crosschain/swaps": [
+    "chain",
+    "cursor",
+    "destAsset",
+    "direction",
+    "from",
+    "limit",
+    "maxUsd",
+    "minUsd",
+    "period",
+    "referral",
+    "search",
+    "sourceAsset",
+    "status",
+    "to",
+    "token"
+  ],
   "GET /v1/crosschain/stats": [],
   "GET /v1/crosschain/inflows": [
     "limit",

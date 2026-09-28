@@ -140,5 +140,7 @@
   "GET /v1/mining/software": "mining-software",
   "GET /v1/network/accounting": "network-accounting",
   "GET /v1/network/block-time": "network-block-time",
-  "GET /v1/network/accounting/history": "network-accounting-history"
+  "GET /v1/network/accounting/history": "network-accounting-history",
+  "GET /v1/crosschain/analytics": "crosschain-analytics",
+  "GET /v1/crosschain/swaps": "crosschain-swaps"
 }

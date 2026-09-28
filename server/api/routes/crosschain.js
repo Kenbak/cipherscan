@@ -5,6 +5,7 @@
 
 const express = require('express');
 const router = express.Router();
+router.use(require('./crosschain-analytics'));
 const { getNearIntentsClient, CHAIN_CONFIG } = require('../near-intents');
 const { validate } = require('../validation');
 const { parseSafePagePagination, offsetExceededError } = require('../lib/pagination');

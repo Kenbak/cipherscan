@@ -8233,6 +8233,537 @@
         }
       }
     },
+    "/v1/crosschain/analytics": {
+      "get": {
+        "operationId": "get_crosschain_Analytics",
+        "summary": "Indexed ZEC swap analytics with explicit coverage, native ZEC volumes, UTC buckets and observed lifecycle counts.",
+        "tags": [
+          "crosschain"
+        ],
+        "parameters": [
+          {
+            "name": "granularity",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "hour",
+                "day"
+              ],
+              "description": "Defaults to hour for 24h/7d, day otherwise. Hour is only accepted for 24h/7d."
+            },
+            "description": "Defaults to hour for 24h/7d, day otherwise. Hour is only accepted for 24h/7d."
+          },
+          {
+            "name": "period",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "24h",
+                "7d",
+                "30d",
+                "90d",
+                "1y",
+                "all"
+              ],
+              "default": "30d",
+              "description": "Trailing UTC window; all starts at the earliest indexed record. Coverage can be incomplete."
+            },
+            "description": "Trailing UTC window; all starts at the earliest indexed record. Coverage can be incomplete."
+          }
+        ],
+        "x-cipherscan-legacy-path": "/api/crosschain/analytics",
+        "x-cipherscan-legacy-method": "GET",
+        "x-cipherscan-classification": "public",
+        "x-cipherscan-v1-status": "adapter",
+        "responses": {
+          "200": {
+            "description": "Indexed ZEC swap analytics with explicit coverage, native ZEC volumes, UTC buckets and observed lifecycle counts.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data",
+                    "meta"
+                  ],
+                  "properties": {
+                    "data": {
+                      "oneOf": [
+                        {
+                          "type": "object"
+                        },
+                        {
+                          "type": "array",
+                          "items": {}
+                        }
+                      ]
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/Meta"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Preview or endpoint authentication required.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Payment required. Protocol challenges remain in Payment-Required / WWW-Authenticate; the original challenge is also in problem.paymentRequired.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Origin or ownership authorization denied.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource not found.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "JSON body exceeds 1 MB.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited (enforced by the legacy endpoint this proxies to).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal error.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Upstream (legacy API) error.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Source temporarily unavailable or still building.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "Upstream (legacy API) timeout.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/crosschain/swaps": {
+      "get": {
+        "operationId": "get_crosschain_Swaps",
+        "summary": "Filterable swap records with exact amount strings, both transaction legs and filter-bound pagination.",
+        "tags": [
+          "crosschain"
+        ],
+        "parameters": [
+          {
+            "name": "chain",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z0-9_-]{1,32}$"
+            },
+            "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 8192,
+              "description": "Opaque data.nextCursor. Bound to filters and the original time window; do not construct or edit."
+            },
+            "description": "Opaque data.nextCursor. Bound to filters and the original time window; do not construct or edit."
+          },
+          {
+            "name": "destAsset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 256,
+              "description": "Exact upstream destinationAsset identifier."
+            },
+            "description": "Exact upstream destinationAsset identifier."
+          },
+          {
+            "name": "direction",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "inflow",
+                "outflow",
+                "internal"
+              ],
+              "description": "Native ZEC asset acquired, exchanged or ZEC-to-ZEC. Asset direction does not prove an on-chain transfer."
+            },
+            "description": "Native ZEC asset acquired, exchanged or ZEC-to-ZEC. Asset direction does not prove an on-chain transfer."
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date-time",
+              "description": "Inclusive UTC ISO timestamp, overrides the period start."
+            },
+            "description": "Inclusive UTC ISO timestamp, overrides the period start."
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 25
+            },
+            "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+          },
+          {
+            "name": "maxUsd",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1000000000000,
+              "description": "Inclusive source-side USD maximum (up to 8 decimal places)."
+            },
+            "description": "Inclusive source-side USD maximum (up to 8 decimal places)."
+          },
+          {
+            "name": "minUsd",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1000000000000,
+              "description": "Inclusive source-side USD minimum (up to 8 decimal places)."
+            },
+            "description": "Inclusive source-side USD minimum (up to 8 decimal places)."
+          },
+          {
+            "name": "period",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "24h",
+                "7d",
+                "30d",
+                "90d",
+                "1y",
+                "all"
+              ],
+              "default": "30d",
+              "description": "Trailing UTC window; all starts at the earliest indexed record. Coverage can be incomplete."
+            },
+            "description": "Trailing UTC window; all starts at the earliest indexed record. Coverage can be incomplete."
+          },
+          {
+            "name": "referral",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 256,
+              "description": "Exact upstream referral value."
+            },
+            "description": "Exact upstream referral value."
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 200,
+              "description": "Exact deposit, recipient or sender address, or source/destination transaction hash."
+            },
+            "description": "Exact deposit, recipient or sender address, or source/destination transaction hash."
+          },
+          {
+            "name": "sourceAsset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 256,
+              "description": "Exact upstream originAsset identifier."
+            },
+            "description": "Exact upstream originAsset identifier."
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "SUCCESS",
+                "FAILED",
+                "REFUNDED",
+                "PROCESSING",
+                "PENDING_DEPOSIT",
+                "INCOMPLETE_DEPOSIT"
+              ]
+            },
+            "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date-time",
+              "description": "Exclusive UTC ISO timestamp, fixes the end of the window."
+            },
+            "description": "Exclusive UTC ISO timestamp, fixes the end of the window."
+          },
+          {
+            "name": "token",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 64
+            },
+            "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+          }
+        ],
+        "x-cipherscan-legacy-path": "/api/crosschain/swaps",
+        "x-cipherscan-legacy-method": "GET",
+        "x-cipherscan-classification": "public",
+        "x-cipherscan-v1-status": "adapter",
+        "responses": {
+          "200": {
+            "description": "Filterable swap records with exact amount strings, both transaction legs and filter-bound pagination.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data",
+                    "meta"
+                  ],
+                  "properties": {
+                    "data": {
+                      "oneOf": [
+                        {
+                          "type": "object"
+                        },
+                        {
+                          "type": "array",
+                          "items": {}
+                        }
+                      ]
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/Meta"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Preview or endpoint authentication required.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Payment required. Protocol challenges remain in Payment-Required / WWW-Authenticate; the original challenge is also in problem.paymentRequired.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Origin or ownership authorization denied.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource not found.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "JSON body exceeds 1 MB.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited (enforced by the legacy endpoint this proxies to).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal error.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Upstream (legacy API) error.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Source temporarily unavailable or still building.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "Upstream (legacy API) timeout.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/crosschain/stats": {
       "get": {
         "operationId": "get_crosschain_Stats",

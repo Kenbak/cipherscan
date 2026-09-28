@@ -35,6 +35,27 @@ const softwareFilters = {
   bucket: {type:'string',enum:['auto','day','week'],default:'auto',description:'Auto selects weekly for ranges longer than 121 days. Weekly buckets start Monday; boundary weeks contain only requested days.'},
 };
 function getQueryConstraint(route, name) {
+  if (['/v1/crosschain/analytics','/v1/crosschain/swaps'].includes(route)) {
+    const schemas = {
+      period: {type:'string',enum:['24h','7d','30d','90d','1y','all'],default:'30d',description:'Trailing UTC window; all starts at the earliest indexed record. Coverage can be incomplete.'},
+      granularity: {type:'string',enum:['hour','day'],description:'Defaults to hour for 24h/7d, day otherwise. Hour is only accepted for 24h/7d.'},
+      direction: {type:'string',enum:['inflow','outflow','internal'],description:'Native ZEC asset acquired, exchanged or ZEC-to-ZEC. Asset direction does not prove an on-chain transfer.'},
+      status: {type:'string',enum:['SUCCESS','FAILED','REFUNDED','PROCESSING','PENDING_DEPOSIT','INCOMPLETE_DEPOSIT']},
+      chain: {type:'string',pattern:'^[a-z0-9_-]{1,32}$'}, token: {type:'string',maxLength:64},
+      sourceAsset: {type:'string',maxLength:256,description:'Exact upstream originAsset identifier.'},
+      destAsset: {type:'string',maxLength:256,description:'Exact upstream destinationAsset identifier.'},
+      referral: {type:'string',maxLength:256,description:'Exact upstream referral value.'},
+      search: {type:'string',maxLength:200,description:'Exact deposit, recipient or sender address, or source/destination transaction hash.'},
+      minUsd: {type:'number',minimum:0,maximum:1e12,description:'Inclusive source-side USD minimum (up to 8 decimal places).'},
+      maxUsd: {type:'number',minimum:0,maximum:1e12,description:'Inclusive source-side USD maximum (up to 8 decimal places).'},
+      from: {type:'string',format:'date-time',description:'Inclusive UTC ISO timestamp, overrides the period start.'},
+      to: {type:'string',format:'date-time',description:'Exclusive UTC ISO timestamp, fixes the end of the window.'},
+      cursor: {type:'string',maxLength:8192,description:'Opaque data.nextCursor. Bound to filters and the original time window; do not construct or edit.'},
+      limit: {type:'integer',minimum:1,maximum:100,default:25},
+    };
+    return schemas[name] ? {required:false,schema:schemas[name],description:schemas[name].description} : null;
+  }
+
   if (route === '/v1/network/accounting/history') {
     if (name === 'limit') return { required: false, schema: { type: 'integer', minimum: 1, maximum: 1000, default: 120 } };
     if (name === 'before') return { required: false, schema: { type: 'integer', minimum: 0, maximum: 499999999, description: 'Exclusive canonical block-height cursor.' } };
