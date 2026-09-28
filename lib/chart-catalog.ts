@@ -26,7 +26,7 @@ export const CHART_CATALOG: CatalogChart[] = [
   {...pools,id:'shielded-supply',title:'Shielded share of supply',description:'Shielded balance divided by issued chain supply. The 21M maximum is not the denominator.',unit:'%',series:[series('shieldedSupplyPct','Shielded share','shielded')],percent:true},
   {id:'turnstile',title:'After deshielding',category:'Supply & flows',description:'Tracked value by deshielding date and its latest observed destination. Cohort outcomes can change as funds move.',href:'/turnstile',endpoint:'/v1/shielded-pools/turnstile?since=2016-10-28',rows:'timeseries',x:'date',window:'All available deshielding cohorts',unit:'ZEC',series:[series('held','Held','transparent'),series('reshielded','Reshielded','shielded'),series('exchange','Exchange-tagged','deshielding'),series('bridge','Bridge-tagged','purple'),series('transferred','Other transfers','sprout')],kind:'area',stack:true},
   {id:'pool-share',title:'Leading mining pool share',category:'Mining & network',description:'Largest attributed share of each day’s blocks. The leading pool may change; partial days can be volatile.',href:'/mining#hashrate',endpoint:'/v1/mining/hashrate-share?period=all',rows:'series',x:'date',cadence:'daily' as const,window:'All available history',unit:'%',series:[series('largestShare','Largest pool share','gold')],percent:true},
-  {...valuation,id:'search-interest',title:'Search interest in “zcash”',href:'/valuation#attention',endpoint:'/v1/valuation/search-interest',rows:'snapshot.points',window:'Imported weekly CSV · not automatically updated',description:'Worldwide Google Trends index, normalized within its export window. Incomplete weeks are excluded. Search attention is unscored.',unit:'Index / 100',series:[series('value','Completed weeks','gold')],percent:true},
+  {...valuation,cadence:undefined,id:'search-interest',title:'Search interest in “zcash”',href:'/valuation#attention',endpoint:'/v1/valuation/search-interest',rows:'snapshot.points',window:'Imported weekly CSV · not automatically updated',description:'Worldwide Google Trends index, normalized within its export window. Incomplete weeks are excluded. Search attention is unscored.',unit:'Index / 100',series:[series('value','Completed weeks','gold')],percent:true},
   {...privacy,id:'daily-activity',title:'Daily transaction activity',description:'Shielded and transparent transactions per day. Coinbase is excluded from the transparent count.',unit:'Transactions',series:[series('shielded','Shielded','shielded'),series('transparent','Transparent','transparent')],kind:'bar'},
   {...privacy,id:'privacy-adoption',title:'Shielded transaction share',description:'Daily shielded share of shielded plus non-coinbase transparent transactions.',unit:'%',series:[series('shieldedPercentage','Shielded share','shielded')],percent:true},
   {...privacy,id:'privacy-score',title:'Privacy Score history',description:'Recorded model scores out of 100. Formula changes can cause steps; this is not a probability of privacy.',unit:'Score / 100',series:[series('privacyScore','Privacy Score','gold')],percent:true},
@@ -106,6 +106,10 @@ export function catalogRows(chart: CatalogChart, payload: unknown): ChartRow[] {
       ? [{x:Number(previous.x)+86400000,...Object.fromEntries(chart.series.map(s=>[s.key,null]))},row]
       : [row];
   });
+}
+/** A later timestamp containing only nulls is not a newer observation. */
+export function latestCatalogObservation(rows: ChartRow[], series: CatalogSeries[]) {
+  return rows.findLast(row=>series.some(s=>typeof row[s.key]==='number' && Number.isFinite(row[s.key])));
 }
 export function formatCatalogValue(value: number, unit: string, compact = false) {
   const number = new Intl.NumberFormat('en-US',{notation:compact?'compact':'standard',...(compact?{maximumSignificantDigits:3}:{maximumFractionDigits:unit==='ZEC'?6:3})}).format(value);
