@@ -47,10 +47,21 @@ test('all census routes exclude legacy/stale rows and incompatible history again
     assert.equal(responses['/api/network/nodes/stats'].stats.activeNodes, 1);
     assert.equal(responses['/api/network/nodes/stats'].stats.totalNodes, 4);
     assert.equal(responses['/api/network/nodes/stats'].clients.observedNodes, 1);
+    assert.deepEqual(responses['/api/network/nodes/stats'].trends,
+      { change24h: null, change7d: null, change30d: null },
+      'minutes of repaired history cannot stand in for day/week/month baselines');
     assert.equal(responses['/api/network/nodes/list'].total, 1);
     assert.equal(responses['/api/network/node-history'].snapshots.length, 1);
     assert.equal(responses['/api/network/topology'].nodes.filter(n => n.reachable).length, 1);
     assert.equal(responses['/api/network/nodes/upgrade-readiness'].totalActive, 1);
+    await db.query(`INSERT INTO node_snapshots(id,snapshot_time,active_nodes,total_nodes,census_version)
+      VALUES (3,now()-interval '24 hours 5 minutes',2,4,1),
+      (4,now()-interval '7 days 5 minutes',4,4,1),
+      (5,now()-interval '30 days 2 hours',4,4,1)`);
+    const baselineRes = { set() {}, setHeader() {}, json(body) { responses.baselines=body; }, status() { return this; } };
+    await router.stack.find(l=>l.route?.path==='/api/network/nodes/stats').route.stack[0].handle(req,baselineRes);
+    assert.deepEqual(responses.baselines.trends, { change24h: -50, change7d: -75, change30d: null },
+      'use comparable baselines near the requested age and reject stale baselines');
     await db.query("UPDATE nodes SET last_verified_at=now()-interval '2 hours' WHERE id=1");
     const res = { set() {}, setHeader() {}, json(body) { responses.expired=body; }, status() { return this; } };
     await router.stack.find(l=>l.route?.path==='/api/network/nodes/stats').route.stack[0].handle(req,res);
