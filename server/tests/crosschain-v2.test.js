@@ -299,6 +299,16 @@ test(
       );
       assert.equal(data.summary.swaps, 3);
       assert.equal(data.summary.volume_usd, "600");
+      assert.equal(Number(data.summary.average_usd), 200);
+      assert.equal(data.flows.length, 1);
+      assert.equal(data.flows[0].chain, "eth");
+      assert.equal(data.flows[0].swaps, 3);
+      assert.equal(data.flows[0].buy_swaps, 2);
+      assert.equal(data.flows[0].sell_swaps, 1);
+      assert.equal(data.flows[0].inflow_usd, "300");
+      assert.equal(data.flows[0].outflow_usd, "300");
+      assert.equal(data.flows[0].inflow_zec, "3.23456789");
+      assert.equal(data.flows[0].outflow_zec, "3");
       assert.equal(data.summary.volume_zec, "6.23456789");
       assert.equal(data.summary.sender_addresses, 2); // same address on two chains
       assert.equal(
@@ -496,6 +506,9 @@ test(
         { v2: true, now: new Date("2026-07-01T12:00:00Z") },
       );
       assert.equal(missing.summary.volume_usd, null);
+      assert.equal(missing.summary.average_usd, null);
+      assert.equal(missing.flows[0].inflow_usd, null);
+      assert.equal(missing.flows[0].outflow_usd, "0");
       assert.equal(missing.summary.volume_zec, null);
       assert.equal(missing.summary.missing_usd, 1);
       assert.equal(missing.distribution.length, 0);

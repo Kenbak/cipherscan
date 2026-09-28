@@ -2,13 +2,25 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useApiQuery } from "@/hooks/useApiQuery";
+import { TokenChainIcon } from "@/components/TokenChainIcon";
+import { ChainFlowOverview } from "./ChainFlowOverview";
 import { PageSectionNav } from "@/components/PageSectionNav";
 import { ActivityCharts } from "./ActivityCharts";
 import { SwapExplorer } from "./SwapExplorer";
 import { WrappedZecTracker, WrappedZecAsset } from "./WrappedZecTracker";
-import { Analytics, CHAINS, PERIODS, Unit, date, href, value } from "./model";
+import {
+  Analytics,
+  CHAINS,
+  IS_DEMO,
+  PERIODS,
+  Unit,
+  date,
+  href,
+  value,
+} from "./model";
 const SECTIONS = [
   { id: "overview", label: "Overview" },
+  { id: "flows", label: "Chain flows" },
   { id: "routes", label: "Routes" },
   { id: "execution", label: "Outcomes & timing" },
   { id: "swaps", label: "Swap explorer" },
@@ -77,17 +89,57 @@ export function CrosschainDashboard({
       value(volume, unit),
       `${s.swaps.toLocaleString()} successful external swaps`,
     ],
+    [
+      "Swaps",
+      s.swaps.toLocaleString(),
+      "Successful external swaps in this period",
+    ],
+    [
+      "Net flow",
+      value(
+        inflow == null || outflow == null
+          ? null
+          : Number(inflow) - Number(outflow),
+        unit,
+      ),
+      "ZEC acquired minus ZEC exchanged",
+    ],
+    [
+      "Average swap",
+      value(s[`average_${unit}`], unit),
+      "Mean of swaps with a reported value",
+    ],
     ["ZEC acquired", value(inflow, unit), "Destination asset is native ZEC"],
     ["ZEC exchanged", value(outflow, unit), "Source asset is native ZEC"],
     [
       "Median swap",
       value(s[`median_${unit}`], unit),
-      `${s.sender_addresses.toLocaleString()} distinct source addresses`,
+      "Middle value among reported swap amounts",
+    ],
+    [
+      "Source addresses",
+      s.sender_addresses.toLocaleString(),
+      "Distinct chain + sender; not a count of people",
     ],
   ];
   const routes = allRoutes ? data.routes : data.routes.slice(0, 12);
   return (
     <div className="space-y-6" aria-busy={isRefreshing}>
+      {IS_DEMO && (
+        <aside
+          className="card border-cipher-orange text-sm"
+          aria-label="Preview data notice"
+        >
+          <p className="text-cipher-orange font-mono">
+            Preview · simulated swap data
+          </p>
+          <p className="text-muted mt-2">
+            Charts and swaps use test records. IDs starting with “fixture-” are
+            examples, not real addresses or transactions. Production data has
+            not changed.
+          </p>
+        </aside>
+      )}
       <PageSectionNav
         sections={SECTIONS}
         ariaLabel="Cross-chain sections"
@@ -177,13 +229,15 @@ export function CrosschainDashboard({
         </p>
         <ActivityCharts data={data} unit={unit} />
       </section>
+      <ChainFlowOverview flows={data.flows || []} unit={unit} period={period} />
       <section id="routes" className="card space-y-4">
         <div className="flex justify-between flex-wrap gap-3">
           <div>
             <h2 className="text-sm text-secondary font-mono">Routes</h2>
             <p className="text-xs text-muted mt-2">
-              Successful swaps, grouped by exact asset identifiers. Sorted by
-              count; up to 100 routes.
+              Each route summarizes an asset pair across successful swaps in
+              this period. Open “View swaps” to see its individual transactions.
+              Ranked by count; up to 100 routes.
             </p>
           </div>
           <button
@@ -221,12 +275,23 @@ export function CrosschainDashboard({
                     className="py-3 px-2 min-w-[200px]"
                     title={`${r.source_asset || "Unknown asset"} → ${r.dest_asset || "Unknown asset"}`}
                   >
-                    <span className="text-secondary">
+                    <span className="text-secondary flex items-center gap-2">
+                      <TokenChainIcon
+                        token={r.source_token}
+                        chain={r.source_chain}
+                        size={22}
+                      />
                       {r.source_token}{" "}
                       <span className="text-muted">
                         {CHAINS[r.source_chain] || r.source_chain}
                       </span>{" "}
-                      → {r.dest_token}{" "}
+                      →{" "}
+                      <TokenChainIcon
+                        token={r.dest_token}
+                        chain={r.dest_chain}
+                        size={22}
+                      />{" "}
+                      {r.dest_token}{" "}
                       <span className="text-muted">
                         {CHAINS[r.dest_chain] || r.dest_chain}
                       </span>
@@ -271,7 +336,7 @@ export function CrosschainDashboard({
                         }) + "#swaps"
                       }
                     >
-                      Swaps →
+                      View swaps →
                     </Link>
                   </td>
                 </tr>

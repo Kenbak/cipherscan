@@ -1,4 +1,5 @@
 import { formatUSD, formatZec } from "./format";
+export const IS_DEMO = process.env.NEXT_PUBLIC_CROSSCHAIN_DEMO === "1";
 export type Amount = string | null;
 export type Unit = "usd" | "zec";
 export const PERIODS = ["24h", "7d", "30d", "90d", "1y", "all"] as const;
@@ -124,6 +125,8 @@ export interface Analytics {
     outflow_usd: Amount;
     inflow_zec: Amount;
     outflow_zec: Amount;
+    average_usd: Amount;
+    average_zec: Amount;
     median_usd: Amount;
     median_zec: Amount;
     missing_usd: number;
@@ -131,6 +134,16 @@ export interface Analytics {
     sender_addresses: number;
   };
   trends: Trend[];
+  flows: {
+    chain: string;
+    swaps: number;
+    buy_swaps: number;
+    sell_swaps: number;
+    inflow_usd: Amount;
+    outflow_usd: Amount;
+    inflow_zec: Amount;
+    outflow_zec: Amount;
+  }[];
   routes: Route[];
   distribution: {
     bucket: number;

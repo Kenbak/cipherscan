@@ -8,14 +8,14 @@ import {
   XAxis,
   YAxis,
   CartesianGrid,
-  Tooltip,
   ResponsiveContainer,
   Legend,
   ReferenceLine,
 } from "recharts";
+import { ChartTooltip as Tooltip } from "@/components/charts/ChartTooltip";
 import { ChartCard } from "@/components/network/ChartCard";
 import { useTheme } from "@/contexts/ThemeContext";
-import { getChartColors } from "@/lib/chart-theme";
+import { getChartColors, getChartTooltipStyle } from "@/lib/chart-theme";
 import { Analytics, Unit, value } from "./model";
 const BUCKETS = [
   "<$10",
@@ -52,10 +52,16 @@ export function ActivityCharts({
         ? null
         : Number(p[`inflow_${unit}`]) - Number(p[`outflow_${unit}`]),
   }));
-  const distribution = BUCKETS.map((label, bucket) => ({
-    label,
-    swaps: data.distribution.find((b) => b.bucket === bucket)?.swaps || 0,
-  }));
+  const [sizeView, setSizeView] = useState<"count" | "volume">("count");
+  const distribution = BUCKETS.map((label, bucket) => {
+    const group = data.distribution.find((b) => b.bucket === bucket);
+    const amount = group?.[`volume_${unit}`];
+    return {
+      label,
+      swaps: group?.swaps || 0,
+      volume: group ? (amount == null ? null : Number(amount)) : 0,
+    };
+  });
   const tooltipStyle = {
     backgroundColor: colors.tooltipBg,
     borderColor: colors.tooltipBorder,
@@ -91,7 +97,11 @@ export function ActivityCharts({
           boundary buckets are partial · gaps are unknown.
         </p>
         <ResponsiveContainer width="100%" height={260} minWidth={0}>
-          <ComposedChart data={points} margin={{ left: 0, right: 8 }}>
+          <ComposedChart
+            data={points}
+            stackOffset="sign"
+            margin={{ left: 0, right: 8 }}
+          >
             <CartesianGrid
               stroke={colors.grid}
               strokeDasharray="2 6"
@@ -114,10 +124,17 @@ export function ActivityCharts({
             <Tooltip
               contentStyle={tooltipStyle}
               labelFormatter={(l) => `${l} UTC`}
-              formatter={(v) =>
+              formatter={(v, name) =>
                 view === "count"
                   ? Number(v).toLocaleString()
-                  : value(v == null ? null : Number(v), unit)
+                  : value(
+                      v == null
+                        ? null
+                        : name === "Outflow"
+                          ? Math.abs(Number(v))
+                          : Number(v),
+                      unit,
+                    )
               }
             />
             <ReferenceLine y={0} stroke={colors.axis} />
@@ -130,8 +147,16 @@ export function ActivityCharts({
               />
             ) : (
               <>
-                <Bar dataKey="Inflow" fill="var(--color-cipher-green)" />
-                <Bar dataKey="Outflow" fill="var(--color-cipher-orange)" />
+                <Bar
+                  stackId="flow"
+                  dataKey="Inflow"
+                  fill="var(--color-cipher-green)"
+                />
+                <Bar
+                  stackId="flow"
+                  dataKey="Outflow"
+                  fill="var(--color-cipher-orange)"
+                />
                 <Line
                   dataKey="Net"
                   stroke={colors.axis}
@@ -143,7 +168,28 @@ export function ActivityCharts({
           </ComposedChart>
         </ResponsiveContainer>
       </ChartCard>
-      <ChartCard title="Swap sizes" height={300}>
+      <ChartCard
+        title="Swap sizes"
+        height={300}
+        controls={
+          <div className="filter-group">
+            <button
+              className={`filter-btn ${sizeView === "count" ? "filter-btn-active" : ""}`}
+              aria-pressed={sizeView === "count"}
+              onClick={() => setSizeView("count")}
+            >
+              Count
+            </button>
+            <button
+              className={`filter-btn ${sizeView === "volume" ? "filter-btn-active" : ""}`}
+              aria-pressed={sizeView === "volume"}
+              onClick={() => setSizeView("volume")}
+            >
+              Volume
+            </button>
+          </div>
+        }
+      >
         <p className="text-xs text-muted mb-4">
           One successful swap per USD bucket. Both directions; missing USD
           values excluded.
@@ -154,17 +200,38 @@ export function ActivityCharts({
             layout="vertical"
             margin={{ left: 5, right: 12 }}
           >
-            <XAxis type="number" tick={{ fill: colors.axis, fontSize: 12 }} />
+            <XAxis
+              type="number"
+              tick={{ fill: colors.axis, fontSize: 12 }}
+              tickFormatter={(v) =>
+                sizeView === "count"
+                  ? Number(v).toLocaleString()
+                  : value(v, unit).replace(" ZEC", "")
+              }
+            />
             <YAxis
               type="category"
               dataKey="label"
               width={78}
               tick={{ fill: colors.axis, fontSize: 12 }}
             />
-            <Tooltip contentStyle={tooltipStyle} />
+            <Tooltip
+              content={({ active, payload }) => {
+                const row = payload?.[0]?.payload as
+                  | { label: string; swaps: number; volume: number | null }
+                  | undefined;
+                return active && row ? (
+                  <div style={getChartTooltipStyle(colors)}>
+                    <p className="text-muted mb-2">{row.label}</p>
+                    <p>{row.swaps.toLocaleString()} swaps</p>
+                    <p>{value(row.volume, unit)} volume</p>
+                  </div>
+                ) : null;
+              }}
+            />
             <Bar
-              dataKey="swaps"
-              name="Swaps"
+              dataKey={sizeView === "count" ? "swaps" : "volume"}
+              name={sizeView === "count" ? "Swaps" : "Volume"}
               fill="var(--color-cipher-gold)"
               radius={[0, 3, 3, 0]}
             />

@@ -169,3 +169,47 @@ request timed out during prerendering, while the build completed successfully.
 Optimized-build browser verification had no console errors. Raw HTML checks found
 one H1, complete sharing metadata and two JSON-LD blocks; the clean route was
 index/follow and filtered variants noindex/follow, both canonical to the clean URL.
+
+## Preview refinement — 2026-09-29 (local only)
+
+Inflow/outflow bars now share the same date position using a signed stack. Both
+charts use the shared theme-aware hover surface; outflow tooltips show the positive
+amount while the chart retains its negative direction. Swap-size count and volume
+views are both available, always grouped by source-side USD size; ZEC volume uses
+reported native amounts within those same USD buckets. Existing token/chain logos
+are reused in route and swap rows.
+
+The chain overview now ranks **all** observed external chains by ZEC buys, ZEC sells,
+or combined swaps, using count or the selected USD/ZEC volume. A buy assigns the
+source chain; a sell assigns the destination chain. This groups asset routes, not
+trading venues or identifiable participants. The analytics response adds `flows`
+with `chain`, `swaps`, `buy_swaps`, `sell_swaps`, and both directions' USD/ZEC sums.
+Its query includes every selected successful route before the separate top-100
+route listing limit. Counts link to corresponding filtered swaps.
+
+Summary additionally exposes `average_usd` / `average_zec` using SQL numeric AVG of
+available values (not total divided by a count containing missing valuations).
+The overview restores average swap size, a net-flow card and a standalone swap
+count alongside median and direction totals. Missing sums stay unavailable.
+
+Metric reconciliation: volume/count and chart history remain period-selectable;
+24h and all-indexed totals are reached through their period tabs instead of fixed
+24h cards with simultaneous all-time hints. Chain flows and swap-size volume mode
+are restored. Top pairs became exact-asset route summaries; transaction details
+remain in Swap Explorer. The former “unique wallets (30d)” wording is replaced by
+distinct chain+sender addresses in the selected period. Timing remains matched
+Zcash-leg p50/p90/sample counts, with no end-to-end claim. Wrapped supply remains.
+No production data or existing endpoint was deleted.
+
+`NEXT_PUBLIC_CROSSCHAIN_DEMO=1` is a **local preview build-only** option. It visibly
+labels simulated data, explains fixture identifiers, and disables transaction
+explorer links for those fake hashes. Do not set it in production. The demo dataset
+still has only two routes; this does not restrict real-data chain rankings.
+
+Refinement verification: optimized build and TypeScript passed; targeted lint and
+design lint passed; 28 frontend regression checks and all 3 cross-chain tests
+(including PostgreSQL buy/sell counts, native quantities, average and missing values)
+passed. Browser checks confirmed equal date X positions and widths for paired bars,
+loaded route logos, successful buy/sell and count/volume ranking controls, themed
+hover fill `rgba(156,164,176,0.07)` in dark mode, count+volume tooltip, and no console
+errors. Clean and filtered raw HTML retained one H1 and correct canonical/robots.

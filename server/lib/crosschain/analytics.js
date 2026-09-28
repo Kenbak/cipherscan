@@ -183,6 +183,7 @@ async function readAnalytics(pool, q, { v2 = false, now = new Date() } = {}) {
       CASE WHEN count(*) FILTER (WHERE direction='outflow')>0 AND count(zec_amount) FILTER (WHERE direction='outflow')=0 THEN NULL ELSE COALESCE(sum(zec_amount) FILTER (WHERE direction='outflow'),0)::text END AS outflow_zec,
       CASE WHEN count(*) FILTER (WHERE direction='inflow')>0 AND count(source_amount_usd) FILTER (WHERE direction='inflow')=0 THEN NULL ELSE COALESCE(sum(source_amount_usd) FILTER (WHERE direction='inflow'),0)::text END AS inflow_usd,
       CASE WHEN count(*) FILTER (WHERE direction='outflow')>0 AND count(source_amount_usd) FILTER (WHERE direction='outflow')=0 THEN NULL ELSE COALESCE(sum(source_amount_usd) FILTER (WHERE direction='outflow'),0)::text END AS outflow_usd,
+      avg(source_amount_usd)::text AS average_usd,avg(zec_amount)::text AS average_zec,
       percentile_cont(0.5) WITHIN GROUP (ORDER BY source_amount_usd)::text AS median_usd,
       percentile_cont(0.5) WITHIN GROUP (ORDER BY zec_amount)::text AS median_zec,
       count(*) FILTER (WHERE source_amount_usd IS NULL)::int AS missing_usd,
@@ -258,6 +259,29 @@ async function readAnalytics(pool, q, { v2 = false, now = new Date() } = {}) {
         params,
       )
     ).rows;
+    // Aggregate every successful route before the separate top-100 route limit.
+    const flowColumns = ["inflow", "outflow"]
+      .flatMap((direction) =>
+        [
+          ["usd", "source_amount_usd"],
+          ["zec", "zec_amount"],
+        ].map(
+          ([unit, column]) =>
+            `CASE WHEN count(*) FILTER (WHERE direction='${direction}')>0 AND count(${column}) FILTER (WHERE direction='${direction}')=0 THEN NULL ELSE COALESCE(sum(${column}) FILTER (WHERE direction='${direction}'),0)::text END AS ${direction}_${unit}`,
+        ),
+      )
+      .join(",");
+    const flows = (
+      await db.query(
+        `${base} SELECT
+      CASE WHEN direction='inflow' THEN source_chain ELSE dest_chain END AS chain,
+      count(*)::int AS swaps,
+      count(*) FILTER (WHERE direction='inflow')::int AS buy_swaps,
+      count(*) FILTER (WHERE direction='outflow')::int AS sell_swaps,${flowColumns}
+      FROM successful GROUP BY 1 ORDER BY count(*) DESC,1`,
+        params,
+      )
+    ).rows;
     const routes = (
       await db.query(
         `${base} SELECT source_chain,source_token,dest_chain,dest_token,direction,
@@ -308,6 +332,7 @@ async function readAnalytics(pool, q, { v2 = false, now = new Date() } = {}) {
       trends,
       distribution,
       routes,
+      flows,
       latency,
       referrals,
       latencyDefinition:

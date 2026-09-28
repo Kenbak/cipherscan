@@ -1,8 +1,10 @@
 "use client";
 import Link from "next/link";
+import { TokenChainIcon } from "@/components/TokenChainIcon";
 import { useApiQuery } from "@/hooks/useApiQuery";
 import {
   CHAINS,
+  IS_DEMO,
   EXPLORERS,
   STATUSES,
   Swap,
@@ -18,7 +20,7 @@ function Hashes({ chain, hashes }: { chain: string; hashes: string[] }) {
     <ul className="space-y-1">
       {hashes.map((hash) => (
         <li key={hash} className="break-all font-mono">
-          {EXPLORERS[chain] ? (
+          {EXPLORERS[chain] && !IS_DEMO ? (
             <a
               className="text-cipher-gold hover:underline"
               href={EXPLORERS[chain] + encodeURIComponent(hash)}
@@ -133,10 +135,17 @@ export function SwapExplorer({
       <div>
         <h2 className="text-sm font-mono text-secondary">Swap explorer</h2>
         <p className="text-xs text-muted mt-2">
-          Filter indexed records and expand a swap to inspect both transaction
-          legs. Search uses an exact address or transaction hash.
+          Each row is one swap. Filter the records, then expand a row for its
+          amounts, status and transaction links. Route links above apply filters
+          here. Search uses an exact address or transaction hash.
         </p>
       </div>
+      {IS_DEMO && (
+        <p className="text-xs text-cipher-orange">
+          Simulated preview records: “fixture-” IDs are examples, not real
+          addresses or transaction hashes.
+        </p>
+      )}
       <form
         action="/crosschain"
         method="get"
@@ -299,7 +308,12 @@ export function SwapExplorer({
                       {date(s.createdAt)}
                     </span>
                     <span>
-                      <span className="text-secondary">
+                      <span className="text-secondary flex items-center gap-2">
+                        <TokenChainIcon
+                          token={s.sourceToken}
+                          chain={s.sourceChain}
+                          size={22}
+                        />
                         {s.sourceToken} ·{" "}
                         {CHAINS[s.sourceChain] || s.sourceChain}
                       </span>
@@ -308,8 +322,14 @@ export function SwapExplorer({
                       </span>
                     </span>
                     <span>
-                      <span className="text-secondary">
-                        → {s.destToken} · {CHAINS[s.destChain] || s.destChain}
+                      <span className="text-secondary flex items-center gap-2">
+                        →{" "}
+                        <TokenChainIcon
+                          token={s.destToken}
+                          chain={s.destChain}
+                          size={22}
+                        />{" "}
+                        {s.destToken} · {CHAINS[s.destChain] || s.destChain}
                       </span>
                       <span className="block text-muted mt-1">
                         {s.destAmount ?? "Amount withheld"}
