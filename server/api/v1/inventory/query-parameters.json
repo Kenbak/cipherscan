@@ -1,4 +1,8 @@
 {
+  "GET /v1/network/accounting/history": [
+    "before",
+    "limit"
+  ],
   "GET /v1/network/attestations": [],
   "GET /v1/network/attestations/:id": [],
   "GET /v1/network/grpc-status": [],
@@ -29,6 +33,10 @@
   ],
   "GET /v1/search/anchors/:root": [],
   "GET /v1/blocks/:hashOrHeight/archive": [],
+  "GET /v1/network/block-time": [
+    "period"
+  ],
+  "GET /v1/network/accounting": [],
   "GET /v1/network/stats": [],
   "GET /v1/network/fees": [],
   "GET /v1/network/health": [],
@@ -372,9 +380,5 @@
   ],
   "GET /v1/names/status": [],
   "GET /v1/names/:name": [],
-  "GET /v1/names/:name/events": [],
-  "GET /v1/network/block-time": [
-    "period"
-  ],
-  "GET /v1/network/accounting": []
+  "GET /v1/names/:name/events": []
 }

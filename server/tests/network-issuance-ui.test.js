@@ -48,39 +48,38 @@ test('issuance copy describes observed cadence and keeps missing allocations una
   assert.doesNotMatch(html, /1,152|0 ZEC|NaN/);
 });
 
-function renderAccounting(feeRule, nsmBalanceZat) {
+function renderAccounting(active, nsmBalanceZat) {
   const { NetworkAccounting } = load('components/network/NetworkAccounting.tsx', {
     'next/link': { default: ({ children, ...props }) => React.createElement('a', props, children) },
     '@/components/ui/Card': cards,
     '@/components/ui/SectionHeader': { SectionHeader: () => null },
-    '@/lib/config': { CURRENCY: 'ZEC' },
-    '@/hooks/useApiQuery': { useApiQuery: () => ({ data: {
+    '@/components/charts/ChartTooltip': { ChartTooltip: () => null },
+    '@/contexts/ThemeContext': { useTheme: () => ({ theme: 'dark' }) },
+    '@/lib/chart-theme': { getChartColors: () => ({}) },
+    '@/lib/config': { NETWORK: 'mainnet', CURRENCY: 'ZEC' },
+    '@/hooks/useApiQuery': { useApiQuery: path => path.endsWith('/history') ? { data: null } : { data: {
+      success: true, schedule: { network: 'main', nu7Height: active ? 3497350 : null },
       nodeHeight: 3497353, nsmBalanceZat,
-      block: { height: 3497353, feeRule, feesPaidZat: '362088', feesToNsmZat: '217252',
+      block: { height: 3497353, feesPaidZat: '362088', feesToNsmZat: '217252',
         minerFeeAllocationZat: '144836', minerSubsidyZat: '125000000',
         minerReceiptsZat: '125144836', reissuanceZat: null },
-    }, loading: false, error: null }) },
+    }, loading: false, error: null } },
   });
   return renderToStaticMarkup(React.createElement(NetworkAccounting));
 }
 
-test('pre-NU7 accounting shows current earnings without inactive or future NSM fields', () => {
-  const html = renderAccounting('pre-NU7', '0');
-  assert.match(html, /Transaction fees paid/);
-  assert.match(html, /Miner subsidy allocation/);
-  assert.match(html, /Actual miner receipts/);
-  assert.match(html, /0\.00362088 ZEC/);
-  assert.doesNotMatch(html, /NSM|NU7|Reissuance|Minimum fee removal|details/);
+test('pre-NU7 accounting stays entirely hidden', () => {
+  assert.equal(renderAccounting(false, '0'), '');
 });
 
-test('active accounting preserves signed NSM data without inventing unavailable reissuance', () => {
-  const html = renderAccounting('floor(aggregate-block-fees * 3 / 5)', '-9223372036854775808');
-  assert.match(html, /NSM balance/);
+test('active accounting preserves exact signed reserve amounts without repeating issuance', () => {
+  const html = renderAccounting(true, '-9223372036854775808');
+  assert.match(html, /NSM reserve/);
   assert.match(html, /-92,233,720,368\.54775808 ZEC/);
   assert.match(html, /0\.00217252 ZEC/);
-  assert.doesNotMatch(html, /Reissuance|60%|NU7/);
-  const missing = renderAccounting('floor(aggregate-block-fees * 3 / 5)', null);
-  assert.match(missing, /NSM balance<\/dt><dd[^>]*>Unavailable/);
-  const unavailable = renderAccounting('unavailable', null);
-  assert.doesNotMatch(unavailable, /NSM balance|Minimum fee removal/);
+  assert.match(html, /1\.25144836 ZEC/);
+  assert.doesNotMatch(html, /Miner subsidy allocation|Current block subsidy|Next block subsidy|Separate reissuance amount|<dt[^>]*>Reissuance/);
+  assert.match(html, /<details/);
+  assert.match(html, /canonical block above/);
+  assert.match(renderAccounting(true, null), /NSM reserve<\/dt><dd[^>]*>Unavailable/);
 });

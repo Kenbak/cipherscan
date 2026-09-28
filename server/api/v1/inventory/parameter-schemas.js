@@ -35,6 +35,10 @@ const softwareFilters = {
   bucket: {type:'string',enum:['auto','day','week'],default:'auto',description:'Auto selects weekly for ranges longer than 121 days. Weekly buckets start Monday; boundary weeks contain only requested days.'},
 };
 function getQueryConstraint(route, name) {
+  if (route === '/v1/network/accounting/history') {
+    if (name === 'limit') return { required: false, schema: { type: 'integer', minimum: 1, maximum: 1000, default: 120 } };
+    if (name === 'before') return { required: false, schema: { type: 'integer', minimum: 0, maximum: 499999999, description: 'Exclusive canonical block-height cursor.' } };
+  }
   if (route === '/v1/network/block-time' && name === 'period') {
     const schema = { type: 'string', enum: ['6h', '24h', '7d'], default: '24h', description: 'Trailing block-header observation window.' };
     return { required: false, schema, description: schema.description };

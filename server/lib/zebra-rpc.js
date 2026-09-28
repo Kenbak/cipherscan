@@ -23,22 +23,18 @@ const zebraAgent = new http.Agent({
 // aborts the request instead of growing `data` without bound.
 const MAX_RPC_RESPONSE_BYTES = 50 * 1024 * 1024; // 50 MB
 
-let _auth = null;
-
+// Zakura replaces the cookie at restart. Never cache credentials across calls.
 function getAuth() {
-  if (_auth !== null) return _auth;
   const cookieFile = process.env.ZEBRA_RPC_COOKIE_FILE || '/root/.cache/zebra/.cookie';
   try {
     const cookie = fs.readFileSync(cookieFile, 'utf8').trim();
     if (cookie) {
-      _auth = Buffer.from(cookie).toString('base64');
-      return _auth;
+      return Buffer.from(cookie).toString('base64');
     }
   } catch {}
   const rpcUser = process.env.ZCASH_RPC_USER || '__cookie__';
   const rpcPassword = process.env.ZCASH_RPC_PASSWORD || '';
-  _auth = Buffer.from(`${rpcUser}:${rpcPassword}`).toString('base64');
-  return _auth;
+  return Buffer.from(`${rpcUser}:${rpcPassword}`).toString('base64');
 }
 
 async function callZebraRPC(method, params = [], { timeout = 8000 } = {}) {

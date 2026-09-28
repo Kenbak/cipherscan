@@ -5,7 +5,7 @@
  * Sources: Zcashinfo.com labels, coinbase tag analysis, Shawn Murphy's peer analysis,
  * AiCoin on-chain article (confirmed addresses), 2Miners documentation,
  * zecminingpool.com network dashboard cross-reference (Aug 2026).
- * Last updated: 2026-08-16
+ * Last updated: 2026-09-27
  */
 
 const POOL_BY_ADDRESS = {
@@ -155,6 +155,15 @@ const POOL_BY_ADDRESS = {
     region: null,
   },
 
+  // --- MySoloPool ---
+  // Corroborated by block 3479731 (address + Mysolopool.com tag) and
+  // 3431985 (same payout address before the tag was set). PR #72 / issue #73.
+  't1Yw8NGbPDs7fgpxzJ8gzCgurAQ8GFQBkk2': {
+    name: 'MySoloPool',
+    url: 'https://zcash.mysolopool.com',
+    region: null,
+  },
+
   // --- Unidentified / inactive ---
   // Consistent ~7% hashrate, stopped Jun 15. No coinbase tag to confirm identity.
   't1K79TgQbqu74d6rBmsMu2oFEXEwAmdYiT7': {
@@ -201,20 +210,27 @@ const POOL_BY_ADDRESS = {
   },
 };
 
-// Public pool marker corroborated by https://sluicey.xyz/ and its reported
-// block 3480541. Identifies the pool, never the shielded payout recipient.
+// Public pool markers identify the pool, never the shielded payout recipient.
+// Sluicey: https://sluicey.xyz/ and reported block 3480541.
+// MySoloPool: https://zcash.mysolopool.com and block 3479731 (PR #72).
 const POOL_BY_TAG = {
+  mysolopool: { name: 'MySoloPool', url: 'https://zcash.mysolopool.com', region: null, attribution: 'coinbase-tag' },
   sluicey: { name: 'Sluicey Pool', url: 'https://sluicey.xyz/', region: null, attribution: 'coinbase-tag' },
 };
 const SLUICEY_TAG_HEX = Buffer.from('Get Sluicey Yall sluicey.xyz').toString('hex');
 const SLUICEY_TAG_PATTERN = `^(?:[0-9a-f]{2})*${SLUICEY_TAG_HEX}(?:[0-9a-f]{2})*$`;
+const MYSOLOPOOL_TAG_HEX = Buffer.from('Mysolopool.com').toString('hex');
+const MYSOLOPOOL_TAG_PATTERN = `^(?:[0-9a-f]{2})*${MYSOLOPOOL_TAG_HEX}(?:[0-9a-f]{2})*$`;
 function getPoolTag(coinbaseHex) {
-  return typeof coinbaseHex === 'string' && new RegExp(SLUICEY_TAG_PATTERN, 'i').test(coinbaseHex) ? 'sluicey' : null;
+  if (typeof coinbaseHex !== 'string') return null;
+  if (new RegExp(SLUICEY_TAG_PATTERN, 'i').test(coinbaseHex)) return 'sluicey';
+  if (new RegExp(MYSOLOPOOL_TAG_PATTERN, 'i').test(coinbaseHex)) return 'mysolopool';
+  return null;
 }
 // Identifiers are internal call-site constants, never request input.
 function getPoolTagSql(column = 'coinbase_hex') {
   if (!/^[a-z_]+(?:\.[a-z_]+)?$/.test(column)) throw new Error('Invalid coinbase SQL column');
-  return `CASE WHEN ${column} ~* '${SLUICEY_TAG_PATTERN}' THEN 'sluicey' ELSE NULL END`;
+  return `CASE WHEN ${column} ~* '${SLUICEY_TAG_PATTERN}' THEN 'sluicey' WHEN ${column} ~* '${MYSOLOPOOL_TAG_PATTERN}' THEN 'mysolopool' ELSE NULL END`;
 }
 function getPoolName(address, coinbaseHex) {
   const pool = address ? POOL_BY_ADDRESS[address] : null;

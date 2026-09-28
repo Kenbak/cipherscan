@@ -144,9 +144,15 @@ function whereFilters(filters) {
     const knownAddresses = Object.entries(POOL_BY_ADDRESS)
       .filter(([, p]) => p.name && !p.isFundingStream).map(([a]) => a);
     const tag = Object.entries(POOL_BY_TAG).find(([, p]) => p.name === filters.poolName)?.[0];
-    if (filters.poolName === "unattributed" || tag) {
+    if (filters.poolName === "unattributed") {
       clauses.push(`(b.miner_address IS NULL OR NOT (b.miner_address=ANY(${bind(knownAddresses)}::text[])))`);
-      clauses.push(tag ? `(${getPoolTagSql('b.coinbase_hex')})=${bind(tag)}` : `(${getPoolTagSql('b.coinbase_hex')}) IS NULL`);
+      clauses.push(`(${getPoolTagSql('b.coinbase_hex')}) IS NULL`);
+    } else if (tag) {
+      // Match this pool's addresses even without a tag. Tag fallback only
+      // applies when no recognized payout address takes precedence.
+      clauses.push(`(b.miner_address=ANY(${bind(addresses)}::text[]) OR (
+        (b.miner_address IS NULL OR NOT (b.miner_address=ANY(${bind(knownAddresses)}::text[])))
+        AND (${getPoolTagSql('b.coinbase_hex')})=${bind(tag)}))`);
     } else {
       clauses.push(`b.miner_address=ANY(${bind(addresses)}::text[])`);
     }

@@ -11,6 +11,7 @@ import type { HashrateSnapshot } from '@/lib/hashrate';
 import { blockAgeLabel, observationStatus } from '@/lib/network-overview';
 import { MiningIssuance } from '@/components/network/MiningIssuance';
 import { NetworkSectionNav } from '@/components/network/NetworkSectionNav';
+import { NetworkAccounting } from '@/components/network/NetworkAccounting';
 import { BlockTimeChart } from '@/components/network/BlockTimeChart';
 import { BlockCadenceChart } from '@/components/network/BlockCadenceChart';
 import { FeeDistributionChart, type FeeDistributionResponse } from '@/components/network/FeeDistributionChart';
@@ -175,8 +176,9 @@ export default function NetworkClient({ initialData }: { initialData: NetworkPag
         </div>
       </section>
 
-      {!isCrosslink && <section id="network-accounting" className="network-section mb-10" aria-label="Historical block timing">
+      {!isCrosslink && <section id="network-accounting" className="network-section mb-10" aria-label="Block timing and active network accounting">
         <BlockTimeChart />
+        <NetworkAccounting />
       </section>}
       <MiningIssuance />
       <Card className="network-detail-panel card-static">

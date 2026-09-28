@@ -1,5 +1,47 @@
 [
   {
+    "method": "GET",
+    "path": "/v1/network/accounting/history",
+    "description": "Canonical block fee allocations, shielded activity and sampled NSM/supply history.",
+    "category": "network",
+    "query": [
+      "before",
+      "limit"
+    ],
+    "listKey": null,
+    "zatoshiFields": [],
+    "note": "All Zat amounts are exact decimal strings or null. Bounded to 120 blocks by default, at most 1000; before is an exclusive height cursor. Fee removal is floor(aggregate block fees * 3 / 5) per active block, never rounded after aggregation. Reserves, supply, pools and subsidy use retained hash-matched node observations; missed/pre-collection tips remain null. NSM net change requires consecutive observations and is neither gross removals nor reissuance. Orphan observations are retained but excluded by a canonical height/hash join. Reissuance remains unavailable. Requires database migration 027 and the accounting observer.",
+    "ownershipToken": false,
+    "pagination": null,
+    "parameters": [
+      {
+        "name": "before",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 499999999,
+          "description": "Exclusive canonical block-height cursor."
+        },
+        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      },
+      {
+        "name": "limit",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000,
+          "default": 120
+        },
+        "description": "Endpoint-specific filter or range; accepted values follow this endpoint’s data source."
+      }
+    ],
+    "requestBody": null
+  },
+  {
     "method": "POST",
     "path": "/v1/ask/chat",
     "description": "Contextual mainnet questions with reviewed public sources, supported language selection and bounded recent questions. Paid answers require bot verification and shared spend limits.",
@@ -765,6 +807,7 @@
             "Kryptex",
             "Luxor",
             "Mining Dutch",
+            "MySoloPool",
             "NiceHash",
             "Private Miner B",
             "Sluicey Pool",
