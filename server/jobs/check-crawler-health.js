@@ -26,7 +26,12 @@ async function run() {
     } catch (error) {
       console.error(`${unit}: unhealthy (${error.message}); restarting collector`);
       // Collector units enforce StartLimitIntervalSec/StartLimitBurst.
-      execFileSync('/usr/bin/systemctl', ['restart', unit], { timeout: 35000, stdio: 'inherit' });
+      try {
+        execFileSync('/usr/bin/systemctl', ['restart', unit], { timeout: 35000, stdio: 'inherit' });
+      } catch (restartError) {
+        console.error(`${unit}: restart failed (${restartError.message})`);
+        process.exitCode = 1;
+      }
     }
   }
 }

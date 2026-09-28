@@ -31,7 +31,8 @@ test('all census routes exclude legacy/stale rows and incompatible history again
     await db.query(`INSERT INTO topology_nodes(addr,ip,reachable) VALUES
       ('192.0.2.1:8233','192.0.2.1',true),('192.0.2.2:8233','192.0.2.2',true)`);
     const router = require('../api/routes/network');
-    const req = { app: { locals: { pool: db } }, query: {}, headers: {} };
+    const { createListCache } = require('../api/list-cache');
+    const req = { app: { locals: { pool: db, listCache: createListCache({ enabled: false }) } }, query: {}, headers: {} };
     router.stack[0].handle(req, {}, () => {});
     const responses = {};
     for (const path of ['/api/network/nodes', '/api/network/nodes/stats', '/api/network/nodes/list',

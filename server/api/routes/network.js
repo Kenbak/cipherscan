@@ -700,7 +700,7 @@ router.get('/api/network/nodes', async (req, res) => {
       family: 'network-node-locations',
       params: { source: NODE_SOURCE, censusVersion: CENSUS_VERSION },
       freshTtlSeconds: 300,
-      staleTtlSeconds: 0,
+      staleTtlSeconds: 301,
       load: async ({ measure }) => {
         const result = await measure('database_read', () => pool.query(`
           SELECT
@@ -755,7 +755,7 @@ router.get('/api/network/nodes/stats', async (req, res) => {
       family: 'network-node-stats',
       params: { source: NODE_SOURCE, censusVersion: CENSUS_VERSION },
       freshTtlSeconds: 300,
-      staleTtlSeconds: 0,
+      staleTtlSeconds: 301,
       load: async ({ measure }) => {
         const sourceFilter = NODE_SOURCE === 'crawl' ? '' : "AND observed_via = 'peer'";
         const [statsResult, topCountries, trends, clients, versions] = await measure(
