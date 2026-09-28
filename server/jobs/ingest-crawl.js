@@ -135,12 +135,12 @@ function getTargetTable() {
 /**
  * Main ingestion logic.
  */
-async function ingestCrawl() {
+async function ingestCrawl({ rpc = callCrawlerRPC, crunch = runCruncher, torExits = fetchTorExitNodes, dbPool = pool } = {}) {
   const startTime = Date.now();
   const targetTable = getTargetTable();
   log(`Starting crawl ingestion (target: ${targetTable}, dry-run: ${DRY_RUN})`);
 
-  const metrics = await callCrawlerRPC('getmetrics');
+  const metrics = await rpc('getmetrics');
   validateCrawlSnapshot(metrics);
 
   log(`Crawler reports: ${metrics.num_good_nodes} good / ${metrics.num_known_nodes} known nodes, ${metrics.num_known_connections} connections`);
@@ -148,7 +148,7 @@ async function ingestCrawl() {
   // Poll Tor crawler (best-effort — may not be running)
   let torMetrics = null;
   try {
-    torMetrics = validateCrawlSnapshot(await callCrawlerRPC('getmetrics', CRAWLER_TOR_RPC_PORT));
+    torMetrics = validateCrawlSnapshot(await rpc('getmetrics', CRAWLER_TOR_RPC_PORT));
     if (torMetrics && torMetrics.num_good_nodes > 0) {
       log(`Tor crawler reports: ${torMetrics.num_good_nodes} good / ${torMetrics.num_known_nodes} known nodes`);
     }
@@ -172,16 +172,16 @@ async function ingestCrawl() {
   metrics.node_addrs = verified.map(node => node.addr);
   metrics.num_good_nodes = verified.length;
 
-  const enriched = await runCruncher(metrics);
+  const enriched = await crunch(metrics);
   if (!enriched || !Array.isArray(enriched.nodes)) {
     throw new Error('Cruncher returned invalid output');
   }
 
   log(`Cruncher enriched ${enriched.nodes.length} nodes`);
 
-  const torExitIPs = await fetchTorExitNodes();
+  const torExitIPs = await torExits();
 
-  const client = await pool.connect();
+  const client = await dbPool.connect();
   try {
     await withAdvisoryLock(client, ADVISORY_LOCK_ID, async () => {
       await client.query('BEGIN');
