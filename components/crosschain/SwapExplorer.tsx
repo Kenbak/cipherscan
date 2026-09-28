@@ -1,5 +1,9 @@
 "use client";
-import Link from "next/link";
+import {
+  SwapFilterLink,
+  updateSwapUrl,
+  useSwapSearchParams,
+} from "./SwapFilterLink";
 import { TokenChainIcon } from "@/components/TokenChainIcon";
 import { useApiQuery } from "@/hooks/useApiQuery";
 import {
@@ -146,19 +150,34 @@ function Detail({ swap: s }: { swap: Swap }) {
   );
 }
 export function SwapExplorer({
-  params,
   unit,
   statuses,
 }: {
-  params: Record<string, string>;
   unit: Unit;
   statuses: string[];
 }) {
-  const { data, loading, error, isRefreshing } = useApiQuery<SwapPage>(
-    "/v1/crosschain/swaps",
-    { ...params, limit: "25" },
-    { refreshInterval: params.cursor ? undefined : 120000 },
-  );
+  const searchParams = useSwapSearchParams();
+  const params: Record<string, string> = {};
+  for (const key of [
+    "period",
+    "direction",
+    "status",
+    "chain",
+    "token",
+    "search",
+    "minUsd",
+    "maxUsd",
+    "from",
+    "to",
+    "cursor",
+    "sourceAsset",
+    "destAsset",
+    "referral",
+  ]) {
+    const val = searchParams.get(key);
+    if (val) params[key] = val;
+  }
+  params.period ||= "30d";
   const field =
     "bg-cipher-bg border border-cipher-border rounded-lg px-3 py-2 text-sm w-full";
   return (
@@ -181,7 +200,7 @@ export function SwapExplorer({
             ["inflow", "Into ZEC"],
             ["outflow", "Out of ZEC"],
           ].map(([direction, label]) => (
-            <Link
+            <SwapFilterLink
               key={label}
               className={`filter-btn ${(params.direction || "") === direction ? "filter-btn-active" : ""}`}
               aria-current={
@@ -197,7 +216,7 @@ export function SwapExplorer({
               }
             >
               {label}
-            </Link>
+            </SwapFilterLink>
           ))}
         </nav>
         {Object.entries(params).some(
@@ -206,12 +225,12 @@ export function SwapExplorer({
         ) && (
           <span className="text-xs text-muted">
             Filtered swaps ·{" "}
-            <Link
+            <SwapFilterLink
               className="text-cipher-gold"
               href={href({ period: params.period || "30d" }) + "#swaps"}
             >
               Clear filters
-            </Link>
+            </SwapFilterLink>
           </span>
         )}
       </div>
@@ -220,6 +239,16 @@ export function SwapExplorer({
           Search & filters
         </summary>
         <form
+          key={JSON.stringify(params)}
+          onSubmit={(event) => {
+            event.preventDefault();
+            const fields = new FormData(event.currentTarget);
+            const next: Record<string, string> = {};
+            for (const [key, val] of fields.entries()) {
+              if (typeof val === "string" && val.trim()) next[key] = val.trim();
+            }
+            updateSwapUrl(href(next) + "#swaps");
+          }}
           action="/crosschain"
           method="get"
           className="grid grid-cols-2 md:grid-cols-4 gap-3"
@@ -348,15 +377,39 @@ export function SwapExplorer({
             <button className="filter-btn filter-btn-active py-2" type="submit">
               Apply filters
             </button>
-            <Link
+            <button
+              type="reset"
               className="text-xs text-muted hover:underline"
-              href={href({ period: params.period || "30d" })}
+              onClick={() =>
+                updateSwapUrl(
+                  href({ period: params.period || "30d" }) + "#swaps",
+                )
+              }
             >
               Reset
-            </Link>
+            </button>
           </div>
         </form>
       </details>
+      <SwapResults key={JSON.stringify(params)} params={params} unit={unit} />
+    </section>
+  );
+}
+
+function SwapResults({
+  params,
+  unit,
+}: {
+  params: Record<string, string>;
+  unit: Unit;
+}) {
+  const { data, loading, error, isRefreshing } = useApiQuery<SwapPage>(
+    "/v1/crosschain/swaps",
+    { ...params, limit: "25" },
+    { refreshInterval: params.cursor ? undefined : 120000 },
+  );
+  return (
+    <div className="min-h-[320px]">
       {error && (
         <p role="alert" className="text-sm text-cipher-orange">
           Swap feed unavailable: {error}
@@ -428,26 +481,28 @@ export function SwapExplorer({
               </span>
               <div className="flex gap-4">
                 {params.cursor && (
-                  <Link
+                  <SwapFilterLink
+                    scrollToSwaps
                     className="text-cipher-gold"
                     href={href(params, { cursor: undefined })}
                   >
                     Newest matches
-                  </Link>
+                  </SwapFilterLink>
                 )}
                 {data.nextCursor && (
-                  <Link
+                  <SwapFilterLink
+                    scrollToSwaps
                     className="text-cipher-gold"
                     href={href(params, { cursor: data.nextCursor })}
                   >
                     Older matches →
-                  </Link>
+                  </SwapFilterLink>
                 )}
               </div>
             </div>
           </div>
         )
       )}
-    </section>
+    </div>
   );
 }

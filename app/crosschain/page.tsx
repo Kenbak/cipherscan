@@ -124,7 +124,7 @@ export default async function CrosschainPage({
           }
         />
 
-        <CrosschainDashboard key={JSON.stringify(params)} params={params} />
+        <CrosschainDashboard key={params.period || "30d"} params={params} />
       </div>
     </div>
   );

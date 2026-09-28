@@ -7,6 +7,7 @@ import { LatencyComparisonChart } from "./LatencyComparisonChart";
 import { ChainFlowOverview } from "./ChainFlowOverview";
 import { PageSectionNav } from "@/components/PageSectionNav";
 import { ActivityCharts } from "./ActivityCharts";
+import { SwapFilterLink, useAnalyticsPeriod } from "./SwapFilterLink";
 import { SwapExplorer } from "./SwapExplorer";
 import { WrappedZecTracker, WrappedZecAsset } from "./WrappedZecTracker";
 import {
@@ -33,7 +34,7 @@ export function CrosschainDashboard({
 }) {
   const [unit, setUnit] = useState<Unit>("usd");
   const [allRoutes, setAllRoutes] = useState(false);
-  const period = params.period || "30d";
+  const period = useAnalyticsPeriod(params.period || "30d");
   const { data, loading, error, isRefreshing } = useApiQuery<Analytics>(
     "/v1/crosschain/analytics",
     { period },
@@ -190,7 +191,8 @@ export function CrosschainDashboard({
           </p>
           <div className="space-y-2">
             {routes.map((r, i) => (
-              <Link
+              <SwapFilterLink
+                scrollToSwaps
                 key={i}
                 title={`Median ${value(r[`median_${unit}`], unit)} · ${r.source_asset || r.source_token} → ${r.dest_asset || r.dest_token}`}
                 className="relative flex items-center justify-between gap-3 rounded-lg px-3 py-3 hover:bg-glass-3"
@@ -243,7 +245,7 @@ export function CrosschainDashboard({
                     {value(r[`volume_${unit}`], unit)}
                   </span>
                 </span>
-              </Link>
+              </SwapFilterLink>
             ))}
           </div>
           {!routes.length && (
@@ -277,7 +279,8 @@ export function CrosschainDashboard({
             "PENDING_DEPOSIT",
             "INCOMPLETE_DEPOSIT",
           ].map((status) => (
-            <Link
+            <SwapFilterLink
+              scrollToSwaps
               key={status}
               href={href({ period, status }) + "#swaps"}
               className="rounded-lg bg-glass-3 p-3 hover:bg-glass-5"
@@ -303,16 +306,11 @@ export function CrosschainDashboard({
                     ).toLocaleString()
                   : "Unavailable"}
               </p>
-            </Link>
+            </SwapFilterLink>
           ))}
         </div>
       </section>
-      <SwapExplorer
-        key={JSON.stringify(params)}
-        params={{ ...params, period }}
-        unit={unit}
-        statuses={c.statusesAvailable}
-      />
+      <SwapExplorer unit={unit} statuses={c.statusesAvailable} />
       {data.latency.length > 0 && (
         <LatencyComparisonChart
           inbound={data.latency

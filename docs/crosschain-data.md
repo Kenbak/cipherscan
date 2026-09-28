@@ -250,3 +250,26 @@ filters, and the amount-first swap layout with all 50 feed icons loaded and no
 console errors. Clean/filtered raw HTML returned 200, one H1, canonical ZecBlock
 URL, appropriate index/noindex, social tags and valid JSON-LD. Preview is local
 mainnet-mode demo on port 3110; no production rollout or backfill occurred.
+
+## Swap filters update locally — 2026-09-29 (preview only)
+
+Recent-swaps Apply/Reset, direction tabs, pagination and chain/pair/outcome links
+now update native browser history, with Next useSearchParams driving only the
+swap results. The dashboard is keyed by the global period rather than all query
+parameters, preserving chart controls and USD/ZEC selection during feed filtering.
+Filter submissions omit empty fields and reset the cursor; a keyed results child
+prevents old-filter rows from being presented as new-filter results. The search
+panel remains open and its form synchronizes on Back/Forward. Links keep real
+hrefs for sharing, opening another tab and server rendering. Global period changes
+still update the whole analytics dashboard. Filtered direct requests retain their
+existing noindex and stable canonical policy. No API or production changes.
+
+Native popstate/hashchange subscriptions also handle plain section-anchor entries
+that lack Next router history state; the analytics period subscription updates
+only when the global period changes. Browser checks verified Apply, Back/Forward
+through a section-anchor entry, pagination, Reset including unsaved drafts, and
+chain-to-feed links. ZEC unit, chain-chart count mode and the expanded filter panel
+survived feed changes. Global 7d selection and Back to 30d synchronized correctly.
+Final build/TypeScript, scoped/design lint and 20 query/frontend checks passed;
+clean/filtered raw HTML retained the correct canonical, robots, one H1 and HTTP
+200. Browser logged no errors. Local preview only; production unchanged.

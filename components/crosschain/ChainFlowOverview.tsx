@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import Link from "next/link";
+import { SwapFilterLink } from "./SwapFilterLink";
 import {
   BarChart,
   Bar,
@@ -132,7 +132,8 @@ export function ChainFlowOverview({
                       width={112}
                       height={32}
                     >
-                      <Link
+                      <SwapFilterLink
+                        scrollToSwaps
                         className="flex h-full items-center justify-end gap-2 text-xs text-secondary hover:text-cipher-gold"
                         href={
                           href({
@@ -151,7 +152,7 @@ export function ChainFlowOverview({
                           chain={payload.value}
                           size={20}
                         />
-                      </Link>
+                      </SwapFilterLink>
                     </foreignObject>
                   )}
                 />
