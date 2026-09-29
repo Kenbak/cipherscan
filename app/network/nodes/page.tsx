@@ -1,4 +1,4 @@
-import { buildPageMetadata, getBaseUrl } from '@/lib/seo';
+import { buildPageMetadata, getBaseUrl, getNetwork } from '@/lib/seo';
 import NodesClient from './NodesClient';
 
 export const metadata = buildPageMetadata({
@@ -28,16 +28,18 @@ export default function NodesPage() {
           </h2>
           <div className="space-y-3 text-sm text-muted leading-relaxed">
             <p>
+              {getNetwork() === 'mainnet' ? <>
               This page combines connections reported by our Zcash node with recent
               protocol handshakes from our network crawlers, deduplicated by IP address.
               Peer observations expire after 15 minutes; crawler handshakes expire after
               one hour. This is the active network we observe, not a complete count of
               all nodes or independent operators. Client names and versions are self-reported.
+              </> : <>This page shows peers observed by our network infrastructure, deduplicated by IP address. It is not a complete global census or a count of independent operators. Client names and versions are self-reported.</>}
             </p>
             <p>
               DNS and gossiped addresses alone do not count as active. Graph links show
               advertised peer relationships; active nodes without those links still appear.
-              Average handshake time covers crawler verifications, not live-peer ping times.
+              {getNetwork() === 'mainnet' ? ' Average handshake time covers crawler verifications, not live-peer ping times.' : ''}
             </p>
             <p>
               Node locations are rounded to 1-degree precision to protect operator privacy.

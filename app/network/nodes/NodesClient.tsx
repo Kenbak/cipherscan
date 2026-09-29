@@ -34,6 +34,7 @@ interface NodeEntry {
 }
 
 interface NodeStats {
+  censusVersion?: number;
   activeNodes: number;
   totalNodes: number;
   countries: number;
@@ -183,7 +184,7 @@ export default function NodesClient() {
       <PageHeader
         eyebrow="Network"
         title={<>Zcash Nodes</>}
-        subtitle="Active nodes observed through live peer connections and network crawling"
+        subtitle="Active nodes observed by our network infrastructure"
         actions={
           <Link href="/network" className="text-xs text-muted hover:text-secondary font-mono transition-colors">
             &larr; Network Overview
@@ -206,7 +207,7 @@ export default function NodesClient() {
               </div>
               <div className="flex flex-wrap gap-x-6 gap-y-2 sm:ml-auto text-xs font-mono">
                 <StatChip label="Countries" value={stats.countries} />
-                <StatChip label="Avg Handshake" value={stats.avgPingMs ? `${stats.avgPingMs.toFixed(0)}ms` : '—'} />
+                <StatChip label={stats.censusVersion === 2 ? "Avg Handshake" : "Avg Ping"} value={stats.avgPingMs ? `${stats.avgPingMs.toFixed(0)}ms` : '—'} />
                 <StatChip label="Tor" value={stats.torNodes} />
                 <StatChip label="Total Seen" value={stats.totalNodes.toLocaleString()} />
                 <StatChip label="Cities" value={stats.cities} />
@@ -226,7 +227,7 @@ export default function NodesClient() {
                 <div>
                   <h3 className="text-sm font-semibold text-primary">Client Distribution</h3>
                   <p className="mt-1 text-[11px] text-muted">
-                    Client identities reported by connected peers and verified crawler handshakes.
+                    Client identities are self-reported by observed peers.
                   </p>
                 </div>
                 <span className="shrink-0 font-mono text-xs text-cipher-cyan">

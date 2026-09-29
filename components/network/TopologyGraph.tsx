@@ -538,7 +538,7 @@ export function TopologyGraph() {
           <span className="w-2 h-2 rounded-full" style={{ backgroundColor: OFF_COLOR }} />
           Not recently observed
         </button>
-        <span className="ml-auto text-[10px] text-muted/70">click to filter · size ∝ peer count</span>
+        <span className="ml-auto text-[10px] text-muted/70">click to filter · size ∝ gossip links</span>
       </div>
     </div>
   );
