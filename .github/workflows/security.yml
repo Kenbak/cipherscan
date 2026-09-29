@@ -18,7 +18,7 @@ jobs:
     name: Security audit result
     runs-on: ubuntu-latest
     if: always()
-    needs: [npm-audit, cargo-audit, pip-audit, secret-scan]
+    needs: [dependency-changes, npm-audit, cargo-audit, pip-audit, secret-scan]
     steps:
       - name: Require every applicable audit to pass
         env:
@@ -27,6 +27,7 @@ jobs:
           python3 - <<'PY'
           import json, os
           results = json.loads(os.environ['RESULTS'])
+          assert results['dependency-changes']['result'] == 'success', results
           assert all(job['result'] in ('success', 'skipped') for job in results.values()), results
           assert results['secret-scan']['result'] == 'success', results
           PY
