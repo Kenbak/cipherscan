@@ -161,7 +161,7 @@ const NODE_STATUS_COLOR: Record<string, string> = {
   behind: 'text-cipher-yellow',
   ahead: 'text-cipher-gold',
   fork: 'text-cipher-orange',
-  offline: 'text-red-500',
+  offline: 'text-danger',
   pending: 'text-muted',
   syncing: 'text-muted',
 };
@@ -328,8 +328,8 @@ export default function UnclesPage() {
       return <span className="text-xs text-muted font-mono">—</span>;
     }
     const colorClass = variant === 'orphan'
-      ? 'bg-orange-950/50 text-cipher-orange border-orange-500/30'
-      : 'bg-emerald-950/50 text-cipher-green border-cipher-green/30';
+      ? 'bg-cipher-orange/10 text-cipher-orange border-cipher-orange/30'
+      : 'bg-cipher-green/10 text-cipher-green border-cipher-green/30';
     const content = (
       <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-mono font-semibold border ${colorClass}`}>
         {pool}
@@ -357,14 +357,14 @@ export default function UnclesPage() {
     height: number;
   }) => {
     const isOrphan = variant === 'orphan';
-    const borderColor = isOrphan ? 'border-orange-500/30' : 'border-cipher-green/30';
-    const bgGradient = isOrphan
-      ? 'from-orange-950/30 to-red-950/20'
-      : 'from-emerald-950/30 to-gold-950/20';
+    const borderColor = isOrphan ? 'border-cipher-orange/30' : 'border-cipher-green/30';
+    const surface = isOrphan
+      ? 'bg-cipher-orange/5'
+      : 'bg-cipher-green/5';
     const labelColor = isOrphan ? 'text-cipher-orange' : 'text-cipher-green';
 
     return (
-      <div className={`flex-1 rounded-lg border ${borderColor} bg-gradient-to-br ${bgGradient} p-4`}>
+      <div className={`flex-1 rounded-lg border ${borderColor} ${surface} p-4`}>
         <div className="flex items-center justify-between mb-3">
           <span className={`text-caption font-mono uppercase tracking-wider font-semibold ${labelColor}`}>
             {label}
@@ -425,7 +425,7 @@ export default function UnclesPage() {
       {/* Header */}
       <div className="mb-8">
         <span className="text-caption font-mono text-muted tracking-wider">&gt; FORK_WATCH</span>
-        <h1 className="type-page font-mono text-primary mt-1">
+        <h1 className="type-page font-sans text-primary mt-1">
           Fork Watch
         </h1>
         <p className="text-xs text-muted mt-2 max-w-2xl">
@@ -663,7 +663,7 @@ export default function UnclesPage() {
             Node operators can help monitor chain health by reporting their tip block hash.
             If your node sees a different block at the same height, it will be recorded as a potential fork.
           </p>
-          <div className="bg-cipher-surface rounded-lg p-4 border border-cipher-border">
+            <div tabIndex={0} role="region" aria-label="Competing-tip report request example" className="max-w-full overflow-x-auto bg-cipher-surface rounded-lg p-4 border border-cipher-border">
             <code className="text-xs text-cipher-gold font-mono block mb-2">
               POST {API_URL}/v1/uncles/reports
             </code>

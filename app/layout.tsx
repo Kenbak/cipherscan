@@ -2,8 +2,7 @@ import { Suspense } from 'react';
 import { AskWidget } from '@/components/ask/AskWidget';
 import type { Metadata } from "next";
 import localFont from "next/font/local";
-import Script from "next/script";
-import { Analytics } from "@vercel/analytics/next";
+import { PrivateAnalytics } from "@/components/PrivateAnalytics";
 import { NavBar } from "@/components/NavBar";
 import { StatsBar } from "@/components/StatsBar";
 import { Footer } from "@/components/Footer";
@@ -12,7 +11,7 @@ import { ChainSyncBanner } from "@/components/ChainSyncBanner";
 import { GovernanceBanner } from "@/components/GovernanceBanner";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { WebSocketProvider } from "@/contexts/WebSocketContext";
-import { buildPageMetadata, getBaseUrl, getNetwork } from "@/lib/seo";
+import { getBaseUrl, getNetwork, getSiteCopy } from "@/lib/seo";
 import "./globals.css";
 
 const geistSans = localFont({
@@ -30,38 +29,18 @@ const geistMono = localFont({
 const network = getNetwork();
 const baseUrl = getBaseUrl();
 
-const siteCopy = network === 'mainnet'
-  ? {
-      title: 'Zcash Block Explorer & Privacy Analytics | ZecBlock',
-      description: 'ZecBlock is a Zcash block explorer for searching blocks, transactions, and addresses, with live shielded pool, privacy, and network analytics.',
-      keywords: ['zcash block explorer', 'zcash explorer', 'ZEC explorer', 'zcash blockchain explorer', 'zcash transactions', 'zcash shielded pool', 'privacy', 'ZEC', 'ZecBlock', 'zcash rich list', 'zcash network'],
-      imageAlt: 'ZecBlock - Zcash Block Explorer',
-    }
-  : network === 'testnet'
-    ? {
-        title: 'ZecBlock Testnet - Zcash Testnet Explorer for TAZ',
-        description: 'Explore the Zcash testnet with ZecBlock. Search TAZ blocks, transactions, and addresses, monitor pending transactions, and inspect testnet network activity.',
-        keywords: ['zcash testnet', 'TAZ', 'TAZ explorer', 'zcash testnet explorer', 'zcash testnet transactions', 'ZecBlock testnet'],
-        imageAlt: 'ZecBlock - Zcash Testnet Explorer for TAZ',
-      }
-    : {
-        title: 'ZecBlock Crosslink - Zcash Crosslink Explorer',
-        description: 'Explore the Zcash Crosslink feature network, including blocks, finality, staking, and validators.',
-        keywords: ['zcash crosslink', 'crosslink explorer', 'zcash finality', 'cTAZ'],
-        imageAlt: 'ZecBlock - Zcash Crosslink Explorer',
-      };
+const siteCopy = getSiteCopy();
 
-const rootPageMetadata = buildPageMetadata({
-  ...siteCopy,
-  path: '/',
-  indexOnTestnet: true,
-});
-
+// Site-wide defaults only. Title, description, canonical, robots and social
+// cards belong to each page (the homepage's live in app/page.tsx), so a page
+// without its own metadata never impersonates the homepage.
 export const metadata: Metadata = {
-  ...rootPageMetadata,
+  metadataBase: new URL(baseUrl),
+  applicationName: 'ZecBlock',
   authors: [{ name: "Kenbak" }],
   creator: "Kenbak",
   publisher: "ZecBlock",
+  referrer: 'no-referrer',
   icons: {
     icon: "/brand/zecblock-mark.svg",
     shortcut: "/brand/zecblock-mark.svg",
@@ -69,7 +48,6 @@ export const metadata: Metadata = {
   },
   manifest: "/manifest.json",
   alternates: {
-    canonical: `${baseUrl}/`,
     types: {
       'application/rss+xml': `${baseUrl}/newsletter/rss`,
     },
@@ -79,7 +57,7 @@ export const metadata: Metadata = {
 
 // Site-wide JSON-LD structured data.
 // WebSite.name + alternateName teach Google the site-name entity for the
-// "cipherscan" brand query; Organization with sameAs links the domain to
+// "ZecBlock" brand query; Organization with sameAs links the domain to
 // our social/code profiles for entity disambiguation.
 const websiteAlternateNames = network === 'mainnet'
   ? ['ZecBlock Zcash Explorer', 'zecblock.com']
@@ -106,7 +84,7 @@ const siteJsonLd = {
       url: 'https://zecblock.com',
       logo: 'https://zecblock.com/brand/zecblock-mark.svg',
       sameAs: [
-        'https://twitter.com/cipherscan_app',
+        'https://x.com/zecblock',
         'https://github.com/Kenbak/cipherscan',
       ],
     },
@@ -175,17 +153,12 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{ __html: JSON.stringify(siteJsonLd) }}
         />
         {/*
-          next/script's beforeInteractive strategy is Next's own documented
-          mechanism for exactly this case (must run before hydration/paint
-          to avoid a flash of the wrong theme). It's injected outside the
-          normal React child-render path, which avoids React 19's "script
-          tag inside a component" warning that a plain <script> here would
-          trigger. JSON-LD scripts below stay as plain <script> tags on
-          purpose — that's the separate Next-recommended pattern for
-          structured data, needed to keep it in the initial server HTML for
-          crawlers (next/script's strategies inject client-side instead).
+          Must be a plain inline script. In the App Router, next/script's
+          beforeInteractive emits a self.__next_s queue entry that only runs
+          once Next's client runtime loads, so a saved light theme painted
+          dark first whenever JavaScript was slow.
         */}
-        <Script id="theme-init" strategy="beforeInteractive" dangerouslySetInnerHTML={{ __html: themeScript }} />
+        <script id="theme-init" dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
         <ThemeProvider>
@@ -193,7 +166,7 @@ export default function RootLayout({
             <AppContent>{children}</AppContent>
           </WebSocketProvider>
         </ThemeProvider>
-        <Analytics />
+        <PrivateAnalytics />
       </body>
     </html>
   );

@@ -10,7 +10,7 @@ export function OrphanedBlockBanner({ data }: { data: BlockData }) {
 
   return (
     <div className="mb-6 space-y-4 animate-fade-in-up">
-      <div className="rounded-xl border border-orange-500/30 bg-orange-950/30 backdrop-blur-sm p-4 sm:p-5">
+      <div className="rounded-xl border border-cipher-orange/30 bg-cipher-orange/5 backdrop-blur-sm p-4 sm:p-5">
         <div className="flex flex-col gap-3">
           <Badge color="orange" className="self-start text-caption font-semibold tracking-wider">ORPHANED BLOCK</Badge>
           <p className="text-sm text-secondary">
@@ -29,7 +29,7 @@ export function OrphanedBlockBanner({ data }: { data: BlockData }) {
         <p className="text-xs text-muted mb-3">{BLOCK_FIRST_SEEN_EXPLANATION}</p>
         <p className="text-caption font-mono uppercase tracking-wider text-muted mb-3">Reorg comparison at #{data.height.toLocaleString()}</p>
         <div className="flex flex-col sm:flex-row gap-3">
-          <div className="flex-1 rounded-lg border border-orange-500/30 bg-gradient-to-br from-orange-950/30 to-red-950/20 p-3">
+          <div className="flex-1 rounded-lg border border-cipher-orange/30 bg-cipher-orange/5 p-3">
             <span className="text-caption font-mono uppercase tracking-wider font-semibold text-cipher-orange">Orphaned</span>
             <div className="mt-2 space-y-1.5">
               <BlockFirstSeen value={data.firstSeenAt} />
@@ -57,7 +57,7 @@ export function OrphanedBlockBanner({ data }: { data: BlockData }) {
           </div>
 
           {data.canonicalBlock ? (
-            <div className="flex-1 rounded-lg border border-cipher-green/30 bg-gradient-to-br from-emerald-950/30 to-gold-950/20 p-3">
+            <div className="flex-1 rounded-lg border border-cipher-green/30 bg-cipher-green/5 p-3">
               <span className="text-caption font-mono uppercase tracking-wider font-semibold text-cipher-green">Canonical</span>
               <div className="mt-2 space-y-1.5">
                 <BlockFirstSeen value={data.canonicalBlock.firstSeenAt} />

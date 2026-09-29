@@ -226,7 +226,7 @@ export function FlowVolumeChart() {
       sourceHeight={0}
       isLive={false}
       shareText={shareText}
-      fileName="cipherscan-flow-volume.png"
+      fileName="zecblock-flow-volume.png"
       watermark
       className=""
       footerNote={`${poolLabel} · ${period.toUpperCase()}`}

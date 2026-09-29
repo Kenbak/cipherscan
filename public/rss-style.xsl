@@ -118,7 +118,7 @@
         </div>
 
         <div class="footer">
-          Published by <a href="https://cipherscan.app">CipherScan</a> — Privacy intelligence for Zcash
+          Published by <a href="https://zecblock.com">ZecBlock</a> — Privacy intelligence for Zcash
         </div>
       </body>
     </html>

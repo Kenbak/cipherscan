@@ -13,13 +13,13 @@ import styles from './ask.module.css';
 import { AskChallenge } from '@/components/ask/AskChallenge';
 import { AskTransfers } from '@/components/ask/AskTransfers';
 import { AskSources } from '@/components/ask/AskSources';
-import { askChat, peekAskHandoff, clearAskHandoff } from '@/lib/ask/client';
+import { askChat, askErrorMessage, peekAskHandoff, clearAskHandoff } from '@/lib/ask/client';
 import type { AskReply, AskSource } from '@/lib/ask/chat';
 import { describeMetric, formatChain } from '@/lib/ask/data';
 
 const AskChart = dynamic(() => import('./AskChart'), { ssr: false, loading: () => <div className="h-80 grid place-items-center text-sm text-muted" role="status">Loading chart…</div> });
 const categories = ['Featured', 'Pools', 'Ironwood', 'Cross-chain', 'Network'];
-type Message = { id: number; question: string; answer: string; spec?: AnalysisSpec; sources?: AskSource[]; transfers?: AskReply['transfers']; locale?: string; scope?: string };
+type Message = { dataContext?: AskReply['dataContext']; id: number; question: string; answer: string; spec?: AnalysisSpec; sources?: AskSource[]; transfers?: AskReply['transfers']; locale?: string; scope?: string };
 type Session = { id: number; title: string; messages: Message[]; spec: AnalysisSpec | null; page?: string };
 type Capability = { mode: 'guided' | 'ai'; provider: string | null; siteKey?: string | null };
 const initialSession: Session = { id: 0, title: 'New analysis', messages: [], spec: null };
@@ -33,7 +33,7 @@ export function AskWorkspace() {
   const [handoff] = useState(peekAskHandoff);
   const [token, setToken] = useState('');
   const [challengeReset, setChallengeReset] = useState(0);
-  const [sessions, setSessions] = useState<Session[]>(() => handoff?.turns.length ? [{ id: 0, title: handoff.turns[0].question, spec: handoff.spec, page: handoff.page, messages: handoff.turns.map((turn, i) => ({ id: i + 1, question: turn.question, answer: turn.answer, sources: turn.sources, transfers: turn.transfers, locale: turn.locale, scope: turn.scope, spec: turn.spec || undefined })) }] : [initialSession]);
+  const [sessions, setSessions] = useState<Session[]>(() => handoff?.turns.length ? [{ id: 0, title: handoff.turns[0].question, spec: handoff.spec, page: handoff.page, messages: handoff.turns.map((turn, i) => ({ id: i + 1, question: turn.question, answer: turn.answer, sources: turn.sources, transfers: turn.transfers, locale: turn.locale, scope: turn.scope, dataContext: turn.dataContext, spec: turn.spec || undefined })) }] : [initialSession]);
   const [activeId, setActiveId] = useState(0);
   const [question, setQuestion] = useState('');
   const [busy, setBusy] = useState(false);
@@ -41,6 +41,7 @@ export function AskWorkspace() {
   const [fetchedEvidence, setEvidence] = useState<Evidence | null>(null);
   const [loadingData, setLoadingData] = useState(false);
   const [error, setError] = useState('');
+  const [chatError, setChatError] = useState('');
   const [sourcesOpen, setSourcesOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [refresh, setRefresh] = useState(0);
@@ -102,7 +103,7 @@ export function AskWorkspace() {
   }
 
   function switchSession(id: number) {
-    request.current?.abort(); request.current = null; setBusy(false); setActiveId(id); setQuestion(''); setSourcesOpen(false); setEvidence(null);
+    request.current?.abort(); request.current = null; setBusy(false); setChatError(''); setActiveId(id); setQuestion(''); setSourcesOpen(false); setEvidence(null);
   }
 
   function newSession() {
@@ -116,33 +117,37 @@ export function AskWorkspace() {
   async function ask(text: string) {
     const trimmed = text.trim();
     const next = resolveShortcut(trimmed, spec);
-    if (!trimmed || trimmed.length > 1000 || busy || capability.mode === 'ai' && !token && !next) return;
-    setQuestion(''); setBusy(true); setCopied(false);
+    if (!trimmed || trimmed.length > 1000 || busy || request.current || capability.mode === 'ai' && !token && !next) return;
+    setQuestion(''); setBusy(true); setChatError(''); setCopied(false);
     const controller = new AbortController();
     request.current = controller;
-    const timeout = setTimeout(() => controller.abort(), 45000);
+    const timeout = setTimeout(() => controller.abort(new DOMException('Request timed out', 'TimeoutError')), 45000);
     const id = ++serial.current;
-    const append = (answer: string, next?: AnalysisSpec, sources?: AskSource[], answerLocale?: string, scope?: string, transfers?: AskReply['transfers']) => setSessions(all => all.map(item => item.id === activeId ? {
+    const append = (answer: string, next?: AnalysisSpec, sources?: AskSource[], answerLocale?: string, scope?: string, transfers?: AskReply['transfers'], dataContext?: AskReply['dataContext']) => setSessions(all => all.map(item => item.id === activeId ? {
       ...item, title: item.messages.length ? item.title : trimmed,
-      messages: [...item.messages, { id, question: trimmed, answer, spec: next, sources, transfers, locale: answerLocale, scope }].slice(-30),
+      messages: [...item.messages, { id, question: trimmed, answer, spec: next, sources, transfers, dataContext, locale: answerLocale, scope }].slice(-30),
       spec: transfers ? null : next ?? item.spec,
     } : item));
     try {
       if (!next || capability.mode === 'ai' && token) {
         const reply = await askChat(trimmed, session.page || 'ask', spec, 'auto', session.messages.map(message => message.question), token, controller.signal);
         if (controller.signal.aborted) return;
-        append(reply.answer, reply.spec ? analysisSchema.parse(reply.spec) : undefined, reply.sources, reply.locale, reply.scope, reply.transfers);
+        append(reply.answer, reply.spec ? analysisSchema.parse(reply.spec) : undefined, reply.sources, reply.locale, reply.scope, reply.transfers, reply.dataContext);
       } else {
         append(`Opened ${describeMetric(next.metric).title.toLowerCase()} for ${next.period === '1y' ? 'the past year' : `the past ${next.period.slice(0, -1)} days`}${next.pool === 'all' ? '' : `, filtered to ${next.pool}`}. The analysis shows the source observations and updates as you change the controls.`, next);
       }
       if (!hasMessages) requestAnimationFrame(() => workspace.current?.scrollIntoView({ block: 'start', behavior: 'instant' }));
-    } catch {
-      if (!controller.signal.aborted && next) append(`Opened ${describeMetric(next.metric).title.toLowerCase()}. AI explanations are temporarily unavailable; the guided chart remains usable.`, next);
-      else if (!controller.signal.aborted) append('Ask could not complete that request. Your current analysis is still available. Try again, or choose a starter question.');
-      else if (request.current === controller) append('The request was stopped. You can try again or continue with a starter question.');
+    } catch (cause) {
+      if (request.current === controller) {
+        setQuestion(trimmed);
+        if (!controller.signal.aborted || controller.signal.reason?.name === 'TimeoutError') {
+          setChatError(askErrorMessage(controller.signal.aborted ? controller.signal.reason : cause));
+          if (next) updateSpec(next, true);
+        }
+      }
     } finally {
       clearTimeout(timeout);
-      if (request.current === controller) { setBusy(false); setToken(''); setChallengeReset(value => value + 1); }
+      if (request.current === controller) { request.current = null; setBusy(false); setToken(''); setChallengeReset(value => value + 1); }
     }
   }
 
@@ -163,7 +168,7 @@ export function AskWorkspace() {
       {busy ? <button type="button" className={styles.submit} onClick={() => request.current?.abort()} aria-label="Stop response">■</button>
         : <button type="submit" className={styles.submit} disabled={!question.trim() || capability.mode === 'ai' && !token && !resolveShortcut(question, spec)} aria-label="Send question">↑</button>}
     </div>
-  </form><AskChallenge siteKey={capability.siteKey} onToken={setToken} reset={challengeReset} /></div>;
+  </form><AskChallenge siteKey={capability.siteKey} onToken={setToken} reset={challengeReset} />{chatError ? <p role="alert" className="mt-3 text-sm text-warning">{chatError}</p> : null}</div>;
 
   return <div className={styles.workspace} ref={workspace}>
     <aside className={styles.sidebar} aria-label="Ask workspace navigation">
@@ -199,12 +204,12 @@ export function AskWorkspace() {
           <div className={styles.transcript} ref={transcript}>
             {session.messages.map(message => <div key={message.id} className="mb-7">
               <div className="ml-8 border border-cipher-border bg-cipher-surface rounded-lg px-4 py-3 text-sm text-primary leading-relaxed break-words">{message.question}</div>
-              <div className="flex gap-3 mt-5"><AskMark small /><div className="min-w-0"><p className="text-caption font-mono text-muted mb-2">ZecBlock</p><p dir="auto" lang={message.locale} className="text-sm text-secondary leading-relaxed whitespace-pre-wrap">{message.answer}</p><>{message.transfers && message.transfers !== transfers ? <details className="mt-3"><summary className="cursor-pointer text-caption text-cipher-gold">View transaction results</summary><AskTransfers result={message.transfers} /></details> : null}</><AskSources sources={message.sources || []} />{message.scope ? <p className="mt-2 text-caption text-muted">{message.scope}</p> : null}
+              <div className="flex gap-3 mt-5"><AskMark small /><div className="min-w-0"><p className="text-caption font-mono text-muted mb-2">ZecBlock</p><p dir="auto" lang={message.locale} className="text-sm text-secondary leading-relaxed whitespace-pre-wrap">{message.answer}</p><>{message.transfers && message.transfers !== transfers ? <details className="mt-3"><summary className="cursor-pointer text-caption text-cipher-gold">View transaction results</summary><AskTransfers result={message.transfers} /></details> : null}</><AskSources sources={message.sources || []} dataContext={message.dataContext} />{message.scope ? <p className="mt-2 text-caption text-muted">{message.scope}</p> : null}
                 {message.spec && viewKey(message.spec) !== viewKey(spec) ? <button onClick={() => updateSpec(message.spec!, true)} className="mt-3 text-caption font-mono text-cipher-gold hover:underline">Restore this view →</button> : null}
               </div></div>
             </div>)}
             {evidence && spec && summary?.points.length && !invalidDates && capability.mode === 'ai' ? <button type="button" onClick={() => void ask('Explain this view')} disabled={busy || !token} className="text-sm text-cipher-gold hover:underline disabled:opacity-40">Explain this view →</button> : null}
-            {busy ? <p className="text-sm text-muted py-3" role="status">Interpreting your question…</p> : null}
+            {busy ? <p className="text-sm text-muted py-3" role="status">Reading public sources and preparing your answer…</p> : null}
           </div>
           <div className={styles.conversationFooter}>
             <div className="flex flex-wrap gap-2 mb-3">{(spec ? ranking ? ['Show as a bar chart', 'Show as a table'] : ['Show 90 days', poolMetric ? spec.pool === 'ironwood' ? 'Just Orchard' : 'Just Ironwood' : 'Show as a line chart', 'Show as a table'] : starters.slice(0, 2).map(item => item.title)).map(text => <button key={text} disabled={busy} onClick={() => void ask(text)} className={styles.followup}>{text}</button>)}</div>

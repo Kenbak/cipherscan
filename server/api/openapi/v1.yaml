@@ -1,4 +1,4 @@
-# CipherScan API v1 — OpenAPI 3.1 specification
+# ZecBlock API v1 — OpenAPI 3.1 specification
 #
 # GENERATED FILE — do not hand-edit.
 # Source of truth: server/api/v1/inventory/manifest.js
@@ -10,7 +10,7 @@ info:
   version: 1.0.0-preview
   summary: >-
     Versioned, contract-stable read/write API for the Zcash blockchain data and privacy-intelligence
-    features exposed by CipherScan.
+    features exposed by ZecBlock.
   description: >-
     This is the v1 contract layer. It is gated behind API_V1_ENABLED and, pre-launch, an
     X-API-Preview-Key header (see the previewKey security scheme) — see server/api/v1/README.md in
@@ -19,7 +19,7 @@ info:
     inventory entry is adapted; The manifest explicitly identifies retained operational routes and
     payment-protected services.
   contact:
-    name: CipherScan / Atmosphere Labs
+    name: ZecBlock / Atmosphere Labs
 servers:
   - url: https://api.zecblock.com
     description: Mainnet API host.

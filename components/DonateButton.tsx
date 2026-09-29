@@ -78,7 +78,6 @@ export function DonateButton({ compact = false, variant = 'default' }: DonateBut
       >
         {/* Scan line effect */}
         <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-2xl">
-          <div className="absolute inset-x-0 h-px bg-gradient-to-r from-transparent via-cipher-gold/20 to-transparent animate-scan" />
         </div>
 
         <div className="p-6 sm:p-8">
@@ -118,8 +117,8 @@ export function DonateButton({ compact = false, variant = 'default' }: DonateBut
                     size={qrSize}
                     level="H"
                     marginSize={1}
-                    bgColor={isDark ? '#08090F' : '#F5F7FA'}
-                    fgColor={isDark ? '#FFFFFF' : '#0F172A'}
+                    bgColor={isDark ? '#0B0C0E' : '#F6F7F9'}
+                    fgColor={isDark ? '#F1F3F5' : '#171A20'}
                     imageSettings={{
                       src: 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7',
                       height: clearZone,

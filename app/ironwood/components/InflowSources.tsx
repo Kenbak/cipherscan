@@ -135,7 +135,7 @@ export function IronwoodInflowCard({
       sourceHeight={pools.sourceHeight}
       isLive={pools.isLive}
       shareText={shareText}
-      fileName="cipherscan-ironwood-inflows.png"
+      fileName="zecblock-ironwood-inflows.png"
       watermark={false}
     >
       <InflowSources sources={sources} colors={colors} currencyMode={currencyMode} zecPrice={zecPrice} />

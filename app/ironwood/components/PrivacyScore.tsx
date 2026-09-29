@@ -32,12 +32,7 @@ const PRIVACY_VIEWS: { id: PrivacyView; label: string }[] = [
   { id: 'families', label: 'Families' },
 ];
 
-const PRIVACY_COLORS = {
-  best: '#4ade80',
-  denomPadded: '#fbbf24',
-  distinctUnpadded: '#f97316',
-  worst: '#dc2626',
-};
+
 
 type GradeKey = 'green' | 'partial2' | 'partial1' | 'weak';
 
@@ -73,6 +68,12 @@ export function PrivacyScore({
   range: PrivacyRange;
   onRangeChange: (range: PrivacyRange) => void;
 }) {
+  const PRIVACY_COLORS = {
+    best: colors.verifiedRing,
+    denomPadded: colors.denominated,
+    distinctUnpadded: colors.deshielding,
+    worst: colors.distinctive,
+  };
   const router = useRouter();
   const [view, setView] = useState<PrivacyView>('scatter');
 
@@ -230,7 +231,7 @@ export function PrivacyScore({
         sourceHeight={tipHeight}
         isLive={activated}
         shareText={shareText}
-        fileName="cipherscan-privacy.png"
+        fileName="zecblock-privacy.png"
       >
         <div className="mb-4">
           <p className="max-w-2xl text-xs leading-relaxed text-muted">

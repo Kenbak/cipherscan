@@ -297,7 +297,7 @@ export function TurnstileHero(props: TurnstileHeroProps) {
             <button
               type="button"
               onClick={toggleFullscreen}
-              className="rounded-md border border-cipher-border/50 p-1 text-muted transition hover:border-cipher-border hover:bg-foreground/[0.04] hover:text-primary"
+              className="rounded-md border border-cipher-border/50 p-1 text-muted transition hover:border-cipher-border hover:bg-cipher-hover hover:text-primary"
               aria-label={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
               title={isFullscreen ? 'Exit fullscreen (Esc)' : 'Fullscreen'}
             >

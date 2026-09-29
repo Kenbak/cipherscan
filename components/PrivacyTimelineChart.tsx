@@ -1,5 +1,7 @@
 'use client';
 
+import { useTheme } from '@/contexts/ThemeContext';
+import { getChartColors } from '@/lib/chart-theme';
 import { ChartWatermark } from '@/components/ChartWatermark';
 import {
   ResponsiveContainer,
@@ -43,8 +45,10 @@ export function PrivacyTimelineChart({
   height = 180,
   compact = false,
   yLabel = 'Value',
-  color = '#A1A9AD',
+  color,
 }: PrivacyTimelineChartProps) {
+  const { theme } = useTheme();
+  const colors = getChartColors(theme);
   if (points.length === 0) {
     return null;
   }
@@ -54,27 +58,27 @@ export function PrivacyTimelineChart({
       <div className="h-full" style={{ height }}>
         <ResponsiveContainer initialDimension={{ width: 500, height: 300 }} width="100%" height="100%">
           <ScatterChart margin={{ top: 8, right: 8, bottom: compact ? 0 : 8, left: compact ? 0 : 8 }}>
-            <CartesianGrid stroke="#ffffff12" vertical={false} />
+            <CartesianGrid stroke={colors.grid} vertical={false} />
             <XAxis
               dataKey="timestamp"
               domain={['dataMin', 'dataMax']}
               type="number"
               hide={compact}
               tickFormatter={(value) => new Date(value * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-              stroke="#94A3B8"
+              stroke={colors.axis}
               fontSize={12}
             />
             <YAxis
               dataKey="value"
               hide={compact}
-              stroke="#94A3B8"
+              stroke={colors.axis}
               fontSize={12}
               width={36}
               tickFormatter={(value) => `${value}`}
-              label={compact ? undefined : { value: yLabel, angle: -90, position: 'insideLeft', fill: '#94A3B8', fontSize: 12 }}
+              label={compact ? undefined : { value: yLabel, angle: -90, position: 'insideLeft', fill: colors.axis, fontSize: 12 }}
             />
             <Tooltip
-              cursor={{ strokeDasharray: '3 3', stroke: '#91AC90' }}
+              cursor={{ strokeDasharray: '3 3', stroke: colors.cursor }}
               content={({ active, payload }) => {
                 if (!active || !payload || payload.length === 0) return null;
                 const point = payload[0].payload as PrivacyTimelinePoint;
@@ -94,7 +98,7 @@ export function PrivacyTimelineChart({
                 );
               }}
             />
-            <Scatter data={points} fill={color} />
+            <Scatter data={points} fill={color ?? colors.transparent} />
           </ScatterChart>
         </ResponsiveContainer>
       </div>

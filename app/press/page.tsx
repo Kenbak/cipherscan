@@ -1,10 +1,10 @@
 import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { BrandLogo } from '@/components/BrandLogo';
-import { buildPageMetadata } from '@/lib/seo';
+import { buildPageMetadata, getBaseUrl } from '@/lib/seo';
 
 export const metadata = buildPageMetadata({
-  title: 'Press & Brand | ZecBlock',
+  title: 'Press Kit & Brand Assets | ZecBlock',
   description:
     'Download ZecBlock logos, brand colors, and media copy. Press resources for journalists and brand assets for partners.',
   path: '/press',
@@ -12,11 +12,11 @@ export const metadata = buildPageMetadata({
 });
 
 const BOILERPLATE =
-  'ZecBlock is a privacy-first Zcash blockchain explorer built by Atmosphere Labs. It makes shielded pool activity, supply verification, and network health visible without compromising user privacy — no viewing keys stored, no address tracking. Live at zecblock.com.';
+  'ZecBlock is a privacy-first Zcash blockchain explorer built by Atmosphere Labs. It makes public pool flows, supply verification and network observations easier to inspect. Shielded transfer details remain private; optional viewing-key decryption runs in the browser. Live at zecblock.com.';
 
 /** Core ZecBlock brand colors — logo + wordmark */
 const COLORS = [
-  { name: 'ZecBlock Gold', hex: '#F4B728', role: 'Supplied logotype / terminal dot' },
+  { name: 'ZecBlock Gold', hex: '#F8BC21', role: 'Logo / square brand mark' },
   { name: 'Graphite', hex: '#0B0C0E', role: 'Dark canvas' },
   { name: 'Shielded gold', hex: '#F8BC21', role: 'Aggregate shielded privacy' },
   { name: 'Ironwood honey', hex: '#E8CF78', role: 'Ironwood pool identity' },
@@ -44,8 +44,8 @@ const CONTACTS = [
   },
   {
     label: 'X / Twitter',
-    value: '@cipherscan_app',
-    href: 'https://twitter.com/cipherscan_app',
+    value: '@zecblock',
+    href: 'https://x.com/zecblock',
     external: true,
     icon: (
       <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
@@ -55,7 +55,7 @@ const CONTACTS = [
   },
   {
     label: 'GitHub',
-    value: 'Kenbak/cipherscan',
+    value: 'Source repository',
     href: 'https://github.com/Kenbak/cipherscan',
     external: true,
     icon: (
@@ -200,6 +200,12 @@ function ContactCard({
 export default function PressPage() {
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
+        '@context': 'https://schema.org', '@type': 'WebPage',
+        '@id': `${getBaseUrl()}/press#webpage`, url: `${getBaseUrl()}/press`,
+        name: 'Media kit', isPartOf: { '@id': `${getBaseUrl()}/#website` },
+        publisher: { '@id': 'https://zecblock.com/#organization' },
+      }) }} />
       <header className="mb-10">
         <p className="text-caption font-mono uppercase tracking-widest text-muted mb-2">Press &amp; brand</p>
         <h1 className="type-page font-sans text-primary">Media kit</h1>
@@ -234,7 +240,7 @@ export default function PressPage() {
         <h2 className="text-sm font-semibold text-primary mb-4">Colors</h2>
         <div className="space-y-3">
           {COLORS.map((c) => (
-            <div key={c.hex} className="flex items-center gap-3">
+            <div key={c.name} className="flex items-center gap-3">
               <ColorSwatch hex={c.hex} name={c.name} />
               <div>
                 <div className="flex flex-wrap items-baseline gap-2">
@@ -253,11 +259,11 @@ export default function PressPage() {
         <dl className="space-y-3 text-sm">
           <div>
             <dt className="font-mono text-caption uppercase tracking-wider text-muted">UI</dt>
-            <dd className="mt-1 text-primary font-sans">Inter — headings, body, navigation</dd>
+            <dd className="mt-1 text-primary font-sans">Geist Sans — headings and body text</dd>
           </div>
           <div>
             <dt className="font-mono text-caption uppercase tracking-wider text-muted">Data &amp; labels</dt>
-            <dd className="mt-1 font-mono text-primary">JetBrains Mono — hashes, stats, chart axes</dd>
+            <dd className="mt-1 font-mono text-primary">Geist Mono — navigation, labels, hashes, stats and chart axes</dd>
           </div>
         </dl>
       </section>

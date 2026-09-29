@@ -28,8 +28,8 @@ const categoryConfig: Record<string, { color: string; bg: string }> = {
   'foundation': { color: 'text-cipher-purple', bg: 'bg-cipher-purple/10' },
   'donation': { color: 'text-pink-400', bg: 'bg-pink-400/10' },
   'service': { color: 'text-cipher-green', bg: 'bg-cipher-green/10' },
-  'faucet': { color: 'text-blue-400', bg: 'bg-blue-400/10' },
-  'custom': { color: 'text-muted', bg: 'bg-gray-400/10' },
+  'faucet': { color: 'text-cipher-blue', bg: 'bg-cipher-blue/10' },
+  'custom': { color: 'text-muted', bg: 'bg-glass-4' },
 };
 
 export function SearchBar({ compact = false, subtitle, onNavigate }: SearchBarProps) {

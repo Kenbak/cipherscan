@@ -19,7 +19,7 @@ const { buildOpenApiDocument } = require('../openapi');
 const OUTPUT_PATH = path.join(__dirname, '..', '..', 'openapi', 'v1.yaml');
 
 const HEADER = [
-  '# CipherScan API v1 — OpenAPI 3.1 specification',
+  '# ZecBlock API v1 — OpenAPI 3.1 specification',
   '#',
   '# GENERATED FILE — do not hand-edit.',
   '# Source of truth: server/api/v1/inventory/manifest.js',

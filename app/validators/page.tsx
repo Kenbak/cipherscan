@@ -149,12 +149,12 @@ export default function ValidatorsPage() {
                 <span className="text-caption font-mono text-muted uppercase w-16">Connected</span>
                 <div className="flex-1 flex rounded-full overflow-hidden h-3 bg-cipher-border-alpha/30">
                   <div
-                    className="bg-gold-500 transition-[width] duration-500"
+                    className="bg-cipher-gold transition-[width] duration-500"
                     style={{ width: `${data.liveness.connectedPercent}%` }}
                     title={`Connected: ${data.liveness.connectedCount} finalizers (${data.liveness.connectedStakeZec?.toFixed(2)} ${CURRENCY})`}
                   />
                 </div>
-                <span className="text-caption font-mono text-gold-400 w-24 text-right">
+                <span className="text-caption font-mono text-cipher-gold w-24 text-right">
                   {data.liveness.connectedCount} ({data.liveness.connectedPercent}%)
                 </span>
               </div>
@@ -306,7 +306,7 @@ export default function ValidatorsPage() {
                           if (member.connected) {
                             return (
                               <span
-                                className="inline-block w-2.5 h-2.5 rounded-full bg-gold-500"
+                                className="inline-block w-2.5 h-2.5 rounded-full bg-cipher-gold"
                                 title={`Connected (${agoText})${member.voted ? ' + voted' : ''}`}
                               />
                             );
@@ -322,7 +322,7 @@ export default function ValidatorsPage() {
                           if (member.voted === false) {
                             return (
                               <span
-                                className="inline-block w-2.5 h-2.5 rounded-full bg-red-500/60"
+                                className="inline-block w-2.5 h-2.5 rounded-full bg-danger/60"
                                 title={`Silent${agoText ? ` (last connected ${agoText})` : ''}`}
                               />
                             );
@@ -392,7 +392,7 @@ export default function ValidatorsPage() {
                             ? 'bg-brand-gold'
                             : pct >= 30
                             ? 'bg-cipher-orange'
-                            : 'bg-red-500';
+                            : 'bg-danger';
                           const textColor = pct >= 95
                             ? 'text-cipher-green'
                             : pct >= 70

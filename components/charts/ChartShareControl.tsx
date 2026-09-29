@@ -61,7 +61,7 @@ export function ChartShareControl({ title, shareUrl, shareText = title, fileName
     } catch { setStatus(action === 'copy' ? 'Copy unavailable. Use Download PNG instead.' : 'Could not complete this action. Please try again.'); }
     finally { setBusy(false); setOpen(false); }
   };
-  const itemClass = 'rounded-md px-3 py-2.5 text-caption text-left text-secondary hover:bg-glass-4 hover:text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-cipher-gold disabled:opacity-50';
+  const itemClass = 'flex min-h-11 items-center rounded-md px-3 py-2.5 text-caption text-left text-secondary hover:bg-glass-4 hover:text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-cipher-gold disabled:opacity-50';
   const actions = <>
     <button type="button" className={itemClass} disabled={busy || disabled} onClick={() => void run('copy')}>Copy image</button>
     <button type="button" className={itemClass} disabled={busy || disabled} onClick={() => void run('png')}>Download PNG</button>
@@ -77,7 +77,7 @@ export function ChartShareControl({ title, shareUrl, shareText = title, fileName
     if (event.key === 'Escape' && open) { setOpen(false); trigger.current?.focus(); event.stopPropagation(); }
   }}>
     {expanded ? <div className="flex flex-wrap gap-1" aria-label={`Share ${title}`}>{actions}</div> : <>
-      <button ref={trigger} type="button" aria-label={`Share ${title}`} aria-expanded={open} aria-controls={id} onClick={() => setOpen(value => !value)} className="flex h-9 w-9 items-center justify-center rounded-md text-muted hover:bg-glass-4 hover:text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-cipher-gold">
+      <button ref={trigger} type="button" aria-label={`Share ${title}`} aria-expanded={open} aria-controls={id} onClick={() => setOpen(value => !value)} className="flex h-11 w-11 sm:h-9 sm:w-9 items-center justify-center rounded-md text-muted hover:bg-glass-4 hover:text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-cipher-gold">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 16V3m-4 4 4-4 4 4M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></svg>
       </button>
       {open && <div id={id} className="absolute right-0 top-full z-40 mt-1 flex w-52 flex-col rounded-lg border border-cipher-border bg-cipher-surface p-1 shadow-lg" aria-label={`Sharing options for ${title}`}>{actions}</div>}

@@ -13,7 +13,7 @@ export function PoolBalanceRow({
   zecPrice: number | null;
 }) {
   const rowShell = row.highlight
-    ? 'bg-amber-500/[0.07] border border-amber-500/25'
+    ? 'bg-warning/[0.07] border border-warning/25'
     : 'border border-transparent';
   const nameClass = row.highlight ? 'font-medium' : 'text-secondary';
   const valueStyle = row.highlight ? { color: row.color } : undefined;
@@ -28,7 +28,7 @@ export function PoolBalanceRow({
           {row.name === 'Orchard' && (
             <span
               title="Pending turnstile verification"
-              className="text-caption px-1 py-px rounded-full font-mono border border-purple-500/30 bg-purple-500/10 text-purple-700 dark:text-purple-200/80 flex-shrink-0"
+              className="text-caption px-1 py-px rounded-full font-mono border border-cipher-purple/30 bg-cipher-purple/10 text-cipher-purple flex-shrink-0"
             >
               PT
             </span>
@@ -53,7 +53,7 @@ export function PoolBalanceRow({
           {row.name === 'Orchard' && (
             <span
               title="Pending turnstile verification"
-              className="text-caption px-1.5 py-0.5 rounded-full font-mono border border-purple-500/30 bg-purple-500/10 text-purple-700 dark:text-purple-200/80 flex-shrink-0"
+              className="text-caption px-1.5 py-0.5 rounded-full font-mono border border-cipher-purple/30 bg-cipher-purple/10 text-cipher-purple flex-shrink-0"
             >
               pending
             </span>

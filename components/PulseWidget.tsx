@@ -95,7 +95,7 @@ export function PulseWidget() {
             ) : (
               summary.recent.slice(0, 3).map((event, i) => (
                 <div key={`${event.date}-${event.metric}`} className="flex items-center gap-2 px-4 py-2">
-                  <span className={`font-mono text-caption ${event.direction === 'up' ? 'text-cipher-gold' : 'text-blue-400'}`}>
+                  <span className={`font-mono text-caption ${event.direction === 'up' ? 'text-cipher-gold' : 'text-cipher-blue'}`}>
                     {event.direction === 'up' ? '▲' : '▼'}
                   </span>
                   <span className="text-xs text-primary truncate flex-1">{event.description}</span>

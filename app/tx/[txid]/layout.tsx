@@ -148,7 +148,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const description = isPending
     ? `${txType} Zcash transaction currently pending in the mempool with 0 confirmations. This page updates when the transaction is mined.`
     : isConfirmed
-      ? `${txType} Zcash transaction in block #${formatNumber(tx.blockHeight)} with ${formatNumber(tx.confirmations)} confirmation${tx.confirmations !== 1 ? 's' : ''}. ${tx.saplingSpendCount + tx.saplingOutputCount + tx.orchardActions > 0 ? 'Includes shielded components.' : 'Transparent transaction.'}`
+      // No confirmation count: it is stale as soon as the page is cached.
+      ? `${txType} Zcash transaction confirmed in block #${formatNumber(tx.blockHeight)}. ${
+        tx.isCoinbase
+          ? "Pays out this block's reward."
+          : tx.hasShielded || tx.orchardActions > 0
+            ? 'Includes shielded components whose amounts and addresses are not publicly visible.'
+            : 'All inputs and outputs are public.'
+      }`
       : status === 'Reorganized'
         ? `This Zcash transaction is no longer verified in its recorded block after a chain reorganization. ZecBlock will update this page if it returns to the mempool or confirms again.`
         : `ZecBlock has a record for this Zcash transaction but cannot currently verify its canonical-chain status.`;
@@ -281,7 +288,7 @@ export default async function TxLayout({ params, children }: Props) {
         <h1 id="transaction-heading" className="type-page mt-2">
           <span className="block type-page text-primary">
             Zcash Transaction
-          </span>
+          </span>{' '}
           <span className="mt-2 flex items-center gap-2 min-w-0">
             <span className="text-sm sm:text-base font-mono font-normal text-primary break-all">
               {normalizedTxid}

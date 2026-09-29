@@ -252,7 +252,7 @@ export default function WalletsClient() {
                   <li key={entry.name} className="grid grid-cols-[minmax(0,1fr)_auto] sm:grid-cols-[minmax(0,1fr)_6rem_6rem] gap-x-4 sm:gap-x-6 gap-y-2 py-3 items-center">
                     <div className="min-w-0">
                       <p className="text-sm text-primary">{entry.name}</p>
-                      <div aria-hidden="true" className="h-1 rounded-full bg-glass-5 overflow-hidden mt-2">
+                      <div aria-hidden="true" className="h-1 rounded-full bg-glass-6 overflow-hidden mt-2">
                         <div className="h-full rounded-full bg-cipher-blue" style={{ width: `${Math.min(100, fingerprints.totalShielded ? entry.value / fingerprints.totalShielded * 100 : 0)}%` }} />
                       </div>
                     </div>
@@ -319,7 +319,7 @@ function FeeDistribution({ data, period }: { data: FeeLaneData; period: Period }
           <h3 className="text-sm font-medium text-primary">Fee distribution</h3>
           <p className="text-caption text-muted">{formatNumber(data.totalShieldedTxs)} shielded transactions · {period}</p>
         </div>
-        <div aria-hidden="true" className="flex h-2 overflow-hidden rounded-full bg-glass-5">
+        <div aria-hidden="true" className="flex h-2 overflow-hidden rounded-full bg-glass-6">
           {categories.map(category => <div key={category.key} className={`h-full shrink-0 ${category.color}`} style={{ width: `${category.share}%` }} />)}
         </div>
       </div>

@@ -58,6 +58,12 @@
       "core": true
     },
     {
+      "id": "mempool-live",
+      "routeGroup": "/mempool/live",
+      "path": "/mempool/live",
+      "core": true
+    },
+    {
       "id": "network",
       "routeGroup": "/network",
       "path": "/network",

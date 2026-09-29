@@ -102,14 +102,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   const descParts = [`${typeLabel} Zcash address.`];
   if (!meta.isShielded) {
-    descParts.push(`Balance: ${meta.balance.toFixed(4)} ZEC.`);
-    if (meta.txCount > 0) {
-      descParts.push(`${formatNumber(meta.txCount)} transaction${meta.txCount !== 1 ? 's' : ''}.`);
-    }
+    const balance = meta.balance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 4 });
+    descParts.push(`Public balance ${balance} ZEC${meta.txCount > 0 ? ` across ${formatNumber(meta.txCount)} indexed transaction${meta.txCount !== 1 ? 's' : ''}` : ''}.`);
+    descParts.push('See its history and address connections.');
   } else {
     descParts.push('Balance and transaction history are encrypted with zero-knowledge proofs.');
   }
-  descParts.push('View on ZecBlock.');
 
   const description = descParts.join(' ');
 
@@ -168,7 +166,7 @@ export default async function AddressLayout({
       <header className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 sm:pt-12">
         <span className="text-caption font-mono text-muted tracking-wider">&gt; ZCASH_ADDRESS</span>
         <h1 className="type-page mt-2 text-primary break-all">
-          <span className="block">Zcash address</span>
+          <span className="block">Zcash address</span>{' '}
           <span className="flex items-start gap-2 mt-3 text-sm sm:text-base font-mono font-normal"><span className="min-w-0 break-all">{address}</span><CopyButton text={address} label="address" size="md" /></span>
         </h1>
         <p className="mt-3 text-sm text-secondary">{meta?.isShielded ? `${typeLabel} address. Shielded balances and activity are private.` : 'Public balance, indexed activity and transparent address connections.'}</p>

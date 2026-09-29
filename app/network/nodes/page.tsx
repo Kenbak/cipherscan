@@ -41,7 +41,7 @@ export default function NodesPage() {
               No IP addresses or exact coordinates are exposed. Tor hidden service nodes
               appear without geographic placement. This product includes GeoLite2 data
               created by MaxMind, available from{' '}
-              <a href="https://www.maxmind.com" className="text-accent hover:underline" rel="noopener noreferrer" target="_blank">
+              <a href="https://www.maxmind.com" className="text-primary hover:underline" rel="noopener noreferrer" target="_blank">
                 maxmind.com
               </a>.
             </p>

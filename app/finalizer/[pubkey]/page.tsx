@@ -1,6 +1,6 @@
 'use client';
 import { readApiData } from '@/lib/api-client';
-import { LoadingRegion, MetricSkeletons, Skeleton } from '@/components/ui/Skeleton';
+import { LoadingRegion, MetricSkeletons } from '@/components/ui/Skeleton';
 import { SkeletonTable } from '@/components/ui/EmptyState';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -13,6 +13,7 @@ import { CURRENCY } from '@/lib/config';
 import { getApiUrl } from '@/lib/api-config';
 import { displayPubkey } from '@/lib/utils';
 import { getFinalizerLabel, finalizerAvatarStyle, type FinalizerLabel } from '@/lib/finalizer-labels';
+import { PageHeader } from '@/components/ui/SectionHeader';
 import { CopyButton } from '@/components/CopyButton';
 import { HashLink } from '@/components/ui/HashLink';
 
@@ -254,7 +255,8 @@ export default function FinalizerPage() {
   if (loading) {
     return (
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
-        <LoadingRegion label="Loading finalizer details"><Skeleton className="h-10 w-64 mb-6" /><Skeleton className="h-5 w-96 mb-8" />
+        <PageHeader eyebrow="FINALIZER" title="Crosslink Finalizer" subtitle={<span className="font-mono break-all">{pubkey}</span>} />
+        <LoadingRegion label="Loading finalizer details">
           <MetricSkeletons labels={['Voting power', 'Rank', 'Share', 'First seen']} className="sm:grid-cols-4 mb-4" />
           <MetricSkeletons labels={['Last updated', 'Last seen', 'Unique delegators']} className="sm:grid-cols-3 mb-4" />
           <div className="card p-0 overflow-hidden"><SkeletonTable rows={5} columns={4} label={null} /></div>
@@ -268,12 +270,12 @@ export default function FinalizerPage() {
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <Card className="text-center">
           <CardBody className="py-16">
-            <h2 className="text-xl font-semibold text-primary mb-3">
+            <h1 className="type-page font-sans text-primary mb-3">
               {error === 'Finalizer not found' ? 'Finalizer not found' : 'Error'}
-            </h2>
+            </h1>
             <p className="text-secondary mb-4">{error}</p>
             <p className="text-xs text-muted font-mono break-all max-w-md mx-auto">{pubkey}</p>
-            <Link href="/validators" className="mt-6 inline-block text-cipher-gold hover:underline">
+            <Link href="/validators" className="btn btn-md btn-secondary mt-6">
               &larr; View all finalizers
             </Link>
           </CardBody>
@@ -422,7 +424,7 @@ function ParticipationPanel({ participation }: { participation: Participation })
     ? 'bg-brand-gold'
     : participation_pct >= 30
     ? 'bg-cipher-orange'
-    : 'bg-red-500';
+    : 'bg-danger';
 
   // Render `recent` oldest → newest so the timeline reads left-to-right.
   // Each block = ~6-8px wide, stripe color = signed/missed.
@@ -485,7 +487,7 @@ function ParticipationPanel({ participation }: { participation: Participation })
                   className={`flex-1 rounded-sm transition-colors ${
                     r.signed
                       ? 'bg-cipher-green/60 hover:bg-cipher-green h-full'
-                      : 'bg-red-500/50 hover:bg-red-500 h-2/3'
+                      : 'bg-danger/50 hover:bg-danger h-2/3'
                   }`}
                 />
               ))}
@@ -499,7 +501,7 @@ function ParticipationPanel({ participation }: { participation: Participation })
             signed
           </span>
           <span className="flex items-center gap-1.5">
-            <span className="block w-2 h-2 rounded-sm bg-red-500/50" />
+            <span className="block w-2 h-2 rounded-sm bg-danger/50" />
             missed
           </span>
           <span className="ml-auto text-muted">

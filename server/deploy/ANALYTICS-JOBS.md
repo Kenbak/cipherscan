@@ -55,6 +55,30 @@ Tests: `npm run test:server-regressions`. Set `TEST_UTXO_DATABASE_URL` to a
 and atomic-write integration tests; they create/drop an isolated fixture database.
 CI provides a disposable PostgreSQL 16 service. No fixture test targets production.
 
+## October 1, 2026 coordinated ZecBlock release
+
+The owner selected the ZecBlock redesign release for the analytics API, chart
+ranges, and daily valuation-job changes. Keep these together on
+`codex/zecblock-assay-rebrand`; the earlier main-only
+`new/analytics-history-release` branch is not a separate deployment plan.
+
+Mainnet migration 028 and the staged replay are already installed. The
+2026-09-29 06:58 UTC check found all 3,623 completed days from 2016-10-28 through
+2026-09-28; the latest completeness run passed source and replay checks. Keep the
+existing guarded catch-up/refresh timers running until release. Do not restart
+or repeat the genesis replay just to publish the frontend/API.
+
+At cutover, reconcile the final redesign with current production main and the
+actual running API/job revisions, retaining intervening security fixes. Verify
+migration 028 and API-role grants on each target network before enabling new
+readers; mainnet completion does not establish testnet readiness. Deploy the
+reviewed API and daily valuation job before enabling the matching chart frontend
+within the same release window. Verify the installed worker source/drop-ins and
+locks before transitioning from the staged worker; never run duplicate writers.
+Check completeness, all-history API results, chart ranges, and indexing/replica
+health at the exact deployed revision. Preserve the completed data on rollback.
+The exact October 1 cutover time and final deployment acceptance remain open.
+
 ## Genesis analytics replay (migration 028)
 
 Apply canonical Rust migration `028_analytics_history.sql` before deploying API

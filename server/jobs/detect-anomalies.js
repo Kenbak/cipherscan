@@ -14,6 +14,7 @@
  *   30 5 * * * cd /root/cipherscan/server/jobs && node detect-anomalies.js >> /var/log/anomaly-detection.log 2>&1
  */
 
+const { NEUTRAL_DESCRIPTIONS } = require('../../lib/pulse-copy');
 const { addDays, readActivity } = require('../lib/transaction-activity');
 const { run: draftActivityMilestones } = require('./draft-activity-milestones');
 const { log, loadEnv, withAdvisoryLock } = require('../lib/job-utils');
@@ -129,9 +130,9 @@ const METRIC_DESCRIPTIONS = {
   crosschain_outflow_usd: { up: 'Cross-chain outflow spike', down: 'Cross-chain outflow decline' },
   daily_fees_zat: { up: 'Fee market surge', down: 'Fee market contraction' },
   exchange_deposit_zat: { up: 'Exchange deposit spike', down: 'Exchange deposit decline' },
-  mvrv: { up: 'MVRV ratio spike — potential overvaluation', down: 'MVRV ratio drop — potential undervaluation' },
+  mvrv: NEUTRAL_DESCRIPTIONS.mvrv,
   migration_volume_zat: { up: 'Ironwood migration surge', down: 'Ironwood migration decline' },
-  miner_exchange_ratio: { up: 'Miner-to-exchange sell pressure spike', down: 'Miner-to-exchange sell pressure decline' },
+  miner_exchange_ratio: NEUTRAL_DESCRIPTIONS.miner_exchange_ratio,
 };
 
 const METRIC_UNITS = {

@@ -341,7 +341,7 @@ mv ~/crosslink-seed.backup ~/.cache/zebra/${info.cache_dir_name}/secret.seed`}</
                 <p>
                   Source code for the snapshotter:{' '}
                   <code className="text-muted">server/scripts/zebra-public-snapshot.sh</code>{' '}
-                  in the cipherscan repo.
+                  in the explorer repository.
                 </p>
               </div>
             </CardBody>

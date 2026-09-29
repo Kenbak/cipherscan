@@ -3,6 +3,7 @@
 import { readApiData } from '@/lib/api-client';
 import { useState } from 'react';
 import Link from 'next/link';
+import { PageHeader } from '@/components/ui/SectionHeader';
 import { Card, CardBody } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Tooltip } from '@/components/Tooltip';
@@ -129,14 +130,7 @@ export default function BroadcastClient() {
 
   return (
     <>
-      {/* Header */}
-      <div className="mb-8">
-        <Link href="/tools" className="text-xs font-mono text-muted hover:text-primary transition-colors mb-4 inline-block">
-          &larr; All Tools
-        </Link>
-        <h1 className="type-page text-primary">Broadcast Transaction</h1>
-        <p className="text-sm text-secondary mt-1">Submit a signed raw transaction to the Zcash network</p>
-      </div>
+      <PageHeader eyebrow="TOOLS" eyebrowHref="/tools" title="Broadcast Transaction" subtitle="Submit a signed raw transaction to the Zcash network" />
 
       {/* Warning */}
       <div className="alert alert-warning mb-6">
@@ -148,7 +142,7 @@ export default function BroadcastClient() {
           <p className="text-sm text-secondary mt-1">
             The transaction must be fully constructed and signed before pasting here.
             No private keys are sent to the server — this endpoint only relays
-            the raw hex to a Zebra node.
+            the signed transaction to the network node.
           </p>
         </div>
       </div>
@@ -158,10 +152,13 @@ export default function BroadcastClient() {
         <CardBody>
           <div className="space-y-4">
             <div>
-              <label className="input-label mb-2 block font-mono uppercase tracking-wider text-xs">
+              <label htmlFor="signed-transaction-hex" className="input-label mb-2 block font-mono uppercase tracking-wider text-xs">
                 Signed Transaction Hex
               </label>
               <textarea
+                id="signed-transaction-hex"
+                name="signed-transaction-hex"
+                autoComplete="off"
                 value={rawHex}
                 onChange={(e) => setRawHex(e.target.value)}
                 placeholder="Paste signed raw transaction hex here..."
