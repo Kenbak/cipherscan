@@ -13,6 +13,15 @@ assert.ok(
 
 const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
 
+test('newsletter issues are prebuilt and unknown slugs cannot use a streaming fallback', () => {
+  assert.equal(manifest.dynamicRoutes?.['/newsletter/[slug]']?.fallback, false);
+  for (const file of fs.readdirSync(path.join(repositoryRoot, 'content/newsletter'))) {
+    if (!file.endsWith('.md')) continue;
+    const route = `/newsletter/${file.slice(0, -3)}`;
+    assert.ok(manifest.routes?.[route], `${route} must remain available as a published issue`);
+  }
+});
+
 test('latest list pages are emitted as 30-second ISR pages with on-demand revalidation', () => {
   const expected = [
     '/blocks/latest',
