@@ -5,7 +5,7 @@ import styles from './ask.module.css';
 
 const description = 'Explore Zcash mainnet analytics and reviewed wallet and node guides. Inspect pool balances, tracked swaps and Network Pulse alerts with source links and charts.';
 export const metadata = buildPageMetadata({
-  title: 'Ask ZecBlock — Explore Zcash Data', description, path: '/ask',
+  title: 'Ask ZecBlock: Explore Zcash Data', description, path: '/ask',
   index: true, networks: ['mainnet'], imageAlt: 'Ask ZecBlock — questions, source data and Zcash charts',
 });
 

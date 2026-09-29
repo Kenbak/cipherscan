@@ -170,6 +170,7 @@ export default async function NewsletterIssuePage({ params }: PageProps) {
         </details>
       )}
 
+      {issue.date < '2026-10-01' && <p className="text-caption text-muted mb-6">Archive note: this edition uses the current ZecBlock name and links. Reporting and publication dates are unchanged.</p>}
       <NewsletterContent content={issue.content} />
 
       {discussesIronwood && (

@@ -411,7 +411,7 @@ export function PoolDistributionChart({ initialData, initialFetchedAt }: { initi
       sourceHeight={0}
       isLive={false}
       shareText={shareText}
-      fileName="cipherscan-supply-history.png"
+      fileName="zecblock-supply-history.png"
       watermark={true}
       className=""
       footerNote={`${meta.shortLabel} · ${period.toUpperCase()} · ${currency === 'usd' ? 'USD at current price' : 'ZEC'}`}

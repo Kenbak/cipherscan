@@ -18,7 +18,7 @@ export async function GET() {
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
     <title>ZecBlock Weekly</title>
-    <description>Weekly Zcash intelligence — protocol updates, network stats, and privacy insights. No tracking.</description>
+    <description>Weekly Zcash intelligence — protocol updates, network stats, and privacy insights. RSS-first, with no email-open tracking.</description>
     <link>${siteUrl}/newsletter</link>
     <atom:link href="${siteUrl}/newsletter/rss" rel="self" type="application/rss+xml"/>
     <language>en</language>

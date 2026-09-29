@@ -90,7 +90,7 @@ export function AddressLabel({ address, showEditButton = true, className = '' }:
         : labelInfo.category === 'mining'
         ? 'bg-cipher-orange/20 border-cipher-orange/50 text-cipher-orange'
         : 'bg-brand-gold/20 border-cipher-gold/50 text-cipher-gold'
-      : 'bg-gray-500/20 border-gray-500/50 text-secondary';
+      : 'bg-glass-6 border-cipher-border text-secondary';
 
     return (
       <div className={`flex items-center gap-2 ${className}`}>

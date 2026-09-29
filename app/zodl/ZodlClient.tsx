@@ -127,7 +127,7 @@ export function ZodlClient({
       {/* Header */}
       <h1 className="type-page text-primary">Miner ZODL Leaderboard</h1>
       <p className="text-sm text-secondary mt-2 max-w-3xl leading-relaxed">
-        Every block mints new ZEC for whoever mined it. We follow the <span className="text-primary font-semibold">first move</span> those rewards make: still <span className="text-primary font-semibold">held</span>, swept into the <span className="text-cipher-shielded font-semibold">shielded pool</span>, or sent straight to an <span style={{ color: SEG.offramp.color }} className="font-semibold">exchange or bridge</span>. Shielding isn&apos;t selling — and as it turns out, most miners shield rather than dump.
+        Every block mints new ZEC for whoever mined it. We follow the <span className="text-primary font-semibold">first move</span> those rewards make: still <span className="text-primary font-semibold">held</span>, swept into the <span className="text-cipher-shielded font-semibold">shielded pool</span>, or sent straight to an <span style={{ color: SEG.offramp.color }} className="font-semibold">exchange or bridge</span>. These are observed first moves, not proof of a sale or of the miner&apos;s intent.
       </p>
 
       {/* Controls */}

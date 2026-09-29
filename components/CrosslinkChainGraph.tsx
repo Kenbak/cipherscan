@@ -79,7 +79,7 @@ const COLOR_BFT_EDGE = 'rgba(239, 108, 96, 0.7)';
 // Clay, matching the text-cipher-orange labels these nodes carry.
 const COLOR_VOTING = 'rgba(226, 166, 110, 1)';
 const COLOR_VOTING_EDGE = 'rgba(226, 166, 110, 0.85)';
-const COLOR_FINALIZE = 'rgba(94, 230, 212, 0.95)'; // bright teal — finality frontier
+const COLOR_FINALIZE = 'var(--color-green)'; // Finality status follows the shared success color.
 
 // ---------------------------------------------------------------------------
 // Formatters
@@ -574,11 +574,11 @@ export function CrosslinkChainGraph({
           label,
           labelStyle: {
             fill: COLOR_FINALIZE,
-            fontFamily: 'var(--font-geist-mono, JetBrains Mono, monospace)',
+            fontFamily: 'var(--font-geist-mono), monospace',
             fontSize: 12,
             letterSpacing: '0.05em',
           },
-          labelBgStyle: { fill: '#14161F', stroke: 'rgba(94,230,212,0.3)', strokeWidth: 0.5 },
+          labelBgStyle: { fill: 'var(--color-surface)', stroke: 'var(--color-border)', strokeWidth: 0.5 },
           labelBgPadding: [6, 3],
           labelBgBorderRadius: 4,
           zIndex: 10,

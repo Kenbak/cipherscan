@@ -468,8 +468,8 @@ function ScatterTooltip({
                 point.familyConfidence === 'high'
                   ? 'bg-cipher-green/20 text-cipher-green'
                   : point.familyConfidence === 'medium'
-                    ? 'bg-amber-500/20 text-amber-400'
-                    : 'bg-zinc-500/20 text-muted'
+                    ? 'bg-warning/20 text-warning'
+                    : 'bg-glass-6 text-muted'
               }`}>
                 {point.familyConfidence}
               </span>

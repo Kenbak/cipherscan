@@ -49,7 +49,7 @@ export function MaintenanceBanner() {
 
   return (
     <div
-      className="bg-cipher-orange/90 text-black px-4 py-2 text-center text-sm font-medium relative"
+      className="border-b border-warning/30 bg-warning/10 text-primary px-12 py-3 text-center text-sm font-medium relative"
       role="status"
       aria-live="polite"
     >
@@ -60,7 +60,7 @@ export function MaintenanceBanner() {
       </span>
       <button
         onClick={() => setDismissed(true)}
-        className="absolute right-4 top-1/2 -translate-y-1/2 hover:text-amber-900 transition-colors"
+        className="absolute right-1 top-1/2 -translate-y-1/2 flex h-11 w-11 items-center justify-center text-secondary hover:text-primary transition-colors"
         aria-label="Dismiss"
       >
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

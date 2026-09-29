@@ -265,7 +265,7 @@ function buildOpenApiDocument() {
     info: {
       title: 'ZecBlock API v1',
       version: '1.0.0-preview',
-      summary: 'Versioned, contract-stable read/write API for the Zcash blockchain data and privacy-intelligence features exposed by CipherScan.',
+      summary: 'Versioned, contract-stable read/write API for the Zcash blockchain data and privacy-intelligence features exposed by ZecBlock.',
       description: [
         'This is the v1 contract layer. It is gated behind API_V1_ENABLED and,',
         'pre-launch, an X-API-Preview-Key header (see the previewKey security',
@@ -275,7 +275,7 @@ function buildOpenApiDocument() {
         'problem+json document. Every public inventory entry is adapted;',
         'The manifest explicitly identifies retained operational routes and payment-protected services.',
       ].join(' '),
-      contact: { name: 'CipherScan / Atmosphere Labs' },
+      contact: { name: 'ZecBlock / Atmosphere Labs' },
     },
     servers: [
       { url: 'https://api.zecblock.com', description: 'Mainnet API host.' },

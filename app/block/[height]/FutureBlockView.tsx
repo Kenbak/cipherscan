@@ -85,13 +85,12 @@ export function FutureBlockView({
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-fade-in">
         <Card>
           <CardBody className="text-center py-16">
-            <div className="text-5xl mb-6">⛏️</div>
             <h1 className="type-page font-mono text-primary mb-3">
               Block #{targetHeight.toLocaleString()} Has Been Mined!
             </h1>
             {upgrade ? (
               <p className="text-secondary mb-6">
-                <span className="text-cipher-yellow-bright font-semibold">{upgrade.name}</span> has reached on the Zcash network.
+                <span className="text-cipher-yellow-bright font-semibold">{upgrade.name}</span> has activated on the Zcash network.
               </p>
             ) : (
               <p className="text-secondary mb-6">
@@ -101,14 +100,14 @@ export function FutureBlockView({
             <div className="flex flex-wrap items-center justify-center gap-3">
               <Link
                 href={`/block/${targetHeight}`}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-brand-gold/10 border border-cipher-gold/30 text-cipher-gold font-mono text-sm hover:bg-brand-gold/20 transition-colors"
+                className="btn btn-md btn-primary"
               >
                 View Block →
               </Link>
               {upgrade?.link && (
                 <Link
                   href={upgrade.link}
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-cipher-yellow-bright/10 border border-cipher-yellow-bright/30 text-cipher-yellow-bright font-mono text-sm hover:bg-cipher-yellow-bright/20 transition-colors"
+                  className="btn btn-md btn-secondary"
                 >
                   {upgrade.linkText || 'Migration Tracker →'}
                 </Link>
@@ -163,7 +162,7 @@ export function FutureBlockView({
               {upgrade.link && (
                 <Link
                   href={upgrade.link}
-                  className="inline-flex items-center gap-1.5 mt-3 text-xs font-mono text-cipher-yellow-bright hover:text-cipher-ironwood-glow transition-colors"
+                  className="inline-flex items-center gap-1.5 mt-3 text-xs font-mono text-cipher-yellow-bright hover:text-cipher-ironwood transition-colors"
                 >
                   {upgrade.linkText || 'Migration tracker →'}
                 </Link>

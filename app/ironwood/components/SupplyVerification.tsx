@@ -106,7 +106,7 @@ export function SupplyVerification({
         sourceHeight={pools.sourceHeight}
         isLive={pools.isLive}
         shareText={shareText}
-        fileName="cipherscan-supply.png"
+        fileName="zecblock-supply.png"
       >
       <div className="grid grid-cols-1 sm:grid-cols-[2fr_3fr] lg:grid-cols-[5fr_7fr] gap-6 sm:gap-10 lg:gap-14 items-center">
         <div className="w-full py-4">
@@ -139,8 +139,8 @@ export function SupplyVerification({
             <span className="text-xs font-semibold text-primary">Pool balances</span>
             {supplyMatch != null && (
               <div className="flex items-center gap-1.5">
-                <span className={`w-1.5 h-1.5 rounded-full ${supplyMatch ? 'bg-cipher-green animate-pulse' : 'bg-red-400'}`} />
-                <span className={`text-caption font-mono ${supplyMatch ? 'text-cipher-green' : 'text-red-400'}`}>
+                <span className={`w-1.5 h-1.5 rounded-full ${supplyMatch ? 'bg-cipher-green animate-pulse' : 'bg-danger'}`} />
+                <span className={`text-caption font-mono ${supplyMatch ? 'text-cipher-green' : 'text-danger'}`}>
                   {supplyMatch ? 'No inflation' : 'Mismatch'}
                 </span>
               </div>

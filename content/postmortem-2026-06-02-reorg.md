@@ -1,4 +1,4 @@
-# CipherScan Post-Mortem: Zcash Orchard Soft Fork & Chain Reorgs
+# ZecBlock Post-Mortem: Zcash Orchard Soft Fork & Chain Reorgs
 
 **Date:** June 2, 2026
 **Status:** Resolved
@@ -9,7 +9,7 @@
 ## Twitter Thread Draft
 
 **1/7**
-Post-mortem: How CipherScan handled yesterday's Zcash network upgrade.
+Post-mortem: How ZecBlock handled yesterday's Zcash network upgrade.
 
 On June 1 at 22:30 EDT, Zcash developers coordinated a soft fork to temporarily disable Orchard transactions while patching a security issue. This caused multiple chain reorgs as miners upgraded to Zebra v4.5.3.
 
@@ -18,7 +18,7 @@ Here's what happened behind the scenes.
 **2/7**
 The soft fork caused competing chain tips — miners on old software produced blocks the network would reject. This created 37 orphaned blocks across heights 3,362,116–3,363,503, with reorg depths up to 25 blocks.
 
-CipherScan's indexer had no reorg handling — it indexed forward only.
+ZecBlock's indexer had no reorg handling — it indexed forward only.
 
 **3/7**
 What we did:
@@ -30,7 +30,7 @@ What we did:
 - Re-indexed the canonical chain from scratch (caught up in ~10 minutes)
 
 **4/7**
-New feature shipped during the incident: cipherscan.app/reorgs
+New feature shipped during the incident: zecblock.com/reorgs
 
 A dedicated reorg explorer showing:
 - Fork events with depth, affected heights, and timestamps
@@ -40,7 +40,7 @@ A dedicated reorg explorer showing:
 **5/7**
 We also shipped automatic reorg detection for the indexer.
 
-Before indexing new blocks, CipherScan now compares the stored block hash against the canonical chain. On mismatch, it walks backward to find the fork point, archives orphans, rolls back stale data, and re-indexes — fully automated.
+Before indexing new blocks, ZecBlock now compares the stored block hash against the canonical chain. On mismatch, it walks backward to find the fork point, archives orphans, rolls back stale data, and re-indexes — fully automated.
 
 **6/7**
 Lessons learned:
@@ -50,11 +50,11 @@ Lessons learned:
 3. Having indexed txid lookups on large tables matters — our initial cleanup approach took 16+ min; switching to txid-indexed deletes finished in 61 seconds.
 
 **7/7**
-CipherScan stayed operational throughout the event. Block and transaction data is now fully consistent with the canonical chain.
+ZecBlock stayed operational throughout the event. Block and transaction data is now fully consistent with the canonical chain.
 
 All funds are safe. Privacy was never affected. The Zcash network is healthy.
 
-Explore the reorg data: cipherscan.app/reorgs
+Explore the reorg data: zecblock.com/reorgs
 Open source: github.com/AtmosphereLabs
 
 ---
@@ -82,7 +82,7 @@ Open source: github.com/AtmosphereLabs
 
 ### Root Cause
 
-CipherScan's Rust indexer (`cipherscan-rust`) had no reorg handling. It indexed blocks forward-only using `last_indexed_height + 1` without verifying the stored block hash matches the canonical chain. When the soft fork caused miners to produce competing blocks, the indexer stored whichever block arrived first at each height — some of which became orphans.
+ZecBlock's Rust indexer (`cipherscan-rust`) had no reorg handling. It indexed blocks forward-only using `last_indexed_height + 1` without verifying the stored block hash matches the canonical chain. When the soft fork caused miners to produce competing blocks, the indexer stored whichever block arrived first at each height — some of which became orphans.
 
 ### Fix
 

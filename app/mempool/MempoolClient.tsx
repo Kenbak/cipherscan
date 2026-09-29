@@ -228,7 +228,7 @@ export default function MempoolClient() {
             {/* Fullscreen */}
             <button
               onClick={() => (view === 'treemap' ? treemapRef.current : bubblesRef.current)?.toggleFullscreen()}
-              className="p-1.5 rounded-md bg-glass-3 text-muted hover:text-primary transition-colors"
+              className="inline-flex min-h-11 min-w-11 items-center justify-center sm:min-h-0 sm:min-w-0 p-1.5 rounded-md bg-glass-3 text-muted hover:text-primary transition-colors"
               title="Fullscreen (ESC to exit)"
             >
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">

@@ -68,7 +68,7 @@ export function WrappedZecTracker({
               href={asset.explorerUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="group flex items-center gap-3 p-3 rounded-lg border border-cipher-border hover:border-glass-10 transition-colors bg-glass-2 hover:bg-glass-3"
+              className="group flex items-center gap-3 p-3 rounded-lg border border-cipher-border hover:border-glass-12 transition-colors bg-glass-2 hover:bg-glass-3"
             >
               <TokenChainIcon token={asset.id === 'cbzec' ? 'cbzec' : 'zec'} chain={asset.chain} size={32} />
               <div className="min-w-0 flex-1">
@@ -81,7 +81,7 @@ export function WrappedZecTracker({
                 <div className="text-caption text-muted truncate">{asset.issuer} · {CHAIN_NAMES[asset.chain] || asset.chain}</div>
                 <div className="mt-1.5 h-1 w-full rounded-full bg-glass-4 overflow-hidden">
                   <div
-                    className="h-full rounded-full bg-glass-10"
+                    className="h-full rounded-full bg-glass-12"
                     style={{ width: `${Math.max(pct, 0.5)}%` }}
                   />
                 </div>

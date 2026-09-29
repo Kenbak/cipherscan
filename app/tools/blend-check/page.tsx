@@ -78,7 +78,7 @@ function getScoreColor(score: number): string {
 function getScoreBg(score: number): string {
   if (score >= 70) return 'bg-cipher-green';
   if (score >= 40) return 'bg-cipher-orange';
-  return 'bg-red-400';
+  return 'bg-danger';
 }
 
 function getScoreBadgeColor(score: number): 'green' | 'orange' | 'muted' {
@@ -383,7 +383,7 @@ export default function BlendCheckPage() {
                                       ? 'border-cipher-green bg-cipher-green/20'
                                       : piece.blendScore >= 40
                                       ? 'border-cipher-orange bg-cipher-orange/20'
-                                      : 'border-red-400 bg-red-400/20'
+                                      : 'border-danger bg-danger/20'
                                   }`} />
                                   {i < plan.pieces.length - 1 && (
                                     <div className="w-px flex-1 bg-cipher-border my-0.5" />
@@ -509,7 +509,7 @@ export default function BlendCheckPage() {
                               </span>
                             </div>
                             <div className="flex items-center gap-1">
-                              <div className="w-1.5 h-1.5 rounded-full bg-purple-400/60" />
+                              <div className="w-1.5 h-1.5 rounded-full bg-cipher-purple/60" />
                               <span className="text-caption font-mono text-muted">
                                 {formatNumber(d.deshields)} out
                               </span>
@@ -525,7 +525,7 @@ export default function BlendCheckPage() {
                       <span>in = shielding (t → z)</span>
                     </div>
                     <div className="flex items-center gap-1.5">
-                      <div className="w-1.5 h-1.5 rounded-full bg-purple-400/60" />
+                      <div className="w-1.5 h-1.5 rounded-full bg-cipher-purple/60" />
                       <span>out = deshielding (z → t)</span>
                     </div>
                   </div>

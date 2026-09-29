@@ -465,7 +465,7 @@ export function CheckerPanel({
             type="button"
             onClick={onCheck}
             disabled={checking}
-            className="btn-sm btn-primary shrink-0 disabled:opacity-50"
+            className="btn btn-sm btn-primary shrink-0 disabled:opacity-50"
           >
             {checking ? '…' : 'Check'}
           </button>
@@ -507,7 +507,7 @@ export function CheckerPanel({
           rows={3}
           spellCheck={false}
         />
-        <button type="button" onClick={onBulkCompare} className="btn-sm btn-secondary mt-2">
+        <button type="button" onClick={onBulkCompare} className="btn btn-sm btn-secondary mt-2">
           Compare
         </button>
         {bulkResults && (
@@ -675,7 +675,7 @@ export function NodeRegistryPanel({
             type="button"
             onClick={onReport}
             disabled={!reportName || !reportTip}
-            className="btn-sm btn-primary disabled:opacity-30"
+            className="btn btn-sm btn-primary disabled:opacity-30"
           >
             Report
           </button>
@@ -812,7 +812,7 @@ export function ReferenceFooter({
               <button
                 type="button"
                 onClick={() => navigator.clipboard.writeText(communityReport).catch(() => {})}
-                className="btn-sm btn-ghost"
+                className="btn btn-sm btn-ghost"
               >
                 Copy
               </button>

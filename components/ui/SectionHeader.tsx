@@ -56,7 +56,7 @@ export function PageHeader({
             <div className="type-prose text-secondary mt-3 max-w-2xl font-sans">{subtitle}</div>
           )}
         </div>
-        {actions && <div className="shrink-0">{actions}</div>}
+        {actions && <div className="min-w-0 max-w-full shrink-0">{actions}</div>}
       </div>
       {children}
     </div>
@@ -109,7 +109,7 @@ export function SectionHeader({
           </span>
         )}
       </div>
-      {actions && <div className="flex items-center gap-2">{actions}</div>}
+      {actions && <div className="flex max-w-full flex-wrap items-center gap-2">{actions}</div>}
     </div>
   );
 }

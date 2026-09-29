@@ -388,7 +388,7 @@ export function NodeMap({ initialLocations, initialStats, initialFetchedAt }: No
                     fill="#08090F"
                     fontSize={12}
                     fontWeight="600"
-                    fontFamily="ui-monospace, 'JetBrains Mono', monospace"
+                    fontFamily="var(--font-geist-mono), monospace"
                     className="pointer-events-none select-none"
                   >
                     {count}

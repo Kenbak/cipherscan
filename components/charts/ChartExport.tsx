@@ -1,6 +1,6 @@
 import { chartGeometry } from '@/lib/chart-geometry';
 import { formatCatalogValue } from '@/lib/chart-catalog';
-import { chartSource, chartDateRange, chartObservationLabel, type ChartExportData } from '@/lib/chart-sharing';
+import { chartPublicTitle, chartSource, chartDateRange, chartObservationLabel, type ChartExportData } from '@/lib/chart-sharing';
 import { getChartColors } from '@/lib/chart-theme';
 
 /** One viewport-independent template for browser PNGs and server social cards. */
@@ -14,7 +14,7 @@ export function ChartExport({ data, logo = '/brand/zecblock-logotype.png' }: { d
   const tickRows = [...new Set([0, Math.floor((rows.length - 1) / 3), Math.floor((rows.length - 1) * 2 / 3), rows.length - 1])].filter(i => i >= 0);
   return <div style={{ width: 1200, height: 675, padding: '36px 44px', background: '#0B0C0E', color: '#F1F3F5', display: 'flex', flexDirection: 'column', fontFamily: 'ZecBlock Export' }}>
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-      <div style={{ display: 'flex', fontSize: 30, fontWeight: 400, maxWidth: 850 }}>{chart.title}</div>
+      <div style={{ display: 'flex', fontSize: 30, fontWeight: 400, maxWidth: 850 }}>{chartPublicTitle(chart)}</div>
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src={logo} alt="ZecBlock" width={155} height={36} />
     </div>

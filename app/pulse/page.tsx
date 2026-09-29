@@ -1,5 +1,6 @@
 'use client';
 
+import { pulseEventDescription } from '@/lib/pulse-copy';
 import { useMemo, useState } from 'react';
 import { useApiQuery } from '@/hooks/useApiQuery';
 import { PageHeader, SectionHeader } from '@/components/ui';
@@ -47,7 +48,7 @@ const METRIC_LABELS: Record<string, string> = {
   exchange_deposit_zat: 'Exchange Deposits',
   mvrv: 'MVRV Ratio',
   migration_volume_zat: 'Ironwood Migration',
-  miner_exchange_ratio: 'Miner Sell Pressure',
+  miner_exchange_ratio: 'Miner Exchange Transfers',
 };
 
 // Splits "59.8% (z=2.53, μ=35.6%, σ=9.6%)" into value + stats parts.
@@ -132,7 +133,7 @@ function EventRow({
       {/* Description + stats */}
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-baseline gap-x-2">
-          <span className="text-sm font-medium text-primary">{event.description}</span>
+          <span className="text-sm font-medium text-primary">{pulseEventDescription(event.metric, event.direction, event.description)}</span>
           <span className="font-mono text-xs font-semibold tabular-nums text-secondary">{value}</span>
         </div>
         {stats ? (
@@ -374,7 +375,7 @@ export default function PulsePage() {
               <p className="mt-1.5 text-sm text-secondary leading-relaxed">
                 12 metrics: transaction counts, shielded adoption, shield/deshield volume,
                 cross-chain flows, fees, exchange deposits, MVRV, Ironwood migration, and
-                miner sell pressure. Updated daily after 21:00 UTC.
+                miner-to-exchange transfer share. Updated daily after 21:00 UTC.
               </p>
             </div>
           </div>

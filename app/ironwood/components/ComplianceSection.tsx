@@ -247,7 +247,7 @@ export function FamiliesTab({
         </p>
         <p className="mt-1.5">
           <strong className="text-primary">ZODL / Vizor:</strong> Unpadded Ironwood bundle (I:1), bucketed expiry,
-          grid-aligned anchor, &#123;1,2,5&#125;&times;10<sup>k</sup> denominations. Both use the <code className="text-caption bg-glass-5 px-1 rounded">zcash_pool_migration</code> crate.
+          grid-aligned anchor, &#123;1,2,5&#125;&times;10<sup>k</sup> denominations. Both use the <code className="text-caption bg-glass-6 px-1 rounded">zcash_pool_migration</code> crate.
         </p>
         <p className="mt-1">
           <strong className="text-primary">Cake/zkool2:</strong> Padded bundle (I:2), legacy +40 expiry, near-tip anchor,

@@ -58,9 +58,9 @@ function RelatedPoolPages() {
 }
 
 function RecentLargeFlows() {
-  const { data, loading } = useApiQuery<{ flows: RecentFlow[] }>('/v1/transactions/shielded', { limit: 10, min_zec: 10 });
-  const flows = Array.isArray(data?.flows) ? data.flows : [];
-  const status = loading ? 'loading' : Array.isArray(data?.flows) ? 'ready' : 'unavailable';
+  const { data, loading } = useApiQuery<RecentFlow[]>('/v1/transactions/shielded', { limit: 10, min_zec: 10 });
+  const flows = Array.isArray(data) ? data : [];
+  const status = loading ? 'loading' : Array.isArray(data) ? 'ready' : 'unavailable';
 
   return (
     <Card variant="glass">
@@ -68,8 +68,11 @@ function RecentLargeFlows() {
         <SectionHeader
           label="RECENT_PUBLIC_FLOWS"
           actions={
-            <Link href="/txs?type=shielded" className="text-caption font-mono text-cipher-gold hover:underline">
-              All shielded transactions →
+            <Link
+              href="/txs?type=shielded"
+              className="inline-flex items-center gap-2 rounded-sm py-1 text-caption font-mono text-secondary underline-offset-4 transition-colors hover:text-primary hover:underline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-current"
+            >
+              View all shielded transactions <span aria-hidden="true">→</span>
             </Link>
           }
         />

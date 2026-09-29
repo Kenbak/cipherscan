@@ -111,21 +111,24 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     ? `Orphaned Zcash Block #${blockLabel} | ZecBlock`
     : `Zcash Block #${blockLabel} | ZecBlock`;
 
+  // Block hashes share long runs of leading zeros; the tail is what tells them apart.
+  const hashTail = (hash: string) => `…${hash.slice(-12)}`;
+  const txLabel = `${formatNumber(transactionCount)} transaction${transactionCount !== 1 ? 's' : ''}`;
   let description: string;
   if (isOrphaned) {
     const replacement = replacementHash
-      ? ` Canonical replacement: ${truncateHash(replacementHash)}.`
+      ? ` Canonical replacement: ${hashTail(replacementHash)}.`
       : '';
-    description = `Orphaned Zcash block #${blockLabel} recorded ${formatNumber(transactionCount)} transaction${transactionCount !== 1 ? 's' : ''} before it was replaced in a chain reorganization. Hash: ${truncateHash(canonicalHash)}.${replacement}`;
+    description = `Orphaned Zcash block #${blockLabel} (hash ${hashTail(canonicalHash)}) recorded ${txLabel} before it was replaced in a chain reorganization.${replacement}`;
   } else {
     const validTimestamp = Number.isFinite(timestamp) && timestamp > 0;
     const datePart = validTimestamp
-      ? ` mined on ${new Date(timestamp * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`
+      ? `, mined ${new Date(timestamp * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' })} UTC,`
       : '';
     const sizePart = Number.isFinite(size) && size > 0
-      ? `, size ${(size / 1024).toFixed(1)} KB`
+      ? ` (${(size / 1024).toFixed(1)} KB)`
       : '';
-    description = `Zcash block #${blockLabel}${datePart}. Contains ${formatNumber(transactionCount)} transaction${transactionCount !== 1 ? 's' : ''}${sizePart}. Hash: ${truncateHash(canonicalHash)}.`;
+    description = `Zcash block #${blockLabel}${datePart} with ${txLabel}${sizePart}. See its transactions, miner, fees and timing.`;
   }
 
   return buildPageMetadata({
