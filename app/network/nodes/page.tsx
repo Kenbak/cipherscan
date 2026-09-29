@@ -1,16 +1,24 @@
-import { buildPageMetadata } from '@/lib/seo';
+import { buildPageMetadata, getBaseUrl, getNetwork } from '@/lib/seo';
 import NodesClient from './NodesClient';
 
 export const metadata = buildPageMetadata({
   title: 'Zcash Network Nodes | CipherScan',
-  description: 'Explore the Zcash peer-to-peer network: verified reachable nodes, client implementations, version adoption, and geographic distribution.',
+  description: 'Explore the Zcash peer-to-peer network: observed active nodes, client implementations, version adoption, and geographic distribution.',
   keywords: ['zcash nodes', 'zcash network nodes', 'zcash peer network', 'zebra nodes', 'zakura nodes', 'zcash node map', 'zcash network topology'],
   path: '/network/nodes',
+  index: true,
 });
 
 export default function NodesPage() {
+  const pageUrl = `${getBaseUrl()}/network/nodes`;
+  const schema = { '@context': 'https://schema.org', '@type': 'WebPage',
+    '@id': `${pageUrl}#webpage`, url: pageUrl, name: 'Zcash Network Nodes',
+    description: 'Active Zcash nodes observed through live peer connections and recent crawler handshakes.',
+    isPartOf: { '@id': `${getBaseUrl()}/#website` }, publisher: { '@id': 'https://cipherscan.app/#organization' } };
+
   return (
     <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schema).replace(/</g, '\\u003c') }} />
       <NodesClient />
 
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
@@ -20,10 +28,18 @@ export default function NodesPage() {
           </h2>
           <div className="space-y-3 text-sm text-muted leading-relaxed">
             <p>
-              This page shows every Zcash node verified as reachable by CipherScan&apos;s
-              network crawler. Each node is discovered via recursive peer exchange and
-              confirmed through a full protocol handshake, providing accurate client
-              identification (Zebra, Zakura, zcashd) and version information.
+              {getNetwork() === 'mainnet' ? <>
+              This page combines connections reported by our Zcash node with recent
+              protocol handshakes from our network crawlers, deduplicated by IP address.
+              Peer observations expire after 15 minutes; crawler handshakes expire after
+              one hour. This is the active network we observe, not a complete count of
+              all nodes or independent operators. Client names and versions are self-reported.
+              </> : <>This page shows peers observed by our network infrastructure, deduplicated by IP address. It is not a complete global census or a count of independent operators. Client names and versions are self-reported.</>}
+            </p>
+            <p>
+              DNS and gossiped addresses alone do not count as active. Graph links show
+              advertised peer relationships; active nodes without those links still appear.
+              {getNetwork() === 'mainnet' ? ' Average handshake time covers crawler verifications, not live-peer ping times.' : ''}
             </p>
             <p>
               Node locations are rounded to 1-degree precision to protect operator privacy.

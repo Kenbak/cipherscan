@@ -34,6 +34,7 @@ interface NodeEntry {
 }
 
 interface NodeStats {
+  censusVersion?: number;
   activeNodes: number;
   totalNodes: number;
   countries: number;
@@ -183,7 +184,7 @@ export default function NodesClient() {
       <PageHeader
         eyebrow="Network"
         title={<>Zcash Nodes</>}
-        subtitle="Verified reachable nodes discovered via network crawl"
+        subtitle="Active nodes observed by our network infrastructure"
         actions={
           <Link href="/network" className="text-xs text-muted hover:text-secondary font-mono transition-colors">
             &larr; Network Overview
@@ -198,7 +199,7 @@ export default function NodesClient() {
             <div className="flex flex-col sm:flex-row sm:items-end gap-6">
               <div>
                 <div className="text-[10px] font-mono uppercase tracking-wider text-muted mb-1">
-                  Reachable Nodes
+                  Observed Active Nodes
                 </div>
                 <div className="text-4xl font-bold font-mono text-primary tabular-nums">
                   {stats.activeNodes.toLocaleString()}
@@ -206,7 +207,7 @@ export default function NodesClient() {
               </div>
               <div className="flex flex-wrap gap-x-6 gap-y-2 sm:ml-auto text-xs font-mono">
                 <StatChip label="Countries" value={stats.countries} />
-                <StatChip label="Avg Ping" value={stats.avgPingMs ? `${stats.avgPingMs.toFixed(0)}ms` : '—'} />
+                <StatChip label={stats.censusVersion === 2 ? "Avg Handshake" : "Avg Ping"} value={stats.avgPingMs ? `${stats.avgPingMs.toFixed(0)}ms` : '—'} />
                 <StatChip label="Tor" value={stats.torNodes} />
                 <StatChip label="Total Seen" value={stats.totalNodes.toLocaleString()} />
                 <StatChip label="Cities" value={stats.cities} />
@@ -226,7 +227,7 @@ export default function NodesClient() {
                 <div>
                   <h3 className="text-sm font-semibold text-primary">Client Distribution</h3>
                   <p className="mt-1 text-[11px] text-muted">
-                    Verified via protocol handshake during network crawl.
+                    Client identities are self-reported by observed peers.
                   </p>
                 </div>
                 <span className="shrink-0 font-mono text-xs text-cipher-cyan">
@@ -379,7 +380,7 @@ export default function NodesClient() {
                   </div>
                   <div>
                     <div className="text-2xl font-bold font-mono tabular-nums text-primary">{reliability.latency.median != null ? `${reliability.latency.median}ms` : '—'}</div>
-                    <div className="text-[10px] text-muted uppercase tracking-wider mt-0.5">Median Ping</div>
+                    <div className="text-[10px] text-muted uppercase tracking-wider mt-0.5">{stats?.censusVersion === 2 ? "Median Handshake" : "Median Ping"}</div>
                   </div>
                 </div>
                 <div className="text-[10px] text-muted uppercase tracking-wider mb-1.5">Handshake Latency</div>
@@ -536,8 +537,8 @@ export default function NodesClient() {
                     <th className="px-3 py-2.5 text-left">Version</th>
                     <SortHeader label="Country" col="country_code" current={sortBy} dir={sortDir} onClick={handleSort} />
                     <th className="px-3 py-2.5 text-left">Tor</th>
-                    <SortHeader label="Peers" col="degree" current={sortBy} dir={sortDir} onClick={handleSort} align="right" />
-                    <SortHeader label="Ping" col="ping_ms" current={sortBy} dir={sortDir} onClick={handleSort} align="right" />
+                    <SortHeader label="Gossip links" col="degree" current={sortBy} dir={sortDir} onClick={handleSort} align="right" />
+                    <SortHeader label={stats?.censusVersion === 2 ? "Handshake" : "Ping"} col="ping_ms" current={sortBy} dir={sortDir} onClick={handleSort} align="right" />
                     <SortHeader label="Last Seen" col="last_seen" current={sortBy} dir={sortDir} onClick={handleSort} align="right" />
                   </tr>
                 </thead>

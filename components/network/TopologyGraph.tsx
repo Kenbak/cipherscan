@@ -65,7 +65,7 @@ function nodeColor(n: { client: string | null; isTor: boolean; reachable: boolea
 }
 
 function clientLabel(client: string | null, reachable = true) {
-  if (!reachable) return 'Off (unreachable)';
+  if (!reachable) return 'Not recently observed';
   return sharedClientLabel(client);
 }
 
@@ -447,7 +447,7 @@ export function TopologyGraph() {
             {/* Counts badge */}
             {counts && (
               <div className="absolute top-3 right-3 z-20 rounded-md bg-cipher-card/80 border border-cipher-border px-2.5 py-1 text-[10px] font-mono text-muted backdrop-blur-sm">
-                {counts.reachable} reachable · {counts.off} off · {counts.edges} links
+                {counts.reachable} active · {counts.off} not recently observed · {counts.edges} links
               </div>
             )}
 
@@ -499,9 +499,9 @@ export function TopologyGraph() {
                   )}
                 </div>
                 <dl className="mt-2 space-y-1 text-[10px] font-mono">
-                  <Row label="Status" value={focus.reachable ? 'Reachable' : 'Known / unreachable'} />
+                  <Row label="Status" value={focus.reachable ? 'Observed active' : 'Not recently observed'} />
                   <Row label="Country" value={focus.countryCode ? `${countryFlag(focus.countryCode)} ${focus.countryCode}` : 'Unknown'} />
-                  <Row label={focus.reachable ? 'Peers' : 'Gossiped by'} value={focus.degree != null ? String(focus.degree) : '—'} />
+                  <Row label="Gossip links" value={focus.degree != null ? String(focus.degree) : '—'} />
                   <Row label="Betweenness" value={focus.betweenness != null ? focus.betweenness.toFixed(4) : '—'} />
                   <Row label="Closeness" value={focus.closeness != null ? focus.closeness.toFixed(4) : '—'} />
                 </dl>
@@ -536,9 +536,9 @@ export function TopologyGraph() {
           className={`flex items-center gap-1.5 transition-opacity ${hidden.has('off') ? 'opacity-30 line-through' : 'opacity-100 hover:opacity-80'}`}
         >
           <span className="w-2 h-2 rounded-full" style={{ backgroundColor: OFF_COLOR }} />
-          Known / unreachable
+          Not recently observed
         </button>
-        <span className="ml-auto text-[10px] text-muted/70">click to filter · size ∝ peer count</span>
+        <span className="ml-auto text-[10px] text-muted/70">click to filter · size ∝ gossip links</span>
       </div>
     </div>
   );

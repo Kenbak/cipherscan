@@ -17,7 +17,7 @@ const TABS: { id: MapTab; label: string }[] = [
 ];
 
 const TAB_DESCRIPTIONS: Record<MapTab, string> = {
-  topology: 'Gossip graph of the known network — reachable nodes plus addresses they advertised that never completed a handshake.',
+  topology: 'Observed active nodes and advertised addresses. Links show gossip relationships, not confirmed connections between remote nodes.',
   client: 'World map colored by the dominant client implementation observed in each region.',
   infra: 'World map colored by the dominant hosting provider (ISP/ASN) observed in each region.',
 };
@@ -38,7 +38,7 @@ export function NodeMapExplorer() {
       <div className="mb-4">
         <h3 className="text-sm font-semibold text-primary">Node Map</h3>
         <p className="mt-0.5 text-[11px] text-muted">
-          Three views of the same crawled network — a connection graph, or a world map colored by client or by host.
+          Explore observed nodes as a gossip graph or on a world map colored by client or hosting provider.
         </p>
       </div>
 

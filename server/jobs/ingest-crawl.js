@@ -22,8 +22,9 @@ const https = require('https');
 const http = require('http');
 const { log, loadEnv, withAdvisoryLock } = require('../lib/job-utils');
 const { getPool } = require('../lib/db-pool');
-const { parsePeerClient } = require('../lib/peer-client');
-const { CENSUS_VERSION, validateCrawlSnapshot, mergeVerifiedNodes } = require('../lib/node-census');
+const { callZebraRPC } = require('../lib/zebra-rpc');
+const { parsePeerClient, parsePeerAddress } = require('../lib/peer-client');
+const { CENSUS_VERSION, validateCrawlSnapshot, mergeVerifiedNodes, livePeerNodes, COMBINED_ELIGIBILITY } = require('../lib/node-census');
 
 const execFileAsync = promisify(execFile);
 
@@ -36,7 +37,6 @@ const CRUNCHER_BIN = process.env.CRUNCHER_BIN || '/opt/zcash-crawler/target/rele
 const MAXMIND_DB_PATH = process.env.MAXMIND_DB_PATH || '/opt/zcash-crawler/data/GeoLite2-City.mmdb';
 const NODE_SOURCE = process.env.NODE_SOURCE || 'peer';
 const DRY_RUN = process.argv.includes('--dry-run');
-const INACTIVE_THRESHOLD_HOURS = 1;
 const ADVISORY_LOCK_ID = 839272; // 839271 belongs to refresh-turnstile.js.
 
 const pool = getPool({ max: 3, idleTimeoutMillis: 10000 });
@@ -105,7 +105,9 @@ async function runCruncher(crawlJson) {
  */
 function fetchTorExitNodes() {
   return new Promise((resolve) => {
-    https.get('https://check.torproject.org/torbulkexitlist', (res) => {
+    const req = https.get('https://check.torproject.org/torbulkexitlist', { timeout: 8000 }, (res) => {
+      if (res.statusCode !== 200) { res.resume(); resolve(new Set()); return; }
+      res.on('error', () => resolve(new Set()));
       let data = '';
       res.on('data', (chunk) => { data += chunk; });
       res.on('end', () => {
@@ -121,6 +123,7 @@ function fetchTorExitNodes() {
       log(`Could not fetch Tor exit list: ${err.message}`);
       resolve(new Set());
     });
+    req.on('timeout', () => req.destroy(new Error('Tor exit-list timeout')));
   });
 }
 
@@ -135,31 +138,35 @@ function getTargetTable() {
 /**
  * Main ingestion logic.
  */
-async function ingestCrawl({ rpc = callCrawlerRPC, crunch = runCruncher, torExits = fetchTorExitNodes, dbPool = pool } = {}) {
+async function ingestCrawl({ rpc = callCrawlerRPC, peerRpc = callZebraRPC, now = Date.now, crunch = runCruncher, torExits = fetchTorExitNodes, dbPool = pool } = {}) {
   const startTime = Date.now();
   const targetTable = getTargetTable();
   log(`Starting crawl ingestion (target: ${targetTable}, dry-run: ${DRY_RUN})`);
 
-  const metrics = await rpc('getmetrics');
-  validateCrawlSnapshot(metrics);
-
-  log(`Crawler reports: ${metrics.num_good_nodes} good / ${metrics.num_known_nodes} known nodes, ${metrics.num_known_connections} connections`);
-
-  // Poll Tor crawler (best-effort — may not be running)
-  let torMetrics = null;
-  try {
-    torMetrics = validateCrawlSnapshot(await rpc('getmetrics', CRAWLER_TOR_RPC_PORT));
-    if (torMetrics && torMetrics.num_good_nodes > 0) {
-      log(`Tor crawler reports: ${torMetrics.num_good_nodes} good / ${torMetrics.num_known_nodes} known nodes`);
-    }
-  } catch {
-    torMetrics = null;
-    log('Tor crawler unavailable or stale (skipping)');
+  // Collect independently: a crawler outage must not suppress live peers, and
+  // a node RPC outage must not refresh or erase previous peer observations.
+  const sources = await Promise.allSettled([
+    rpc('getmetrics').then(m => validateCrawlSnapshot(m, now())),
+    rpc('getmetrics', CRAWLER_TOR_RPC_PORT).then(m => validateCrawlSnapshot(m, now())),
+    peerRpc('getpeerinfo', [], { timeout: 8000 }).then(peers => livePeerNodes(peers, now())),
+  ]);
+  const snapshots = sources.slice(0, 2).filter(s => s.status === 'fulfilled').map(s => s.value);
+  const peers = sources[2].status === 'fulfilled' ? sources[2].value : [];
+  sources.forEach((source, i) => {
+    if (source.status === 'rejected') log(`${['Direct crawler', 'Tor crawler', 'Live peers'][i]} unavailable (not refreshed)`);
+  });
+  if (!snapshots.length && sources[2].status === 'rejected') throw new Error('All node observation sources unavailable');
+  const metrics = structuredClone(snapshots[0] || { generated_at_ms: Date.now(), num_good_nodes: 0, num_known_nodes: 0, num_known_connections: 0, num_versions: 0, protocol_versions: {}, user_agents: {}, crawler_runtime: { secs: 0, nanos: 0 }, node_info: [], node_network_types: [], nodes_indices: [], all_node_addrs: [], all_nodes_indices: [], all_node_reachable: [] });
+  const crawled = mergeVerifiedNodes(snapshots, now());
+  const crawlByHost = new Map(crawled.map(n => [parsePeerAddress(n.addr).host, n]));
+  const peerByHost = new Map(peers.map(n => [parsePeerAddress(n.addr).host, n]));
+  const combined = new Map(crawlByHost);
+  for (const [host, peer] of peerByHost) {
+    const crawl = crawlByHost.get(host);
+    combined.set(host, { ...crawl, ...peer, handshake_time_ms: crawl?.handshake_time_ms ?? null });
   }
-
-  // Keep the newest actual protocol verification for each IP, across both paths.
-  const verified = mergeVerifiedNodes(torMetrics ? [metrics, torMetrics] : [metrics]);
-  const verifiedAt = new Map(verified.map(node => [node.addr, node.last_verified_at_ms]));
+  const verified = [...combined.values()];
+  log(`Combined census: ${crawled.length} crawler IPs, ${peers.length} live-peer IPs, ${verified.length} unique IPs`);
   // A filtered/reordered list no longer has the original adjacency indices.
   const originalAddrs = (metrics.node_info || []).map(node => node.addr);
   if (verified.length !== originalAddrs.length || verified.some((node, i) => node.addr !== originalAddrs[i])) {
@@ -171,6 +178,7 @@ async function ingestCrawl({ rpc = callCrawlerRPC, crunch = runCruncher, torExit
   metrics.node_info = verified;
   metrics.node_addrs = verified.map(node => node.addr);
   metrics.num_good_nodes = verified.length;
+  metrics.node_network_types = verified.map(() => 'Zcash');
 
   const enriched = await crunch(metrics);
   if (!enriched || !Array.isArray(enriched.nodes)) {
@@ -185,6 +193,8 @@ async function ingestCrawl({ rpc = callCrawlerRPC, crunch = runCruncher, torExit
   try {
     await withAdvisoryLock(client, ADVISORY_LOCK_ID, async () => {
       await client.query('BEGIN');
+      await client.query("SET LOCAL lock_timeout = '1s'");
+      await client.query("SET LOCAL statement_timeout = '10s'");
 
       let upserted = 0;
       let newNodes = 0;
@@ -198,6 +208,12 @@ async function ingestCrawl({ rpc = callCrawlerRPC, crunch = runCruncher, torExit
 
         if (!ip || ip === '0.0.0.0') continue;
 
+        const crawlObservation = crawlByHost.get(ip);
+        const peerObservation = peerByHost.get(ip);
+        if (!crawlObservation && !peerObservation) continue;
+        const crawlTime = crawlObservation?.last_verified_at_ms;
+        const peerTime = peerObservation?.last_peer_seen_at_ms;
+        const observedAt = Math.max(crawlTime || 0, peerTime || 0);
         const port = parseInt(portStr) || 8233;
         const isOnion = ip.endsWith('.onion');
         const isTor = isOnion || torExitIPs.has(ip);
@@ -211,12 +227,12 @@ async function ingestCrawl({ rpc = callCrawlerRPC, crunch = runCruncher, torExit
             ping_ms, is_tor, is_active, user_agent, client_impl,
             client_version, protocol_version, observed_via, onion_address,
             tor_type, betweenness, closeness, degree, network_type,
-            start_height, services, crawl_seen_count, last_verified_at, last_seen
+            start_height, services, crawl_seen_count, last_verified_at, last_seen, last_peer_seen_at, inbound
           )
           VALUES (
             $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, TRUE,
-            $11, $12, $13, $14, 'crawl', $15, $16, $17, $18, $19, $20,
-            $21, $22, 1, $23, $23
+            $11, $12, $13, $14, $27, $15, $16, $17, $18, $19, $20,
+            $21, $22, CASE WHEN $23::timestamptz IS NULL THEN 0 ELSE 1 END, $23, $24, $25, $26
           )
           ON CONFLICT (ip) DO UPDATE SET
             port = EXCLUDED.port,
@@ -233,9 +249,11 @@ async function ingestCrawl({ rpc = callCrawlerRPC, crunch = runCruncher, torExit
             client_impl = CASE WHEN EXCLUDED.user_agent IS NOT NULL THEN EXCLUDED.client_impl ELSE ${targetTable}.client_impl END,
             client_version = CASE WHEN EXCLUDED.user_agent IS NOT NULL THEN EXCLUDED.client_version ELSE ${targetTable}.client_version END,
             protocol_version = COALESCE(EXCLUDED.protocol_version, ${targetTable}.protocol_version),
-            observed_via = 'crawl',
+            observed_via = EXCLUDED.observed_via,
+            inbound = COALESCE(EXCLUDED.inbound, ${targetTable}.inbound),
+            last_peer_seen_at = GREATEST(EXCLUDED.last_peer_seen_at, ${targetTable}.last_peer_seen_at),
             last_seen = EXCLUDED.last_seen,
-            last_verified_at = EXCLUDED.last_verified_at,
+            last_verified_at = GREATEST(EXCLUDED.last_verified_at, ${targetTable}.last_verified_at),
             onion_address = COALESCE(EXCLUDED.onion_address, ${targetTable}.onion_address),
             tor_type = COALESCE(EXCLUDED.tor_type, ${targetTable}.tor_type),
             betweenness = EXCLUDED.betweenness,
@@ -244,12 +262,13 @@ async function ingestCrawl({ rpc = callCrawlerRPC, crunch = runCruncher, torExit
             network_type = EXCLUDED.network_type,
             start_height = COALESCE(EXCLUDED.start_height, ${targetTable}.start_height),
             services = COALESCE(EXCLUDED.services, ${targetTable}.services),
-            crawl_seen_count = CASE WHEN ${targetTable}.last_verified_at IS NULL THEN 1
+            crawl_seen_count = CASE WHEN EXCLUDED.last_verified_at IS NULL THEN COALESCE(${targetTable}.crawl_seen_count, 0)
+              WHEN ${targetTable}.last_verified_at IS NULL THEN 1
               WHEN EXCLUDED.last_verified_at > ${targetTable}.last_verified_at THEN COALESCE(${targetTable}.crawl_seen_count, 0) + 1
               ELSE ${targetTable}.crawl_seen_count END,
             crawl_miss_count = CASE WHEN ${targetTable}.last_verified_at IS NULL THEN 0 ELSE ${targetTable}.crawl_miss_count END
-          WHERE ${targetTable}.last_verified_at IS NULL
-            OR EXCLUDED.last_verified_at >= ${targetTable}.last_verified_at
+          WHERE GREATEST(${targetTable}.last_verified_at, ${targetTable}.last_peer_seen_at) IS NULL
+            OR EXCLUDED.last_seen >= GREATEST(${targetTable}.last_verified_at, ${targetTable}.last_peer_seen_at)
           RETURNING (xmax = 0) AS is_insert
         `, [
           ip, port,
@@ -259,7 +278,7 @@ async function ingestCrawl({ rpc = callCrawlerRPC, crunch = runCruncher, torExit
           node.geo?.lat ?? null,
           node.geo?.lon ?? null,
           node.geo?.isp || null,
-          node.handshake_time_ms ?? null,
+          crawlObservation?.handshake_time_ms ?? null,
           isTor,
           parsed.userAgent || node.user_agent || null,
           parsed.clientImpl,
@@ -273,7 +292,11 @@ async function ingestCrawl({ rpc = callCrawlerRPC, crunch = runCruncher, torExit
           node.network_type || null,
           node.start_height || null,
           node.services ?? null,
-          new Date(verifiedAt.get(node.addr)),
+          crawlTime ? new Date(crawlTime) : null,
+          new Date(observedAt),
+          peerTime ? new Date(peerTime) : null,
+          peerObservation ? peerObservation.inbound : null,
+          peerObservation ? 'peer' : 'crawl',
         ]);
 
         if (result.rows[0]?.is_insert) newNodes++;
@@ -314,13 +337,12 @@ async function ingestCrawl({ rpc = callCrawlerRPC, crunch = runCruncher, torExit
       // Increment miss count for nodes not refreshed this crawl, then deactivate stale ones
       await client.query(`
         UPDATE ${targetTable} SET crawl_miss_count = COALESCE(crawl_miss_count, 0) + 1
-        WHERE is_active = TRUE AND observed_via = 'crawl'
-          AND last_seen < NOW() - INTERVAL '6 minutes'
+        WHERE is_active = TRUE AND last_verified_at IS NOT NULL
+          AND last_verified_at < NOW() - INTERVAL '6 minutes'
       `);
       await client.query(`
         UPDATE ${targetTable} SET is_active = FALSE
-        WHERE is_active = TRUE AND (observed_via <> 'crawl' OR last_verified_at IS NULL
-          OR last_verified_at <= NOW() - INTERVAL '${INACTIVE_THRESHOLD_HOURS} hours')
+        WHERE is_active = TRUE AND NOT COALESCE((${COMBINED_ELIGIBILITY}), FALSE)
       `);
 
       // Persist topology edges
@@ -362,7 +384,7 @@ async function ingestCrawl({ rpc = callCrawlerRPC, crunch = runCruncher, torExit
       // "known/unreachable" nodes that reachable peers gossiped). Kept in dedicated
       // snapshot tables so it never pollutes the reachable-node metrics that read
       // the `nodes` table. Bulk UNNEST inserts keep this to two queries.
-      if (!DRY_RUN && Array.isArray(enriched.topo_nodes) && enriched.topo_nodes.length > 0) {
+      if (!DRY_RUN && snapshots.length && Array.isArray(enriched.topo_nodes)) {
         const addrs = [];
         const ips = [];
         const reachables = [];
@@ -434,6 +456,8 @@ async function ingestCrawl({ rpc = callCrawlerRPC, crunch = runCruncher, torExit
           COUNT(*) AS total,
           COUNT(DISTINCT country_code) FILTER (WHERE is_active) AS countries,
           COUNT(*) FILTER (WHERE is_active AND is_tor) AS tor,
+          COUNT(*) FILTER (WHERE is_active AND last_peer_seen_at > NOW() - INTERVAL '15 minutes' AND inbound = TRUE) AS inbound,
+          COUNT(*) FILTER (WHERE is_active AND last_peer_seen_at > NOW() - INTERVAL '15 minutes' AND inbound = FALSE) AS outbound,
           COUNT(*) FILTER (WHERE is_active AND tor_type = 'relay') AS tor_hidden,
           ROUND(AVG(ping_ms) FILTER (WHERE is_active AND ping_ms > 0)::numeric, 3) AS avg_ping
         FROM ${targetTable}
@@ -442,7 +466,7 @@ async function ingestCrawl({ rpc = callCrawlerRPC, crunch = runCruncher, torExit
       const clientResult = await client.query(`
         SELECT client_impl, COUNT(*)::int AS node_count
         FROM ${targetTable}
-        WHERE is_active = TRUE AND observed_via = 'crawl'
+        WHERE is_active = TRUE
         GROUP BY client_impl
         ORDER BY node_count DESC
       `);
@@ -462,13 +486,14 @@ async function ingestCrawl({ rpc = callCrawlerRPC, crunch = runCruncher, torExit
             inbound_nodes, outbound_nodes, avg_ping_ms,
             identified_client_nodes, client_counts, tor_hidden_nodes, census_version
           )
-          VALUES ($1, $2, $3, $4, 0, $1, $5, $6, $7, $8, $9)
+          VALUES ($1, $2, $3, $4, $10, $11, $5, $6, $7, $8, $9)
         `, [
           parseInt(snap.active), parseInt(snap.total),
           parseInt(snap.countries), parseInt(snap.tor),
           snap.avg_ping ? parseFloat(snap.avg_ping) : null,
           identifiedClientNodes, JSON.stringify(clientCounts),
           parseInt(snap.tor_hidden || 0), CENSUS_VERSION,
+          parseInt(snap.inbound || 0), parseInt(snap.outbound || 0),
         ]);
       }
 
