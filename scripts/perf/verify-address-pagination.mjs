@@ -40,19 +40,28 @@ try {
   const before = { ...counts };
   const started = Date.now();
   await next.click();
-  await page.waitForURL('**?page=2');
+  await page.waitForURL(url => url.searchParams.get('page') === '2');
+  assert.ok(new URL(page.url()).searchParams.get('cursor'), 'Next carries an opaque snapshot cursor');
   await page.locator('a[title="Previous page"], a[aria-label="Previous page"]').waitFor();
   assert.equal(counts.address, before.address + 1, 'one address request per page change');
   assert.equal(counts.crosschain, before.crosschain, 'pagination does not refetch cross-chain activity');
   assert.equal(counts.price, before.price, 'pagination does not refetch price');
+  const firstRow = await page.locator('main a[href^="/tx/"]').first().getAttribute('href');
+  await page.locator('a[aria-label="Last page"]').click();
+  await page.waitForURL(url => url.searchParams.get('page') === '3');
+  await page.locator('main a[href^="/tx/3333"]').first().waitFor();
+  await page.locator('a[aria-label="Previous page"]').click();
+  await page.waitForURL(url => url.searchParams.get('page') === '2');
+  await page.locator(`main a[href="${firstRow}"]`).first().waitFor();
   // Back/forward retain the existing crawlable URL contract.
   await page.goBack({ waitUntil: 'domcontentloaded' });
-  await next.waitFor();
+  await page.waitForURL(url => url.searchParams.get('page') === '3');
   await page.goForward({ waitUntil: 'domcontentloaded' });
   await page.locator('a[title="Previous page"], a[aria-label="Previous page"]').waitFor();
   assert.equal(counts.crosschain, before.crosschain);
   assert.equal(counts.price, before.price);
   assert.deepEqual(errors, []);
+  await page.screenshot({ path: process.env.ADDRESS_PAGINATION_SCREENSHOT || '/tmp/address-pagination-verified.png', fullPage: true });
   console.log(JSON.stringify({ base, passed: true, counts, navigationRoundTripMs: Date.now() - started, note: 'Local fixture, optional API requests deliberately held pending; not a production latency benchmark.' }));
   for (const route of held) await route.abort().catch(() => {});
 } finally {

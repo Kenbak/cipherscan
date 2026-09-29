@@ -8,11 +8,12 @@
  */
 
 const express = require('express');
+const { AddressPaginationError, withAddressSnapshot, prepareAddressPage, addressPageSql, addressPagination } = require('../lib/address-pagination');
 const { getFirstFunding } = require('../lib/address-first-funding');
 const router = express.Router();
 const { validate } = require('../validation');
 const { applyListCacheHeaders, createListCache } = require('../list-cache');
-const { parseSafeListPagination, parseSafePagePagination, offsetExceededError } = require('../lib/pagination');
+const { parseSafeListPagination, offsetExceededError } = require('../lib/pagination');
 const { logSafeError } = require('../lib/safe-log');
 const {
   isValidBase58CheckAddress,
@@ -27,12 +28,6 @@ const disabledListCache = createListCache({ enabled: false });
 // for rich-list today, so deep requests are rejected outright rather than
 // silently returning a different page than requested.
 const MAX_RICH_LIST_OFFSET = 100_000;
-
-// Per-address transaction pagination. Bounded lower than rich-list since a
-// single address's transaction count, while occasionally large for
-// whale/exchange addresses, is still bounded far below the address table
-// as a whole.
-const MAX_ADDRESS_TX_OFFSET = 100_000;
 
 function isCanonicalIntegerQuery(value) {
   if (value === undefined) return true;
@@ -60,14 +55,12 @@ function hasConsistentAddressSummary(summary) {
 
 // Dependencies injected via app.locals
 let pool;
-let queryWithFallback;
 let listCache;
 let chainTip;
 
 // Middleware to inject dependencies
 router.use((req, res, next) => {
   pool = req.app.locals.pool;
-  queryWithFallback = req.app.locals.queryWithFallback || pool.query.bind(pool);
   listCache = req.app.locals.listCache || disabledListCache;
   chainTip = req.app.locals.chainTip || { height: 0, hash: '' };
   next();
@@ -294,27 +287,14 @@ router.get('/api/rich-list', async (req, res) => {
  * - page: Page number (1-based, default 1)
  * - limit: Transactions per page (default 25, max 100)
  *
- * Returns Etherscan-style pagination with page numbers.
+ * - cursor: Opaque signed snapshot cursor from pagination (Next/Previous/Last)
+ * Numeric page URLs near either end remain supported; deep traversal uses cursors.
  */
 router.get('/api/address/:address', validate('addressById'), async (req, res) => {
   try {
     const { address } = req.params;
-    const { limit, page, offset, requestedOffset, offsetExceeded } = parseSafePagePagination(req.query, {
-      defaultLimit: 25,
-      maxLimit: 100,
-      maxOffset: MAX_ADDRESS_TX_OFFSET,
-    });
-
-    if (!address) {
-      return res.status(400).json({ error: 'Invalid address' });
-    }
-
-    if (offsetExceeded) {
-      return res.status(400).json(offsetExceededError({
-        requestedOffset,
-        maxOffset: MAX_ADDRESS_TX_OFFSET,
-      }));
-    }
+    const page = Number(req.query.page || 1);
+    const limit = Number(req.query.limit || 25);
 
     // Unified addresses can contain transparent and/or shielded receivers.
     // Their receiver composition and activity cannot be inferred from the
@@ -362,235 +342,135 @@ router.get('/api/address/:address', validate('addressById'), async (req, res) =>
       return res.status(404).json({ error: 'Invalid transparent address' });
     }
 
-    // Get address summary
-    const summaryResult = await pool.query(
-      `SELECT
-        address,
-        total_received,
-        total_sent,
-        balance,
-        tx_count,
-        first_seen,
-        last_seen
-      FROM addresses
-      WHERE address = $1`,
-      [address]
-    );
+    const payload = await withAddressSnapshot(pool, async query => {
+      // Summary, tip and transaction data share one database snapshot.
+      const summaryResult = await query(
+        `SELECT
+          address,
+          total_received,
+          total_sent,
+          balance,
+          tx_count,
+          first_seen,
+          last_seen
+        FROM addresses
+        WHERE address = $1`,
+        [address]
+      );
 
-    if (summaryResult.rows.length === 0) {
-      // Check if this is a valid Zcash address format
-      const isValidTransparent = /^t[13][a-zA-Z0-9]{32,34}$/.test(address) || // mainnet t1/t3
-                                  /^tm[a-zA-Z0-9]{32,34}$/.test(address);      // testnet
+      if (summaryResult.rows.length === 0) {
+        // Check if this is a valid Zcash address format
+        const isValidTransparent = /^t[13][a-zA-Z0-9]{32,34}$/.test(address) || // mainnet t1/t3
+                                    /^tm[a-zA-Z0-9]{32,34}$/.test(address);      // testnet
 
-      if (!isValidTransparent) {
-        return res.status(404).json({ error: 'Invalid address format' });
-      }
+        if (!isValidTransparent) {
+          throw new AddressPaginationError('Invalid address format', 'ADDRESS_INVALID', 404);
+        }
 
-      // Address is valid but has no transactions yet
-      return res.status(200).json({
-        address,
-        type: 'transparent',
-        balance: 0,
-        totalReceived: 0,
-        totalSent: 0,
-        txCount: 0,
-        firstSeen: null,
-        lastSeen: null,
-        transactions: [],
-        pagination: {
-          page: 1,
-          limit,
-          total: 0,
-          totalPages: 0,
-          hasNext: false,
-          hasPrev: false,
-        },
-        note: 'This address has no transaction history yet.'
-      });
-    }
-
-    const summary = summaryResult.rows[0];
-    if (!hasConsistentAddressSummary(summary)) {
-      // Do not include the address or query error details in logs.
-      console.error('Address summary integrity check failed');
-      return res.status(500).json({
-        success: false,
-        error: 'Address data integrity check failed',
-        code: 'ADDRESS_SUMMARY_INCONSISTENT',
-      });
-    }
-
-    const totalTxCount = parseInt(summary.tx_count) || 0;
-    const totalPages = Math.ceil(totalTxCount / limit);
-
-    // Earliest inbound output — who first funded this address
-    let firstFunding = null;
-    try {
-      const { rows: fundingRows } = await getFirstFunding(queryWithFallback, address);
-      if (fundingRows[0]) {
-        const row = fundingRows[0];
-        firstFunding = {
-          txid: row.txid,
-          blockTime: parseInt(row.block_time),
-          amountZec: parseFloat(row.amount_zat) / 1e8,
-          funderAddress: row.funder_address || null,
-          funderLabel: row.funder_label || null,
-          isCoinbase: row.is_coinbase === true,
+        // Address is valid but has no transactions yet
+        return {
+          address,
+          type: 'transparent',
+          balance: 0,
+          totalReceived: 0,
+          totalSent: 0,
+          txCount: 0,
+          firstSeen: null,
+          lastSeen: null,
+          transactions: [],
+          pagination: {
+            page: 1,
+            limit,
+            total: 0,
+            totalPages: 0,
+            hasNext: false,
+            hasPrev: false,
+          },
+          note: 'This address has no transaction history yet.'
         };
       }
-    } catch (fundingErr) {
-      logSafeError('Error fetching first funding for address:', fundingErr);
-    }
 
-    // Try fast path: denormalized address_transactions table
-    // Falls back to legacy UNION query if table doesn't exist yet
-    let txResult;
-    try {
-      txResult = await pool.query(
-        `WITH paged AS (
-          SELECT txid, block_height, tx_index, block_time, value_in, value_out
-          FROM address_transactions
-          WHERE address = $1
-          ORDER BY block_height DESC, tx_index DESC
-          LIMIT $2 OFFSET $3
-        )
-        SELECT
-          p.txid,
-          p.block_height,
-          p.block_time,
-          t.size,
-          p.tx_index,
-          t.has_sapling,
-          t.has_orchard,
-          t.has_ironwood,
-          COALESCE(p.value_in, 0) as input_value,
-          COALESCE(p.value_out, 0) as output_value,
-          other_in.addresses as sender_addresses,
-          other_out.addresses as recipient_addresses
-        FROM paged p
-        JOIN transactions t ON t.txid = p.txid
-        LEFT JOIN LATERAL (
-          SELECT ARRAY_AGG(DISTINCT address) as addresses
-          FROM transaction_inputs
-          WHERE txid = p.txid AND address IS NOT NULL AND address != $1
-        ) other_in ON true
-        LEFT JOIN LATERAL (
-          SELECT ARRAY_AGG(DISTINCT address) as addresses
-          FROM transaction_outputs
-          WHERE txid = p.txid AND address IS NOT NULL AND address != $1
-        ) other_out ON true
-        ORDER BY p.block_height DESC, p.tx_index DESC`,
-        [address, limit, offset]
-      );
-    } catch (fastPathError) {
-      // Fallback: legacy UNION query (used when address_transactions table doesn't exist)
-      txResult = await pool.query(
-        `WITH address_txids AS (
-          SELECT txid FROM transaction_outputs WHERE address = $1
-          UNION
-          SELECT txid FROM transaction_inputs WHERE address = $1
-        ),
-        tx_ordered AS (
-          SELECT
-            t.txid,
-            t.block_height,
-            t.block_time,
-            t.size,
-            t.tx_index,
-            t.has_sapling,
-            t.has_orchard,
-            t.has_ironwood
-          FROM transactions t
-          WHERE t.txid IN (SELECT txid FROM address_txids)
-          ORDER BY t.block_height DESC, t.tx_index DESC
-          LIMIT $2 OFFSET $3
-        )
-        SELECT
-          tv.txid,
-          tv.block_height,
-          tv.block_time,
-          tv.size,
-          tv.tx_index,
-          tv.has_sapling,
-          tv.has_orchard,
-          tv.has_ironwood,
-          COALESCE(my_in.value, 0) as input_value,
-          COALESCE(my_out.value, 0) as output_value,
-          other_in.addresses as sender_addresses,
-          other_out.addresses as recipient_addresses
-        FROM tx_ordered tv
-        LEFT JOIN LATERAL (
-          SELECT SUM(value) as value FROM transaction_inputs
-          WHERE txid = tv.txid AND address = $1
-        ) my_in ON true
-        LEFT JOIN LATERAL (
-          SELECT SUM(value) as value FROM transaction_outputs
-          WHERE txid = tv.txid AND address = $1
-        ) my_out ON true
-        LEFT JOIN LATERAL (
-          SELECT ARRAY_AGG(DISTINCT address) as addresses
-          FROM transaction_inputs
-          WHERE txid = tv.txid AND address IS NOT NULL AND address != $1
-        ) other_in ON true
-        LEFT JOIN LATERAL (
-          SELECT ARRAY_AGG(DISTINCT address) as addresses
-          FROM transaction_outputs
-          WHERE txid = tv.txid AND address IS NOT NULL AND address != $1
-        ) other_out ON true
-        ORDER BY tv.block_height DESC, tv.tx_index DESC`,
-        [address, limit, offset]
-      );
-    }
-
-    const transactions = txResult.rows.map(tx => {
-      const netChange = parseFloat(tx.output_value) - parseFloat(tx.input_value);
-      const isReceiving = netChange > 0;
-
-      let counterparty = null;
-      if (isReceiving && tx.sender_addresses && tx.sender_addresses.length > 0) {
-        counterparty = tx.sender_addresses[0];
-      } else if (!isReceiving && tx.recipient_addresses && tx.recipient_addresses.length > 0) {
-        counterparty = tx.recipient_addresses[0];
+      const summary = summaryResult.rows[0];
+      if (!hasConsistentAddressSummary(summary)) {
+        // Do not include the address or query error details in logs.
+        console.error('Address summary integrity check failed');
+        throw new AddressPaginationError('Address data integrity check failed', 'ADDRESS_SUMMARY_INCONSISTENT', 500);
       }
 
+      const totalTxCount = parseInt(summary.tx_count) || 0;
+      const plan = await prepareAddressPage(query, { address, page, limit, total: totalTxCount, cursor: req.query.cursor });
+
+      // Earliest inbound output — who first funded this address
+      let firstFunding = null;
+      await query('SAVEPOINT first_funding');
+      try {
+        const { rows: fundingRows } = await getFirstFunding(query, address);
+        if (fundingRows[0]) {
+          const row = fundingRows[0];
+          firstFunding = {
+            txid: row.txid,
+            blockTime: parseInt(row.block_time),
+            amountZec: parseFloat(row.amount_zat) / 1e8,
+            funderAddress: row.funder_address || null,
+            funderLabel: row.funder_label || null,
+            isCoinbase: row.is_coinbase === true,
+          };
+        }
+      } catch (fundingErr) {
+        await query('ROLLBACK TO SAVEPOINT first_funding');
+        logSafeError('Error fetching first funding for address:', fundingErr);
+      }
+
+      await query('RELEASE SAVEPOINT first_funding');
+      const pageQuery = addressPageSql(plan);
+      const txResult = await query(pageQuery.sql, pageQuery.params);
+      const pagination = addressPagination(plan, txResult.rows);
+
+      const transactions = txResult.rows.map(tx => {
+        const netChange = parseFloat(tx.output_value) - parseFloat(tx.input_value);
+        const isReceiving = netChange > 0;
+
+        let counterparty = null;
+        if (isReceiving && tx.sender_addresses && tx.sender_addresses.length > 0) {
+          counterparty = tx.sender_addresses[0];
+        } else if (!isReceiving && tx.recipient_addresses && tx.recipient_addresses.length > 0) {
+          counterparty = tx.recipient_addresses[0];
+        }
+
+        return {
+          txid: tx.txid,
+          blockHeight: tx.block_height,
+          blockTime: tx.block_time,
+          size: tx.size,
+          txIndex: tx.tx_index,
+          hasSapling: tx.has_sapling,
+          hasOrchard: tx.has_orchard,
+          hasIronwood: tx.has_ironwood,
+          inputValue: parseFloat(tx.input_value),
+          outputValue: parseFloat(tx.output_value),
+          netChange,
+          counterparty,
+          senderCount: tx.sender_addresses?.length || 0,
+          recipientCount: tx.recipient_addresses?.length || 0,
+        };
+      });
+
       return {
-        txid: tx.txid,
-        blockHeight: tx.block_height,
-        blockTime: tx.block_time,
-        size: tx.size,
-        txIndex: tx.tx_index,
-        hasSapling: tx.has_sapling,
-        hasOrchard: tx.has_orchard,
-        hasIronwood: tx.has_ironwood,
-        inputValue: parseFloat(tx.input_value),
-        outputValue: parseFloat(tx.output_value),
-        netChange,
-        counterparty,
-        senderCount: tx.sender_addresses?.length || 0,
-        recipientCount: tx.recipient_addresses?.length || 0,
+        address: summary.address,
+        balance: parseFloat(summary.balance),
+        totalReceived: parseFloat(summary.total_received),
+        totalSent: parseFloat(summary.total_sent),
+        txCount: totalTxCount,
+        firstSeen: summary.first_seen,
+        lastSeen: summary.last_seen,
+        firstFunding,
+        transactions,
+        pagination,
       };
     });
-
-    res.json({
-      address: summary.address,
-      balance: parseFloat(summary.balance),
-      totalReceived: parseFloat(summary.total_received),
-      totalSent: parseFloat(summary.total_sent),
-      txCount: totalTxCount,
-      firstSeen: summary.first_seen,
-      lastSeen: summary.last_seen,
-      firstFunding,
-      transactions,
-      pagination: {
-        page,
-        limit,
-        total: totalTxCount,
-        totalPages,
-        hasNext: page < totalPages,
-        hasPrev: page > 1,
-      },
-    });
+    res.json(payload);
   } catch (error) {
+    if (error instanceof AddressPaginationError) return res.status(error.status).json({ error: error.publicMessage, code: error.code });
     logSafeError('Error fetching address:', error);
     res.status(500).json({ error: 'Failed to fetch address' });
   }

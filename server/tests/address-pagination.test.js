@@ -25,7 +25,9 @@ test('address page 2 preserves pagination and funding units; funding failure rem
   let fundingFails = false;
   const offsets = [];
   const app = express();
-  app.locals.pool = { async query(sql, params) {
+  app.locals.pool = { async connect() { return { query: this.query.bind(this), release() {} }; }, async query(sql, params) {
+    if (/^(BEGIN|COMMIT|ROLLBACK|SAVEPOINT|RELEASE)/.test(sql)) return { rows: [] };
+    if (sql.includes('FROM blocks')) return { rows: [{ height: 1000, hash: 'a'.repeat(64) }] };
     if (sql.includes('FROM addresses')) return { rows: [{ address: ADDRESS, total_received: '12500000', total_sent: '0', balance: '12500000', tx_count: '75' }] };
     if (sql.includes('WITH first_receive')) {
       if (fundingFails) throw Object.assign(new Error('timeout'), { code: '57014' });
@@ -33,7 +35,7 @@ test('address page 2 preserves pagination and funding units; funding failure rem
     }
     if (sql.includes('WITH paged')) {
       offsets.push(params);
-      return { rows: [{ txid: 'page-2', block_height: 100, block_time: '1732359779', input_value: '0', output_value: '12500000' }] };
+      return { rows: Array.from({ length: 25 }, (_, i) => ({ txid: i === 0 ? 'page-2' : String(i), tx_index: i, block_height: 100, block_time: '1732359779', input_value: '0', output_value: '12500000' })) };
     }
     throw new Error('Unexpected query');
   } };
@@ -56,7 +58,7 @@ test('address page 2 preserves pagination and funding units; funding failure rem
     assert.equal(response.status, 200);
     assert.equal(body.firstFunding, null);
     assert.equal(body.transactions[0].txid, 'page-2');
-    assert.deepEqual(offsets, [[ADDRESS, 25, 25], [ADDRESS, 25, 25]]);
+    assert.deepEqual(offsets, [[ADDRESS, 25, 25, 1000], [ADDRESS, 25, 25, 1000]]);
   } finally {
     await new Promise(resolve => server.close(resolve));
   }

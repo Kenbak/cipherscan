@@ -10,7 +10,7 @@ import { CURRENCY } from '@/lib/config';
 import { formatTimestamp } from './helpers';
 import { Icons } from './icons';
 import { TransactionPagination } from './TransactionPagination';
-import type { AddressData, Transaction } from './types';
+import type { AddressPaginationState, AddressData } from './types';
 
 interface TransactionTableProps {
   address: string;
@@ -19,6 +19,7 @@ interface TransactionTableProps {
   totalPages: number;
   pageSize: number;
   totalTxCount: number;
+  pagination?: AddressPaginationState | null;
 }
 
 export function TransactionTable({
@@ -28,9 +29,11 @@ export function TransactionTable({
   totalPages,
   pageSize,
   totalTxCount,
+  pagination,
 }: TransactionTableProps) {
   const router = useRouter();
-  const sortedTxs = [...data.transactions].sort((a, b) => b.timestamp - a.timestamp);
+  // Preserve the API’s canonical block/transaction order (block times can regress).
+  const sortedTxs = data.transactions;
 
   return (
     <div className="animate-fade-in-up stagger-4">
@@ -201,6 +204,7 @@ export function TransactionTable({
               </div>
 
               <TransactionPagination
+                pagination={pagination}
                 address={address}
                 currentPage={currentPage}
                 totalPages={totalPages}
