@@ -3,6 +3,7 @@ import type { NextRequest } from 'next/server';
 import { resolveGovernanceRequest } from './lib/governance-request';
 import { getConfiguredNetwork } from './lib/network';
 import { CHART_CATALOG } from './lib/chart-catalog';
+import { isValidName, normalizeName } from './lib/name-validation';
 
 // Simple in-memory rate limiter
 // Format: Map<IP, { count: number, resetTime: number }>
@@ -109,6 +110,13 @@ a.action{color:var(--text);text-underline-offset:4px}
 }
 
 export async function proxy(request: NextRequest) {
+  const namePath = request.nextUrl.pathname.match(/^\/name\/(.*)$/);
+  if (namePath && !isValidName(normalizeName(namePath[1]))) {
+    return new NextResponse(proxyErrorPage('Name not found', 'Enter a valid Zcash Name.', { href: '/', label: 'Return to ZecBlock' }), {
+      status: 404,
+      headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store', 'X-Robots-Tag': 'noindex, follow' },
+    });
+  }
   // Keep filtered archives dynamic and the unfiltered list on its ISR route.
   // Vercel permits at most 16 has/missing conditions per static routing rule.
   if (request.nextUrl.pathname === '/blocks') {
@@ -182,5 +190,5 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/api/:path*', '/block/:path*', '/blocks', '/governance/:path*', '/charts/:slug'],
+  matcher: ['/name/:path*', '/api/:path*', '/block/:path*', '/blocks', '/governance/:path*', '/charts/:slug'],
 };

@@ -1,4 +1,5 @@
 import { ZNS } from 'zcashname-sdk';
+import { callZnsRpc } from './zns-rpc';
 import { NETWORK } from './api-config';
 import { readApiData, readApiCollection } from './api-client';
 import { getApiUrl } from './api-config';
@@ -46,6 +47,33 @@ export async function listZnsRegistrations(limit: number, cursor: string | null,
   return readApiCollection<Registration>(await fetch(`${getApiUrl()}/v1/names?${params}`, { signal }));
 }
 
-// Client-safe: pure validator, no network or env access.
-const validator = new ZNS();
-export const isValidName = (name: string): boolean => validator.isValidName(name);
+export { isValidName } from './name-validation';
+
+// Match the SDK's wire normalization while using an abortable, uncached request.
+function normalizeZnsResponse(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(normalizeZnsResponse);
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(Object.entries(value).map(([key, item]) => [
+      key.replace(/_([a-z])/g, (_, letter: string) => letter.toUpperCase()),
+      normalizeZnsResponse(item),
+    ]));
+  }
+  return value;
+}
+
+export async function resolveZnsName(name: string, signal: AbortSignal): Promise<Registration | null> {
+  const raw = await callZnsRpc<unknown>(getZnsUrl(), 'resolve', { query: name }, signal);
+  if (raw === null) return null;
+  const result = normalizeZnsResponse(raw) as Registration;
+  if (!result || result.name !== name || typeof result.address !== 'string' ||
+      !result.address || typeof result.txid !== 'string' || !Number.isInteger(result.height) ||
+      typeof result.lastAction !== 'string') throw new Error('Invalid ZNS registration');
+  return result;
+}
+
+export async function getZnsNameEvents(name: string, signal: AbortSignal): Promise<Awaited<ReturnType<ZNS['events']>>> {
+  const raw = await callZnsRpc<unknown>(getZnsUrl(), 'events', { name, limit: 50 }, signal);
+  const result = normalizeZnsResponse(raw) as Awaited<ReturnType<ZNS['events']>>;
+  if (!result || !Array.isArray(result.events)) throw new Error('Invalid ZNS history');
+  return result;
+}
