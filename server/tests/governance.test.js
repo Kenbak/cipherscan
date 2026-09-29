@@ -45,7 +45,7 @@ test('state transitions use chain status, closing time never fabricates results,
   assert.equal(parseRoundVote({ ...round, tally_timed_out: true }, summary, tally, 0).state, 'failed');
 });
 
-test('finalized results require exact round, registered options and every matching tuple', () => {
+test('finalized results require exact round, registered options and matching nonzero totals', () => {
   const mutations = [
     (s, t) => { t.results.pop(); },
     (s, t) => { t.results.push(t.results[0]); },
@@ -151,4 +151,63 @@ test('a failed historical tally fetch does not suppress discovery of an active v
   assert.equal(catalog.votes.length, 2);
   assert.equal(catalog.votes.find(v => v.id === roundHex(active.vote_round_id)).state, 'active');
   assert.equal(catalog.votes.find(v => v.id === nu7.NU7_ROUND_ID).state, 'unavailable');
+});
+
+function grantsFixture() {
+  return {
+    round: roundSchema.parse(structuredClone(require('./fixtures/grants-q3/round.json'))),
+    summary: structuredClone(require('./fixtures/grants-q3/summary.json')),
+    tally: structuredClone(require('./fixtures/grants-q3/tally.json')),
+  };
+}
+
+test('published Q3 grants accept a sparse zero-vote tally and announce all 37 results', () => {
+  const { round, summary, tally } = grantsFixture();
+  const now = round.vote_end_time * 1000 + 3600_000;
+  assert.equal(tally.results.length, 147);
+  const vote = parseRoundVote(round, summary, tally, now);
+  assert.equal(vote.state, 'results');
+  assert.equal(vote.proposals.length, 37);
+  assert.equal(vote.proposals.find(p => p.id === 3).options.find(o => o.index === 2).total_value, 0);
+  const announcement = selectAnnouncement({ votes: [vote], checkedAt: now, unavailable: false }, now);
+  assert.equal(announcement.key, `${vote.id}:results`);
+  assert.match(announcement.text, /results are live/);
+  const html = renderToStaticMarkup(React.createElement(ProposalList, { proposals: vote.proposals, published: true, zecPerUnit: vote.zecPerUnit }));
+  assert.equal((html.match(/<details/g) || []).length, 37);
+  assert.match(html, /0\.00%/);
+  assert.match(html, /CipherPay/);
+});
+
+test('sparse tallies still reject missing nonzero, mismatched, duplicate and unknown results', () => {
+  const mutations = [
+    (s, t) => { t.results.shift(); },
+    (s, t) => { t.results.push(t.results[0]); },
+    (s, t) => { t.results.push({ ...t.results[0], proposal_id: 999 }); },
+    (s, t) => { t.results.push({ ...t.results[0], vote_decision: 99 }); },
+    (s, t) => { t.results[0].total_value++; },
+    (s) => { s.proposals.find(p => p.id === 3).options.find(o => o.index === 2).total_value = 1; },
+    (s) => { s.proposals.find(p => p.id === 3).options.pop(); },
+  ];
+  for (const mutate of mutations) {
+    const { round, summary, tally } = grantsFixture();
+    mutate(summary, tally);
+    assert.equal(parseRoundVote(round, summary, tally, 0).state, 'unavailable', mutate.toString());
+  }
+});
+
+test('catalog publishes the live Q3 sparse tally instead of falling back to unavailable', async () => {
+  const { round, summary, tally } = grantsFixture();
+  const data = load('lib/governance-data.ts', {
+    react: { cache: fn => fn }, 'next/cache': { unstable_cache: fn => fn }, './governance': model,
+    './server-fetch': { fetchWithDeadline: async url => {
+      const payload = url.endsWith('/rounds') ? { rounds: [round] }
+        : url.endsWith('/endorsers') ? registry
+        : url.includes('/endorsed-rounds/') ? { vote_round_ids: [round.vote_round_id] }
+        : url.includes('/vote-summary/') ? summary : tally;
+      return { ok: true, json: async () => payload };
+    } },
+  });
+  const catalog = await data.getGovernanceCatalog();
+  assert.equal(catalog.unavailable, false);
+  assert.equal(catalog.votes[0].state, 'results');
 });

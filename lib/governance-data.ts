@@ -15,7 +15,7 @@ const getPublishedVote = unstable_cache(async (round: Round) => {
   const vote = parseRoundVote(round, summary, tally, Date.now());
   if (vote.state !== 'results') throw new Error('Incomplete finalized tally');
   return vote;
-}, ['governance-published-vote-v1'], { revalidate: 300 });
+}, ['governance-published-vote-v2'], { revalidate: 300 });
 
 const refreshCatalog = unstable_cache(async (): Promise<Catalog> => {
   const [directory, registry, endorsements] = await Promise.all([
@@ -28,11 +28,14 @@ const refreshCatalog = unstable_cache(async (): Promise<Catalog> => {
     votes.push(...await Promise.all(rounds.slice(i, i + 4).map(async round => {
       if (round.status !== 3 || round.tally_timed_out) return parseRoundVote(round, null, null, Date.now());
       try { return await getPublishedVote(round); }
-      catch { return parseRoundVote(round, null, null, Date.now()); }
+      catch {
+        console.warn('[governance] Finalized tally unavailable or inconsistent', { roundId: roundHex(round.vote_round_id) });
+        return parseRoundVote(round, null, null, Date.now());
+      }
     })));
   }
   return { votes: votes.sort((a, b) => b.round.vote_end_time - a.round.vote_end_time), checkedAt: Date.now(), unavailable: false };
-}, ['governance-catalog-v1'], { revalidate: 60 });
+}, ['governance-catalog-v2'], { revalidate: 60 });
 
 // Throwing refreshes preserve Next's last successful cached catalog. The timestamp
 // travels with the data so stale content is never described as a fresh API check.

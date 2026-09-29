@@ -1,0 +1,849 @@
+{
+  "results": [
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 1,
+      "total_value": 636064
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 1,
+      "vote_decision": 1,
+      "total_value": 11133023
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 1,
+      "vote_decision": 2,
+      "total_value": 261
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 1,
+      "vote_decision": 3,
+      "total_value": 5682267
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 2,
+      "total_value": 4198162
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 2,
+      "vote_decision": 1,
+      "total_value": 13207345
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 2,
+      "vote_decision": 2,
+      "total_value": 3519
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 2,
+      "vote_decision": 3,
+      "total_value": 42597
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 3,
+      "total_value": 3174559
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 3,
+      "vote_decision": 1,
+      "total_value": 13369214
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 3,
+      "vote_decision": 3,
+      "total_value": 907827
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 4,
+      "total_value": 12534910
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 4,
+      "vote_decision": 1,
+      "total_value": 14764
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 4,
+      "vote_decision": 2,
+      "total_value": 2318
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 4,
+      "vote_decision": 3,
+      "total_value": 4885466
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 5,
+      "total_value": 3271872
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 5,
+      "vote_decision": 1,
+      "total_value": 13195385
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 5,
+      "vote_decision": 2,
+      "total_value": 91436
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 5,
+      "vote_decision": 3,
+      "total_value": 874704
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 6,
+      "total_value": 510878
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 6,
+      "vote_decision": 1,
+      "total_value": 16039998
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 6,
+      "vote_decision": 2,
+      "total_value": 9503
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 6,
+      "vote_decision": 3,
+      "total_value": 873115
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 7,
+      "total_value": 848627
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 7,
+      "vote_decision": 1,
+      "total_value": 15622300
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 7,
+      "vote_decision": 2,
+      "total_value": 103172
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 7,
+      "vote_decision": 3,
+      "total_value": 859684
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 8,
+      "total_value": 486153
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 8,
+      "vote_decision": 1,
+      "total_value": 16097397
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 8,
+      "vote_decision": 2,
+      "total_value": 14670
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 8,
+      "vote_decision": 3,
+      "total_value": 835459
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 9,
+      "total_value": 3234793
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 9,
+      "vote_decision": 1,
+      "total_value": 13310236
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 9,
+      "vote_decision": 2,
+      "total_value": 6769
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 9,
+      "vote_decision": 3,
+      "total_value": 881872
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 10,
+      "total_value": 838023
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 10,
+      "vote_decision": 1,
+      "total_value": 14219517
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 10,
+      "vote_decision": 2,
+      "total_value": 125706
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 10,
+      "vote_decision": 3,
+      "total_value": 2250431
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 11,
+      "total_value": 711813
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 11,
+      "vote_decision": 1,
+      "total_value": 14454266
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 11,
+      "vote_decision": 2,
+      "total_value": 1415461
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 11,
+      "vote_decision": 3,
+      "total_value": 852361
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 12,
+      "total_value": 695446
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 12,
+      "vote_decision": 1,
+      "total_value": 14459616
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 12,
+      "vote_decision": 2,
+      "total_value": 27972
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 12,
+      "vote_decision": 3,
+      "total_value": 2250931
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 13,
+      "total_value": 1427189
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 13,
+      "vote_decision": 1,
+      "total_value": 11071456
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 13,
+      "vote_decision": 2,
+      "total_value": 90036
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 13,
+      "vote_decision": 3,
+      "total_value": 4845417
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 14,
+      "total_value": 6056354
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 14,
+      "vote_decision": 1,
+      "total_value": 1497893
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 14,
+      "vote_decision": 2,
+      "total_value": 1568352
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 14,
+      "vote_decision": 3,
+      "total_value": 8311386
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 15,
+      "total_value": 697151
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 15,
+      "vote_decision": 1,
+      "total_value": 14340366
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 15,
+      "vote_decision": 2,
+      "total_value": 110584
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 15,
+      "vote_decision": 3,
+      "total_value": 2285728
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 16,
+      "total_value": 808208
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 16,
+      "vote_decision": 1,
+      "total_value": 14237329
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 16,
+      "vote_decision": 2,
+      "total_value": 1521054
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 16,
+      "vote_decision": 3,
+      "total_value": 867325
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 17,
+      "total_value": 15904896
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 17,
+      "vote_decision": 1,
+      "total_value": 665137
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 17,
+      "vote_decision": 2,
+      "total_value": 14021
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 17,
+      "vote_decision": 3,
+      "total_value": 849771
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 18,
+      "total_value": 741030
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 18,
+      "vote_decision": 1,
+      "total_value": 14304764
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 18,
+      "vote_decision": 2,
+      "total_value": 101910
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 18,
+      "vote_decision": 3,
+      "total_value": 2285917
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 19,
+      "total_value": 737747
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 19,
+      "vote_decision": 1,
+      "total_value": 15813533
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 19,
+      "vote_decision": 2,
+      "total_value": 22589
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 19,
+      "vote_decision": 3,
+      "total_value": 860047
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 20,
+      "total_value": 990558
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 20,
+      "vote_decision": 1,
+      "total_value": 14138270
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 20,
+      "vote_decision": 2,
+      "total_value": 1437237
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 20,
+      "vote_decision": 3,
+      "total_value": 867846
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 21,
+      "total_value": 4169949
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 21,
+      "vote_decision": 1,
+      "total_value": 13186709
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 21,
+      "vote_decision": 2,
+      "total_value": 30545
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 21,
+      "vote_decision": 3,
+      "total_value": 46418
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 22,
+      "total_value": 11736294
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 22,
+      "vote_decision": 1,
+      "total_value": 67786
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 22,
+      "vote_decision": 2,
+      "total_value": 5123
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 22,
+      "vote_decision": 3,
+      "total_value": 5624726
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 23,
+      "total_value": 11492760
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 23,
+      "vote_decision": 1,
+      "total_value": 1116966
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 23,
+      "vote_decision": 2,
+      "total_value": 11070
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 23,
+      "vote_decision": 3,
+      "total_value": 4812831
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 24,
+      "total_value": 357139
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 24,
+      "vote_decision": 1,
+      "total_value": 11353611
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 24,
+      "vote_decision": 2,
+      "total_value": 58478
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 24,
+      "vote_decision": 3,
+      "total_value": 5663011
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 25,
+      "total_value": 1375680
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 25,
+      "vote_decision": 1,
+      "total_value": 15077689
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 25,
+      "vote_decision": 2,
+      "total_value": 107781
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 25,
+      "vote_decision": 3,
+      "total_value": 872268
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 26,
+      "total_value": 11143434
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 26,
+      "vote_decision": 1,
+      "total_value": 32976
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 26,
+      "vote_decision": 2,
+      "total_value": 4978091
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 26,
+      "vote_decision": 3,
+      "total_value": 1279415
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 27,
+      "total_value": 17366425
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 27,
+      "vote_decision": 1,
+      "total_value": 29894
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 27,
+      "vote_decision": 2,
+      "total_value": 10866
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 27,
+      "vote_decision": 3,
+      "total_value": 26447
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 28,
+      "total_value": 17352325
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 28,
+      "vote_decision": 1,
+      "total_value": 151
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 28,
+      "vote_decision": 2,
+      "total_value": 47685
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 28,
+      "vote_decision": 3,
+      "total_value": 32993
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 29,
+      "total_value": 17160135
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 29,
+      "vote_decision": 1,
+      "total_value": 25105
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 29,
+      "vote_decision": 2,
+      "total_value": 207520
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 29,
+      "vote_decision": 3,
+      "total_value": 40772
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 30,
+      "total_value": 16766887
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 30,
+      "vote_decision": 1,
+      "total_value": 33829
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 30,
+      "vote_decision": 2,
+      "total_value": 604993
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 30,
+      "vote_decision": 3,
+      "total_value": 27717
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 31,
+      "total_value": 15765720
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 31,
+      "vote_decision": 1,
+      "total_value": 236
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 31,
+      "vote_decision": 2,
+      "total_value": 830090
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 31,
+      "vote_decision": 3,
+      "total_value": 837675
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 32,
+      "total_value": 17407475
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 32,
+      "vote_decision": 1,
+      "total_value": 487
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 32,
+      "vote_decision": 2,
+      "total_value": 2531
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 32,
+      "vote_decision": 3,
+      "total_value": 23610
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 33,
+      "total_value": 17419986
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 33,
+      "vote_decision": 1,
+      "total_value": 2
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 33,
+      "vote_decision": 2,
+      "total_value": 58
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 33,
+      "vote_decision": 3,
+      "total_value": 13795
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 34,
+      "total_value": 17432500
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 34,
+      "vote_decision": 1,
+      "total_value": 152
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 34,
+      "vote_decision": 2,
+      "total_value": 786
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 34,
+      "vote_decision": 3,
+      "total_value": 3
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 35,
+      "total_value": 17396325
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 35,
+      "vote_decision": 1,
+      "total_value": 22591
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 35,
+      "vote_decision": 2,
+      "total_value": 772
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 35,
+      "vote_decision": 3,
+      "total_value": 14104
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 36,
+      "total_value": 17399132
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 36,
+      "vote_decision": 1,
+      "total_value": 379
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 36,
+      "vote_decision": 2,
+      "total_value": 24975
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 36,
+      "vote_decision": 3,
+      "total_value": 9716
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 37,
+      "total_value": 14040744
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 37,
+      "vote_decision": 1,
+      "total_value": 2293237
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 37,
+      "vote_decision": 2,
+      "total_value": 1096656
+    },
+    {
+      "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+      "proposal_id": 37,
+      "vote_decision": 3,
+      "total_value": 3794
+    }
+  ]
+}
