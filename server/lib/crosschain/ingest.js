@@ -199,7 +199,10 @@ async function traverse(
         : undefined,
       endTimestamp: state.window_end.toISOString(),
       lastDepositAddress: state.cursor_address,
-      lastDepositMemo: state.cursor_address ? state.cursor_memo || "" : null,
+      // Empty memo is not equivalent to an omitted memo for the provider cursor.
+      lastDepositMemo: state.cursor_address
+        ? state.cursor_memo || undefined
+        : undefined,
     });
     const last = rows.at(-1);
     const cursor = last

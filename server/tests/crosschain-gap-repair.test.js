@@ -17,7 +17,7 @@ test('upstream pagination must finish and cannot repeat swaps',async()=>{
   const rows=await fetchDay('inflow','2026-07-10',async params=>{
     assert.equal(params.startTimestamp,'2026-07-10T00:00:00Z');
     if(requests++===0)return first;
-    assert.equal(params.lastDepositAddress,'d999');return [tx];
+    assert.equal(params.lastDepositAddress,'d999');assert.equal(Object.hasOwn(params,'lastDepositMemo'),false);return [tx];
   });
   assert.equal(rows.length,1001);
   await assert.rejects(fetchDay('inflow','2026-07-10',async()=>first),/repeated/);

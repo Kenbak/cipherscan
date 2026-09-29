@@ -179,6 +179,7 @@ test(
           client,
           async (p) => {
             assert.equal(p.lastDepositAddress, "older");
+            assert.equal(p.lastDepositMemo, undefined);
             return [];
           },
           tokens,
@@ -206,6 +207,42 @@ test(
           ).rows[0].pages,
           before,
         );
+        await traverse(
+          client,
+          async () => [tx("memo-page", { depositMemo: "42" })],
+          tokens,
+          {
+            mode: "reconcile",
+            direction: "inflow",
+            maxPages: 1,
+            now: new Date("2026-09-27T00:00:00Z"),
+          },
+        );
+        await traverse(
+          client,
+          async (p) => {
+            assert.equal(p.lastDepositAddress, "memo-page");
+            assert.equal(p.lastDepositMemo, "42");
+            return [];
+          },
+          tokens,
+          {
+            mode: "reconcile",
+            direction: "inflow",
+            maxPages: 1,
+            now: new Date("2026-09-27T00:00:00Z"),
+          },
+        );
+        await client.query(
+          "DELETE FROM crosschain_swaps_v2 WHERE deposit_address='memo-page'",
+        );
+        await client.query(
+          "DELETE FROM crosschain_sync_v2 WHERE mode='reconcile'",
+        );
+        await client.query(
+          "DELETE FROM crosschain_coverage_v2 WHERE direction='inflow' AND window_end = '2026-09-27T00:00:00Z'",
+        );
+
         await assert.rejects(
           traverse(
             client,

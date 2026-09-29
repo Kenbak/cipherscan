@@ -22,7 +22,7 @@ function normalizeSwap(tx, direction, tokenMap, day) {
 async function fetchDay(direction, day, request) {
   const rows = []; const seen = new Set(); let cursor;
   for (let page=0;page<20;page++) {
-    const params = { statuses:'SUCCESS',numberOfTransactions:'1000',direction:'next',startTimestamp:day+'T00:00:00Z',endTimestamp:dayAfter(day)+'T00:00:00Z',[direction==='inflow'?'toChainId':'fromChainId']:'zec',...(cursor ? {lastDepositAddress:cursor.depositAddress,lastDepositMemo:cursor.depositMemo||''}: {}) };
+    const params = { statuses:'SUCCESS',numberOfTransactions:'1000',direction:'next',startTimestamp:day+'T00:00:00Z',endTimestamp:dayAfter(day)+'T00:00:00Z',[direction==='inflow'?'toChainId':'fromChainId']:'zec',...(cursor ? {lastDepositAddress:cursor.depositAddress,...(cursor.depositMemo ? {lastDepositMemo:cursor.depositMemo} : {})}: {}) };
     const data = await request(params);
     if (!Array.isArray(data) || data.length > 1000) throw new Error('Invalid upstream batch');
     for (const row of data) {

@@ -366,3 +366,13 @@ Rollback: stop/disable `cipherscan-crosschain-backfill.timer`, stop its service,
 and restore only the legacy cron command from backup. Leave additive tables and
 checkpoints intact. No API restart, production Git checkout change, legacy table
 rewrite or standby writer activation is part of this worker rollout.
+
+### Provider cursor verification
+
+The initial scheduled production batch failed closed on a repeated cursor. Live
+read-only probes established that sending `lastDepositMemo=` for a null memo
+repeats the first page, while omitting the memo advances to older records. The
+worker now omits null/empty cursor memos and preserves real memo strings; matching
+legacy/repair source fixes are included for the October 1 release. Do not infer
+that a repeated page proves history is exhausted. No checkpoint was advanced or
+coverage declared by that failed batch.
