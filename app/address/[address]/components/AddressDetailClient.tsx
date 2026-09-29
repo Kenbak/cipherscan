@@ -34,6 +34,7 @@ import {
 } from './helpers';
 import type {
   AddressData,
+  AddressPaginationState,
   AddressTab,
   CrossChainActivity,
   PriceData,
@@ -57,7 +58,11 @@ export function AddressDetailClient({ address, initialMeta = null }: AddressDeta
   const [crossChain, setCrossChain] = useState<CrossChainActivity | null>(null);
   const [activeTab, setActiveTab] = useState<AddressTab>('transactions');
 
-  const currentPage = Math.max(1, parseInt(searchParams.get('page') || '1', 10));
+  const parsedPage = Number(searchParams.get('page') || '1');
+  const currentPage = Number.isSafeInteger(parsedPage) && parsedPage > 0 ? parsedPage : 1;
+  const cursor = searchParams.get('cursor');
+  const [pagination, setPagination] = useState<AddressPaginationState | null>(null);
+  const [pageError, setPageError] = useState<string | null>(null);
   const [totalPages, setTotalPages] = useState(1);
 
   const [uaComponents, setUaComponents] = useState<UnifiedAddressComponents | null>(null);
@@ -77,16 +82,21 @@ export function AddressDetailClient({ address, initialMeta = null }: AddressDeta
     if (initialMeta?.isShielded) { setLoading(false); return; }
     try {
       setLoading(true);
+      setPageError(null);
 
-      const apiUrl = `${getApiUrl()}/v1/addresses/${address}?page=${currentPage}&limit=${PAGE_SIZE}`;
+      const apiUrl = `${getApiUrl()}/v1/addresses/${address}?page=${currentPage}&limit=${PAGE_SIZE}${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ''}`;
 
       const response = await fetch(apiUrl, { signal });
 
-      if (!response.ok) throw new Error('Failed to fetch address data');
+      if (!response.ok) {
+        const problem = await response.json().catch(() => ({}));
+        throw new Error(problem.detail || problem.error || 'Address history is temporarily unavailable. Please try again.');
+      }
       const apiData = await readApiData(response);
       if (signal.aborted) return;
 
       setTotalPages(apiData.pagination?.totalPages || 1);
+      setPagination(apiData.pagination || null);
 
       const transformedTransactions = transformTransactions(apiData, apiData.transactions || []);
       setData({
@@ -103,11 +113,11 @@ export function AddressDetailClient({ address, initialMeta = null }: AddressDeta
     } catch (error) {
       if (signal.aborted) return;
       console.error('Error fetching address data:', error);
-      setData(null);
+      setPageError(error instanceof Error ? error.message : 'Unable to load address history.');
     } finally {
       if (!signal.aborted) setLoading(false);
     }
-  }, [address, currentPage, initialMeta?.isShielded]);
+  }, [address, currentPage, cursor, initialMeta?.isShielded]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -165,9 +175,21 @@ export function AddressDetailClient({ address, initialMeta = null }: AddressDeta
 
   const privateLookup = initialMeta?.isShielded || isShieldedAddress(data);
 
-  if (loading && !privateLookup) {
+  if (loading && !data && !privateLookup) {
     return <AddressLoadingSkeleton initialMeta={initialMeta} address={address} />;
   }
+
+  if (data && data.address !== address) {
+    return <AddressLoadingSkeleton initialMeta={initialMeta} address={address} />;
+  }
+
+  const historyError = pageError ? (
+    <div role="alert" className="my-4 p-4 rounded-lg border border-cipher-border text-secondary">
+      <p>{pageError}</p>
+      <a href={`/address/${address}`} className="underline">Reload latest history</a>
+    </div>
+  ) : null;
+  if (!data && pageError) return <div className="max-w-7xl mx-auto px-4 py-8">{historyError}</div>;
 
   const shielded = privateLookup;
   const noTransactions = hasNoTransactions(data);
@@ -226,6 +248,8 @@ export function AddressDetailClient({ address, initialMeta = null }: AddressDeta
         totalTxCount={totalTxCount}
       />
 
+      {historyError}
+
       <AddressTabBar
         activeTab={activeTab}
         totalTxCount={totalTxCount}
@@ -239,14 +263,18 @@ export function AddressDetailClient({ address, initialMeta = null }: AddressDeta
       ) : activeTab === 'crosschain' && crossChain && crossChain.totalSwaps > 0 ? (
         <CrossChainTable crossChain={crossChain} />
       ) : (
+        <div aria-busy={loading}>
+        {loading && <p role="status" className="text-sm text-muted py-2">Loading transactions…</p>}
         <TransactionTable
           address={address}
           data={data}
-          currentPage={currentPage}
+          currentPage={pagination?.page || currentPage}
+          pagination={pagination}
           totalPages={totalPages}
           pageSize={PAGE_SIZE}
-          totalTxCount={totalTxCount}
+          totalTxCount={pagination?.total ?? totalTxCount}
         />
+        </div>
       )}
     </div>
   );

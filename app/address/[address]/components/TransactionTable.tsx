@@ -7,10 +7,10 @@ import { TxTypeBadge, resolveTxCategory } from '@/components/ui/TxTypeBadge';
 import { RelativeTime } from '@/components/RelativeTime';
 import { CURRENCY } from '@/lib/config';
 import { TransactionPagination } from './TransactionPagination';
-import type { AddressData, Transaction } from './types';
+import type { AddressPaginationState, AddressData, Transaction } from './types';
 
-export function TransactionTable({ address, data, currentPage, totalPages, pageSize, totalTxCount }: {
-  address: string; data: AddressData; currentPage: number; totalPages: number; pageSize: number; totalTxCount: number;
+export function TransactionTable({ address, data, currentPage, totalPages, pageSize, totalTxCount, pagination }: {
+  address: string; data: AddressData; currentPage: number; totalPages: number; pageSize: number; totalTxCount: number; pagination?: AddressPaginationState | null;
 }) {
   const columns: DataTableColumn<Transaction>[] = [
     { id: 'hash', header: 'Transaction', cell: tx => <HashLink value={tx.txid} href={`/tx/${tx.txid}`} lead={10} tail={6} responsive copy={false} /> },
@@ -33,6 +33,6 @@ export function TransactionTable({ address, data, currentPage, totalPages, pageS
     </div>
     <DataTable columns={columns} rows={data.transactions} rowKey={tx => tx.txid} empty={<p className="p-8 text-center text-sm text-muted">No transactions found for this address.</p>}
       footer={<p className="px-4 py-3 text-xs text-muted">Balance change is specific to this address. The other address, when available, is a representative input or output; open the transaction for all participants.</p>} />
-    <TransactionPagination address={address} currentPage={currentPage} totalPages={totalPages} pageSize={pageSize} totalTxCount={totalTxCount} />
+    <TransactionPagination pagination={pagination} address={address} currentPage={currentPage} totalPages={totalPages} pageSize={pageSize} totalTxCount={totalTxCount} />
   </section>;
 }

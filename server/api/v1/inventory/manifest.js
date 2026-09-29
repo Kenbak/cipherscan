@@ -274,7 +274,7 @@ const MANIFEST = [
   },
   {
     method: 'GET', legacyPath: '/api/address/:address', file: 'server/api/routes/address.js',
-    classification: 'public', domain: 'address', auth: 'none', description: 'Address summary + paginated transaction history.',
+    classification: 'public', domain: 'address', auth: 'none', description: 'Address summary and snapshot-paginated transaction history. Send page and limit; follow pagination.nextCursor, prevCursor or lastCursor with the corresponding page. Cursors expire after one hour, a service restart or a reorg (409: reload without cursor). Numeric pages are supported within 100,000 rows of either end; use cursors for deeper traversal. Overview balances are current; pagination.total and snapshotHeight describe the frozen history.',
     v1: {
       path: '/v1/addresses/:address', status: 'adapter', shape: 'passthrough',
       zatoshiFields: ['balance', 'totalReceived', 'totalSent'],

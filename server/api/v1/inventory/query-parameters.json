@@ -309,6 +309,7 @@
     "offset"
   ],
   "GET /v1/addresses/:address": [
+    "cursor",
     "limit",
     "page"
   ],
