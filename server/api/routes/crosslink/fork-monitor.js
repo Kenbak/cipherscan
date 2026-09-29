@@ -330,7 +330,7 @@ router.post('/api/crosslink/fork-monitor/report', async (req, res) => {
       }
     }
 
-    const validTtl = ttl && NODE_TTL_OPTIONS[ttl] ? ttl : DEFAULT_TTL;
+    const validTtl = typeof ttl === 'string' && Object.hasOwn(NODE_TTL_OPTIONS, ttl) ? ttl : DEFAULT_TTL;
 
     // Rate limit per name (still in-memory — ephemeral by design)
     const lastReport = reportTimestamps.get(cleanName);
@@ -348,7 +348,7 @@ router.post('/api/crosslink/fork-monitor/report', async (req, res) => {
     await client.query(
       `DELETE FROM fork_monitor_nodes
        WHERE (ttl = '1h' AND reported_at < $1)
-          OR ((ttl = '24h' OR ttl IS NULL) AND reported_at < $2)`,
+          OR ((ttl IS NULL OR ttl <> '1h') AND reported_at < $2)`,
       [Date.now() - NODE_TTL_OPTIONS['1h'], Date.now() - NODE_TTL_OPTIONS['24h']]
     );
     const { rows: countRows } = await client.query('SELECT COUNT(*)::int AS cnt FROM fork_monitor_nodes');

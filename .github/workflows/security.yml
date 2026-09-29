@@ -14,6 +14,23 @@ permissions:
   contents: read
 
 jobs:
+  security-gate:
+    name: Security audit result
+    runs-on: ubuntu-latest
+    if: always()
+    needs: [npm-audit, cargo-audit, pip-audit, secret-scan]
+    steps:
+      - name: Require every applicable audit to pass
+        env:
+          RESULTS: ${{ toJSON(needs) }}
+        run: |
+          python3 - <<'PY'
+          import json, os
+          results = json.loads(os.environ['RESULTS'])
+          assert all(job['result'] in ('success', 'skipped') for job in results.values()), results
+          assert results['secret-scan']['result'] == 'success', results
+          PY
+
   dependency-changes:
     name: Detect dependency changes
     runs-on: ubuntu-latest

@@ -53,7 +53,8 @@ test('concurrent registrations preserve capacity and ownership in PostgreSQL', {
   assert.equal((await send('shared', 9, ownership.ownershipToken)).status, 200);
   assert.equal((await pool.query("SELECT tip FROM fork_monitor_nodes WHERE name='shared'")).rows[0].tip, '9');
 
-  await pool.query("UPDATE fork_monitor_nodes SET reported_at=0 WHERE name='seed-1'");
+  // Old malformed TTLs must also expire; otherwise legacy rows can hold capacity forever.
+  await pool.query("UPDATE fork_monitor_nodes SET reported_at=0, ttl='__proto__' WHERE name='seed-1'");
   assert.equal((await send('after-expiry', 1)).status, 200);
   assert.equal(Number((await pool.query('SELECT count(*) FROM fork_monitor_nodes')).rows[0].count), 100);
 });

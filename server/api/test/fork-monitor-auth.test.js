@@ -27,7 +27,7 @@ function createPool() {
         return { rows: node ? [{ owner_token_hash: node.ownerTokenHash }] : [] };
       }
       if (/INSERT INTO fork_monitor_nodes/.test(sql)) {
-        nodes.set(params[0], { ownerTokenHash: params[8], tip: params[1] });
+        nodes.set(params[0], { ownerTokenHash: params[8], tip: params[1], ttl: params[6] });
         return { rows: [], rowCount: 1 };
       }
       if (/DELETE FROM fork_monitor_nodes\s+WHERE name = \$1/.test(sql)) {
@@ -77,10 +77,11 @@ test('fork-monitor registrations require the issued ownership token to update or
   const server = await listen(app);
   t.after(() => server.close());
 
-  const body = JSON.stringify({ name: 'owned-node', tip: 42 });
+  const body = JSON.stringify({ name: 'owned-node', tip: 42, ttl: '__proto__' });
   const created = await request(server, '/api/crosslink/fork-monitor/report', { method: 'POST', body });
   assert.equal(created.status, 200);
   const creation = await created.json();
+  assert.equal(writePool.nodes.get('owned-node').ttl, '24h');
   assert.match(creation.ownershipToken, /^[A-Za-z0-9_-]{40,}$/);
   assert.equal(
     writePool.nodes.get('owned-node').ownerTokenHash,
