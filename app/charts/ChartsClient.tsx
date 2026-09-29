@@ -26,7 +26,7 @@ const TOOLS=[
   {title:'Turnstile tracker',href:'/turnstile',description:'Follow the publicly observable path of value after deshielding.'},
 ];
 
-export function CatalogCard({chart, initialData, initialRange='all', initialSeries, standalone=false}:{chart:CatalogChart; initialData?: unknown; initialRange?: ChartRange; initialSeries?: string[]; standalone?: boolean}) {
+export function CatalogCard({chart, initialData, initialFetchedAt, initialRange='all', initialSeries, standalone=false}:{chart:CatalogChart; initialData?: unknown; initialFetchedAt?: number; initialRange?: ChartRange; initialSeries?: string[]; standalone?: boolean}) {
   const ref=useRef<HTMLElement>(null);
   const [visible,setVisible]=useState(standalone);
   const [width,setWidth]=useState(500);
@@ -39,7 +39,7 @@ export function CatalogCard({chart, initialData, initialRange='all', initialSeri
     if(ref.current) observer.observe(ref.current);
     return()=>observer.disconnect();
   },[]);
-  const {data,loading,error}=useApiQuery<unknown>(chartEndpoint(chart),undefined,{initialData,enabled:visible,refreshInterval:300000,timeoutMs:30000});
+  const {data,loading,error}=useApiQuery<unknown>(chartEndpoint(chart),undefined,{initialData,initialFetchedAt,enabled:visible,refreshInterval:300000,timeoutMs:30000});
   const allRows=useMemo(()=>catalogRows(chart,data),[chart,data]);
   const rows=useMemo(()=>chartRangeRows(chart,allRows,range),[chart,allRows,range]);
   const hasData=rows.some(p=>chart.series.some(s=>typeof p[s.key]==='number'));

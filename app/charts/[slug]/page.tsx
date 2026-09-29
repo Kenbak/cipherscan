@@ -33,6 +33,6 @@ export default async function ChartPage({ params, searchParams }: Props) {
     <Link href="/charts" className="text-caption text-muted hover:text-primary">← All charts</Link>
     <PageHeader eyebrow="CHART_LIBRARY" title={chartPublicTitle(chart)} subtitle={chart.description}/>
     <p className="mb-5 text-caption text-muted">Source: {chartSource(chart)} · {chart.unit} · {rows.length ? chartDateRange(chart, rows) : chart.window}. {rows.length ? `${rows.length.toLocaleString('en-US')} observations.` : 'Observations are currently unavailable; this page will retry.'}</p>
-    <CatalogCard chart={chart} initialData={snapshot?.payload} initialRange={range} initialSeries={selected.series.map(s => s.key)} standalone/>
+    <CatalogCard chart={chart} initialData={snapshot?.payload} initialFetchedAt={snapshot?.fetchedAt} initialRange={range} initialSeries={selected.series.map(s => s.key)} standalone/>
   </div>;
 }

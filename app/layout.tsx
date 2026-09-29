@@ -2,7 +2,6 @@ import { Suspense } from 'react';
 import { AskWidget } from '@/components/ask/AskWidget';
 import type { Metadata } from "next";
 import localFont from "next/font/local";
-import Script from "next/script";
 import { PrivateAnalytics } from "@/components/PrivateAnalytics";
 import { NavBar } from "@/components/NavBar";
 import { StatsBar } from "@/components/StatsBar";
@@ -154,17 +153,12 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{ __html: JSON.stringify(siteJsonLd) }}
         />
         {/*
-          next/script's beforeInteractive strategy is Next's own documented
-          mechanism for exactly this case (must run before hydration/paint
-          to avoid a flash of the wrong theme). It's injected outside the
-          normal React child-render path, which avoids React 19's "script
-          tag inside a component" warning that a plain <script> here would
-          trigger. JSON-LD scripts below stay as plain <script> tags on
-          purpose — that's the separate Next-recommended pattern for
-          structured data, needed to keep it in the initial server HTML for
-          crawlers (next/script's strategies inject client-side instead).
+          Must be a plain inline script. In the App Router, next/script's
+          beforeInteractive emits a self.__next_s queue entry that only runs
+          once Next's client runtime loads, so a saved light theme painted
+          dark first whenever JavaScript was slow.
         */}
-        <Script id="theme-init" strategy="beforeInteractive" dangerouslySetInnerHTML={{ __html: themeScript }} />
+        <script id="theme-init" dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
         <ThemeProvider>
