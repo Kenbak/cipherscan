@@ -1,38 +1,10 @@
 import type { Metadata } from 'next';
-import { cache } from 'react';
 import { notFound } from 'next/navigation';
 import { buildPageMetadata, getBaseUrl } from '@/lib/seo';
-import { getClient, isValidName } from '@/lib/zns';
-import { ZNS } from 'zcashname-sdk';
-type Registration = NonNullable<Awaited<ReturnType<ZNS['resolveName']>>>;
-
-type NameResolution =
-  | { state: 'registered'; registration: Registration }
-  | { state: 'available' }
-  | { state: 'error' };
-
-const resolveName = cache(async (name: string): Promise<NameResolution> => {
-  try {
-    const registration = await getClient().resolveName(name);
-    return registration
-      ? { state: 'registered', registration }
-      : { state: 'available' };
-  } catch (error) {
-    console.error('Error resolving Zcash Name:', error);
-    return { state: 'error' };
-  }
-});
-
+import { isValidName, normalizeName } from '@/lib/name-validation';
+import { resolveName } from '@/lib/name-server';
 function serializeJsonLd(value: unknown): string {
   return JSON.stringify(value).replace(/</g, '\\u003c');
-}
-
-function normalizeName(raw: string): string {
-  try {
-    return decodeURIComponent(raw).toLowerCase();
-  } catch {
-    return raw.toLowerCase();
-  }
 }
 
 export async function generateMetadata({

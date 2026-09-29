@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { resolveGovernanceRequest } from './lib/governance-request';
 import { getConfiguredNetwork } from './lib/network';
+import { isValidName, normalizeName } from './lib/name-validation';
 
 // Simple in-memory rate limiter
 // Format: Map<IP, { count: number, resetTime: number }>
@@ -87,6 +88,14 @@ const REDIRECT_HOSTS = [
 ];
 
 export async function proxy(request: NextRequest) {
+  // Reject invalid names before the root loading boundary commits HTTP 200.
+  const namePath = request.nextUrl.pathname.match(/^\/name\/(.*)$/);
+  if (namePath && !isValidName(normalizeName(namePath[1]))) {
+    return new NextResponse('<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex, follow"><title>Name not found | CipherScan</title></head><body><main><h1>Name not found</h1><p>Enter a valid Zcash Name.</p><a href="/">Return to CipherScan</a></main></body></html>', {
+      status: 404,
+      headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store', 'X-Robots-Tag': 'noindex, follow' },
+    });
+  }
   // Reject malformed block identifiers before a loading boundary can stream a
   // soft 200. Do not fetch or cache a missing-resource guess for these URLs.
   const blockPath = request.nextUrl.pathname.match(/^\/block\/([^/]+)$/);
@@ -145,5 +154,5 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/api/:path*', '/block/:path*', '/governance/:path*'],
+  matcher: ['/name/:path*', '/api/:path*', '/block/:path*', '/governance/:path*'],
 };
