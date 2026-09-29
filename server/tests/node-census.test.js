@@ -1,7 +1,7 @@
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { validateCrawlSnapshot, mergeVerifiedNodes, censusTable } = require('../lib/node-census');
+const { validateCrawlSnapshot, mergeVerifiedNodes, livePeerNodes, censusTable } = require('../lib/node-census');
 const now = Date.parse('2026-09-29T00:00:00Z');
 const snapshot = nodes => ({ generated_at_ms: now - 1000, node_info: nodes });
 const peer = (addr, age = 2000) => ({ addr, last_verified_at_ms: now - age, user_agent: '/Zebra:6.4.2/' });
@@ -27,7 +27,7 @@ test('reingesting the same snapshot preserves observation timestamps', () => {
 });
 test('read-time census eligibility excludes legacy/expired observations without needing another writer run', () => {
   assert.match(censusTable('crawl'), /last_verified_at > NOW\(\) - INTERVAL '1 hour'/);
-  assert.match(censusTable('crawl'), /observed_via = 'crawl'/);
+  assert.match(censusTable('crawl'), /last_peer_seen_at/);
   assert.doesNotMatch(censusTable('peer'), /last_verified_at/);
 });
 const { checkHealth } = require('../jobs/check-crawler-health');
@@ -36,4 +36,20 @@ test('watchdog distinguishes bootstrap, healthy progress, frozen snapshots and a
   assert.doesNotThrow(() => checkHealth({ ...snapshot([peer('192.0.2.1:8233')]), crawler_runtime: { secs: 5000 } }, now));
   assert.throws(() => checkHealth({ ...snapshot([]), crawler_runtime: { secs: 5000 } }, now), /fifteen minutes/);
   assert.throws(() => checkHealth({ ...snapshot([]), generated_at_ms: now - 200000 }, now), /timestamp/);
+});
+
+test('live peers require established protocol identities, deduplicate ports, and keep a distinct observation clock', () => {
+  const peers = livePeerNodes([
+    { addr: '192.0.2.10:43210', version: 170160, subver: '/Zakura:1.5.0/', inbound: true },
+    { addr: '192.0.2.10:8233', version: 170160 },
+    { addr: '[2001:db8::1]:8233', version: 170160 },
+    { addr: '192.0.2.11:8233', version: 0 },
+    { addr: 'seed.example:8233', version: 170160 },
+  ], now);
+  assert.equal(peers.length, 2);
+  assert.equal(peers[0].last_peer_seen_at_ms, now);
+  assert.equal(peers[0].last_verified_at_ms, undefined);
+  assert.equal(peers[0].inbound, true);
+  assert.equal(peers[0].handshake_time_ms, null);
+  assert.throws(() => livePeerNodes(null), /Invalid live peer/);
 });

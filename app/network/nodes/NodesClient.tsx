@@ -183,7 +183,7 @@ export default function NodesClient() {
       <PageHeader
         eyebrow="Network"
         title={<>Zcash Nodes</>}
-        subtitle="Verified reachable nodes discovered via network crawl"
+        subtitle="Active nodes observed through live peer connections and network crawling"
         actions={
           <Link href="/network" className="text-xs text-muted hover:text-secondary font-mono transition-colors">
             &larr; Network Overview
@@ -198,7 +198,7 @@ export default function NodesClient() {
             <div className="flex flex-col sm:flex-row sm:items-end gap-6">
               <div>
                 <div className="text-[10px] font-mono uppercase tracking-wider text-muted mb-1">
-                  Reachable Nodes
+                  Observed Active Nodes
                 </div>
                 <div className="text-4xl font-bold font-mono text-primary tabular-nums">
                   {stats.activeNodes.toLocaleString()}
@@ -206,7 +206,7 @@ export default function NodesClient() {
               </div>
               <div className="flex flex-wrap gap-x-6 gap-y-2 sm:ml-auto text-xs font-mono">
                 <StatChip label="Countries" value={stats.countries} />
-                <StatChip label="Avg Ping" value={stats.avgPingMs ? `${stats.avgPingMs.toFixed(0)}ms` : '—'} />
+                <StatChip label="Avg Handshake" value={stats.avgPingMs ? `${stats.avgPingMs.toFixed(0)}ms` : '—'} />
                 <StatChip label="Tor" value={stats.torNodes} />
                 <StatChip label="Total Seen" value={stats.totalNodes.toLocaleString()} />
                 <StatChip label="Cities" value={stats.cities} />
@@ -226,7 +226,7 @@ export default function NodesClient() {
                 <div>
                   <h3 className="text-sm font-semibold text-primary">Client Distribution</h3>
                   <p className="mt-1 text-[11px] text-muted">
-                    Verified via protocol handshake during network crawl.
+                    Client identities reported by connected peers and verified crawler handshakes.
                   </p>
                 </div>
                 <span className="shrink-0 font-mono text-xs text-cipher-cyan">
