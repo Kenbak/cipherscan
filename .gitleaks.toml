@@ -1,0 +1,9 @@
+[extend]
+useDefault = true
+
+[[rules]]
+id = "zcash-private-key"
+description = "Zcash viewing or spending key"
+regex = '''\b(?:uview(?:test)?1|zxviews1|secret-extended-key-(?:main|test)1|secret-spending-key-main1)[a-z0-9]{60,}'''
+keywords = ["uview", "zxviews", "secret-extended-key", "secret-spending-key"]
+

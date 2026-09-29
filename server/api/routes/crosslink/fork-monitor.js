@@ -4,9 +4,30 @@
 
 const express = require('express');
 const crypto = require('crypto');
+const { ipKeyGenerator } = require('express-rate-limit');
 const { logSafeError } = require('../../lib/safe-log');
 const { constantTimeEqual, isKnownServiceKey } = require('../../service-auth');
 const router = express.Router();
+// New names have a separate, bounded, short-lived quota. Existing owners can
+// continue reporting even when this budget or registry capacity is exhausted.
+const registrationBudgets = new Map();
+const registrationHashKey = crypto.randomBytes(32);
+const REGISTRATION_WINDOW_MS = 15 * 60 * 1000;
+function reserveRegistration(ip) {
+  const now = Date.now();
+  for (const [key, budget] of registrationBudgets) {
+    if (budget.until <= now) registrationBudgets.delete(key);
+  }
+  const key = crypto.createHmac('sha256', registrationHashKey).update(ipKeyGenerator(ip || 'unknown')).digest('hex');
+  const budget = registrationBudgets.get(key);
+  if (budget && budget.count >= 5) return false;
+  if (!budget && registrationBudgets.size >= 10_000) return false;
+  registrationBudgets.set(key, budget
+    ? { ...budget, count: budget.count + 1 }
+    : { count: 1, until: now + REGISTRATION_WINDOW_MS });
+  return true;
+}
+
 const {
   deps,
   normalizeHash,
@@ -271,6 +292,8 @@ router.get('/api/crosslink/block-hash/:height', async (req, res) => {
  * Voluntary node registration. Persisted to PostgreSQL with configurable TTL.
  */
 router.post('/api/crosslink/fork-monitor/report', async (req, res) => {
+  let client;
+  let committed = false;
   try {
     const { name, tip, tip_hash, sample_hashes, peers, mining, ttl } = req.body || {};
 
@@ -307,7 +330,7 @@ router.post('/api/crosslink/fork-monitor/report', async (req, res) => {
       }
     }
 
-    const validTtl = ttl && NODE_TTL_OPTIONS[ttl] ? ttl : DEFAULT_TTL;
+    const validTtl = typeof ttl === 'string' && Object.hasOwn(NODE_TTL_OPTIONS, ttl) ? ttl : DEFAULT_TTL;
 
     // Rate limit per name (still in-memory — ephemeral by design)
     const lastReport = reportTimestamps.get(cleanName);
@@ -316,9 +339,20 @@ router.post('/api/crosslink/fork-monitor/report', async (req, res) => {
       return res.status(429).json({ success: false, error: `wait ${wait}s before reporting again` });
     }
 
-    // Evict oldest if at capacity (DB-based)
-    const { rows: countRows } = await deps.writePool.query('SELECT COUNT(*)::int AS cnt FROM fork_monitor_nodes');
-    const existing = await deps.writePool.query('SELECT owner_token_hash FROM fork_monitor_nodes WHERE name = $1', [cleanName]);
+    // Serialize registration across API processes: capacity and ownership must
+    // be checked against the same transaction that writes the report.
+    client = await deps.writePool.connect();
+    await client.query('BEGIN');
+    await client.query("SET LOCAL lock_timeout = '2s'");
+    await client.query("SELECT pg_advisory_xact_lock(hashtext('cipherscan:fork-monitor:registration'))");
+    await client.query(
+      `DELETE FROM fork_monitor_nodes
+       WHERE (ttl = '1h' AND reported_at < $1)
+          OR ((ttl IS NULL OR ttl <> '1h') AND reported_at < $2)`,
+      [Date.now() - NODE_TTL_OPTIONS['1h'], Date.now() - NODE_TTL_OPTIONS['24h']]
+    );
+    const { rows: countRows } = await client.query('SELECT COUNT(*)::int AS cnt FROM fork_monitor_nodes');
+    const existing = await client.query('SELECT owner_token_hash FROM fork_monitor_nodes WHERE name = $1', [cleanName]);
     const suppliedToken = req.headers['x-node-token'];
     const serviceKeys = (process.env.SERVICE_API_KEYS || '').split(',').filter(Boolean);
     const isService = isKnownServiceKey(req.headers['x-service-key'], serviceKeys);
@@ -345,11 +379,11 @@ router.post('/api/crosslink/fork-monitor/report', async (req, res) => {
       ownerTokenHash = crypto.createHash('sha256').update(ownerToken).digest('hex');
     }
     if (countRows[0].cnt >= MAX_REGISTERED_NODES && existing.rows.length === 0) {
-      await deps.writePool.query(
-        `DELETE FROM fork_monitor_nodes WHERE name = (
-           SELECT name FROM fork_monitor_nodes ORDER BY reported_at ASC LIMIT 1
-         )`
-      );
+      return res.status(409).json({ success: false, error: 'Node registry is full; retry after a registration expires' });
+    }
+    if (existing.rows.length === 0 && !isService && !reserveRegistration(req.ip)) {
+      res.set('Retry-After', String(REGISTRATION_WINDOW_MS / 1000));
+      return res.status(429).json({ success: false, error: 'Too many new node registrations; retry later' });
     }
 
     const cleanSamples = (sample_hashes || []).map((s) => ({
@@ -357,7 +391,7 @@ router.post('/api/crosslink/fork-monitor/report', async (req, res) => {
       hash: normalizeHash(s.hash),
     }));
 
-    await deps.writePool.query(
+    await client.query(
       `INSERT INTO fork_monitor_nodes (name, tip, tip_hash, sample_hashes, peers, mining, ttl, reported_at, owner_token_hash)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
        ON CONFLICT (name) DO UPDATE SET
@@ -381,6 +415,10 @@ router.post('/api/crosslink/fork-monitor/report', async (req, res) => {
         ownerTokenHash,
       ]
     );
+    await client.query('COMMIT');
+    committed = true;
+    client.release();
+    client = null;
     reportTimestamps.set(cleanName, Date.now());
 
     // Invalidate fork-monitor cache so fresh GET picks up new node
@@ -398,6 +436,11 @@ router.post('/api/crosslink/fork-monitor/report', async (req, res) => {
   } catch (error) {
     logSafeError('Fork monitor report error:', error);
     res.status(500).json({ success: false, error: 'Failed to register node' });
+  } finally {
+    if (client) {
+      if (!committed) await client.query('ROLLBACK').catch(() => {});
+      client.release();
+    }
   }
 });
 
