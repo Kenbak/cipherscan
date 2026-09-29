@@ -116,6 +116,7 @@ jobs:
         run: |
           npm run test:server-regressions
           npm run test:activity
+          npm run test:bot
           npm run test:hashrate-postgres
           node --test server/tests/attestations.test.mjs server/tests/attestations-baseline.test.mjs
 

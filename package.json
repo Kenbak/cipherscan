@@ -51,7 +51,8 @@
     "test:nu7-results": "node --test server/tests/nu7-results.test.js",
     "test:governance": "node --test server/tests/governance.test.js",
     "test:activity": "NODE_PATH=$PWD/server/api/node_modules node --test server/tests/activity-milestones.test.js server/tests/activity-postgres.test.js",
-    "test:hashrate-postgres": "NODE_PATH=$PWD/server/api/node_modules node --test server/tests/hashrate-postgres.test.js"
+    "test:hashrate-postgres": "NODE_PATH=$PWD/server/api/node_modules node --test server/tests/hashrate-postgres.test.js",
+    "test:bot": "NODE_PATH=$PWD/server/api/node_modules node --test server/tests/bot-editorial.test.js server/tests/bot-editorial-postgres.test.js"
   },
   "overrides": {
     "axios": "1.14.0",
