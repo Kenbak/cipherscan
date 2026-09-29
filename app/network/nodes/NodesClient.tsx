@@ -380,7 +380,7 @@ export default function NodesClient() {
                   </div>
                   <div>
                     <div className="text-2xl font-bold font-mono tabular-nums text-primary">{reliability.latency.median != null ? `${reliability.latency.median}ms` : '—'}</div>
-                    <div className="text-[10px] text-muted uppercase tracking-wider mt-0.5">Median Ping</div>
+                    <div className="text-[10px] text-muted uppercase tracking-wider mt-0.5">{stats?.censusVersion === 2 ? "Median Handshake" : "Median Ping"}</div>
                   </div>
                 </div>
                 <div className="text-[10px] text-muted uppercase tracking-wider mb-1.5">Handshake Latency</div>
@@ -537,8 +537,8 @@ export default function NodesClient() {
                     <th className="px-3 py-2.5 text-left">Version</th>
                     <SortHeader label="Country" col="country_code" current={sortBy} dir={sortDir} onClick={handleSort} />
                     <th className="px-3 py-2.5 text-left">Tor</th>
-                    <SortHeader label="Peers" col="degree" current={sortBy} dir={sortDir} onClick={handleSort} align="right" />
-                    <SortHeader label="Ping" col="ping_ms" current={sortBy} dir={sortDir} onClick={handleSort} align="right" />
+                    <SortHeader label="Gossip links" col="degree" current={sortBy} dir={sortDir} onClick={handleSort} align="right" />
+                    <SortHeader label={stats?.censusVersion === 2 ? "Handshake" : "Ping"} col="ping_ms" current={sortBy} dir={sortDir} onClick={handleSort} align="right" />
                     <SortHeader label="Last Seen" col="last_seen" current={sortBy} dir={sortDir} onClick={handleSort} align="right" />
                   </tr>
                 </thead>

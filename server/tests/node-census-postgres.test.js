@@ -147,3 +147,18 @@ test('all census routes exclude legacy/stale rows and incompatible history again
     await db.end();
   }
 });
+
+
+test('migration 031 is additive and idempotent without inventing peer observations', {
+  skip: !process.env.TEST_NODE_CENSUS_DATABASE_URL,
+}, async () => {
+  const db = new Client({ connectionString: process.env.TEST_NODE_CENSUS_DATABASE_URL });
+  await db.connect();
+  try {
+    await db.query('CREATE TEMP TABLE nodes(id int); CREATE TEMP TABLE nodes_crawl(id int); CREATE TEMP TABLE node_snapshots(census_version smallint); INSERT INTO nodes VALUES(1)');
+    const migration = require('node:fs').readFileSync(require('node:path').join(__dirname, '../deploy/sql/031_combined_node_census.sql'), 'utf8');
+    await db.query(migration);
+    await db.query(migration);
+    assert.equal((await db.query('SELECT last_peer_seen_at FROM nodes')).rows[0].last_peer_seen_at, null);
+  } finally { await db.end(); }
+});
