@@ -1,0 +1,22 @@
+# Reviewed historical false positives: public ephemeral keys, placeholders and a UI storage key.
+# Exact fingerprints only: future additions are still scanned.
+f9e9cff89c8fed902f72852edf3d0fc79edea811:components/NU7VoteBanner.tsx:generic-api-key:8
+f4832f8ca42208eb1b8a1066047dff615e4a563a:DEBUG_COMPACT_WASM.md:generic-api-key:20
+f4832f8ca42208eb1b8a1066047dff615e4a563a:TEST_COMPACT_DATA.md:generic-api-key:13
+f4832f8ca42208eb1b8a1066047dff615e4a563a:TEST_COMPACT_WASM_BROWSER.md:generic-api-key:9
+f4832f8ca42208eb1b8a1066047dff615e4a563a:TEST_COMPACT_WASM_BROWSER.md:generic-api-key:36
+a34a99f33af6f685a1f08c8d108c99ced504b491:docs/REALTIME_PRIVACY_STATS.md:curl-auth-header:206
+a34a99f33af6f685a1f08c8d108c99ced504b491:docs/REALTIME_PRIVACY_STATS.md:curl-auth-header:242
+a34a99f33af6f685a1f08c8d108c99ced504b491:scripts/setup-zcash-node.sh:curl-auth-user:109
+7a44a361ce7e8889940144702d4e54dd999b21d8:docs/REALTIME_PRIVACY_STATS.md:curl-auth-header:206
+7a44a361ce7e8889940144702d4e54dd999b21d8:docs/REALTIME_PRIVACY_STATS.md:curl-auth-header:242
+7a44a361ce7e8889940144702d4e54dd999b21d8:scripts/setup-zcash-node.sh:curl-auth-user:109
+
+# Historical testnet viewing key (public since 2025; deleted from current trees).
+# Also includes one deliberately synthetic safe-log regression fixture.
+# These exact historical additions are acknowledged, not treated as private.
+f103b0810fe3e5534240ad48968b87d7a06d2cf1:server/tests/safe-log.test.js:zcash-private-key:34
+f4832f8ca42208eb1b8a1066047dff615e4a563a:DEBUG_COMPACT_WASM.md:zcash-private-key:27
+f4832f8ca42208eb1b8a1066047dff615e4a563a:TEST_COMPACT_WASM_BROWSER.md:zcash-private-key:11
+f4832f8ca42208eb1b8a1066047dff615e4a563a:TEST_COMPACT_WASM_BROWSER.md:zcash-private-key:38
+c999a3d8eb6f03eb66caaa92d9d0a8f61006b6fc:test-lightwalletd-api.sh:zcash-private-key:11

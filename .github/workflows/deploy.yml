@@ -27,38 +27,51 @@ jobs:
   deploy:
     name: Deploy API to servers
     runs-on: ubuntu-latest
-    # Skip entirely (not "fail") when the CI run this workflow was notified
-    # about did not succeed — e.g. it failed, was cancelled, or was skipped.
-    if: github.event.workflow_run.conclusion == 'success'
+    environment: production
+    # Branch names alone do not establish trust: fork PRs can also use main.
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_branch == 'main' &&
+      github.event.workflow_run.head_repository.full_name == github.repository
     steps:
-      - name: Checkout the exact commit CI tested
+      - name: Checkout trusted release verifier
         uses: actions/checkout@v7
         with:
-          ref: ${{ github.event.workflow_run.head_sha }}
+          ref: main
+          persist-credentials: false
           # Full history so the "did anything relevant change" diff below
           # can compare against whatever commit is currently deployed,
           # however far back that is.
           fetch-depth: 0
 
+      - name: Verify trusted release and select the exact tested commit
+        run: python3 scripts/verify-deployment.py
+
       - name: Set up SSH
         run: |
           mkdir -p ~/.ssh
           printf '%s\n' "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/deploy_key
+          printf '%s\n' "${{ secrets.DEPLOY_KNOWN_HOSTS }}" > ~/.ssh/known_hosts
           chmod 600 ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/known_hosts
+          test -s ~/.ssh/known_hosts || { echo "::error::DEPLOY_KNOWN_HOSTS is empty"; exit 1; }
+          ssh-keygen -F "${{ secrets.PRIMARY_HOST }}" -f ~/.ssh/known_hosts >/dev/null || exit 1
+          ssh-keygen -F "${{ secrets.STANDBY_HOST }}" -f ~/.ssh/known_hosts >/dev/null || exit 1
           cat > ~/.ssh/config << 'SSHEOF'
           Host primary
             HostName ${{ secrets.PRIMARY_HOST }}
             User root
             IdentityFile ~/.ssh/deploy_key
-            StrictHostKeyChecking no
-            UserKnownHostsFile /dev/null
+            StrictHostKeyChecking yes
+            UserKnownHostsFile ~/.ssh/known_hosts
             LogLevel ERROR
           Host standby
             HostName ${{ secrets.STANDBY_HOST }}
             User root
             IdentityFile ~/.ssh/deploy_key
-            StrictHostKeyChecking no
-            UserKnownHostsFile /dev/null
+            StrictHostKeyChecking yes
+            UserKnownHostsFile ~/.ssh/known_hosts
             LogLevel ERROR
           SSHEOF
           sed -i 's/^          //' ~/.ssh/config
@@ -140,6 +153,7 @@ jobs:
           deploy_sha() {
             local sha="$1"
             git fetch origin main
+            git merge-base --is-ancestor "$sha" origin/main
             git checkout --detach "$sha"
             npm ci --omit=dev --no-audit --no-fund
             (cd server/api && npm ci --omit=dev --no-audit --no-fund)
@@ -194,6 +208,7 @@ jobs:
           deploy_sha() {
             local sha="$1"
             git fetch origin main
+            git merge-base --is-ancestor "$sha" origin/main
             git checkout --detach "$sha"
             (cd server/api && npm ci --omit=dev --no-audit --no-fund)
             # Keep the failover checkout current without turning the database
