@@ -86,23 +86,17 @@ export function AddressDetailClient({ address, initialMeta = null }: AddressDeta
     }
   };
 
-  const fetchPageData = useCallback(async () => {
+  const fetchPageData = useCallback(async (signal: AbortSignal) => {
     try {
       setLoading(true);
 
       const apiUrl = `${getApiUrl()}/api/address/${address}?page=${currentPage}&limit=${PAGE_SIZE}`;
 
-      const crossChainUrl = `${getApiUrl()}/api/crosschain/address/${encodeURIComponent(address)}`;
-      const priceUrl = `${getApiUrl()}/api/price`;
-
-      const [response, crossChainRes, priceRes] = await Promise.all([
-        fetch(apiUrl),
-        fetch(crossChainUrl).catch(() => null),
-        fetch(priceUrl).catch(() => null),
-      ]);
+      const response = await fetch(apiUrl, { signal });
 
       if (!response.ok) throw new Error('Failed to fetch address data');
       const apiData = await response.json();
+      if (signal.aborted) return;
 
       setTotalPages(apiData.pagination?.totalPages || 1);
 
@@ -118,31 +112,45 @@ export function AddressDetailClient({ address, initialMeta = null }: AddressDeta
         lastSeen: apiData.lastSeen,
         firstFunding: apiData.firstFunding ?? null,
       });
-
-      if (crossChainRes?.ok) {
-        try {
-          const ccData = await crossChainRes.json();
-          if (ccData.success && ccData.totalSwaps > 0) setCrossChain(ccData);
-        } catch { /* ignore */ }
-      }
-
-      if (priceRes?.ok) {
-        try {
-          const pData = await priceRes.json();
-          setPriceData({ price: pData.price, change24h: pData.change24h });
-        } catch { /* ignore */ }
-      }
     } catch (error) {
+      if (signal.aborted) return;
       console.error('Error fetching address data:', error);
       setData(null);
     } finally {
-      setLoading(false);
+      if (!signal.aborted) setLoading(false);
     }
   }, [address, currentPage]);
 
   useEffect(() => {
-    fetchPageData();
+    const controller = new AbortController();
+    void fetchPageData(controller.signal);
+    return () => controller.abort();
   }, [fetchPageData]);
+
+  // These values belong to the address, not to a transaction page. Neither
+  // optional request should delay the table or repeat during pagination.
+  useEffect(() => {
+    const controller = new AbortController();
+    const { signal } = controller;
+    setCrossChain(null);
+    setPriceData(null);
+
+    void fetch(`${getApiUrl()}/api/crosschain/address/${encodeURIComponent(address)}`, { signal })
+      .then(async response => {
+        if (!response.ok) return;
+        const ccData = await response.json();
+        if (!signal.aborted && ccData.success && ccData.totalSwaps > 0) setCrossChain(ccData);
+      }).catch(() => { /* optional enrichment */ });
+
+    void fetch(`${getApiUrl()}/api/price`, { signal })
+      .then(async response => {
+        if (!response.ok) return;
+        const pData = await response.json();
+        if (!signal.aborted) setPriceData({ price: pData.price, change24h: pData.change24h });
+      }).catch(() => { /* optional enrichment */ });
+
+    return () => controller.abort();
+  }, [address]);
 
   useEffect(() => {
     const decodeUA = async () => {

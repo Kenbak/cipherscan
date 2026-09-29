@@ -8,6 +8,7 @@
  */
 
 const express = require('express');
+const { getFirstFunding } = require('../lib/address-first-funding');
 const router = express.Router();
 const { validate } = require('../validation');
 const { applyListCacheHeaders, createListCache } = require('../list-cache');
@@ -425,33 +426,7 @@ router.get('/api/address/:address', validate('addressById'), async (req, res) =>
     // Earliest inbound output — who first funded this address
     let firstFunding = null;
     try {
-      const { rows: fundingRows } = await queryWithFallback(
-        `WITH first_receive AS (
-          SELECT o.txid, t.block_time, o.value AS amount_zat, t.is_coinbase
-          FROM transaction_outputs o
-          JOIN transactions t ON t.txid = o.txid
-          WHERE o.address = $1
-          ORDER BY t.block_height ASC, o.vout_index ASC
-          LIMIT 1
-        )
-        SELECT
-          fr.txid,
-          fr.block_time,
-          fr.amount_zat,
-          fr.is_coinbase,
-          funder.address AS funder_address,
-          l.label AS funder_label
-        FROM first_receive fr
-        LEFT JOIN LATERAL (
-          SELECT i.address
-          FROM transaction_inputs i
-          WHERE i.txid = fr.txid AND i.address IS NOT NULL AND i.address != $1
-          ORDER BY i.value DESC NULLS LAST
-          LIMIT 1
-        ) funder ON true
-        LEFT JOIN address_labels l ON l.address = funder.address`,
-        [address]
-      );
+      const { rows: fundingRows } = await getFirstFunding(queryWithFallback, address);
       if (fundingRows[0]) {
         const row = fundingRows[0];
         firstFunding = {
