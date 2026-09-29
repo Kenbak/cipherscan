@@ -18,14 +18,14 @@ const TABS: { id: MapTab; label: string }[] = [
 ];
 
 const TAB_DESCRIPTIONS: Record<MapTab, string> = {
-  topology: 'Peer advertisements observed by the crawler. Unverified nodes lack a recent successful handshake; positions are topological, not geographic.',
+  topology: 'Observed active nodes and advertised addresses. Links show gossip relationships, not confirmed remote connections; positions are topological, not geographic.',
   client: 'World map colored by the dominant client implementation observed in each region.',
   infra: 'World map colored by the dominant hosting provider (ISP/ASN) observed in each region.',
 };
 
 /**
  * Single "Node Map" surface for the /network/nodes deep-dive: one component,
- * three lenses onto the same crawler dataset, instead of stacking separate
+ * three lenses onto the same observed network, instead of stacking separate
  * hero visualizations. Non-active lenses aren't mounted, so the 3D WebGL
  * scene only loads when actually selected.
  */
@@ -37,7 +37,7 @@ export function NodeMapExplorer() {
   return (
     <div>
       <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-4 mb-4">
-        <h2 className="font-mono text-sm font-semibold text-primary">Connections &amp; geography</h2>
+        <h2 className="font-mono text-sm font-semibold text-primary">Gossip &amp; geography</h2>
         <Tabs tabs={TABS} active={tab} onChange={setTab} className="border-b-0" />
       </div>
       <p className="text-caption text-muted mb-4">{TAB_DESCRIPTIONS[tab]}</p>

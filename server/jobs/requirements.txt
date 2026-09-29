@@ -1,14 +1,10 @@
-# ML Pattern Detector Dependencies
-# Install with: pip install -r requirements.txt
-
-# Database
-psycopg2-binary>=2.9.12
-
-# ML/Data Science
-numpy>=1.26.4
-scikit-learn>=1.9.0
-
-# Optional: for future enhancements
-# pandas>=2.0.0          # If we need DataFrames
-# matplotlib>=3.7.0      # For visualization
-# networkx>=3.0          # For graph analysis
+# Tested Python 3.12 runtime. Install using server/deploy/install-pattern-scanner.sh.
+# Pin the complete environment so scheduled jobs never upgrade dependencies.
+cloudpickle==3.1.2
+joblib==1.6.0
+narwhals==2.26.0
+numpy==2.5.3
+psycopg2-binary==2.9.13
+scikit-learn==1.9.1
+scipy==1.18.1
+threadpoolctl==3.7.0

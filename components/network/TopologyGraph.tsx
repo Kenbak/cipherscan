@@ -68,7 +68,7 @@ function nodeColor(n: { client: string | null; isTor: boolean; reachable: boolea
 }
 
 function clientLabel(client: string | null, reachable = true) {
-  if (!reachable) return 'Off (unreachable)';
+  if (!reachable) return 'Not recently observed';
   return sharedClientLabel(client);
 }
 
@@ -414,7 +414,7 @@ export function TopologyGraph({ active = true }: { active?: boolean }) {
     <div>
       <div className="border border-cipher-border rounded-lg overflow-hidden">
         <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 border-b border-cipher-border">
-          <p className="text-caption text-muted font-mono">{loading ? 'Loading graph observations…' : `${counts?.reachable ?? nodes.filter(node => node.reachable).length} reachable · ${counts?.off ?? nodes.filter(node => !node.reachable).length} unverified · ${edgeCount.toLocaleString()} links`}</p>
+          <p className="text-caption text-muted font-mono">{loading ? 'Loading graph observations…' : `${counts?.reachable ?? nodes.filter(node => node.reachable).length} active · ${counts?.off ?? nodes.filter(node => !node.reachable).length} not recently observed · ${edgeCount.toLocaleString()} links`}</p>
           <div className="flex gap-2">
             <button type="button" onClick={resetView} disabled={!nodes.length} className="px-3 py-2 rounded border border-cipher-border text-caption font-mono text-secondary hover:text-primary disabled:opacity-50">Reset view</button>
             <button type="button" aria-pressed={rotating} disabled={!nodes.length} onClick={() => setRotating(value => !value)} className="px-3 py-2 rounded border border-cipher-border text-caption font-mono text-secondary hover:text-primary disabled:opacity-50">{rotating ? 'Pause rotation' : 'Rotate view'}</button>
@@ -443,10 +443,10 @@ export function TopologyGraph({ active = true }: { active?: boolean }) {
               <div className="flex items-center justify-between gap-3 mb-4"><h3 className="font-mono text-sm text-primary">Node #{focus.id}</h3>{pinned && <button onClick={() => setPinned(null)} className="text-caption text-muted hover:text-primary underline underline-offset-4">Clear</button>}</div>
               <dl className="space-y-3 text-caption">
                 <Row label="Client" value={sharedClientLabel(focus.client)} />
-                <Row label="Status" value={focus.reachable ? 'Reachable' : 'Unverified'} />
+                <Row label="Status" value={focus.reachable ? 'Observed active' : 'Not recently observed'} />
                 <Row label="Country" value={focus.countryCode || 'Unknown'} />
                 <Row label="Tor" value={focus.isTor ? 'Yes' : 'No'} />
-                <Row label="Degree" value={focus.degree != null ? String(focus.degree) : '—'} />
+                <Row label="Gossip links" value={focus.degree != null ? String(focus.degree) : '—'} />
                 <Row label="Betweenness" value={focus.betweenness != null ? focus.betweenness.toFixed(4) : '—'} />
                 <Row label="Closeness" value={focus.closeness != null ? focus.closeness.toFixed(4) : '—'} />
               </dl>
@@ -493,11 +493,11 @@ export function TopologyGraph({ active = true }: { active?: boolean }) {
           className={`flex items-center gap-1.5 transition-opacity ${hidden.has('off') ? 'opacity-30 line-through' : 'opacity-100 hover:opacity-80'}`}
         >
           <span className="w-2 h-2 rounded-full" style={{ backgroundColor: palette.off }} />
-          Unverified
+          Not recently observed
         </button>
 
       </div>
-      <p className="text-caption text-muted mt-3">Drag to orbit · scroll to zoom · select a node to inspect. Node size encodes degree; unverified nodes are shown smaller.</p>
+      <p className="text-caption text-muted mt-3">Drag to orbit · scroll to zoom · select a node to inspect. Node size encodes gossip links; nodes not recently observed are shown smaller.</p>
     </div>
   );
 }

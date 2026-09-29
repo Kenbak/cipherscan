@@ -140,6 +140,11 @@ async function syncNodes() {
   const startTime = Date.now();
 
   try {
+    if (process.env.NODE_SOURCE === 'crawl') {
+      console.log('[NodeSync] Crawler owns the census; peer/DNS writer skipped.');
+      return;
+    }
+
     // 1. Fetch peers from Zebra RPC
     console.log('📡 [NodeSync] Fetching peers from Zebra RPC...');
     const peers = await callZebraRPC('getpeerinfo');
@@ -359,7 +364,7 @@ async function syncNodes() {
       await pool.query(`DELETE FROM node_snapshots WHERE snapshot_time < NOW() - INTERVAL '90 days'`);
       console.log(`📸 [NodeSync] Recorded snapshot: ${snap.active} active, ${snap.tor} Tor, ${snap.countries} countries`);
     } catch (snapErr) {
-      console.warn(`⚠️  [NodeSync] Could not record snapshot (table may not exist yet): ${snapErr.message}`);
+      throw new Error(`Node snapshot failed: ${snapErr.message}`, { cause: snapErr });
     }
 
     const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);

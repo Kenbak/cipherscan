@@ -27,33 +27,36 @@ echo "🔍 PATTERN SCANNER - $(date '+%Y-%m-%d %H:%M:%S')"
 echo "════════════════════════════════════════════════════════════"
 
 # Check if dry-run mode
-DRY_RUN_ARGS=()
 if [[ "${1:-}" == "--dry-run" ]]; then
-    DRY_RUN_ARGS=(--dry-run)
+    set -- --dry-run
     echo "⚠️  DRY RUN MODE - not saving to database"
+else
+    set --
 fi
 
 echo ""
 echo "📋 Step 1/3: Pair Linkage Edges"
 echo "─────────────────────────────────────────"
-node "$SCRIPT_DIR/build-privacy-linkage-edges.js" "${DRY_RUN_ARGS[@]}"
+node "$SCRIPT_DIR/build-privacy-linkage-edges.js" "$@"
 
 echo ""
 echo "📦 Step 2/3: Batch Clusters"
 echo "─────────────────────────────────────────"
-node "$SCRIPT_DIR/build-privacy-batch-clusters.js" "${DRY_RUN_ARGS[@]}"
+node "$SCRIPT_DIR/build-privacy-batch-clusters.js" "$@"
 
 echo ""
 echo "🤖 Step 3/3: ML Clustering Explorer (Python)"
 echo "─────────────────────────────────────────"
 
-# Check if Python dependencies are installed
-if ! python3 -c "import sklearn, psycopg2, numpy" 2>/dev/null; then
-    echo "⚠️  Python dependencies not installed. Installing..."
-    pip3 install -r "$SCRIPT_DIR/requirements.txt" --quiet
+# Dependencies are provisioned once, outside cron, in an isolated environment.
+PYTHON="${PATTERN_SCANNER_PYTHON:-/opt/cipherscan-pattern-scanner/venv/bin/python}"
+if ! "$PYTHON" -c "import sklearn, psycopg2, numpy" 2>/dev/null; then
+    echo "Pattern scanner runtime missing. Run server/deploy/install-pattern-scanner.sh" >&2
+    exit 1
 fi
-
-python3 "$SCRIPT_DIR/ml-pattern-detector.py" "${DRY_RUN_ARGS[@]}"
+export OMP_NUM_THREADS="${OMP_NUM_THREADS:-1}"
+export OPENBLAS_NUM_THREADS="${OPENBLAS_NUM_THREADS:-1}"
+"$PYTHON" "$SCRIPT_DIR/ml-pattern-detector.py" "$@"
 
 echo ""
 echo "════════════════════════════════════════════════════════════"

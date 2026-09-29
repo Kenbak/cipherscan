@@ -9,6 +9,9 @@ interface PageProps {
   params: Promise<{ slug: string }>;
 }
 
+// Issues ship with the build; unknown slugs must return a real 404 before streaming.
+export const dynamicParams = false;
+
 function getIssueDescription(summary: string, date: string): string {
   const description = summary || `ZecBlock Weekly issue published ${date}.`;
   if (description.length <= 160) return description;

@@ -4,10 +4,14 @@ After=network-online.target tor@default.service
 Wants=network-online.target
 Requires=tor@default.service
 
+StartLimitIntervalSec=900
+StartLimitBurst=3
+
 [Service]
 Type=simple
 WorkingDirectory=/opt/zcash-crawler
-ExecStart=/usr/bin/torsocks /opt/zcash-crawler/target/release/crawler \
+ExecStart=/opt/zcash-crawler/target/release/crawler \
+  --socks5-proxy 127.0.0.1:9050 \
   --seed-addrs mainnet.seeder.zfnd.org dnsseed.str4d.xyz \
   --node-listening-port 8233 \
   --rpc-addr 127.0.0.1:54322
@@ -15,7 +19,11 @@ Restart=always
 RestartSec=30
 TimeoutStopSec=30
 
-Environment=TORSOCKS_LOG_LEVEL=1
+LimitNOFILE=2048
+MemoryMax=1G
+MemoryHigh=768M
+CPUQuota=25%
+
 
 NoNewPrivileges=true
 PrivateTmp=true

@@ -36,6 +36,7 @@ interface NodeEntry {
 }
 
 interface NodeStats {
+  censusVersion?: number;
   activeNodes: number;
   totalNodes: number;
   countries: number;
@@ -206,10 +207,10 @@ export default function NodesClient() {
       <Card className="network-summary-panel card-static mb-8">
         <dl className="network-summary-grid network-live-facts">
           {[
-            { label: 'Reachable nodes', value: stats?.activeNodes.toLocaleString() ?? '—', hint: 'Verified by the crawler' },
+            { label: 'Observed active nodes', value: stats?.activeNodes.toLocaleString() ?? '—', hint: 'Live peers and recent crawler observations' },
             { label: 'Countries', value: stats?.countries ?? '—', hint: stats ? `${stats.cities} observed cities` : 'Geographic coverage' },
             { label: 'Tor nodes', value: stats?.torNodes ?? '—', hint: 'Observed Tor infrastructure' },
-            { label: 'Average ping', value: stats?.avgPingMs != null ? `${stats.avgPingMs.toFixed(0)} ms` : '—', hint: 'From crawler observations' },
+            { label: stats?.censusVersion === 2 ? 'Average handshake' : 'Average ping', value: stats?.avgPingMs != null ? `${stats.avgPingMs.toFixed(0)} ms` : '—', hint: 'From crawler observations' },
           ].map(item => <div key={item.label}>
             <dt className="type-label text-muted uppercase mb-2">{item.label}</dt>
             <dd className="type-metric text-primary">{item.value}</dd>
@@ -217,7 +218,7 @@ export default function NodesClient() {
           </div>)}
         </dl>
         <p className="border-t border-cipher-border px-5 py-3 text-caption text-muted">
-          {stats ? `${stats.totalNodes.toLocaleString()} nodes seen in total · Last observation ${stats.lastUpdated ? formatRelativeTime(stats.lastUpdated) : 'unavailable'}` : 'Awaiting crawler observations.'}
+          {stats ? `${stats.totalNodes.toLocaleString()} nodes seen in total · Last observation ${stats.lastUpdated ? formatRelativeTime(stats.lastUpdated) : 'unavailable'}` : 'Awaiting node observations.'}
           {' '}Discovery coverage is not a census of the network.
         </p>
       </Card>
@@ -232,9 +233,9 @@ export default function NodesClient() {
           <Card className="h-full">
             <CardBody className="h-full flex flex-col">
               <h3 className="text-sm font-semibold text-primary">Client distribution</h3>
-              <p className="mt-1 text-caption text-muted">Software identified in crawler handshakes.</p>
+              <p className="mt-1 text-caption text-muted">Client identities are self-reported by observed peers.</p>
               <div className="flex items-baseline justify-between gap-4 mt-6 mb-3 text-caption">
-                <span className="text-secondary">{stats?.activeNodes.toLocaleString() ?? '—'} reachable nodes</span>
+                <span className="text-secondary">{stats?.activeNodes.toLocaleString() ?? '—'} observed active nodes</span>
                 <span className="font-mono text-muted">{coveragePct}% identified</span>
               </div>
               <div className="flex h-3 gap-0.5 overflow-hidden mb-5" aria-hidden="true">
@@ -276,7 +277,7 @@ export default function NodesClient() {
                   </tbody>
                 </table>}
               </div>
-              <p className="text-caption text-muted mt-4 pt-4 border-t border-cipher-border">Counts refer to reachable nodes. A version string is self-reported.</p>
+              <p className="text-caption text-muted mt-4 pt-4 border-t border-cipher-border">Counts refer to observed active nodes. A version string is self-reported.</p>
             <ChartWatermark /></CardBody>
           </Card>
           {/* Upgrade Readiness */}
@@ -321,7 +322,7 @@ export default function NodesClient() {
               <dl className="grid grid-cols-3 gap-4 border-y border-cipher-border py-5 mb-6">
                 {[
                   { label: 'Reachability', value: reliability.avgReliabilityPct != null ? `${reliability.avgReliabilityPct}%` : '—' },
-                  { label: 'Median ping', value: reliability.latency.median != null ? `${reliability.latency.median} ms` : '—' },
+                  { label: stats?.censusVersion === 2 ? 'Median handshake' : 'Median ping', value: reliability.latency.median != null ? `${reliability.latency.median} ms` : '—' },
                   { label: 'Full-node flags', value: reliability.services.known > 0 ? `${reliability.services.fullNodePct}%` : '—' },
                 ].map(item => <div key={item.label} className="min-w-0">
                   <dt className="text-caption text-muted mb-2">{item.label}</dt>
@@ -429,8 +430,8 @@ export default function NodesClient() {
                   <tr className="border-b border-cipher-border text-muted font-mono uppercase tracking-wider">
                     <SortHeader label="Client / version" col="client_impl" current={sortBy} dir={sortDir} onClick={handleSort} />
                     <SortHeader label="Location" col="country_code" current={sortBy} dir={sortDir} onClick={handleSort} />
-                    <SortHeader label="Peers" col="degree" current={sortBy} dir={sortDir} onClick={handleSort} align="right" />
-                    <SortHeader label="Ping" col="ping_ms" current={sortBy} dir={sortDir} onClick={handleSort} align="right" />
+                    <SortHeader label="Gossip links" col="degree" current={sortBy} dir={sortDir} onClick={handleSort} align="right" />
+                    <SortHeader label={stats?.censusVersion === 2 ? "Handshake" : "Ping"} col="ping_ms" current={sortBy} dir={sortDir} onClick={handleSort} align="right" />
                     <SortHeader label="Last Seen" col="last_seen" current={sortBy} dir={sortDir} onClick={handleSort} align="right" />
                   </tr>
                 </thead>

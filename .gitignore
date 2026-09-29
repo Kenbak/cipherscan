@@ -70,3 +70,6 @@ rust-indexer/
 .cursor/
 .agents/
 screenshots/
+
+# Local Python verification caches
+__pycache__/

@@ -8,6 +8,8 @@
 const express = require('express');
 const { pulseEventDescription } = require('../../../lib/pulse-copy');
 const router = express.Router();
+const { mainnetOnly } = require('../lib/network-features');
+router.use('/api/pulse', mainnetOnly('Pulse analytics'));
 const { parseSafeListPagination, offsetExceededError } = require('../lib/pagination');
 const { logSafeError } = require('../lib/safe-log');
 
