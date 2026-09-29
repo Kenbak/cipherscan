@@ -19,8 +19,8 @@ export async function GET() {
   <channel>
     <title>CipherScan Weekly</title>
     <description>Weekly Zcash intelligence — protocol updates, network stats, and privacy insights. No tracking.</description>
-    <link>${siteUrl}/newsletter</link>
-    <atom:link href="${siteUrl}/newsletter/rss" rel="self" type="application/rss+xml"/>
+    <link>${escapeXml(`${siteUrl}/newsletter`)}</link>
+    <atom:link href="${escapeXml(`${siteUrl}/newsletter/rss`)}" rel="self" type="application/rss+xml"/>
     <language>en</language>
     <lastBuildDate>${new Date().toUTCString()}</lastBuildDate>
     <docs>https://www.rssboard.org/rss-specification</docs>
@@ -30,8 +30,8 @@ export async function GET() {
     <item>
       <title>${escapeXml(n.title)}</title>
       <description>${escapeXml(n.summary)}</description>
-      <link>${siteUrl}/newsletter/${n.slug}</link>
-      <guid isPermaLink="true">${siteUrl}/newsletter/${n.slug}</guid>
+      <link>${escapeXml(`${siteUrl}/newsletter/${encodeURIComponent(n.slug)}`)}</link>
+      <guid isPermaLink="true">${escapeXml(`${siteUrl}/newsletter/${encodeURIComponent(n.slug)}`)}</guid>
       <pubDate>${new Date(n.date).toUTCString()}</pubDate>
     </item>`
       )
