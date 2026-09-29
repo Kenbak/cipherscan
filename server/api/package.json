@@ -41,6 +41,6 @@
   },
   "overrides": {
     "brace-expansion": ">=5.0.9",
-    "ip-address": ">=10.4.0"
+    "ip-address": "10.5.1"
   }
 }
