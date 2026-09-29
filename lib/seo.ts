@@ -49,21 +49,21 @@ export function getSiteCopy(): { title: string; description: string; keywords: s
   if (network === 'mainnet') {
     return {
       title: 'Zcash Block Explorer & Privacy Analytics | ZecBlock',
-      description: 'ZecBlock is a Zcash block explorer for searching blocks, transactions, and addresses, with live shielded pool, privacy, and network analytics.',
+      description: 'Search Zcash blocks, transactions, and addresses. Explore shielded pools, network activity, and privacy analytics with ZecBlock.',
       keywords: ['zcash block explorer', 'zcash explorer', 'ZEC explorer', 'zcash blockchain explorer', 'zcash transactions', 'zcash shielded pool', 'privacy', 'ZEC', 'ZecBlock', 'zcash rich list', 'zcash network'],
       imageAlt: 'ZecBlock - Zcash Block Explorer',
     };
   }
   if (network === 'testnet') {
     return {
-      title: 'ZecBlock Testnet - Zcash Testnet Explorer for TAZ',
+      title: 'Zcash Testnet Explorer for TAZ | ZecBlock',
       description: 'Explore the Zcash testnet with ZecBlock. Search TAZ blocks, transactions, and addresses, monitor pending transactions, and inspect testnet network activity.',
       keywords: ['zcash testnet', 'TAZ', 'TAZ explorer', 'zcash testnet explorer', 'zcash testnet transactions', 'ZecBlock testnet'],
       imageAlt: 'ZecBlock - Zcash Testnet Explorer for TAZ',
     };
   }
   return {
-    title: 'ZecBlock Crosslink - Zcash Crosslink Explorer',
+    title: 'Zcash Crosslink Explorer | ZecBlock',
     description: 'Explore the Zcash Crosslink feature network, including blocks, finality, staking, and validators.',
     keywords: ['zcash crosslink', 'crosslink explorer', 'zcash finality', 'cTAZ'],
     imageAlt: 'ZecBlock - Zcash Crosslink Explorer',

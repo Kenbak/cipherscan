@@ -3,7 +3,7 @@ import { buildPageMetadata, getBaseUrl } from '@/lib/seo';
 export const metadata = buildPageMetadata({
   title: 'Zcash Valuation & Market Context | ZecBlock',
   description:
-    'Current ZEC price, modeled MVRV and realized price, transparent spending behavior, shielded supply and Google Trends context with clear dates and data limitations.',
+    'Explore ZEC price, modeled MVRV and realized price, transparent spending, and shielded supply, with sources and data limitations.',
   keywords: [
     'zcash MVRV',
     'zcash realized price',

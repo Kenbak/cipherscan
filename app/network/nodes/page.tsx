@@ -3,7 +3,7 @@ import NodesClient from './NodesClient';
 
 export const metadata = buildPageMetadata({
   title: 'Zcash Network Nodes | ZecBlock',
-  description: 'Explore the Zcash peer-to-peer network: verified reachable nodes, client implementations, version adoption, and geographic distribution.',
+  description: 'Explore observed Zcash nodes, crawler reachability, reported client versions, geographic distribution, and peer advertisements.',
   keywords: ['zcash nodes', 'zcash network nodes', 'zcash peer network', 'zebra nodes', 'zakura nodes', 'zcash node map', 'zcash network topology'],
   path: '/network/nodes',
   index: true,
