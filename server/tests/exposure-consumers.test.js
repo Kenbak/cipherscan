@@ -7,7 +7,16 @@ const transparentRouter = require('../api/routes/transparent');
 
 async function request(router, pool, path) {
   const app = express();
-  app.locals.pool = pool;
+  app.locals.pool = {
+    ...pool,
+    async connect() {
+      return {
+        query: (sql, params) => /^(BEGIN|COMMIT|ROLLBACK)/.test(sql)
+          ? Promise.resolve({ rows: [] }) : pool.query(sql, params),
+        release() {},
+      };
+    },
+  };
   app.use(router);
 
   const server = await new Promise((resolve) => {

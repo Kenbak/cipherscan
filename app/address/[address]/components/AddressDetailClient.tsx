@@ -45,6 +45,7 @@ import {
 } from './helpers';
 import type {
   AddressData,
+  AddressPaginationState,
   AddressTab,
   CrossChainActivity,
   PriceData,
@@ -69,7 +70,11 @@ export function AddressDetailClient({ address, initialMeta = null }: AddressDeta
   const [crossChain, setCrossChain] = useState<CrossChainActivity | null>(null);
   const [activeTab, setActiveTab] = useState<AddressTab>('transactions');
 
-  const currentPage = Math.max(1, parseInt(searchParams.get('page') || '1', 10));
+  const parsedPage = Number(searchParams.get('page') || '1');
+  const currentPage = Number.isSafeInteger(parsedPage) && parsedPage > 0 ? parsedPage : 1;
+  const cursor = searchParams.get('cursor');
+  const [pagination, setPagination] = useState<AddressPaginationState | null>(null);
+  const [pageError, setPageError] = useState<string | null>(null);
   const [totalPages, setTotalPages] = useState(1);
 
   const [uaComponents, setUaComponents] = useState<UnifiedAddressComponents | null>(null);
@@ -86,25 +91,24 @@ export function AddressDetailClient({ address, initialMeta = null }: AddressDeta
     }
   };
 
-  const fetchPageData = useCallback(async () => {
+  const fetchPageData = useCallback(async (signal: AbortSignal) => {
     try {
       setLoading(true);
+      setPageError(null);
 
-      const apiUrl = `${getApiUrl()}/api/address/${address}?page=${currentPage}&limit=${PAGE_SIZE}`;
+      const apiUrl = `${getApiUrl()}/api/address/${address}?page=${currentPage}&limit=${PAGE_SIZE}${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ''}`;
 
-      const crossChainUrl = `${getApiUrl()}/api/crosschain/address/${encodeURIComponent(address)}`;
-      const priceUrl = `${getApiUrl()}/api/price`;
+      const response = await fetch(apiUrl, { signal });
 
-      const [response, crossChainRes, priceRes] = await Promise.all([
-        fetch(apiUrl),
-        fetch(crossChainUrl).catch(() => null),
-        fetch(priceUrl).catch(() => null),
-      ]);
-
-      if (!response.ok) throw new Error('Failed to fetch address data');
+      if (!response.ok) {
+        const problem = await response.json().catch(() => ({}));
+        throw new Error(problem.error || 'Address history is temporarily unavailable. Please try again.');
+      }
       const apiData = await response.json();
+      if (signal.aborted) return;
 
       setTotalPages(apiData.pagination?.totalPages || 1);
+      setPagination(apiData.pagination || null);
 
       const transformedTransactions = transformTransactions(apiData, apiData.transactions || []);
       setData({
@@ -118,31 +122,45 @@ export function AddressDetailClient({ address, initialMeta = null }: AddressDeta
         lastSeen: apiData.lastSeen,
         firstFunding: apiData.firstFunding ?? null,
       });
-
-      if (crossChainRes?.ok) {
-        try {
-          const ccData = await crossChainRes.json();
-          if (ccData.success && ccData.totalSwaps > 0) setCrossChain(ccData);
-        } catch { /* ignore */ }
-      }
-
-      if (priceRes?.ok) {
-        try {
-          const pData = await priceRes.json();
-          setPriceData({ price: pData.price, change24h: pData.change24h });
-        } catch { /* ignore */ }
-      }
     } catch (error) {
+      if (signal.aborted) return;
       console.error('Error fetching address data:', error);
-      setData(null);
+      setPageError(error instanceof Error ? error.message : 'Unable to load address history.');
     } finally {
-      setLoading(false);
+      if (!signal.aborted) setLoading(false);
     }
-  }, [address, currentPage]);
+  }, [address, currentPage, cursor]);
 
   useEffect(() => {
-    fetchPageData();
+    const controller = new AbortController();
+    void fetchPageData(controller.signal);
+    return () => controller.abort();
   }, [fetchPageData]);
+
+  // These values belong to the address, not to a transaction page. Neither
+  // optional request should delay the table or repeat during pagination.
+  useEffect(() => {
+    const controller = new AbortController();
+    const { signal } = controller;
+    setCrossChain(null);
+    setPriceData(null);
+
+    void fetch(`${getApiUrl()}/api/crosschain/address/${encodeURIComponent(address)}`, { signal })
+      .then(async response => {
+        if (!response.ok) return;
+        const ccData = await response.json();
+        if (!signal.aborted && ccData.success && ccData.totalSwaps > 0) setCrossChain(ccData);
+      }).catch(() => { /* optional enrichment */ });
+
+    void fetch(`${getApiUrl()}/api/price`, { signal })
+      .then(async response => {
+        if (!response.ok) return;
+        const pData = await response.json();
+        if (!signal.aborted) setPriceData({ price: pData.price, change24h: pData.change24h });
+      }).catch(() => { /* optional enrichment */ });
+
+    return () => controller.abort();
+  }, [address]);
 
   useEffect(() => {
     const decodeUA = async () => {
@@ -163,9 +181,21 @@ export function AddressDetailClient({ address, initialMeta = null }: AddressDeta
     decodeUA();
   }, [address]);
 
-  if (loading) {
+  if (loading && !data) {
     return <AddressLoadingSkeleton initialMeta={initialMeta} address={address} />;
   }
+
+  if (data && data.address !== address) {
+    return <AddressLoadingSkeleton initialMeta={initialMeta} address={address} />;
+  }
+
+  const historyError = pageError ? (
+    <div role="alert" className="my-4 p-4 rounded-lg border border-cipher-border text-secondary">
+      <p>{pageError}</p>
+      <a href={`/address/${address}`} className="underline">Reload latest history</a>
+    </div>
+  ) : null;
+  if (!data && pageError) return <div className="max-w-7xl mx-auto px-4 py-8">{historyError}</div>;
 
   const shielded = isShieldedAddress(data);
   const noTransactions = hasNoTransactions(data);
@@ -228,6 +258,8 @@ export function AddressDetailClient({ address, initialMeta = null }: AddressDeta
         summary={<AddressSummary data={data} totalTxCount={totalTxCount} />}
       />
 
+      {historyError}
+
       <AddressTabBar
         activeTab={activeTab}
         totalTxCount={totalTxCount}
@@ -241,14 +273,18 @@ export function AddressDetailClient({ address, initialMeta = null }: AddressDeta
       ) : activeTab === 'crosschain' && crossChain && crossChain.totalSwaps > 0 ? (
         <CrossChainTable crossChain={crossChain} />
       ) : (
+        <div aria-busy={loading}>
+        {loading && <p role="status" className="text-sm text-muted py-2">Loading transactions…</p>}
         <TransactionTable
           address={address}
           data={data}
-          currentPage={currentPage}
+          currentPage={pagination?.page || currentPage}
+          pagination={pagination}
           totalPages={totalPages}
           pageSize={PAGE_SIZE}
-          totalTxCount={totalTxCount}
+          totalTxCount={pagination?.total ?? totalTxCount}
         />
+        </div>
       )}
     </div>
   );

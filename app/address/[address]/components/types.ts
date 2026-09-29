@@ -69,3 +69,13 @@ export type AddressTab = 'transactions' | 'crosschain' | 'graph';
 export type UnifiedAddressTab = 'unified' | 'transparent' | 'sapling' | 'orchard';
 
 export type { UnifiedAddressComponents };
+
+export interface AddressPaginationState {
+  page: number;
+  total: number;
+  totalPages: number;
+  nextCursor?: string | null;
+  prevCursor?: string | null;
+  lastCursor?: string | null;
+  snapshotHeight?: number;
+}

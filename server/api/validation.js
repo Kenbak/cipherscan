@@ -50,7 +50,8 @@ const schemas = {
   addressById: {
     params: z.object({ address: addressSchema }),
     query: z.object({
-      page: z.coerce.number().int().min(1).default(1),
+      page: z.coerce.number().int().min(1).max(Number.MAX_SAFE_INTEGER).default(1),
+      cursor: z.string().max(4096).optional(),
       limit: z.coerce.number().int().min(1).max(100).default(25),
     }),
   },

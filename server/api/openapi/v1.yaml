@@ -6495,7 +6495,12 @@ paths:
   /v1/addresses/{address}:
     get:
       operationId: get_addresses_Address
-      summary: Address summary + paginated transaction history.
+      summary: >-
+        Address summary and snapshot-paginated transaction history. Send page and limit; follow
+        pagination.nextCursor, prevCursor or lastCursor with the corresponding page. Cursors expire
+        after one hour, a service restart or a reorg (409: reload without cursor). Numeric pages are
+        supported within 100,000 rows of either end; use cursors for deeper traversal. Overview
+        balances are current; pagination.total and snapshotHeight describe the frozen history.
       tags:
         - address
       parameters:
@@ -6510,7 +6515,13 @@ paths:
       x-cipherscan-v1-status: adapter
       responses:
         '200':
-          description: Address summary + paginated transaction history.
+          description: >-
+            Address summary and snapshot-paginated transaction history. Send page and limit; follow
+            pagination.nextCursor, prevCursor or lastCursor with the corresponding page. Cursors
+            expire after one hour, a service restart or a reorg (409: reload without cursor).
+            Numeric pages are supported within 100,000 rows of either end; use cursors for deeper
+            traversal. Overview balances are current; pagination.total and snapshotHeight describe
+            the frozen history.
           content:
             application/json:
               schema:
