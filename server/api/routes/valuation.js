@@ -10,6 +10,8 @@
 const express = require('express');
 const { logSafeError } = require('../lib/safe-log');
 const router = express.Router();
+const { mainnetOnly } = require('../lib/network-features');
+router.use('/api/valuation', mainnetOnly('Market valuation'));
 
 let pool, redisClient;
 

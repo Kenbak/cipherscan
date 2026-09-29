@@ -8,6 +8,7 @@ const { subsidyZat, supplyZat } = require('../lib/network-issuance');
 const express = require('express');
 const { loadHashrateSnapshot, formatHashrate } = require('../lib/hashrate');
 const router = express.Router();
+const { isTestnet } = require('../lib/network-features');
 const { registerNetworkAnalyticsRoutes } = require('./network-analytics');
 const { parsePeerClient } = require('../../lib/peer-client');
 const { parseSafeListPagination, offsetExceededError } = require('../lib/pagination');
@@ -941,6 +942,7 @@ let priceCache = { data: null, timestamp: 0 };
 const PRICE_CACHE_MS = 60_000;
 
 router.get('/api/price', async (req, res) => {
+  if (isTestnet()) return res.json({ price: null, change24h: null, available: false, network: 'testnet' });
   try {
     const now = Date.now();
     if (priceCache.data && now - priceCache.timestamp < PRICE_CACHE_MS) {
@@ -982,6 +984,8 @@ router.get('/api/price/at', async (req, res) => {
     if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
       return res.status(400).json({ error: 'date query param required (YYYY-MM-DD)' });
     }
+
+    if (isTestnet()) return res.json({ date, price_usd: null, exact: false, available: false, network: 'testnet' });
 
     const result = await pool.query(
       'SELECT price_usd FROM zec_price_daily WHERE date = $1',

@@ -3,6 +3,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const test = require('node:test');
 const { pathToFileURL } = require('node:url');
+const { createRequire } = require('node:module');
 const ts = require('typescript');
 
 const repositoryRoot = path.resolve(__dirname, '../..');
@@ -58,7 +59,7 @@ function captureTransactionRoutes() {
     if (specifier === '../../coinbase-data') return { decodeCoinbaseText: () => null };
     if (specifier === './_helpers') return helpers;
     if (specifier === '../../lib/safe-log') return require('../api/lib/safe-log');
-    return require(specifier);
+    return createRequire(detailPath)(specifier);
   };
   const detailEval = new Function('exports', 'require', 'module', '__filename', '__dirname', detailSource);
   detailEval(detailModule.exports, detailRequire, detailModule, detailPath, path.dirname(detailPath));

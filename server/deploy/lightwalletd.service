@@ -1,7 +1,7 @@
 [Unit]
 Description=CipherScan Lightwalletd (Mainnet)
-After=network-online.target zebrad-mainnet.service
-Wants=network-online.target zebrad-mainnet.service
+After=network-online.target zakurad-mainnet.service
+Wants=network-online.target zakurad-mainnet.service
 
 [Service]
 Type=simple

@@ -195,3 +195,19 @@ test('an orphaned (stale) transaction gets a short, revalidating Cache-Control h
   assert.equal(result.body.status, 'stale');
   assert.equal(result.headers.get('cache-control'), 'public, s-maxage=30, stale-while-revalidate=300');
 });
+
+test('testnet tx detail never queries the mainnet bridge table', async () => {
+  const original = process.env.NETWORK;
+  process.env.NETWORK = 'testnet';
+  try {
+    const pool = createFakePool({ txRow: baseTxRow, bridgeThrows: true });
+    const result = await requestTx(pool);
+    assert.equal(result.status, 200);
+    assert.equal(result.body.bridge, null);
+    assert.equal(pool.calls.bridge, 0);
+    assert.equal(pool.calls.tx, 1);
+  } finally {
+    if (original === undefined) delete process.env.NETWORK;
+    else process.env.NETWORK = original;
+  }
+});

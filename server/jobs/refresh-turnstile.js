@@ -38,6 +38,14 @@ const SWEEP_MODE = process.argv.includes('--sweep');
 // bookmark from silently triggering a multi-thousand-date recompute that
 // saturates disk IO and takes the site down.
 const REBUILD_MODE = process.argv.includes('--rebuild');
+// Explicit bounded repair: recompute one UTC date without moving the live
+// incremental bookmark. Repeat dates safely under the same advisory lock.
+const REPAIR_DATE = process.argv.find(arg => arg.startsWith('--date='))?.slice(7);
+if (REPAIR_DATE !== undefined && (!/^\d{4}-\d{2}-\d{2}$/.test(REPAIR_DATE)
+  || !Number.isFinite(Date.parse(REPAIR_DATE))
+  || new Date(REPAIR_DATE).toISOString().slice(0, 10) !== REPAIR_DATE)) {
+  throw new Error('--date must be a valid YYYY-MM-DD');
+}
 const RECENT_HELD_DAYS = 7;
 const SWEEP_WINDOW_DAYS = 120; // daily sweep only re-checks held outputs this recent
 const MAX_AUTO_DATES = 31; // safety cap for non-rebuild runs
@@ -272,6 +280,11 @@ async function main() {
   const client = await pool.connect();
   try {
     await withAdvisoryLock(client, LOCK_ID, async (client) => {
+      if (REPAIR_DATE) {
+        const count = await recomputeDates(client, [REPAIR_DATE]);
+        log(`Repaired ${REPAIR_DATE}: ${count} rows; incremental bookmark unchanged`);
+        return;
+      }
       const lastProcessed = await getLastProcessedTime(client);
       log(`Last processed block_time: ${lastProcessed} (${lastProcessed > 0 ? new Date(lastProcessed * 1000).toISOString().split('T')[0] : 'never'})`);
 

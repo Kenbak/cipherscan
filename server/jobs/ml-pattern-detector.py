@@ -170,7 +170,7 @@ def store_pattern(conn, pattern: Dict, dry_run: bool = False) -> bool:
     except Exception as e:
         print(f"❌ Failed to store pattern: {e}")
         conn.rollback()
-        return False
+        raise
 
 
 # ============================================================================
