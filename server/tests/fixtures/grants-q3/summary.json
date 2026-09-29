@@ -1,0 +1,1116 @@
+{
+  "vote_round_id": "LLpm6xbHWBoWkssLAzeF2gExBZ9kWg0vtNwqUTFQXgE=",
+  "status": 3,
+  "description": "Coinholder Retroactive Grants Q3",
+  "vote_end_time": 1790712000,
+  "proposals": [
+    {
+      "id": 1,
+      "title": "Zcash Grants Hub — $3,050 USD (Daniel Goh)",
+      "description": "Built and shipped an open-source unified grants platform aggregating ZCG, Coinholder Grants, and ZecHub DAO proposals into a single interface, with filtering/sorting, grant detail pages, analytics views, GitHub-based submission UX improvements, and ZecHub DAO participation guidance — completed April 2026.",
+      "options": [
+        {
+          "label": "Accept",
+          "ballot_count": 1336,
+          "total_value": 636064
+        },
+        {
+          "index": 1,
+          "label": "Reject - Do Not Support the Proposed Project",
+          "ballot_count": 2160,
+          "total_value": 11133023
+        },
+        {
+          "index": 2,
+          "label": "Reject - Would Reconsider in a Future Round at a Lower Amount",
+          "ballot_count": 50,
+          "total_value": 261
+        },
+        {
+          "index": 3,
+          "label": "Abstain",
+          "ballot_count": 483,
+          "total_value": 5682267
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "ShieldedScan — $4,060 USD (ShieldedScan)",
+      "description": "A free, no-tracker, cypherpunk-styled Zcash block explorer for blocks, transactions, cross-chain transfers, shielded pools, and network analytics (charts, tables, Sankey diagrams), plus a free keyless API.",
+      "options": [
+        {
+          "label": "Accept",
+          "ballot_count": 1464,
+          "total_value": 4198162
+        },
+        {
+          "index": 1,
+          "label": "Reject - Do Not Support the Proposed Project",
+          "ballot_count": 2064,
+          "total_value": 13207345
+        },
+        {
+          "index": 2,
+          "label": "Reject - Would Reconsider in a Future Round at a Lower Amount",
+          "ballot_count": 130,
+          "total_value": 3519
+        },
+        {
+          "index": 3,
+          "label": "Abstain",
+          "ballot_count": 341,
+          "total_value": 42597
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "ZecKit Post-M3 Stabilization and Developer Adoption — $5,000 USD (Dapps over Apps)",
+      "description": "Open-source Zcash developer toolkit for a local Zebra regtest environment and reusable CI workflow. This retroactive request covers post-M3 work improving documentation, installability, reliability, and maintainability.",
+      "options": [
+        {
+          "label": "Accept",
+          "ballot_count": 1366,
+          "total_value": 3174559
+        },
+        {
+          "index": 1,
+          "label": "Reject - Do Not Support the Proposed Project",
+          "ballot_count": 2050,
+          "total_value": 13369214
+        },
+        {
+          "index": 2,
+          "label": "Reject - Would Reconsider in a Future Round at a Lower Amount"
+        },
+        {
+          "index": 3,
+          "label": "Abstain",
+          "ballot_count": 578,
+          "total_value": 907827
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "zcashtocash via ZcashLabs — $6,000 USD (ZcashLabs)",
+      "description": "zcashto.cash lets anyone exchange ZEC for fiat via 100+ geographies and 6 fiat apps (Cash App, Chime, Monzo, Revolut, Venmo, Zelle), non-custodial via the Peer protocol. Funded by the new ZcashLabs program managing Coinholder Retroactive Grants.",
+      "options": [
+        {
+          "label": "Accept",
+          "ballot_count": 3352,
+          "total_value": 12534910
+        },
+        {
+          "index": 1,
+          "label": "Reject - Do Not Support the Proposed Project",
+          "ballot_count": 227,
+          "total_value": 14764
+        },
+        {
+          "index": 2,
+          "label": "Reject - Would Reconsider in a Future Round at a Lower Amount",
+          "ballot_count": 64,
+          "total_value": 2318
+        },
+        {
+          "index": 3,
+          "label": "Abstain",
+          "ballot_count": 293,
+          "total_value": 4885466
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "title": "zec-ironwood-reconcile — $8,250 USD (Steven Hert)",
+      "description": "Completed open-source Rust CLI that reconstructs Orchard and Ironwood value-pool changes from raw public Zcash block data and compares calculated balances with Zebra's reported balances. v1.0.0 release includes offline-verifiable evidence archives, deterministic reports, and reproduction instructions.",
+      "options": [
+        {
+          "label": "Accept",
+          "ballot_count": 1192,
+          "total_value": 3271872
+        },
+        {
+          "index": 1,
+          "label": "Reject - Do Not Support the Proposed Project",
+          "ballot_count": 2064,
+          "total_value": 13195385
+        },
+        {
+          "index": 2,
+          "label": "Reject - Would Reconsider in a Future Round at a Lower Amount",
+          "ballot_count": 112,
+          "total_value": 91436
+        },
+        {
+          "index": 3,
+          "label": "Abstain",
+          "ballot_count": 535,
+          "total_value": 874704
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "title": "Gleyo — $9,081.20 USD (Gleyo)",
+      "description": "A Zcash-native community quest platform where members earn shielded ZEC rewards without upfront wallet setup — live in closed beta with 38 weekly active users, 33 mainnet transactions spanning the Ironwood upgrade, and upstream contributions to Nozy Wallet.",
+      "options": [
+        {
+          "label": "Accept",
+          "ballot_count": 869,
+          "total_value": 510878
+        },
+        {
+          "index": 1,
+          "label": "Reject - Do Not Support the Proposed Project",
+          "ballot_count": 2309,
+          "total_value": 16039998
+        },
+        {
+          "index": 2,
+          "label": "Reject - Would Reconsider in a Future Round at a Lower Amount",
+          "ballot_count": 144,
+          "total_value": 9503
+        },
+        {
+          "index": 3,
+          "label": "Abstain",
+          "ballot_count": 565,
+          "total_value": 873115
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "title": "Self-Sovereign Zcash Testnet Faucet — $9,280 USD (Jino Labs)",
+      "description": "A complete, self-hosted, self-sovereign Zcash testnet faucet (own Zebra node, Zallet wallet, Zaino indexer, solo miner) with shielded z-to-z payouts, an honest control plane, two upstream Crosslink bug-fix PRs, and the zsnap snapshot tool.",
+      "options": [
+        {
+          "label": "Accept",
+          "ballot_count": 965,
+          "total_value": 848627
+        },
+        {
+          "index": 1,
+          "label": "Reject - Do Not Support the Proposed Project",
+          "ballot_count": 2275,
+          "total_value": 15622300
+        },
+        {
+          "index": 2,
+          "label": "Reject - Would Reconsider in a Future Round at a Lower Amount",
+          "ballot_count": 178,
+          "total_value": 103172
+        },
+        {
+          "index": 3,
+          "label": "Abstain",
+          "ballot_count": 501,
+          "total_value": 859684
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "title": "CyphZec.com — $10,000 USD (Thomas Zarebczan)",
+      "description": "A free, no-account site for watching ZEC and CYPH: live prices, shielding and Ironwood stats, treasury, network stats, and an on-device portfolio.",
+      "options": [
+        {
+          "label": "Accept",
+          "ballot_count": 1494,
+          "total_value": 486153
+        },
+        {
+          "index": 1,
+          "label": "Reject - Do Not Support the Proposed Project",
+          "ballot_count": 1826,
+          "total_value": 16097397
+        },
+        {
+          "index": 2,
+          "label": "Reject - Would Reconsider in a Future Round at a Lower Amount",
+          "ballot_count": 194,
+          "total_value": 14670
+        },
+        {
+          "index": 3,
+          "label": "Abstain",
+          "ballot_count": 389,
+          "total_value": 835459
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "title": "ZecLedger — $10,000 USD (ZecLedger)",
+      "description": "A read-only shielded wallet accounting CLI (Unified Full Viewing Key, key never leaves device) producing cost-basis/gain-loss reports, payment reconciliation, privacy checks, and ZIP-321 payment request generation — verified against a real 108-transaction mainnet wallet — plus ZecLedger Web, a public network dashboard.",
+      "options": [
+        {
+          "label": "Accept",
+          "ballot_count": 1268,
+          "total_value": 3234793
+        },
+        {
+          "index": 1,
+          "label": "Reject - Do Not Support the Proposed Project",
+          "ballot_count": 1939,
+          "total_value": 13310236
+        },
+        {
+          "index": 2,
+          "label": "Reject - Would Reconsider in a Future Round at a Lower Amount",
+          "ballot_count": 192,
+          "total_value": 6769
+        },
+        {
+          "index": 3,
+          "label": "Abstain",
+          "ballot_count": 504,
+          "total_value": 881872
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "title": "lightwalletd-rs — $10,720 USD (jpgonzalezra)",
+      "description": "An independent Rust implementation of the Zcash light-client server (caching proxy between zebrad and shielded wallets), built June–August 2026, implementing all 20 CompactTxStreamer gRPC methods, public under MIT, CI-tested, and benchmarked against the Go reference implementation.",
+      "options": [
+        {
+          "label": "Accept",
+          "ballot_count": 1079,
+          "total_value": 838023
+        },
+        {
+          "index": 1,
+          "label": "Reject - Do Not Support the Proposed Project",
+          "ballot_count": 2128,
+          "total_value": 14219517
+        },
+        {
+          "index": 2,
+          "label": "Reject - Would Reconsider in a Future Round at a Lower Amount",
+          "ballot_count": 176,
+          "total_value": 125706
+        },
+        {
+          "index": 3,
+          "label": "Abstain",
+          "ballot_count": 536,
+          "total_value": 2250431
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "title": "Blindvault — $17,000 USD (TIDJANI Walid)",
+      "description": "A privacy-preserving credential issuance service allowing applications to issue and verify one-time anonymous credentials without tracking users, using BLS12-381 blind signatures and DLEQ proofs. Serves as middleware for private airdrops, access controls, community votes, and similar apps.",
+      "options": [
+        {
+          "label": "Accept",
+          "ballot_count": 995,
+          "total_value": 711813
+        },
+        {
+          "index": 1,
+          "label": "Reject - Do Not Support the Proposed Project",
+          "ballot_count": 2246,
+          "total_value": 14454266
+        },
+        {
+          "index": 2,
+          "label": "Reject - Would Reconsider in a Future Round at a Lower Amount",
+          "ballot_count": 272,
+          "total_value": 1415461
+        },
+        {
+          "index": 3,
+          "label": "Abstain",
+          "ballot_count": 406,
+          "total_value": 852361
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "title": "Zallet RPC Parity Harness — $20,000 USD (Creativesonchain)",
+      "description": "A completed standalone Rust CLI that compares results from operator-supplied zcashd and Zallet JSON-RPC endpoints and generates normalized JSON/Markdown reports. Includes a 24-entry comparison manifest, six result classifications, automated tests, mock-node E2E validation, CI, and an operator runbook.",
+      "options": [
+        {
+          "label": "Accept",
+          "ballot_count": 803,
+          "total_value": 695446
+        },
+        {
+          "index": 1,
+          "label": "Reject - Do Not Support the Proposed Project",
+          "ballot_count": 2324,
+          "total_value": 14459616
+        },
+        {
+          "index": 2,
+          "label": "Reject - Would Reconsider in a Future Round at a Lower Amount",
+          "ballot_count": 195,
+          "total_value": 27972
+        },
+        {
+          "index": 3,
+          "label": "Abstain",
+          "ballot_count": 613,
+          "total_value": 2250931
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "title": "Zecmap — $21,300 USD (Batuhan)",
+      "description": "A discovery platform (zecmap.com, Android, iOS) that lists Zcash-accepting businesses on an interactive map to drive real-world adoption of privacy-focused crypto payments.",
+      "options": [
+        {
+          "label": "Accept",
+          "ballot_count": 1304,
+          "total_value": 1427189
+        },
+        {
+          "index": 1,
+          "label": "Reject - Do Not Support the Proposed Project",
+          "ballot_count": 2066,
+          "total_value": 11071456
+        },
+        {
+          "index": 2,
+          "label": "Reject - Would Reconsider in a Future Round at a Lower Amount",
+          "ballot_count": 147,
+          "total_value": 90036
+        },
+        {
+          "index": 3,
+          "label": "Abstain",
+          "ballot_count": 451,
+          "total_value": 4845417
+        }
+      ]
+    },
+    {
+      "id": 14,
+      "title": "Connaugh Zcash Videos — $22,000 USD (Connaugh)",
+      "description": "Editing and re-architecting Zcash ecosystem video footage into short, single-argument films for audiences unlikely to watch long-form content — five films published 28 July–12 August 2026, reaching 45,811 impressions and 9,931 views.",
+      "options": [
+        {
+          "label": "Accept",
+          "ballot_count": 1096,
+          "total_value": 6056354
+        },
+        {
+          "index": 1,
+          "label": "Reject - Do Not Support the Proposed Project",
+          "ballot_count": 482,
+          "total_value": 1497893
+        },
+        {
+          "index": 2,
+          "label": "Reject - Would Reconsider in a Future Round at a Lower Amount",
+          "ballot_count": 672,
+          "total_value": 1568352
+        },
+        {
+          "index": 3,
+          "label": "Abstain",
+          "ballot_count": 1702,
+          "total_value": 8311386
+        }
+      ]
+    },
+    {
+      "id": 15,
+      "title": "ZAP1 — $28,000 USD (Frontier Compute)",
+      "description": "A Zcash application-layer attestation protocol built March–May 2026 using BLAKE2b Merkle commitments anchored to mainnet via Orchard shielded memos, with a Rust reference implementation, verification crate, JS/NPM package, and live public API.",
+      "options": [
+        {
+          "label": "Accept",
+          "ballot_count": 867,
+          "total_value": 697151
+        },
+        {
+          "index": 1,
+          "label": "Reject - Do Not Support the Proposed Project",
+          "ballot_count": 2211,
+          "total_value": 14340366
+        },
+        {
+          "index": 2,
+          "label": "Reject - Would Reconsider in a Future Round at a Lower Amount",
+          "ballot_count": 192,
+          "total_value": 110584
+        },
+        {
+          "index": 3,
+          "label": "Abstain",
+          "ballot_count": 632,
+          "total_value": 2285728
+        }
+      ]
+    },
+    {
+      "id": 16,
+      "title": "ZecBooks — $32,000 USD (SaneApps)",
+      "description": "A Mac-native, local-first bookkeeping layer for shielded Zcash: import a viewing key, classify income/change/expense, and export a scoped, expiring proof pack for an accountant. Cannot spend ZEC; not a merchant checkout product.",
+      "options": [
+        {
+          "label": "Accept",
+          "ballot_count": 710,
+          "total_value": 808208
+        },
+        {
+          "index": 1,
+          "label": "Reject - Do Not Support the Proposed Project",
+          "ballot_count": 2240,
+          "total_value": 14237329
+        },
+        {
+          "index": 2,
+          "label": "Reject - Would Reconsider in a Future Round at a Lower Amount",
+          "ballot_count": 353,
+          "total_value": 1521054
+        },
+        {
+          "index": 3,
+          "label": "Abstain",
+          "ballot_count": 632,
+          "total_value": 867325
+        }
+      ]
+    },
+    {
+      "id": 17,
+      "title": "CipherPay — $35,000 USD (Atmosphere Labs (Kenbak))",
+      "description": "A non-custodial Zcash commerce platform built February–May 2026, shipping six MIT-licensed repositories covering payment processing, subscriptions, e-commerce plugins (Shopify, WooCommerce), event ticketing, AI agent payments (x402, MCP), and a point-of-sale interface — live with real merchants.",
+      "options": [
+        {
+          "label": "Accept",
+          "ballot_count": 3530,
+          "total_value": 15904896
+        },
+        {
+          "index": 1,
+          "label": "Reject - Do Not Support the Proposed Project",
+          "ballot_count": 226,
+          "total_value": 665137
+        },
+        {
+          "index": 2,
+          "label": "Reject - Would Reconsider in a Future Round at a Lower Amount",
+          "ballot_count": 33,
+          "total_value": 14021
+        },
+        {
+          "index": 3,
+          "label": "Abstain",
+          "ballot_count": 131,
+          "total_value": 849771
+        }
+      ]
+    },
+    {
+      "id": 18,
+      "title": "Zafu Browser Extension — $38,000 USD (Rotko Networks OU)",
+      "description": "A privacy-centric Chrome MV3 browser wallet built around Zcash (with Penumbra as a second chain), delivering sub-12-second client-side Halo2 proving via parallelized WASM, FROST t-of-n Orchard multisig, an air-gapped signer (Zigner), and a per-site identity SDK (ZID) — published as an open-source beta on the Chrome Web Store.",
+      "options": [
+        {
+          "label": "Accept",
+          "ballot_count": 740,
+          "total_value": 741030
+        },
+        {
+          "index": 1,
+          "label": "Reject - Do Not Support the Proposed Project",
+          "ballot_count": 2179,
+          "total_value": 14304764
+        },
+        {
+          "index": 2,
+          "label": "Reject - Would Reconsider in a Future Round at a Lower Amount",
+          "ballot_count": 272,
+          "total_value": 101910
+        },
+        {
+          "index": 3,
+          "label": "Abstain",
+          "ballot_count": 712,
+          "total_value": 2285917
+        }
+      ]
+    },
+    {
+      "id": 19,
+      "title": "Zapp — $40,000 USD (Renee Chiu)",
+      "description": "A serverless, end-to-end encrypted P2P messenger fusing chat with shielded Zcash payments, enabling in-thread transactions and scan-and-pay. Live on Google Play, supporting fiat offramps across seven emerging-market rails without a phone number or central server.",
+      "options": [
+        {
+          "label": "Accept",
+          "ballot_count": 965,
+          "total_value": 737747
+        },
+        {
+          "index": 1,
+          "label": "Reject - Do Not Support the Proposed Project",
+          "ballot_count": 2290,
+          "total_value": 15813533
+        },
+        {
+          "index": 2,
+          "label": "Reject - Would Reconsider in a Future Round at a Lower Amount",
+          "ballot_count": 226,
+          "total_value": 22589
+        },
+        {
+          "index": 3,
+          "label": "Abstain",
+          "ballot_count": 454,
+          "total_value": 860047
+        }
+      ]
+    },
+    {
+      "id": 20,
+      "title": "Open-Source Zcash Hardware-Wallet SDK — $40,000 USD (wh00hw)",
+      "description": "The first portable, vendor-neutral, plain-C Orchard hardware wallet stack (~20,300 LOC across four MIT-licensed repos): a C11 crypto library, a Rust signing SDK, a Flipper Zero app, and an ESP32-S2 port — culminating in the first Orchard-shielded spend signed offline by a Flipper Zero, broadcast on mainnet 2026-03-30.",
+      "options": [
+        {
+          "label": "Accept",
+          "ballot_count": 948,
+          "total_value": 990558
+        },
+        {
+          "index": 1,
+          "label": "Reject - Do Not Support the Proposed Project",
+          "ballot_count": 2131,
+          "total_value": 14138270
+        },
+        {
+          "index": 2,
+          "label": "Reject - Would Reconsider in a Future Round at a Lower Amount",
+          "ballot_count": 337,
+          "total_value": 1437237
+        },
+        {
+          "index": 3,
+          "label": "Abstain",
+          "ballot_count": 490,
+          "total_value": 867846
+        }
+      ]
+    },
+    {
+      "id": 21,
+      "title": "Nozy Wallet — $60,000 USD (Leonine DAO)",
+      "description": "A self-hosted, shielded-first Zcash wallet running on the user's own Zebrad/Zakura + lightwalletd, with local witnesses rather than a hosted light wallet — CLI, Desktop, and companion API on the same core.",
+      "options": [
+        {
+          "label": "Accept",
+          "ballot_count": 1173,
+          "total_value": 4169949
+        },
+        {
+          "index": 1,
+          "label": "Reject - Do Not Support the Proposed Project",
+          "ballot_count": 2003,
+          "total_value": 13186709
+        },
+        {
+          "index": 2,
+          "label": "Reject - Would Reconsider in a Future Round at a Lower Amount",
+          "ballot_count": 288,
+          "total_value": 30545
+        },
+        {
+          "index": 3,
+          "label": "Abstain",
+          "ballot_count": 439,
+          "total_value": 46418
+        }
+      ]
+    },
+    {
+      "id": 22,
+      "title": "THORSwap/Metro — $60,000 USD (THORSwap Labs)",
+      "description": "Integration of native ZEC cross-chain swaps into THORSwap and Metro wallet (launched October 2025), reporting $50M+ in ZEC volume, a $520K largest single swap, 24+ supported chains, and dual routing via Maya Protocol and NEAR Intents — no KYC, no custody, hardware wallet support.",
+      "options": [
+        {
+          "label": "Accept",
+          "ballot_count": 2889,
+          "total_value": 11736294
+        },
+        {
+          "index": 1,
+          "label": "Reject - Do Not Support the Proposed Project",
+          "ballot_count": 660,
+          "total_value": 67786
+        },
+        {
+          "index": 2,
+          "label": "Reject - Would Reconsider in a Future Round at a Lower Amount",
+          "ballot_count": 160,
+          "total_value": 5123
+        },
+        {
+          "index": 3,
+          "label": "Abstain",
+          "ballot_count": 227,
+          "total_value": 5624726
+        }
+      ]
+    },
+    {
+      "id": 23,
+      "title": "Expanding Zcash In Unstoppable Wallet — $80,000 USD (Horizontal Systems - Unstoppable Wallet)",
+      "description": "Q1–Q3 2026 work covering expanded swap aggregation, Zcash wallet reliability improvements (server selection, transaction resend, address rotation, SDK migration), and full NU6.3/Ironwood migration support.",
+      "options": [
+        {
+          "label": "Accept",
+          "ballot_count": 2663,
+          "total_value": 11492760
+        },
+        {
+          "index": 1,
+          "label": "Reject - Do Not Support the Proposed Project",
+          "ballot_count": 822,
+          "total_value": 1116966
+        },
+        {
+          "index": 2,
+          "label": "Reject - Would Reconsider in a Future Round at a Lower Amount",
+          "ballot_count": 161,
+          "total_value": 11070
+        },
+        {
+          "index": 3,
+          "label": "Abstain",
+          "ballot_count": 242,
+          "total_value": 4812831
+        }
+      ]
+    },
+    {
+      "id": 24,
+      "title": "ZcashNames — $122,400 USD (ZcashMe, Inc.)",
+      "description": "An on-chain Zcash naming system (ZNS) mapping human-readable names like alice.zcash to shielded addresses, delivered as a live beta web app, public explorer, docs portal, and developer SDK — framed as the trust-minimized successor to ZcashMe.",
+      "options": [
+        {
+          "label": "Accept",
+          "ballot_count": 802,
+          "total_value": 357139
+        },
+        {
+          "index": 1,
+          "label": "Reject - Do Not Support the Proposed Project",
+          "ballot_count": 2308,
+          "total_value": 11353611
+        },
+        {
+          "index": 2,
+          "label": "Reject - Would Reconsider in a Future Round at a Lower Amount",
+          "ballot_count": 371,
+          "total_value": 58478
+        },
+        {
+          "index": 3,
+          "label": "Abstain",
+          "ballot_count": 454,
+          "total_value": 5663011
+        }
+      ]
+    },
+    {
+      "id": 25,
+      "title": "Frontier Compute Zcash Security Research and Remediation Pack — $136,250 USD (Frontier Compute LLC.)",
+      "description": "A completed security-research and remediation pack covering concrete security failures found in Zcash infrastructure and wallet code, responsibly disclosed and verified through to shipped remediation.",
+      "options": [
+        {
+          "label": "Accept",
+          "ballot_count": 1431,
+          "total_value": 1375680
+        },
+        {
+          "index": 1,
+          "label": "Reject - Do Not Support the Proposed Project",
+          "ballot_count": 2065,
+          "total_value": 15077689
+        },
+        {
+          "index": 2,
+          "label": "Reject - Would Reconsider in a Future Round at a Lower Amount",
+          "ballot_count": 96,
+          "total_value": 107781
+        },
+        {
+          "index": 3,
+          "label": "Abstain",
+          "ballot_count": 311,
+          "total_value": 872268
+        }
+      ]
+    },
+    {
+      "id": 26,
+      "title": "Zebra Critical Vulnerability Bug Bounty (CVE-2026-34202) — $150,000 USD (robustfengbin)",
+      "description": "Bug bounty request for CVE-2026-34202, a Critical (CVSS 9.2) vulnerability allowing any unauthenticated peer to crash any Zebra node with a single P2P message, found via coverage-guided fuzzing, reported privately, and fixed in Zebra 4.3.0. No bounty was previously paid; ZCG's bounty program launched after this report and does not apply retroactively.",
+      "options": [
+        {
+          "label": "Accept",
+          "ballot_count": 3270,
+          "total_value": 11143434
+        },
+        {
+          "index": 1,
+          "label": "Reject - Do Not Support the Proposed Project",
+          "ballot_count": 241,
+          "total_value": 32976
+        },
+        {
+          "index": 2,
+          "label": "Reject - Would Reconsider in a Future Round at a Lower Amount",
+          "ballot_count": 195,
+          "total_value": 4978091
+        },
+        {
+          "index": 3,
+          "label": "Abstain",
+          "ballot_count": 229,
+          "total_value": 1279415
+        }
+      ]
+    },
+    {
+      "id": 27,
+      "title": "Bonus Grant for Ironwood zk-SNARK Formal Verification — $261,058 USD (Jason McGee)",
+      "description": "A bonus grant nomination (not a standard application) arguing Tachyon Foundation's $738,942 application for leading Ironwood zk-SNARK formal verification underprices real absorbed costs and emergency-rate work; this adds $261,058 to bring total recognition to $1,000,000.",
+      "options": [
+        {
+          "label": "Accept",
+          "ballot_count": 3609,
+          "total_value": 17366425
+        },
+        {
+          "index": 1,
+          "label": "Reject - Do Not Support the Proposed Project",
+          "ballot_count": 145,
+          "total_value": 29894
+        },
+        {
+          "index": 2,
+          "label": "Reject - Would Reconsider in a Future Round at a Lower Amount",
+          "ballot_count": 51,
+          "total_value": 10866
+        },
+        {
+          "index": 3,
+          "label": "Abstain",
+          "ballot_count": 130,
+          "total_value": 26447
+        }
+      ]
+    },
+    {
+      "id": 28,
+      "title": "CipherScan — $375,000 USD (Kenbak)",
+      "description": "A production Zcash block explorer and privacy-intelligence platform (cipherscan.app) covering completed, previously unfunded work: a custom Rust chain indexer, privacy-linkage analysis, wallet-fingerprint research, mining intelligence, an automated public data bot, and analytics tools.",
+      "options": [
+        {
+          "label": "Accept",
+          "ballot_count": 3255,
+          "total_value": 17352325
+        },
+        {
+          "index": 1,
+          "label": "Reject - Do Not Support the Proposed Project",
+          "ballot_count": 50,
+          "total_value": 151
+        },
+        {
+          "index": 2,
+          "label": "Reject - Would Reconsider in a Future Round at a Lower Amount",
+          "ballot_count": 385,
+          "total_value": 47685
+        },
+        {
+          "index": 3,
+          "label": "Abstain",
+          "ballot_count": 196,
+          "total_value": 32993
+        }
+      ]
+    },
+    {
+      "id": 29,
+      "title": "Temporary Detectable Unlimited mint and sell Exploit — $400,000 USD (Alex Sol)",
+      "description": "Retroactive bounty request for multiple responsibly disclosed vulnerabilities across zcashd and Zebra, including a Sprout proof-verification bypass, a ZIP 209 turnstile-disabling duplicate-header bug, and consensus-divergence/node-crash findings composing into a temporary undetectable mint-and-sell exploit of counterfeit ZEC.",
+      "options": [
+        {
+          "label": "Accept",
+          "ballot_count": 3364,
+          "total_value": 17160135
+        },
+        {
+          "index": 1,
+          "label": "Reject - Do Not Support the Proposed Project",
+          "ballot_count": 113,
+          "total_value": 25105
+        },
+        {
+          "index": 2,
+          "label": "Reject - Would Reconsider in a Future Round at a Lower Amount",
+          "ballot_count": 163,
+          "total_value": 207520
+        },
+        {
+          "index": 3,
+          "label": "Abstain",
+          "ballot_count": 291,
+          "total_value": 40772
+        }
+      ]
+    },
+    {
+      "id": 30,
+      "title": "Five Critical Zebra Consensus Divergence Vulnerabilities — $425,000 USD (sangsoo-osec)",
+      "description": "Net retroactive security award request for five responsibly disclosed Zebra vulnerabilities (each published by ZF as Critical) found via LLM-assisted differential review, validated, reported privately, and remediated; a separate $100,000 third-party payment is disclosed and deducted from the request.",
+      "options": [
+        {
+          "label": "Accept",
+          "ballot_count": 2857,
+          "total_value": 16766887
+        },
+        {
+          "index": 1,
+          "label": "Reject - Do Not Support the Proposed Project",
+          "ballot_count": 115,
+          "total_value": 33829
+        },
+        {
+          "index": 2,
+          "label": "Reject - Would Reconsider in a Future Round at a Lower Amount",
+          "ballot_count": 673,
+          "total_value": 604993
+        },
+        {
+          "index": 3,
+          "label": "Abstain",
+          "ballot_count": 258,
+          "total_value": 27717
+        }
+      ]
+    },
+    {
+      "id": 31,
+      "title": "Zec.rocks (16 months of uptime for Zcash wallets) — $584,992 USD (Zec.rocks)",
+      "description": "Infrastructure powering 16 months of uptime for every major Zcash wallet: global edge monitoring, on-call support, testing new software at scale, and deploying critical updates including the Orchard security response before it was published.",
+      "options": [
+        {
+          "label": "Accept",
+          "ballot_count": 3469,
+          "total_value": 15765720
+        },
+        {
+          "index": 1,
+          "label": "Reject - Do Not Support the Proposed Project",
+          "ballot_count": 96,
+          "total_value": 236
+        },
+        {
+          "index": 2,
+          "label": "Reject - Would Reconsider in a Future Round at a Lower Amount",
+          "ballot_count": 288,
+          "total_value": 830090
+        },
+        {
+          "index": 3,
+          "label": "Abstain",
+          "ballot_count": 82,
+          "total_value": 837675
+        }
+      ]
+    },
+    {
+      "id": 32,
+      "title": "Ironwood external audit reimbursement — $599,000 USD (ValarGroup)",
+      "description": "Retroactive reimbursement for $599,000 of external security review costs incurred during the Ironwood incident response, engaging cryptography/blockchain auditors and AI tools to confirm no second soundness bug existed. Excludes any margin to Valargroup or costs to Valargroup team members.",
+      "options": [
+        {
+          "label": "Accept",
+          "ballot_count": 3725,
+          "total_value": 17407475
+        },
+        {
+          "index": 1,
+          "label": "Reject - Do Not Support the Proposed Project",
+          "ballot_count": 80,
+          "total_value": 487
+        },
+        {
+          "index": 2,
+          "label": "Reject - Would Reconsider in a Future Round at a Lower Amount",
+          "ballot_count": 96,
+          "total_value": 2531
+        },
+        {
+          "index": 3,
+          "label": "Abstain",
+          "ballot_count": 82,
+          "total_value": 23610
+        }
+      ]
+    },
+    {
+      "id": 33,
+      "title": "Ironwood zk-SNARK Formal Verification (Project Tachyon) — $738,942 USD (Tachyon Foundation)",
+      "description": "After the Orchard counterfeiting vulnerability disclosure, Project Tachyon paused its roadmap to lead formal verification of Ironwood (NU6.3), implementing the new circuit, funding two independent verification firms, and producing machine-checked Lean proofs demonstrating no undetectable-counterfeiting vulnerabilities in the Ironwood zk-SNARK.",
+      "options": [
+        {
+          "label": "Accept",
+          "ballot_count": 3885,
+          "total_value": 17419986
+        },
+        {
+          "index": 1,
+          "label": "Reject - Do Not Support the Proposed Project",
+          "ballot_count": 16,
+          "total_value": 2
+        },
+        {
+          "index": 2,
+          "label": "Reject - Would Reconsider in a Future Round at a Lower Amount",
+          "ballot_count": 64,
+          "total_value": 58
+        },
+        {
+          "index": 3,
+          "label": "Abstain",
+          "ballot_count": 2,
+          "total_value": 13795
+        }
+      ]
+    },
+    {
+      "id": 34,
+      "title": "Orchard Counterfeiting Vulnerability Bug Bounty — $750,000 USD (Taylor Hornby)",
+      "description": "Bug bounty request for responsibly disclosing the Orchard counterfeiting vulnerability, which likely prevented the loss of $2.3B USD worth of ZEC. Intended to incentivize future responsible disclosure of devastating counterfeiting vulnerabilities.",
+      "options": [
+        {
+          "label": "Accept",
+          "ballot_count": 3760,
+          "total_value": 17432500
+        },
+        {
+          "index": 1,
+          "label": "Reject - Do Not Support the Proposed Project",
+          "ballot_count": 64,
+          "total_value": 152
+        },
+        {
+          "index": 2,
+          "label": "Reject - Would Reconsider in a Future Round at a Lower Amount",
+          "ballot_count": 64,
+          "total_value": 786
+        },
+        {
+          "index": 3,
+          "label": "Abstain",
+          "ballot_count": 16,
+          "total_value": 3
+        }
+      ]
+    },
+    {
+      "id": 35,
+      "title": "Taylor Hornby - Bonus Grant for Orchard Counterfeiting Vulnerability Bug Bounty — $750,000 USD (Jason McGee)",
+      "description": "A bonus grant nomination (not a standard application) arguing Taylor Hornby's $750,000 bounty ask for the Orchard counterfeiting vulnerability (application #51) is far below industry norms for a finding of this severity; adds $750,000 to bring the total to $1,000,000.",
+      "options": [
+        {
+          "label": "Accept",
+          "ballot_count": 3578,
+          "total_value": 17396325
+        },
+        {
+          "index": 1,
+          "label": "Reject - Do Not Support the Proposed Project",
+          "ballot_count": 163,
+          "total_value": 22591
+        },
+        {
+          "index": 2,
+          "label": "Reject - Would Reconsider in a Future Round at a Lower Amount",
+          "ballot_count": 32,
+          "total_value": 772
+        },
+        {
+          "index": 3,
+          "label": "Abstain",
+          "ballot_count": 178,
+          "total_value": 14104
+        }
+      ]
+    },
+    {
+      "id": 36,
+      "title": "ValarGroup Ironwood Work — $1,203,000 USD (ValarGroup)",
+      "description": "Retroactive compensation for Valargroup's emergency development, integration, testing, infrastructure, and activation work for Ironwood (NU6.3): consensus rules, production full node, wallet/migration tooling, transaction hashing, hardware signing, miner compatibility, public test infrastructure, and mainnet operations on an under-two-month emergency schedule.",
+      "options": [
+        {
+          "label": "Accept",
+          "ballot_count": 3786,
+          "total_value": 17399132
+        },
+        {
+          "index": 1,
+          "label": "Reject - Do Not Support the Proposed Project",
+          "ballot_count": 64,
+          "total_value": 379
+        },
+        {
+          "index": 2,
+          "label": "Reject - Would Reconsider in a Future Round at a Lower Amount",
+          "ballot_count": 133,
+          "total_value": 24975
+        },
+        {
+          "index": 3,
+          "label": "Abstain",
+          "ballot_count": 32,
+          "total_value": 9716
+        }
+      ]
+    },
+    {
+      "id": 37,
+      "title": "ZODL Q1 2026 Core Protocol Development — $1,950,000 USD (ZODL)",
+      "description": "Amended retroactive grant covering January–June 2026, narrowed to three workstreams: remediation of 10 major vulnerabilities (including 4 critical), Zallet v0.1.0-alpha.4 delivery with integration test suite, and ZIP 2005 (Quantum Recoverability) reaching Proposed / ZIP 256 reaching Final.",
+      "options": [
+        {
+          "label": "Accept",
+          "ballot_count": 3015,
+          "total_value": 14040744
+        },
+        {
+          "index": 1,
+          "label": "Reject - Do Not Support the Proposed Project",
+          "ballot_count": 674,
+          "total_value": 2293237
+        },
+        {
+          "index": 2,
+          "label": "Reject - Would Reconsider in a Future Round at a Lower Amount",
+          "ballot_count": 289,
+          "total_value": 1096656
+        },
+        {
+          "index": 3,
+          "label": "Abstain",
+          "ballot_count": 65,
+          "total_value": 3794
+        }
+      ]
+    }
+  ]
+}
