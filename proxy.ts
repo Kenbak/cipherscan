@@ -175,20 +175,9 @@ export async function proxy(request: NextRequest) {
     return handleApiRateLimit(request);
   }
 
-  const blockMatch = pathname.match(/^\/block\/(\d+)$/);
-  if (blockMatch) {
-    const response = NextResponse.next();
-    response.headers.set(
-      'CDN-Cache-Control',
-      'public, s-maxage=3600, stale-while-revalidate=86400',
-    );
-    response.headers.set(
-      'Vercel-CDN-Cache-Control',
-      'public, s-maxage=3600, stale-while-revalidate=86400',
-    );
-    return response;
-  }
-
+  // Block pages take their CDN lifetime from ISR (getBlockResolution): one
+  // hour for blocks 100+ below the tip, 30s near it. A blanket header here
+  // would also pin near-tip, reorg-prone and future heights for an hour.
   return NextResponse.next();
 }
 
