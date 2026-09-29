@@ -274,6 +274,8 @@ app.use(helmet());
 const allowedOrigins = [
   'https://testnet.cipherscan.app',
   'https://cipherscan.app',
+  'https://zecblock.com',
+  'https://www.zecblock.com',
   'https://crosslink.cipherscan.app',
   'http://localhost:3000',
   'http://localhost:3001',
@@ -326,6 +328,8 @@ const SERVICE_API_KEYS = (process.env.SERVICE_API_KEYS || '').split(',').filter(
 // Our own frontend domains — never rate-limit browsers visiting CipherScan
 const OWN_ORIGINS = [
   'https://cipherscan.app',
+  'https://zecblock.com',
+  'https://www.zecblock.com',
   'https://www.cipherscan.app',
   'https://testnet.cipherscan.app',
   'https://crosslink.cipherscan.app',
