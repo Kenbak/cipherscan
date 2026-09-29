@@ -5,6 +5,8 @@
 
 const express = require('express');
 const router = express.Router();
+const { mainnetOnly } = require('../lib/network-features');
+router.use('/api/crosschain', mainnetOnly('NEAR Intents'));
 const { getNearIntentsClient, CHAIN_CONFIG } = require('../near-intents');
 const { validate } = require('../validation');
 const { parseSafePagePagination, offsetExceededError } = require('../lib/pagination');
