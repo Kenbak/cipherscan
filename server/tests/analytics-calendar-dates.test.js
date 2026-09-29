@@ -90,8 +90,8 @@ test("comparison price and public flow dates retain UTC calendar identity, inclu
   let fallback = false;
   app.locals.pool = {
     async query(sql) {
-      if (sql.includes("FROM mvrv_daily")) {
-        assert.match(sql, /m\.date::text AS date/);
+      if (sql.includes("FROM zec_price_daily")) {
+        assert.match(sql, /p\.date::text AS date/);
         assert.match(sql, /AT TIME ZONE 'UTC'/);
         return { rows: [{ date: "2026-08-24", price_usd: "100" }] };
       }

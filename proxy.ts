@@ -88,6 +88,26 @@ const REDIRECT_HOSTS = [
   'www.zcashblocks.com',
 ];
 
+/**
+ * Minimal branded page for responses the proxy must answer before the app's
+ * loading boundary can stream a soft 200. Every argument is a fixed string
+ * from this file; never pass request data into this template.
+ */
+function proxyErrorPage(title: string, message: string, link: { href: string; label: string }): string {
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex, follow"><title>${title} | ZecBlock</title><style>
+:root{color-scheme:dark light;--bg:#0B0C0E;--text:#F1F3F5;--muted:#9CA4B0;--rule:#24272D;--gold:#F8BC21}
+@media (prefers-color-scheme:light){:root{--bg:#F6F7F9;--text:#171A20;--muted:#59616D;--rule:#DFE3E9;--gold:#DB9E00}}
+body{margin:0;min-height:100vh;display:flex;align-items:center;background:var(--bg);color:var(--text);font:16px/1.5 system-ui,-apple-system,sans-serif}
+main{width:100%;max-width:640px;margin:0 auto;padding:48px 24px}
+.brand{display:inline-flex;align-items:center;gap:10px;margin-bottom:48px;color:var(--text);font-weight:600;text-decoration:none}
+.brand i{width:14px;height:14px;background:var(--gold)}
+.code{margin:0 0 12px;color:var(--muted);font:13px/1 ui-monospace,monospace;letter-spacing:.08em}
+h1{margin:0 0 12px;font-size:32px;font-weight:500;letter-spacing:-.02em}
+p{margin:0 0 32px;color:var(--muted)}
+a.action{color:var(--text);text-underline-offset:4px}
+</style></head><body><main><a class="brand" href="/"><i></i>ZecBlock</a><p class="code">&gt; ${title.toLowerCase()}</p><h1>${title}</h1><p>${message}</p><a class="action" href="${link.href}">${link.label} &rarr;</a></main></body></html>`;
+}
+
 export async function proxy(request: NextRequest) {
   // Keep filtered archives dynamic and the unfiltered list on its ISR route.
   // Vercel permits at most 16 has/missing conditions per static routing rule.
@@ -116,7 +136,7 @@ export async function proxy(request: NextRequest) {
     const validHash = /^[a-fA-F0-9]{64}$/.test(id);
     const validHeight = /^\d+$/.test(id) && Number(id) <= 100_000_000;
     if (!validHash && !validHeight) {
-      return new NextResponse('<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="robots" content="noindex, follow"><title>Block not found | CipherScan</title></head><body><main><h1>Block not found</h1><p>Enter a valid block height or a 64-character block hash.</p><a href="/blocks">Browse blocks</a></main></body></html>', {
+      return new NextResponse(proxyErrorPage('Block not found', 'Enter a valid block height or a 64-character block hash.', { href: '/blocks', label: 'Browse blocks' }), {
         status: 404,
         headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store', 'X-Robots-Tag': 'noindex, follow' },
       });
@@ -125,7 +145,7 @@ export async function proxy(request: NextRequest) {
   const governancePath = request.nextUrl.pathname;
   const chartPath = governancePath.match(/^\/charts\/([^/]+)\/?$/);
   if (chartPath && !CHART_CATALOG.some(chart => chart.id === chartPath[1])) {
-    return new NextResponse('<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="robots" content="noindex, follow"><title>Chart not found | ZecBlock</title></head><body><main><h1>Chart not found</h1><p>This chart is not in the catalog.</p><a href="/charts">Browse charts</a></main></body></html>', {
+    return new NextResponse(proxyErrorPage('Chart not found', 'This chart is not in the catalog.', { href: '/charts', label: 'Browse charts' }), {
       status: 404,
       headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store', 'X-Robots-Tag': 'noindex, follow' },
     });
@@ -136,7 +156,7 @@ export async function proxy(request: NextRequest) {
     if (result.status !== 200) {
       const unavailable = result.status === 503;
       const title = unavailable ? 'Vote temporarily unavailable' : 'Vote not found';
-      return new NextResponse(`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex, follow"><title>${title} | CipherScan</title></head><body><main><h1>${title}</h1><p>${unavailable ? 'The voting directory could not be reached. Please try again shortly.' : 'This governance page is not available.'}</p><a href="/">Return to CipherScan</a></main></body></html>`, { status: result.status, headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store', 'X-Robots-Tag': 'noindex, follow', ...(unavailable ? { 'Retry-After': '60' } : {}) } });
+      return new NextResponse(proxyErrorPage(title, unavailable ? 'The voting directory could not be reached. Please try again shortly.' : 'This governance page is not available.', unavailable ? { href: '/', label: 'Explorer home' } : { href: '/governance', label: 'All votes' }), { status: result.status, headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store', 'X-Robots-Tag': 'noindex, follow', ...(unavailable ? { 'Retry-After': '60' } : {}) } });
     }
   }
   if (process.env.NODE_ENV === 'development') {
@@ -155,20 +175,9 @@ export async function proxy(request: NextRequest) {
     return handleApiRateLimit(request);
   }
 
-  const blockMatch = pathname.match(/^\/block\/(\d+)$/);
-  if (blockMatch) {
-    const response = NextResponse.next();
-    response.headers.set(
-      'CDN-Cache-Control',
-      'public, s-maxage=3600, stale-while-revalidate=86400',
-    );
-    response.headers.set(
-      'Vercel-CDN-Cache-Control',
-      'public, s-maxage=3600, stale-while-revalidate=86400',
-    );
-    return response;
-  }
-
+  // Block pages take their CDN lifetime from ISR (getBlockResolution): one
+  // hour for blocks 100+ below the tip, 30s near it. A blanket header here
+  // would also pin near-tip, reorg-prone and future heights for an hour.
   return NextResponse.next();
 }
 

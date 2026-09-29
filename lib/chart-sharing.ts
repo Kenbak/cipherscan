@@ -1,5 +1,10 @@
 import { CHART_CATALOG, type CatalogChart, type ChartRow } from './chart-catalog';
 
+/** Dedicated pages and exports need context when seen outside the chart hub. */
+export function chartPublicTitle(chart: Pick<CatalogChart, 'title'>): string {
+  return /\bzcash\b/i.test(chart.title) ? chart.title : `${chart.title} — Zcash`;
+}
+
 export const EXPORT_SIZE = { width: 1200, height: 675 } as const;
 export const CHART_RANGES = ['7d', '30d', '90d', '1y', 'all'] as const;
 export type ChartRange = typeof CHART_RANGES[number];
@@ -37,9 +42,8 @@ export function chartImagePath(path: string): string {
   const [base, query] = path.split('?');
   return `${base}/image${query ? `?${query}` : ''}`;
 }
-export function chartEndpoint(chart: CatalogChart, now = Date.now()): string {
-  if (chart.id !== 'turnstile') return chart.endpoint;
-  return `/v1/shielded-pools/turnstile?since=${new Date(now - 30 * 86400000).toISOString().slice(0, 10)}`;
+export function chartEndpoint(chart: CatalogChart): string {
+  return chart.endpoint;
 }
 export function chartObservationLabel(chart: CatalogChart, x: string | number): string {
   if (chart.axis === 'category') return String(x);
@@ -58,7 +62,7 @@ export function chartCsv({ chart, rows, source = chartSource(chart), asOf = '' }
     return `"${safe.replace(/"/g, '""')}"`;
   };
   const records: unknown[][] = [
-    ['Chart', chart.title], ['Source', source], ['Window', chartDateRange(chart, rows)], ['As of', asOf],
+    ['Chart', chartPublicTitle(chart)], ['Source', source], ['Window', chartDateRange(chart, rows)], ['As of', asOf],
     [chart.axis === 'height' ? 'Block height' : chart.axis === 'category' ? 'Category' : 'Date (UTC)', ...chart.series.map(s => `${s.label} (${chart.unit})`)],
     ...rows.map(row => [chart.axis ? row.x : new Date(Number(row.x)).toISOString(), ...chart.series.map(s => row[s.key])]),
   ];

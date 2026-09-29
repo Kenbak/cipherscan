@@ -43,7 +43,7 @@ export function ProtocolStatsChart({ initialData, initialFetchedAt }: { initialF
   const { theme } = useTheme();
   const colors = getChartColors(theme);
   const [view, setView] = useState<'commitments' | 'nullifiers'>('commitments');
-  const [period, setPeriod] = useState<Period>('4y');
+  const [period, setPeriod] = useState<Period>('all');
 
   const { data: apiData, loading } = useApiQuery<ProtocolStatsResponse>(
     '/v1/network/protocol-stats',

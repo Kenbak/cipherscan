@@ -613,6 +613,10 @@
     font-variant-numeric: tabular-nums lining-nums;
   }
 
+  /* Browser defaults shrink small/sup/sub below the 12px caption minimum. */
+  small { font-size: max(0.8em, var(--text-caption)); }
+  sup, sub { font-size: max(0.75em, var(--text-caption)); }
+
   code {
     @apply font-mono;
   }
@@ -1155,6 +1159,8 @@
 
   /* Ambient/fullscreen views deliberately retain their dark canvas. */
   .mempool-visualization[data-immersive='true'] {
+    --color-gold-rgb: 248 188 33;
+    --color-gold-accent: #F8BC21;
     --color-shielded-rgb: 248 188 33;
     --color-shielded-ink: #F8BC21;
     --color-ironwood-rgb: 232 207 120;
@@ -2037,7 +2043,13 @@ main table td { font-variant-numeric: tabular-nums lining-nums; }
   .type-metric { font-size: 1.5rem; }
   .type-metric-compact { font-size: 1.25rem; }
   /* Prevent automatic iOS zoom when entering a command or identifier. */
-  main input:not([type=checkbox]):not([type=radio]):not([type=range]), main select, main textarea { font-size: 1rem; }
+  input:not([type=checkbox]):not([type=radio]):not([type=range]), select, textarea { font-size: 1rem; }
+}
+
+/* Preserve comfortable shared controls on touch devices. */
+@media (pointer: coarse) {
+  .btn, .btn-icon-only { min-height: 44px; }
+  .btn-icon-only { min-width: 44px; }
 }
 
 /* Network landmarks clear the fixed explorer chrome on direct fragment links. */
@@ -2106,3 +2118,7 @@ main table td { font-variant-numeric: tabular-nums lining-nums; }
 /* Attribution stays out of charts and legends on screen; image exports temporarily reveal it. */
 .chart-signature,
 .chart-export-attribution { display: none; }
+
+/* Legal references use the same quiet link treatment as secondary navigation. */
+.legal-link { color: var(--color-text-primary); text-decoration: underline; text-decoration-color: var(--color-cipher-border); text-underline-offset: 4px; }
+.legal-link:hover { text-decoration-color: currentColor; }

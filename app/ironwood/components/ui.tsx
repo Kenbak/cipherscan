@@ -25,7 +25,7 @@ export function SegmentedControl<T extends string>({
           aria-pressed={value === id}
           className={`flex-1 rounded-md py-1.5 text-caption font-mono transition sm:flex-none sm:rounded-full sm:border sm:px-2.5 sm:py-0.5 sm:text-caption ${
             value === id
-              ? 'bg-glass-5 text-primary shadow-sm sm:border-cipher-border sm:bg-glass-5 sm:shadow-none'
+              ? 'bg-glass-6 text-primary shadow-sm sm:border-cipher-border sm:bg-glass-6 sm:shadow-none'
               : 'text-muted hover:text-primary sm:border-cipher-border/50 sm:hover:border-cipher-border'
           }`}
         >

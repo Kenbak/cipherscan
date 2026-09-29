@@ -36,7 +36,7 @@ const INTERVAL_TEXT_COLORS = {
   'unknown': 'text-muted',
   'fast':      'text-cipher-gold',
   'normal':    'text-cipher-green',
-  'slow':      'text-amber-400',
+  'slow':      'text-warning',
   'very-slow': 'text-danger',
 } as const;
 
@@ -44,8 +44,8 @@ const INTERVAL_BAR_COLORS = {
   'unknown': 'bg-cipher-border',
   'fast':      'bg-brand-gold/50',
   'normal':    'bg-cipher-green/50',
-  'slow':      'bg-amber-400/50',
-  'very-slow': 'bg-red-400/50',
+  'slow':      'bg-warning/50',
+  'very-slow': 'bg-danger/50',
 } as const;
 
 /** Column defs close over the block list because interval computation needs
@@ -349,6 +349,7 @@ export default function BlocksClient({
         />
         <MetricCard size="compact"
           label="Avg Block Fee (24h)"
+          className="order-last col-span-2 sm:order-none sm:col-span-1"
           value={summary.avgBlockFee != null ? `${summary.avgBlockFee.toFixed(8)} ${CURRENCY}` : '—'}
           hint={summary.avgBlockFee != null && zecPriceUsd != null ? `≈ $${(summary.avgBlockFee * zecPriceUsd).toFixed(2)}` : undefined}
         />

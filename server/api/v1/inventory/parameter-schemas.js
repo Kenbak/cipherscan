@@ -55,6 +55,8 @@ function getQueryConstraint(route, name) {
     };
     return schemas[name] ? {required:false,schema:schemas[name],description:schemas[name].description} : null;
   }
+  if (route === '/v1/privacy/stats' && name === 'days') return { required: false, schema: { anyOf: [{type:'integer',minimum:7,maximum:1000},{type:'string',enum:['all']}], default:30 }, description:'All returns every retained daily observation without a row cap.' };
+  if (route.startsWith('/v1/valuation/') && name === 'period') return { required:false, schema:{type:'string',enum:['30d','90d','180d','1y','2y','all'],default:'1y'}, description:'All returns the complete available daily history.' };
 
   if (route === '/v1/network/accounting/history') {
     if (name === 'limit') return { required: false, schema: { type: 'integer', minimum: 1, maximum: 1000, default: 120 } };

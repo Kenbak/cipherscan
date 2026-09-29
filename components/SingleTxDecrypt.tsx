@@ -208,7 +208,7 @@ export function SingleTxDecrypt({ prefillTxid }: { prefillTxid?: string | null }
                 <Icons.Terminal className="w-4 h-4 sm:w-5 sm:h-5 text-cipher-gold-bright" />
                 <span className="font-mono text-xs sm:text-sm text-cipher-gold-bright truncate">DECRYPTING.log</span>
                 <div className="ml-auto flex gap-1.5 sm:gap-2 flex-shrink-0">
-                  <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-red-500"></div>
+                  <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-danger"></div>
                   <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-cipher-yellow-bright"></div>
                   <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-cipher-green-bright"></div>
                 </div>
@@ -260,7 +260,7 @@ export function SingleTxDecrypt({ prefillTxid }: { prefillTxid?: string | null }
                 <Icons.Check className="w-4 h-4 sm:w-5 sm:h-5 text-cipher-green-bright" />
                 <span className="font-mono text-xs sm:text-sm text-cipher-green-bright truncate">DECRYPTED_MEMO.txt</span>
                 <div className="ml-auto flex gap-1.5 sm:gap-2 flex-shrink-0">
-                  <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-red-500"></div>
+                  <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-danger"></div>
                   <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-cipher-yellow-bright"></div>
                   <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-cipher-green-bright"></div>
                 </div>

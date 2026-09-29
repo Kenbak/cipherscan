@@ -246,3 +246,32 @@ test('chain rankings separate directions, exclude ZEC-to-ZEC, sort by volume and
   assert.deepEqual(outflow.points.map(p => p.date), ['tron']);
   for (const bad of [[...chains, chains[0]], [{ chain: '=EXEC()', direction: 'inflow', volumeUsd: 1 }]]) assert.throws(() => normalizeEvidence(spec, { period: '30d', chains: bad }, { network: 'mainnet' }));
 });
+
+test('Ask sources separate observed dates, retrieval time and guide review dates', () => {
+  const React = require('react');
+  const { renderToStaticMarkup } = require('react-dom/server');
+  const { AskSources } = load('components/ask/AskSources.tsx');
+  const html = renderToStaticMarkup(React.createElement(AskSources, {
+    sources: [{ id: 'pools', title: 'Pool methodology', url: '/pools', reviewed: '2026-09-29' }],
+    dataContext: { start: '2026-08-01', end: '2026-08-31', retrievedAt: '2026-09-29T02:00:00Z', source: '/pools#flows', label: 'Public flows' },
+  }));
+  assert.match(html, /observations through 2026-08-31/);
+  assert.match(html, /2026-09-29 02:00:00/);
+  assert.match(html, /Guide reviewed/);
+  assert.match(html, /href="\/pools#flows"/);
+  assert.match(html, /<details/);
+  assert.doesNotMatch(html, /Freshness: unknown/);
+});
+
+test('Ask client presents actionable safe failures and never echoes upstream text', () => {
+  const api = load('lib/api-client.ts');
+  const { askErrorMessage } = load('lib/ask/client.ts', { '@/lib/api-client': api, '@/lib/api-config': {} });
+  const error = (status, code) => new api.ApiError('private backend secret', status, undefined, undefined, null, code);
+  assert.match(askErrorMessage(error(403, 'ask-verification')), /Verification/);
+  assert.match(askErrorMessage(error(429, 'ask-quota')), /allowance/);
+  assert.match(askErrorMessage(error(503, 'ask-source')), /Source data/);
+  assert.match(askErrorMessage(error(503, 'ask-answer')), /validate/);
+  assert.match(askErrorMessage(error(503, 'ask-provider')), /provider/);
+  assert.match(askErrorMessage(error(504, 'ask-timeout')), /too long/);
+  assert.doesNotMatch(askErrorMessage(error(500)), /private backend secret/);
+});

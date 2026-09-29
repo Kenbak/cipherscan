@@ -266,7 +266,7 @@ export default function NodesClient() {
               </div>
               <div className="max-h-80 overflow-auto" tabIndex={0} role="region" aria-label="Reported version records">
                 {loading && versions.length === 0 ? <SkeletonTable rows={6} columns={3} /> : versions.length === 0 ? <p className="text-caption text-muted">{loading ? 'Loading version observations…' : 'Version observations are unavailable.'}</p> : <table className="w-full text-caption">
-                  <thead className="sticky top-0 bg-cipher-card"><tr className="border-b border-cipher-border text-muted"><th scope="col" className="text-left py-3 pr-3 font-normal">Client</th><th scope="col" className="text-left py-3 pr-3 font-normal">Version</th><th scope="col" className="text-right py-3 font-normal">Nodes</th></tr></thead>
+                  <thead className="sticky top-0 bg-cipher-surface"><tr className="border-b border-cipher-border text-muted"><th scope="col" className="text-left py-3 pr-3 font-normal">Client</th><th scope="col" className="text-left py-3 pr-3 font-normal">Version</th><th scope="col" className="text-right py-3 font-normal">Nodes</th></tr></thead>
                   <tbody className="divide-y divide-cipher-border">
                     {versions.filter(v => versionClient === 'all' || v.client === versionClient).map((v, i) => <tr key={`${v.client}-${v.version}-${i}`}>
                       <td className="py-3 pr-3 text-secondary"><span className="inline-flex items-center gap-2"><span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: clientColor(v.client) }} aria-hidden="true" />{clientLabel(v.client)}</span></td>
@@ -294,7 +294,7 @@ export default function NodesClient() {
                 <div className="space-y-2.5">
                   {upgrade.versions.map(v => (
                     <div key={v.protocolVersion} className="flex items-center gap-2 text-caption">
-                      <span className={`h-2 w-2 rounded-full shrink-0 ${v.isLatest ? 'bg-cipher-green' : 'bg-amber-400'}`} />
+                      <span className={`h-2 w-2 rounded-full shrink-0 ${v.isLatest ? 'bg-cipher-green' : 'bg-warning'}`} />
                       <span className="font-mono text-secondary w-16">{v.protocolVersion}</span>
                       <span className="text-muted truncate">{v.clients.join(', ')}</span>
                       <span className="ml-auto font-mono tabular-nums font-semibold text-primary">{v.nodeCount}</span>

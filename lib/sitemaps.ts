@@ -27,6 +27,7 @@ export const CORE_PATHS = [
   '/txs',
   '/txs?type=shielded',
   '/mempool',
+  '/mempool/live',
   '/network',
   '/network/nodes',
   '/network/attestations',

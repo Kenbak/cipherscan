@@ -313,7 +313,7 @@ export function NU7VoteClient({ initialData, resultsState, resultsContent, initi
                 </>
               )}
               <div className="absolute inset-0 flex items-center justify-between px-4">
-                <span className="text-sm font-semibold font-mono text-brand-gold-bright tabular-nums">
+                <span className="text-sm font-semibold font-mono text-cipher-gold tabular-nums">
                   {initialData.ironwoodZec != null
                     ? `${(initialData.ironwoodZec / 1_000_000).toFixed(2)}M ZEC`
                     : '—'}
@@ -409,7 +409,7 @@ export function NU7VoteClient({ initialData, resultsState, resultsContent, initi
               href={r.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-2.5 px-4 py-3 rounded-xl border border-cipher-border hover:border-glass-12 hover:bg-glass-1 transition-colors text-xs font-mono text-secondary hover:text-primary"
+              className="flex items-center gap-2.5 px-4 py-3 rounded-xl border border-cipher-border hover:border-glass-12 hover:bg-glass-2 transition-colors text-xs font-mono text-secondary hover:text-primary"
             >
               <ExternalIcon />
               <span className="truncate">{r.label}</span>
@@ -585,7 +585,7 @@ function ChainExplorerTab({ chainState }: { chainState: ChainState | null }) {
                   </thead>
                   <tbody className="divide-y divide-cipher-border-subtle">
                     {chainState.voteActivity.blocksWithVotes.map(b => (
-                      <tr key={b.height} className="hover:bg-glass-1 transition-colors">
+                      <tr key={b.height} className="hover:bg-glass-2 transition-colors">
                         <td className="px-4 py-2 text-primary tabular-nums">{b.height.toLocaleString()}</td>
                         <td className="px-4 py-2 text-muted tabular-nums">
                           {b.time ? formatBlockTime(b.time) : '—'}
@@ -669,8 +669,8 @@ function ChainExplorerTab({ chainState }: { chainState: ChainState | null }) {
                   </div>
                   <div className="grid grid-cols-2 gap-1.5">
                     {chainState.validators.map(v => (
-                      <div key={v.operatorAddress} className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-glass-1">
-                        <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${v.jailed ? 'bg-red-400' : 'bg-cipher-green'}`} />
+                      <div key={v.operatorAddress} className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-glass-2">
+                        <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${v.jailed ? 'bg-danger' : 'bg-cipher-green'}`} />
                         <span className="text-caption font-mono text-secondary truncate">{v.moniker}</span>
                       </div>
                     ))}
@@ -768,7 +768,7 @@ function PhaseBadge({ phase }: { phase: Phase }) {
 }
 
 function MetricCell({ label, value, accent }: { label: string; value: string; accent?: 'yellow' | 'gold' }) {
-  const valueColor = accent === 'yellow' ? 'text-brand-gold-bright' : accent === 'gold' ? 'text-cipher-gold-bright' : 'text-primary';
+  const valueColor = accent === 'yellow' ? 'text-cipher-gold' : accent === 'gold' ? 'text-cipher-gold-bright' : 'text-primary';
   return (
     <div>
       <div className="text-caption font-mono uppercase tracking-wider text-muted">{label}</div>

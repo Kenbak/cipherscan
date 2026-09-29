@@ -8,7 +8,7 @@ import styles from './page.module.css';
 const DESCRIPTION = 'Explore the story behind ZecBlock, the Zcash blockchain explorer for public network data, shielded pool analytics and developer tools.';
 
 export const metadata = buildPageMetadata({
-  title: 'About | ZecBlock',
+  title: 'About the Zcash Explorer | ZecBlock',
   description: DESCRIPTION,
   path: '/about',
   networks: ['mainnet'],
@@ -42,7 +42,7 @@ function formatNumber(value: unknown, decimals = 0): string {
 const timeline = [
   {
     date: 'Nov 2025', month: '2025-11', title: 'Built at Zypherpunk',
-    description: 'Started as CipherScan at the Zcash privacy hackathon, winning tracks from Project Tachyon, Gemini, Raybot and Network State.',
+    description: 'Started at the Zcash privacy hackathon, winning tracks from Project Tachyon, Gemini, Raybot and Network State.',
   },
   {
     date: 'Dec 2025', month: '2025-12', title: 'In-browser memo decryption',
@@ -119,7 +119,7 @@ export default async function AboutPage() {
             ZecBlock is a Zcash blockchain explorer. Follow blocks and transactions,
             understand shielded pools, and explore the health of the network.
           </p>
-          <p className="text-xs text-muted">Built by <span className="text-primary">Kenbak</span>. Started as CipherScan.</p>
+          <p className="text-xs text-muted">Built by <span className="text-primary">Kenbak</span>. Built for the Zcash community.</p>
         </div>
       </header>
 
@@ -176,7 +176,7 @@ export default async function AboutPage() {
         <p className="text-sm text-muted leading-relaxed mb-4">Contributions, issues and feedback are welcome.</p>
         <div className="flex flex-wrap gap-x-6 gap-y-1 text-sm">
           <a href="https://github.com/Kenbak/cipherscan" target="_blank" rel="noopener noreferrer" className="inline-flex items-center min-h-11 text-primary underline decoration-cipher-border underline-offset-4 hover:decoration-current">GitHub ↗</a>
-          <a href="https://twitter.com/cipherscan_app" target="_blank" rel="noopener noreferrer" className="inline-flex items-center min-h-11 text-primary underline decoration-cipher-border underline-offset-4 hover:decoration-current">X / Twitter ↗</a>
+          <a href="https://x.com/zecblock" target="_blank" rel="noopener noreferrer" className="inline-flex items-center min-h-11 text-primary underline decoration-cipher-border underline-offset-4 hover:decoration-current">X / Twitter ↗</a>
           <Link href="/docs" className="inline-flex items-center min-h-11 text-primary underline decoration-cipher-border underline-offset-4 hover:decoration-current">API docs →</Link>
         </div>
       </section>

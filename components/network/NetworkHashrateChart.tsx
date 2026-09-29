@@ -32,7 +32,7 @@ function HashratePeriodSelector({ value, onChange }: { value: Period; onChange: 
           onClick={() => onChange(p)}
           className={`px-1.5 py-0.5 text-caption font-mono rounded transition whitespace-nowrap ${
             value === p
-              ? 'bg-glass-5 text-primary font-semibold'
+              ? 'bg-glass-6 text-primary font-semibold'
               : 'text-muted hover:text-primary'
           }`}
         >
@@ -51,7 +51,7 @@ function HashratePeriodSelector({ value, onChange }: { value: Period; onChange: 
 export function NetworkHashrateChart() {
   const { theme } = useTheme();
   const colors = getChartColors(theme);
-  const [period, setPeriod] = useState<Period>('1y');
+  const [period, setPeriod] = useState<Period>('all');
   const [window, setWindow] = useState<HashrateWindow>('24h');
   const stats = useApiQuery<HashrateStats>('/v1/network/stats', undefined, { refreshInterval: 30_000 });
 

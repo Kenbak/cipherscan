@@ -195,3 +195,67 @@ test('enriched evidence stays within provider request budget and both narrative 
   assert.equal(calls, 2);
   assert.match(result.answer, /combined balance/);
 });
+
+test('combined daily ranking uses exact sums, completed UTC days, ties and requested coverage', () => {
+  const evidence = { unit: 'transactions', meta: { generatedAt: '2026-08-05T14:00:00Z' },
+    series: [{ key: 'shielded', label: 'Shielded' }, { key: 'transparent', label: 'Transparent' }],
+    points: [
+      { date: '2026-08-01', values: { shielded: '100', transparent: '1' } },
+      { date: '2026-08-02', values: { shielded: '90', transparent: '90' } },
+      { date: '2026-08-03', values: { shielded: '80', transparent: '100' } },
+      { date: '2026-08-04', values: { shielded: null, transparent: '200' } },
+      { date: '2026-08-05', values: { shielded: '999999', transparent: '999999' } },
+    ] };
+  const selected = { ...spec, metric: 'transactions', start: '2026-08-01', end: '2026-08-05' };
+  const result = buildInsights(evidence, selected, summarizeEvidence(evidence, selected));
+  assert.equal(result.facts.daily_rank_a_date, '2026-08-02');
+  assert.equal(result.facts.daily_rank_a_value, '180 transactions');
+  assert.equal(result.facts.daily_rank_b_date, '2026-08-03');
+  assert.equal(result.facts.ranking_missing_days, '1');
+  assert.equal(result.facts.ranking_end, '2026-08-04');
+  assert.equal(result.analysis.dailyRanking.completeWindow, false);
+  assert.equal(result.analysis.dailyRanking.rows.length, 3);
+  evidence.points[3].values.shielded = '90071992547409930000';
+  const precise = buildInsights(evidence, selected, summarizeEvidence(evidence, selected));
+  assert.equal(precise.facts.daily_rank_a_value, '90,071,992,547,409,930,200 transactions');
+  assert.equal(precise.analysis.dailyRanking.completeWindow, true);
+  evidence.points.splice(1, 1);
+  assert.equal(buildInsights(evidence, selected, summarizeEvidence(evidence, selected)).facts.ranking_missing_days, '1');
+});
+
+test('yearly busiest-day question routes directly and evidence fits the capped provider request', async () => {
+  const today = new Date().toISOString().slice(0, 10);
+  const rows = Array.from({ length: 366 }, (_, i) => ({ date: new Date(Date.parse(today) - i * 86400000).toISOString().slice(0, 10), shielded: i === 20 ? 500 : 10, transparent: i === 20 ? 400 : 20 }));
+  let calls = 0;
+  const result = await chat({ question: 'What was the busiest day for Zcash in the last year?', page: 'ask', context: null, history: [], locale: 'auto' }, async (body, task) => {
+    calls++;
+    assert.equal(task.name, 'contextual_answer');
+    assert.equal(body.evidence.analysis.dailyRanking.rows.length, 5);
+    assert.equal(body.evidence.analysis.dailyRanking.completeWindow, true);
+    assert.equal(body.evidence.facts.ranking_missing_days, '0');
+    const raw = { summary: 'The busiest completed day was {{daily_rank_a_date}}, with {{daily_rank_a_value}}, excluding mining rewards.', observations: [], limitation: '', sources: ['transactions'] };
+    await interpret({ provider: 'openai', model: 'fixture' }, body, AbortSignal.timeout(1000), async (url, init) => {
+      assert.ok(Buffer.byteLength(init.body) < 48000);
+      return Response.json({ choices: [{ finish_reason: 'stop', message: { content: JSON.stringify(raw) } }] });
+    }, task);
+    return raw;
+  }, { dispatch: async (method, path, options) => {
+    assert.equal(options.query.days, '366');
+    return { ok: true, body: { trends: { daily: rows } } };
+  } }, AbortSignal.timeout(1000), '');
+  assert.equal(calls, 1);
+  assert.match(result.answer, /900 transactions/);
+  assert.equal(result.spec.period, '1y');
+  assert.equal(result.dataContext.end, today);
+  assert.ok(result.dataContext.retrievedAt);
+});
+
+test('weekly count comparisons exclude the unfinished current UTC day', () => {
+  const evidence = sample('flows', 15);
+  evidence.meta = { generatedAt: day(14) + 'T12:00:00Z' };
+  evidence.points[14].values.shield = zat(999999);
+  const result = analyze(evidence, 'flows');
+  assert.equal(result.facts.shield_recent_end, day(13));
+  assert.equal(result.facts.shield_previous_start, day(0));
+  assert.equal(result.facts.shield_recent_value, '5,600.00 ZEC');
+});

@@ -1,48 +1,15 @@
 'use client';
 
 import { useEffect } from 'react';
-import Link from 'next/link';
-import { Card, CardBody } from '@/components/ui/Card';
+import { RouteError } from '@/components/RouteError';
 
-/**
- * Route-level error boundary for `/block/[height]`. Catches render-time
- * exceptions in the client tree (BlockPageClient and children) that the
- * component's own try/catch-based data fetching does not — e.g. a
- * transform throwing on an unexpected API shape.
- */
-export default function BlockError({
-  error,
-  reset,
-}: {
+export default function BlockError({ error, reset }: {
   error: Error & { digest?: string };
   reset: () => void;
 }) {
   useEffect(() => {
-    console.error('[block detail] render error:', error);
+    // Log an error identifier, not a potentially sensitive URL or payload.
+    console.error('ZecBlock block render failed', error.digest || error.name);
   }, [error]);
-
-  return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <Card className="text-center" role="alert" ariaLive="assertive">
-        <CardBody className="py-16">
-          <div className="text-5xl mb-6" aria-hidden="true">⚠️</div>
-          <h1 className="type-page font-mono text-primary mb-3">Something Went Wrong</h1>
-          <p className="text-secondary mb-6">
-            ZecBlock hit an unexpected error rendering this block. This has been logged.
-          </p>
-          <div className="flex items-center justify-center gap-4">
-            <button
-              onClick={reset}
-              className="text-cipher-gold hover:text-cipher-green transition-colors font-mono text-sm"
-            >
-              Try again
-            </button>
-            <Link href="/" className="text-cipher-gold hover:text-cipher-green transition-colors font-mono text-sm">
-              ← Back to Explorer
-            </Link>
-          </div>
-        </CardBody>
-      </Card>
-    </div>
-  );
+  return <RouteError reset={reset} subject="block" titleAsHeading={true} />;
 }

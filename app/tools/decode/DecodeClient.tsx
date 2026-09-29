@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { PageHeader } from '@/components/ui/SectionHeader';
 import { Card, CardBody } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { TxTypeBadge } from '@/components/ui/TxTypeBadge';
@@ -235,25 +236,17 @@ export default function DecodeClient() {
 
   return (
     <>
-      {/* Header */}
-      <div className="mb-8">
-        <Link href="/tools" className="text-xs font-mono text-muted hover:text-primary transition-colors mb-4 inline-block">
-          &larr; All Tools
-        </Link>
-        <h1 className="type-page text-primary">Decode Raw Transaction</h1>
-        <p className="text-sm text-secondary mt-1">Parse a raw transaction hex into human-readable fields</p>
-      </div>
+      <PageHeader eyebrow="TOOLS" eyebrowHref="/tools" title="Decode Raw Transaction" subtitle="Parse a raw transaction hex into human-readable fields" />
 
       {/* Info */}
-      <div className="alert alert-info mb-6">
+      <div className="mb-6 flex items-start gap-3 rounded-lg border border-cipher-border bg-cipher-surface p-4 text-secondary">
         <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
         <div>
-          <p className="font-medium">100% Client-Side Decoding</p>
+          <p className="font-medium text-primary">Decoded in your browser</p>
           <p className="text-sm text-secondary mt-1">
-            This tool parses the raw transaction hex directly in your browser.
-            <strong className="text-primary"> No data is sent to any server</strong>, it works offline too.
+            Transaction hex stays in your browser. Decoding works offline once this page has loaded.
           </p>
         </div>
       </div>
@@ -263,10 +256,13 @@ export default function DecodeClient() {
         <CardBody>
           <div className="space-y-4">
             <div>
-              <label className="input-label mb-2 block font-mono uppercase tracking-wider text-xs">
+              <label htmlFor="raw-transaction-hex" className="input-label mb-2 block font-mono uppercase tracking-wider text-xs">
                 Raw Transaction Hex
               </label>
               <textarea
+                id="raw-transaction-hex"
+                name="raw-transaction-hex"
+                autoComplete="off"
                 value={rawHex}
                 onChange={(e) => setRawHex(e.target.value)}
                 placeholder="Paste raw transaction hex here (e.g., 050000800a27a726...)"

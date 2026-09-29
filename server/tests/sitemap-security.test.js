@@ -400,7 +400,9 @@ test('block metadata uses resolved canonical identity through the shared builder
   assert.equal(metadataCalls.at(-1).path, '/block/123');
   assert.equal(metadataCalls.at(-1).index, true);
   assert.equal(metadataCalls.at(-1).indexOnTestnet, undefined);
-  assert.equal(metadataCalls.at(-1).description.includes('Contains 1 transaction'), true);
+  assert.equal(metadataCalls.at(-1).description.includes('with 1 transaction'), true);
+  // Canonical block descriptions identify the block by height, not a zero-padded hash.
+  assert.equal(metadataCalls.at(-1).description.includes(blockHash.slice(0, 12)), false);
 
   resolution = {
     state: 'found',
@@ -416,6 +418,8 @@ test('block metadata uses resolved canonical identity through the shared builder
   await layoutModule.generateMetadata({ params: Promise.resolve({ height: blockHash }) });
   assert.equal(metadataCalls.at(-1).path, `/block/${blockHash}`);
   assert.equal(metadataCalls.at(-1).index, true);
+  // Orphan pages are keyed by hash, so the description names its distinguishing tail.
+  assert.equal(metadataCalls.at(-1).description.includes(`…${blockHash.slice(-12)}`), true);
 
   resolution = { state: 'absent' };
   await layoutModule.generateMetadata({ params: Promise.resolve({ height: '999' }) });
@@ -857,3 +861,16 @@ function v1Fixture(body) {
  const collection = rest.pagination && (rest.blocks || rest.transactions || rest.flows);
  return { data: collection || rest, meta: { requestId: '00000000-0000-4000-8000-000000000000', network: 'mainnet', generatedAt: '2026-09-07T00:00:00.000Z', indexedHeight: 123, source: { indexedHeight: null, observedAt: null }, freshness: { status: 'unknown', ageSeconds: null }, ...(collection ? { page: { limit: 25, hasNext: false, hasPrev: false, nextCursor: null, prevCursor: null, total: rest.pagination.total ?? 0 } } : {}) } };
 }
+
+
+test('robots omit unsupported Googlebot crawl delays on every network', () => {
+ const previous=process.env.NEXT_PUBLIC_NETWORK;
+ try {
+  for(const network of ['mainnet','testnet','crosslink-testnet']) {
+   process.env.NEXT_PUBLIC_NETWORK=network;
+   const {default:robots}=loadTypeScriptModule('app/robots.ts', {'@/lib/seo': {getNetwork:()=>network,getBaseUrl:()=> 'https://zecblock.com'}});
+   const rules=[robots().rules].flat();
+   for(const rule of rules) if([rule.userAgent].flat().includes('Googlebot')) assert.equal(rule.crawlDelay,undefined);
+  }
+ } finally { if(previous===undefined)delete process.env.NEXT_PUBLIC_NETWORK;else process.env.NEXT_PUBLIC_NETWORK=previous; }
+});

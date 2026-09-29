@@ -1,8 +1,8 @@
 import { buildPageMetadata } from '@/lib/seo';
 
 export const metadata = buildPageMetadata({
-  title: 'Blend Check | ZecBlock',
-  description: 'See how common a ZEC amount is on the Zcash blockchain. Use popular amounts to blend in with the crowd.',
+  title: 'Zcash Amount Frequency — Blend Check | ZecBlock',
+  description: 'Compare a ZEC amount with observed public shielding and unshielding flows. Amount frequency is a heuristic, not a privacy guarantee.',
   keywords: ['zcash', 'privacy', 'blend', 'amount', 'shielded', 'transaction', 'common'],
   path: '/tools/blend-check',
   networks: ['mainnet'],

@@ -150,7 +150,7 @@ export function StakingDayBanner() {
               <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-cipher-green"></span>
             </span>
           ) : (
-            <span className="inline-flex rounded-full h-2.5 w-2.5 bg-gray-500/50"></span>
+            <span className="inline-flex rounded-full h-2.5 w-2.5 bg-muted/50"></span>
           )}
           <span className="text-xs font-mono font-semibold uppercase tracking-wider flex items-center gap-1">
             {staking.isStakingOpen ? (
@@ -177,7 +177,7 @@ export function StakingDayBanner() {
       <div className="relative h-2 rounded-full bg-cipher-border-alpha/50 overflow-hidden mb-2">
         <div
           className={`absolute top-0 left-0 h-full rounded-full transition-[width] duration-500 ${
-            staking.isStakingOpen ? 'bg-cipher-green' : 'bg-gray-500'
+            staking.isStakingOpen ? 'bg-cipher-green' : 'bg-muted'
           }`}
           style={{ width: `${Math.min(progressPercent, 100)}%` }}
         />

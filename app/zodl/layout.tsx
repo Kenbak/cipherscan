@@ -1,8 +1,8 @@
 import { buildPageMetadata } from '@/lib/seo';
 
 export const metadata = buildPageMetadata({
-  title: 'Miner ZODL Leaderboard — ZecBlock',
-  description: 'Which Zcash mining pools stack their block rewards and which sell. A leaderboard ranking pools by how much of their earned ZEC they hold versus spend.',
+  title: 'Zcash Miner ZODL Leaderboard | ZecBlock',
+  description: 'Compare unspent Zcash mining rewards and their first transfers by pool, including shielding and labeled exchange flows. Transfers do not prove sales.',
   path: '/zodl',
   networks: ['mainnet'],
 });

@@ -1,9 +1,11 @@
 'use client';
 
-import { readApiData } from '@/lib/api-client';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import Link from 'next/link';
-import { getApiUrl } from '@/lib/api-config';
+import { useApiQuery } from '@/hooks/useApiQuery';
+
+// The server snapshot revalidates every 15 minutes; poll at the same cadence.
+const REFRESH_INTERVAL_MS = 15 * 60 * 1000;
 
 const PERIODS = [
   { key: '30d', label: '30D' },
@@ -57,7 +59,7 @@ interface Summary {
   networkOfframpRatio: number;
   poolCount: number;
 }
-interface ZodlData {
+export interface ZodlData {
   period: string;
   pools: PoolRow[];
   summary: Summary | null;
@@ -75,28 +77,25 @@ function fmtZec(zat: string): string {
 
 export function ZodlClient({
   initialData,
+  initialFetchedAt,
   initialPeriod,
 }: {
   initialData: ZodlData | null;
+  initialFetchedAt?: number;
   initialPeriod: string;
 }) {
   const [period, setPeriod] = useState(initialPeriod);
-  const [data, setData] = useState<ZodlData | null>(initialData);
-  const [loading, setLoading] = useState(false);
   const [sortKey, setSortKey] = useState<'held' | 'shielded' | 'offramp' | 'blocks'>('held');
-
-  useEffect(() => {
-    if (period === initialPeriod && initialData) return;
-    let cancelled = false;
-    setLoading(true);
-    fetch(`${getApiUrl()}/v1/mining/zodl-leaderboard?period=${period}`)
-      .then((r) => readApiData(r))
-      .then((d) => { if (!cancelled) setData(d); })
-      .catch(() => {})
-      .finally(() => { if (!cancelled) setLoading(false); });
-    return () => { cancelled = true; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [period]);
+  const seeded = period === initialPeriod && initialData !== null;
+  const { data, loading, isRefreshing, error } = useApiQuery<ZodlData>(
+    '/v1/mining/zodl-leaderboard',
+    { period },
+    {
+      initialData: seeded ? initialData : undefined,
+      initialFetchedAt: seeded ? initialFetchedAt : undefined,
+      refreshInterval: REFRESH_INTERVAL_MS,
+    },
+  );
 
   const pools = useMemo(() => {
     const list = [...(data?.pools || [])];
@@ -127,7 +126,7 @@ export function ZodlClient({
       {/* Header */}
       <h1 className="type-page text-primary">Miner ZODL Leaderboard</h1>
       <p className="text-sm text-secondary mt-2 max-w-3xl leading-relaxed">
-        Every block mints new ZEC for whoever mined it. We follow the <span className="text-primary font-semibold">first move</span> those rewards make: still <span className="text-primary font-semibold">held</span>, swept into the <span className="text-cipher-shielded font-semibold">shielded pool</span>, or sent straight to an <span style={{ color: SEG.offramp.color }} className="font-semibold">exchange or bridge</span>. Shielding isn&apos;t selling — and as it turns out, most miners shield rather than dump.
+        Every block mints new ZEC for whoever mined it. We follow the <span className="text-primary font-semibold">first move</span> those rewards make: still <span className="text-primary font-semibold">held</span>, swept into the <span className="text-cipher-shielded font-semibold">shielded pool</span>, or sent straight to an <span style={{ color: SEG.offramp.color }} className="font-semibold">exchange or bridge</span>. These are observed first moves, not proof of a sale or of the miner&apos;s intent.
       </p>
 
       {/* Controls */}
@@ -158,8 +157,17 @@ export function ZodlClient({
             </button>
           ))}
         </div>
-        {loading && <span className="text-caption font-mono text-cipher-gold animate-pulse">updating…</span>}
+        {(loading || isRefreshing) && <span className="text-caption font-mono text-cipher-gold animate-pulse">updating…</span>}
+        {error && data && !isRefreshing && (
+          <span role="status" className="text-caption font-mono text-muted">Couldn&apos;t refresh. Showing the last loaded leaderboard.</span>
+        )}
       </div>
+
+      {error && !data && !loading && (
+        <div role="status" className="rounded-xl border border-cipher-border bg-cipher-surface p-10 text-center mb-5">
+          <p className="text-sm text-secondary">The leaderboard couldn&apos;t be loaded. It will retry automatically.</p>
+        </div>
+      )}
 
       {/* Summary */}
       {summary && (

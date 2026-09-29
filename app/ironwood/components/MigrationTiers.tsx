@@ -10,7 +10,7 @@ import type { ChartColors, TierTx } from './types';
 
 export const TIER_BOUNDARIES_ZAT = [1e8, 10e8, 100e8, 1000e8, 5000e8, 10000e8];
 export const TIER_LABELS = ['Under 1', '1–10', '10–100', '100–1K', '1K–5K', '5K–10K', '10K+'];
-export const TIER_COLORS = ['#94a3b8', '#60a5fa', '#B6A0E0', '#f59e0b', '#ef4444', '#dc2626', '#991b1b'];
+export const TIER_COLORS = ['var(--color-text-muted)', 'var(--color-cipher-blue)', 'var(--color-purple)', 'var(--color-gold)', 'var(--color-orange)', 'var(--danger)', 'var(--color-text-primary)'];
 
 export function formatTierVolumePct(pct: number): string {
   if (pct < 0.1 && pct > 0) return `${pct.toFixed(2)}%`;
@@ -94,7 +94,7 @@ export function MigrationTiers({
         sourceHeight={tipHeight}
         isLive={activated}
         shareText={`Ironwood migration by size: ${tierData.map(t => `${t.label} ZEC: ${t.count} txs (${t.volumePct.toFixed(0)}% vol)`).join(' · ')}\n\nhttps://zecblock.com/ironwood`}
-        fileName="cipherscan-migration-tiers.png"
+        fileName="zecblock-migration-tiers.png"
       >
         <p className="text-xs text-muted mb-5">
           Orchard → Ironwood migration volume by transaction size. Drag the scrubber to see how the distribution evolved.

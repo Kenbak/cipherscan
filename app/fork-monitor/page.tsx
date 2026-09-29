@@ -197,7 +197,7 @@ export default function ForkMonitorPage() {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 animate-fade-in">
       <div className="mb-8">
         <span className="text-caption font-mono text-muted tracking-wider">&gt; FORK_MONITOR</span>
-        <h1 className="type-page font-mono text-primary mt-1">Crosslink Fork Monitor</h1>
+        <h1 className="type-page font-sans text-primary mt-1">Crosslink Fork Monitor</h1>
         <p className="text-xs text-muted mt-2 max-w-2xl leading-relaxed">
           Compare ZecBlock and cTAZ at fixed anchor heights during chain incidents. Verify your node,
           report your tip, and see which branch other operators follow.
@@ -218,7 +218,7 @@ export default function ForkMonitorPage() {
             <EmptyState
               title={error}
               action={
-                <button type="button" onClick={fetchData} className="btn-sm btn-ghost">
+                <button type="button" onClick={fetchData} className="btn btn-sm btn-ghost">
                   Retry
                 </button>
               }

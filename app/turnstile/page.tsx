@@ -13,8 +13,7 @@ export default function TurnstilePage() {
 
       <div className="mb-6 flex flex-col sm:flex-row sm:items-center gap-3 p-4 rounded-xl border border-glass-6 bg-glass-3">
         <p className="text-xs text-secondary font-sans flex-1">
-          Turnstile tracking follows ZEC after it exits a shielded pool. High &quot;still held&quot; share
-          suggests users aren&apos;t immediately selling or moving funds.
+          Turnstile tracking follows ZEC after it exits a shielded pool. &quot;Still held&quot; means the tracked transparent outputs remain unspent. Transfers to labeled exchanges do not prove a sale.
         </p>
         <div className="flex flex-wrap gap-2 shrink-0">
           <Link

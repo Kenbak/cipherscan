@@ -1,7 +1,7 @@
 {
   "name": "ZecBlock — Zcash Block Explorer",
   "short_name": "ZecBlock",
-  "description": "Explore the Zcash blockchain with clarity. Privacy meets transparency.",
+  "description": "Search Zcash blocks, transactions, and addresses. Explore shielded pools, network activity, and privacy analytics with ZecBlock.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0B0C0E",

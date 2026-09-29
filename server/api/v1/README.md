@@ -113,6 +113,36 @@ retried after an ambiguous timeout.
 
 ## Ask contextual assistant
 
+### V1 answer quality and diagnostics — September 29
+
+Exact advertised starters and supported control shortcuts bypass intent classification;
+free-form and multilingual questions still use the classifier. The new yearly busiest-day
+starter uses existing privacy history, requesting 366 rows so today's row does not displace
+a completed day. Server evidence ranks up to five days by exact shielded + transparent
+non-coinbase transaction count. Categories are mutually exclusive. Rankings exclude today
+and future days, omit unknown categories, break ties by earliest date, and count missing
+days against the requested completed UTC window. Missing coverage prevents a definitive
+full-period maximum. This is a fixed API operation, not SQL access. Weekly flow/count
+comparisons also exclude today's unfinished bucket.
+
+Analytical chat replies add optional `dataContext` with `start`, `end`, `retrievedAt`,
+`source` and `label`. Dates can be null for non-calendar rankings. Sources disclose guide
+review dates separately from observation windows and retrieval time; neither retrieval nor
+calendar completeness proves indexer synchronization. Cached answer identity includes
+calculated facts so UTC-day eligibility cannot reuse yesterday's ranking under unchanged rows.
+
+Reviewed knowledge adds shielded/transparent concepts, unified addresses/viewing keys and
+the ZIP process. These use fixed public source URLs and per-document review dates; no live
+crawler, private wiki retrieval or provider change is introduced.
+
+Failures expose fixed `code` values: `ask-verification` (403), `ask-source`, `ask-provider`,
+`ask-answer`, `ask-unavailable` (503), `ask-timeout` (504), `ask-quota` (429). Diagnostics log
+only the fixed event/code, never prompts, histories, raw errors or provider output. Both chat
+surfaces retain failed questions for manual retry; errors are not added as successful turns.
+There is no automatic paid retry. Existing admission, reservations, concurrency and token
+limits remain unchanged. Public activation and live-provider acceptance remain release gates.
+
+
 Mainnet `POST /v1/ask/chat` accepts a validated page ID, question (1,000 characters),
 optional analysis recipe, response locale and at most four previous questions.
 The server selects reviewed public knowledge and/or fetches allowlisted analytics.

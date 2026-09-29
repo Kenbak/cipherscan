@@ -49,7 +49,7 @@ function parsePeriod(period) {
     '1y': '365 days',
     'all': null,
   };
-  return map[period] || map['7d'];
+  return Object.hasOwn(map, period) ? map[period] : map['7d'];
 }
 
 function resolvePoolName(address, tag) {
@@ -79,7 +79,7 @@ router.get('/api/mining/software', async (req,res) => {
 router.get('/api/mining/pool-distribution', async (req, res) => {
   try {
     const period = req.query.period || '7d';
-    const cacheKey = `mining:pool-dist:${period}`;
+    const cacheKey = `mining:history-v3:pool-dist:${period}`;
 
     const cached = await getFromCache(cacheKey);
     if (cached) return res.json(cached);
@@ -146,7 +146,7 @@ router.get('/api/mining/pool-distribution', async (req, res) => {
 router.get('/api/mining/pool-ranking', async (req, res) => {
   try {
     const period = req.query.period || '7d';
-    const cacheKey = `mining:pool-rank:${period}`;
+    const cacheKey = `mining:history-v3:pool-rank:${period}`;
 
     const cached = await getFromCache(cacheKey);
     if (cached) return res.json(cached);
@@ -243,7 +243,7 @@ router.get('/api/mining/pool-ranking', async (req, res) => {
 router.get('/api/mining/hashrate-share', async (req, res) => {
   try {
     const period = req.query.period || '30d';
-    const cacheKey = `mining:hashrate-share:${period}`;
+    const cacheKey = `mining:history-v3:hashrate-share:${period}`;
 
     const cached = await getFromCache(cacheKey);
     if (cached) return res.json(cached);
@@ -251,12 +251,17 @@ router.get('/api/mining/hashrate-share', async (req, res) => {
     const interval = parsePeriod(period);
     const whereClause = interval
       ? `WHERE timestamp >= EXTRACT(EPOCH FROM NOW() - INTERVAL '${interval}')`
-      : `WHERE timestamp >= EXTRACT(EPOCH FROM NOW() - INTERVAL '365 days')`;
+      : '';
 
-    // Bucket into days
-    const result = await pool.query(`
+    // Historical rollups are built slowly off-request; never scan the entire
+    // block table and its attribution regexes for an all-history chart.
+    const result = period === 'all' ? await pool.query(`
+      SELECT a.date::text AS day,p.key AS pool_name,p.value AS block_count
+      FROM analytics_history_daily a JOIN blocks b ON b.height=a.anchor_height AND b.hash=a.anchor_hash
+      CROSS JOIN LATERAL jsonb_each_text(a.mining_pool_blocks) p ORDER BY a.date
+    `) : await pool.query(`
       SELECT
-        date_trunc('day', to_timestamp(timestamp)) as day,
+        (to_timestamp(timestamp) AT TIME ZONE 'UTC')::date::text as day,
         miner_address,
         ${getPoolTagSql()} AS pool_tag,
         COUNT(*) as block_count
@@ -269,9 +274,9 @@ router.get('/api/mining/hashrate-share', async (req, res) => {
     // Aggregate: for each day, compute share per pool
     const dayMap = new Map();
     for (const row of result.rows) {
-      const dayKey = row.day.toISOString().slice(0, 10);
+      const dayKey = row.day;
       if (!dayMap.has(dayKey)) dayMap.set(dayKey, {});
-      const poolName = resolvePoolName(row.miner_address, row.pool_tag);
+      const poolName = row.pool_name || resolvePoolName(row.miner_address, row.pool_tag);
       const dayPools = dayMap.get(dayKey);
       dayPools[poolName] = (dayPools[poolName] || 0) + parseInt(row.block_count);
     }
@@ -306,7 +311,7 @@ router.get('/api/mining/hashrate-share', async (req, res) => {
 router.get('/api/mining/rewards', async (req, res) => {
   try {
     const period = req.query.period || '7d';
-    const cacheKey = `mining:rewards:${period}`;
+    const cacheKey = `mining:history-v3:rewards:${period}`;
 
     const cached = await getFromCache(cacheKey);
     if (cached) return res.json(cached);
@@ -319,7 +324,7 @@ router.get('/api/mining/rewards', async (req, res) => {
     // Block subsidy = coinbase total_output; fees = block.total_fees
     const result = await pool.query(`
       SELECT
-        date_trunc('day', to_timestamp(b.timestamp)) as day,
+        (to_timestamp(b.timestamp) AT TIME ZONE 'UTC')::date::text as day,
         COUNT(*) as block_count,
         SUM(b.total_fees) as total_fees_zat,
         SUM(t.total_output) as total_coinbase_output_zat
@@ -331,7 +336,7 @@ router.get('/api/mining/rewards', async (req, res) => {
     `);
 
     const series = result.rows.map(row => ({
-      date: row.day.toISOString().slice(0, 10),
+      date: row.day,
       blocks: parseInt(row.block_count),
       totalFeesZat: row.total_fees_zat || '0',
       totalCoinbaseZat: row.total_coinbase_output_zat || '0',
@@ -353,7 +358,7 @@ router.get('/api/mining/rewards', async (req, res) => {
 router.get('/api/mining/miner-behavior', async (req, res) => {
   try {
     const period = req.query.period || '90d';
-    const cacheKey = `mining:miner-behavior:${period}`;
+    const cacheKey = `mining:history-v3:miner-behavior:${period}`;
 
     const cached = await getFromCache(cacheKey);
     if (cached) return res.json(cached);
@@ -383,7 +388,7 @@ router.get('/api/mining/miner-behavior', async (req, res) => {
 
     const result = await pool.query(`
       SELECT
-        date,
+        date::text AS date,
         pool_name,
         earned_zat,
         spent_zat,
@@ -399,7 +404,7 @@ router.get('/api/mining/miner-behavior', async (req, res) => {
     // Group by date for aggregate view
     const byDate = new Map();
     for (const row of result.rows) {
-      const dateKey = row.date.toISOString().slice(0, 10);
+      const dateKey = row.date;
       if (!byDate.has(dateKey)) {
         byDate.set(dateKey, { date: dateKey, earned: BigInt(0), spent: BigInt(0), held: BigInt(0), pools: {} });
       }
@@ -454,7 +459,7 @@ router.get('/api/mining/miner-behavior', async (req, res) => {
 router.get('/api/mining/zodl-leaderboard', async (req, res) => {
   try {
     const period = req.query.period || '90d';
-    const cacheKey = `mining:zodl:${period}`;
+    const cacheKey = `mining:history-v3:zodl:${period}`;
 
     const cached = await getFromCache(cacheKey);
     if (cached) return res.json(cached);

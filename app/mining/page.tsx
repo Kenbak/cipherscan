@@ -35,7 +35,7 @@ const SECTIONS = [
   { id: 'methodology', label: 'Methodology' },
 ] as const;
 
-const PERIODS = ['24h', '3d', '7d', '30d', '90d', '1y'] as const;
+const PERIODS = ['24h', '3d', '7d', '30d', '90d', '1y', 'all'] as const;
 type Period = typeof PERIODS[number];
 
 
@@ -291,7 +291,7 @@ function ChartModeToggle({ mode, onChange }: { mode: ChartMode; onChange: (m: Ch
         onClick={() => onChange('line')}
         className={`px-2.5 py-1 rounded text-caption font-mono uppercase tracking-wider transition ${
           mode === 'line'
-            ? 'bg-accent/20 text-accent font-semibold'
+            ? 'bg-cipher-elevated text-primary font-semibold'
             : 'text-muted hover:text-secondary'
         }`}
       >
@@ -301,7 +301,7 @@ function ChartModeToggle({ mode, onChange }: { mode: ChartMode; onChange: (m: Ch
         onClick={() => onChange('area')}
         className={`px-2.5 py-1 rounded text-caption font-mono uppercase tracking-wider transition ${
           mode === 'area'
-            ? 'bg-accent/20 text-accent font-semibold'
+            ? 'bg-cipher-elevated text-primary font-semibold'
             : 'text-muted hover:text-secondary'
         }`}
       >
@@ -314,7 +314,7 @@ function ChartModeToggle({ mode, onChange }: { mode: ChartMode; onChange: (m: Ch
 function HashrateShareSection() {
   const { theme } = useTheme();
   const colors = getChartColors(theme);
-  const [period, setPeriod] = useState<Period>('30d');
+  const [period, setPeriod] = useState<Period>('all');
   const [chartMode, setChartMode] = useState<ChartMode>('line');
   const [series, setSeries] = useState<HashratePoint[]>([]);
   const [allPools, setAllPools] = useState<string[]>([]);
@@ -510,7 +510,7 @@ function HashrateShareSection() {
 function MinerBehaviorSection() {
   const { theme } = useTheme();
   const colors = getChartColors(theme);
-  const [period, setPeriod] = useState<Period>('90d');
+  const [period, setPeriod] = useState<Period>('all');
   const [series, setSeries] = useState<BehaviorPoint[]>([]);
   const [summary, setSummary] = useState<BehaviorSummary | null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -558,7 +558,7 @@ function MinerBehaviorSection() {
         <p className="text-xs text-secondary mt-1 font-sans">
           How much of their block rewards miners move vs leave unspent. A high moved ratio means rewards changed address
           quickly; it does not prove they were sold. The{' '}
-          <Link href="/zodl" className="text-cipher-gold hover:underline">ZODL leaderboard</Link> breaks each pool&apos;s spending down by destination (shielded vs. exchange vs. transparent), and most of it turns out to be shielding, not selling.
+          <Link href="/zodl" className="text-cipher-gold hover:underline">ZODL leaderboard</Link> breaks each pool&apos;s spending down by destination (shielded vs. exchange vs. transparent), showing observed transfers rather than proving sales.
         </p>
       </div>
 
@@ -654,7 +654,7 @@ function MinerBehaviorSection() {
                 formatter={(value) => value === 'earned' ? 'Earned' : value === 'spent' ? 'Moved/Sold' : 'Held'}
               />
               <Bar dataKey="earned" fill={colors.gold} fillOpacity={0.3} stroke={colors.gold} />
-              <Bar dataKey="spent" fill="#f59e0b" fillOpacity={0.7} />
+              <Bar dataKey="spent" fill={colors.deshielding} fillOpacity={0.7} />
               <Bar dataKey="held" fill={colors.orchard} fillOpacity={0.7} />
             </BarChart>
           </ResponsiveContainer>

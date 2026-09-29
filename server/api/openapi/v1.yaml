@@ -1,4 +1,4 @@
-# CipherScan API v1 — OpenAPI 3.1 specification
+# ZecBlock API v1 — OpenAPI 3.1 specification
 #
 # GENERATED FILE — do not hand-edit.
 # Source of truth: server/api/v1/inventory/manifest.js
@@ -10,7 +10,7 @@ info:
   version: 1.0.0-preview
   summary: >-
     Versioned, contract-stable read/write API for the Zcash blockchain data and privacy-intelligence
-    features exposed by CipherScan.
+    features exposed by ZecBlock.
   description: >-
     This is the v1 contract layer. It is gated behind API_V1_ENABLED and, pre-launch, an
     X-API-Preview-Key header (see the previewKey security scheme) — see server/api/v1/README.md in
@@ -19,7 +19,7 @@ info:
     inventory entry is adapted; The manifest explicitly identifies retained operational routes and
     payment-protected services.
   contact:
-    name: CipherScan / Atmosphere Labs
+    name: ZecBlock / Atmosphere Labs
 servers:
   - url: https://api.zecblock.com
     description: Mainnet API host.
@@ -6466,6 +6466,8 @@ paths:
               - 7d
               - 30d
               - 90d
+              - 1y
+              - all
           description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
       x-cipherscan-legacy-path: /api/crosschain/trends
       x-cipherscan-legacy-method: GET
@@ -7196,8 +7198,15 @@ paths:
           in: query
           required: false
           schema:
-            type: string
-          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
+            anyOf:
+              - type: integer
+                minimum: 7
+                maximum: 1000
+              - type: string
+                enum:
+                  - all
+            default: 30
+          description: All returns every retained daily observation without a row cap.
       x-cipherscan-legacy-path: /api/privacy-stats
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -11642,7 +11651,15 @@ paths:
           required: false
           schema:
             type: string
-          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
+            enum:
+              - 30d
+              - 90d
+              - 180d
+              - 1y
+              - 2y
+              - all
+            default: 1y
+          description: All returns the complete available daily history.
       x-cipherscan-legacy-path: /api/valuation/history
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -11745,7 +11762,15 @@ paths:
           required: false
           schema:
             type: string
-          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
+            enum:
+              - 30d
+              - 90d
+              - 180d
+              - 1y
+              - 2y
+              - all
+            default: 1y
+          description: All returns the complete available daily history.
       x-cipherscan-legacy-path: /api/valuation/hodl-waves
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -11848,7 +11873,15 @@ paths:
           required: false
           schema:
             type: string
-          description: Endpoint-specific filter or range; accepted values follow this endpoint’s data source.
+            enum:
+              - 30d
+              - 90d
+              - 180d
+              - 1y
+              - 2y
+              - all
+            default: 1y
+          description: All returns the complete available daily history.
       x-cipherscan-legacy-path: /api/valuation/dormancy
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public

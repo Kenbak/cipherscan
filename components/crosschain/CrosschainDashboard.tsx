@@ -291,7 +291,7 @@ export function CrosschainDashboard({
                 scrollToSwaps
                 key={status}
                 href={href({ period, status }) + "#swaps"}
-                className="rounded-lg bg-glass-3 p-3 hover:bg-glass-5"
+                className="rounded-lg bg-glass-3 p-3 hover:bg-glass-6"
               >
                 <p className="text-caption text-muted break-words">
                   {

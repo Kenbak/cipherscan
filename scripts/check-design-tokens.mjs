@@ -33,6 +33,8 @@
  * Run: node scripts/check-design-tokens.mjs
  */
 
+import { undersizedCssFonts } from './typography-rules.mjs';
+import { __unstable__loadDesignSystem } from '@tailwindcss/node';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -40,6 +42,7 @@ const ROOT = new URL('..', import.meta.url).pathname;
 const SCAN_DIRS = ['app', 'components'];
 
 const violations = [];
+const colorTokens = new Set([...readFileSync(join(ROOT, 'app/globals.css'), 'utf8').matchAll(/--color-([a-z0-9-]+)\s*:/g)].map(match => match[1]));
 
 function* walk(dir) {
   for (const entry of readdirSync(dir)) {
@@ -92,9 +95,26 @@ for (const dir of SCAN_DIRS) {
     const rel = file.slice(ROOT.length);
     const src = readFileSync(file, 'utf8');
     const lines = src.split('\n');
+    if (file.endsWith('.css')) {
+      for (const issue of undersizedCssFonts(src.replace(/\/\*[\s\S]*?\*\//g, match => match.replace(/[^\n]/g, ' ')))) {
+        const line = src.slice(0, issue.index).split('\n').length;
+        violations.push(`${rel}:${line} sub-12px CSS text "${issue.value}" — use the caption/data roles`);
+      }
+    }
 
     lines.forEach((line, i) => {
-      for (const m of line.matchAll(/\btext-\[(?:[0-9]|1[01])px\]/g)) {
+      if (!file.endsWith('.css')) {
+        for (const match of line.matchAll(/className="([^"]*)"/g)) {
+          const classes = match[1].split(/\s+/);
+          if (classes.some(token => /^btn-(primary|secondary|ghost|danger)$/.test(token)) && !classes.includes('btn')) {
+            violations.push(`${rel}:${i + 1} button variant without the btn base class — include shared button sizing and layout`);
+          }
+        }
+        for (const match of line.matchAll(/\b(?:bg|text|border|from|via|to|ring|fill|stroke)-(cipher-[a-z0-9-]+|glass-\d+)\b/g)) {
+          if (!colorTokens.has(match[1])) violations.push(`${rel}:${i + 1} undefined color utility ${match[0]} — use a declared design token`);
+        }
+      }
+      for (const m of line.matchAll(/\btext-\[(?:[0-9](?:\.\d+)?|1[01](?:\.\d+)?)px\]/g)) {
         violations.push(`${rel}:${i + 1} sub-12px text "${m[0]}" — use text-caption or a larger role`);
       }
       for (const m of line.matchAll(/\btext-(?:muted|secondary|primary)\/\d+/g)) {
@@ -115,7 +135,7 @@ for (const dir of SCAN_DIRS) {
       // Compare with spaces stripped so "rgba(0, 230, 118, .1)" matches.
       const dense = line.replace(/\s+/g, '');
       for (const [literal, replacement] of RETIRED_COLORS) {
-        if (dense.includes(literal)) {
+        if (dense.toLowerCase().includes(literal.toLowerCase())) {
           violations.push(`${rel}:${i + 1} retired palette color "${literal}" — use ${replacement}`);
         }
       }
@@ -184,6 +204,34 @@ for (const block of lightBlocks) {
       });
     }
   }
+}
+
+// Validate the actual installed Tailwind vocabulary, not just cipher-* names.
+// This is build tooling only; the loader resolves @import/@theme identically
+// to the installed compiler. Authored CSS classes remain valid alternatives.
+{
+  const css = SCAN_DIRS.flatMap(dir => [...walk(join(ROOT, dir))])
+    .filter(file => file.endsWith('.css')).map(file => readFileSync(file, 'utf8')).join('\n');
+  const authored = new Set([...css.matchAll(/\.([a-z][a-z0-9-]*)\b/g)].map(match => match[1]));
+  const candidates = new Map();
+  for (const dir of SCAN_DIRS) for (const file of walk(join(ROOT, dir))) {
+    if (!file.endsWith('.tsx')) continue;
+    readFileSync(file, 'utf8').split('\n').forEach((line, index) => {
+      for (const match of line.matchAll(/(?<![\w-])(?:bg|text|border|ring|fill|stroke|divide|from|via|to)-[a-z][a-z0-9-]*/g)) {
+        if (/^stroke-(opacity|dashoffset|dasharray)$/.test(match[0])) continue; // SVG/CSS attribute names.
+        const locations = candidates.get(match[0]) || [];
+        locations.push(`${file.slice(ROOT.length)}:${index + 1}`);
+        candidates.set(match[0], locations);
+      }
+    });
+  }
+  const design = await __unstable__loadDesignSystem(globals, { base: join(ROOT, 'app') });
+  const names = [...candidates.keys()];
+  design.candidatesToCss(names).forEach((compiled, index) => {
+    if (!compiled && !authored.has(names[index])) {
+      violations.push(`${candidates.get(names[index]).join(', ')} undefined utility ${names[index]} — the installed theme generates no CSS`);
+    }
+  });
 }
 
 if (violations.length > 0) {

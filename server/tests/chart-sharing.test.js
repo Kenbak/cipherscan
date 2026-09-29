@@ -38,9 +38,9 @@ test('CSV retains numeric precision, quotes values, distinguishes missing, neutr
  const csv=sharing.chartCsv({chart:c,rows:[{x:'=HYPERLINK("evil")',value:0},{x:'missing',value:null},{x:'exact',value:.00000001}]});
  assert.ok(csv.includes('"\'=HYPERLINK(""evil"")"'));assert.ok(csv.includes('"missing",""'));assert.ok(csv.includes('"exact","1e-8"'));assert.ok(csv.includes('"0"'));
 });
-test('relative turnstile endpoint is computed at request time',()=>{
- const c=CHART_CATALOG.find(c=>c.id==='turnstile');
- assert.notEqual(sharing.chartEndpoint(c,Date.parse('2026-01-31')),sharing.chartEndpoint(c,Date.parse('2026-02-28')));
+test('turnstile all-history requests are stable and include the entire retained series',()=>{
+ const chart=sharing.findShareChart('turnstile');
+ assert.equal(sharing.chartEndpoint(chart),'/v1/shielded-pools/turnstile?since=2016-10-28');
 });
 
 test('category snapshot labels use the source timestamp, never the current time',()=>{
@@ -86,4 +86,34 @@ test('unknown chart pages return 404 before a loading boundary can stream',async
  const missing=await exports.proxy(new NextRequest('http://localhost/charts/not-a-chart'));
  assert.equal(missing.status,404);assert.equal(missing.headers.get('X-Robots-Tag'),'noindex, follow');
  for(const chart of CHART_CATALOG)assert.equal((await exports.proxy(new NextRequest('http://localhost/charts/'+chart.id))).status,200);
+});
+
+
+test('all shared chart titles include Zcash once without changing catalog labels', async () => {
+ const page=loadRoute('app/charts/[slug]/page.tsx',{'@/lib/chart-share-server':{loadShareChart:async()=>null}});
+ for (const chart of CHART_CATALOG) {
+  const title=sharing.chartPublicTitle(chart);
+  assert.equal((title.match(/Zcash/gi)||[]).length,1,chart.id);
+  assert.ok(title.includes(chart.title));
+  const metadata=await page.generateMetadata({params:Promise.resolve({slug:chart.id}),searchParams:Promise.resolve({range:'1y'})});
+  assert.ok(String(metadata.title).includes(title));
+  assert.match(metadata.openGraph.images[0].alt,/Zcash/i);
+  assert.ok(sharing.chartCsv({chart,rows:[]}).includes(title));
+ }
+});
+
+test('proxy recovery pages retain HTTP semantics and current branding', async () => {
+ const vm=require('node:vm'); const exports={}; const {NextRequest,NextResponse}=require('next/server');
+ vm.runInNewContext(ts.transpileModule(fs.readFileSync('proxy.ts','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS}}).outputText,{
+  exports,URL,process:{env:{NODE_ENV:'development'}},setInterval:()=>{},
+  require:name=>({'next/server':{NextResponse},'./lib/chart-catalog':{CHART_CATALOG},'./lib/network':{getConfiguredNetwork:()=> 'mainnet'},'./lib/governance-request':{resolveGovernanceRequest:async path=>({status:path.endsWith('/unavailable')?503:404})}})[name]
+ });
+ for (const [path,status] of [['/block/not-a-block',404],['/charts/not-a-chart',404],['/governance/unknown',404],['/governance/unavailable',503]]) {
+  const result=await exports.proxy(new NextRequest('http://localhost'+path));
+  assert.equal(result.status,status); assert.equal(result.headers.get('Cache-Control'),'no-store');
+  assert.equal(result.headers.get('X-Robots-Tag'),'noindex, follow');
+  const html=await result.text(); assert.match(html,/ZecBlock/); assert.doesNotMatch(html,/CipherScan/i);
+  assert.equal((html.match(/<h1>/g)||[]).length,1); assert.match(html,/name="viewport"/);
+  if(status===503)assert.equal(result.headers.get('Retry-After'),'60');
+ }
 });

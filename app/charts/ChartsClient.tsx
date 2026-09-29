@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { ResponsiveContainer, ComposedChart, Line, Area, Bar, XAxis, YAxis, CartesianGrid, ReferenceLine } from 'recharts';
-import { CHART_CATALOG, catalogRows, formatCatalogValue, type CatalogChart } from '@/lib/chart-catalog';
+import { CHART_CATALOG, catalogRows, latestCatalogObservation, formatCatalogValue, type CatalogChart } from '@/lib/chart-catalog';
 import { poolDateAxis } from '@/lib/pool-display';
 import { getChartColors } from '@/lib/chart-theme';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -26,7 +26,7 @@ const TOOLS=[
   {title:'Turnstile tracker',href:'/turnstile',description:'Follow the publicly observable path of value after deshielding.'},
 ];
 
-export function CatalogCard({chart, initialData, initialRange='all', initialSeries, standalone=false}:{chart:CatalogChart; initialData?: unknown; initialRange?: ChartRange; initialSeries?: string[]; standalone?: boolean}) {
+export function CatalogCard({chart, initialData, initialFetchedAt, initialRange='all', initialSeries, standalone=false}:{chart:CatalogChart; initialData?: unknown; initialFetchedAt?: number; initialRange?: ChartRange; initialSeries?: string[]; standalone?: boolean}) {
   const ref=useRef<HTMLElement>(null);
   const [visible,setVisible]=useState(standalone);
   const [width,setWidth]=useState(500);
@@ -39,15 +39,15 @@ export function CatalogCard({chart, initialData, initialRange='all', initialSeri
     if(ref.current) observer.observe(ref.current);
     return()=>observer.disconnect();
   },[]);
-  const {data,loading,error}=useApiQuery<unknown>(chartEndpoint(chart),undefined,{initialData,enabled:visible,refreshInterval:300000,timeoutMs:30000});
+  const {data,loading,error}=useApiQuery<unknown>(chartEndpoint(chart),undefined,{initialData,initialFetchedAt,enabled:visible,refreshInterval:300000,timeoutMs:30000});
   const allRows=useMemo(()=>catalogRows(chart,data),[chart,data]);
   const rows=useMemo(()=>chartRangeRows(chart,allRows,range),[chart,allRows,range]);
-  const hasData=rows.some(p=>chart.series.some(s=>typeof p[s.key]==='number'));
+  const shown=chart.series.filter(s=>!hidden.includes(s.key));
+  const latest=latestCatalogObservation(rows,shown);
+  const hasData=!!latest;
   const dateAxis=useMemo(()=>poolDateAxis(chart.axis?[]:rows.map(r=>new Date(Number(r.x)).toISOString()),width-85),[chart.axis,rows,width]);
   const isDate=!chart.axis;
   const label=(x:unknown)=>isDate?new Date(Number(x)).toLocaleDateString('en-US',{year:'numeric',month:'short',day:'numeric',timeZone:'UTC'}):chart.axis==='height'?`Block ${Number(x).toLocaleString('en-US')}`:String(x);
-  const latest=rows.at(-1);
-  const shown=chart.series.filter(s=>!hidden.includes(s.key));
   const sharePath=chartSharePath(chart.id,range,hidden.length?shown.map(s=>s.key):undefined);
   const exportData=useMemo(()=>({chart:{...chart,series:chart.series.filter(s=>!hidden.includes(s.key))},rows,network:NETWORK,asOf:chart.axis==='category'?chartSnapshotLabel(data):undefined}),[chart,rows,hidden,data]);
   const category=chart.axis==='category';

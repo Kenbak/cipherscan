@@ -39,6 +39,40 @@ export function getApiUrl(): string {
   return getApiUrlForNetwork(getNetwork());
 }
 
+/**
+ * Network homepage copy. The homepage owns this metadata; the root layout only
+ * sets site-wide defaults so pages without metadata (such as the 404) don't
+ * inherit the homepage's title, canonical or index policy.
+ */
+export function getSiteCopy(): { title: string; description: string; keywords: string[]; imageAlt: string } {
+  const network = getNetwork();
+  if (network === 'mainnet') {
+    return {
+      title: 'Zcash Block Explorer & Privacy Analytics | ZecBlock',
+      description: 'Search Zcash blocks, transactions, and addresses. Explore shielded pools, network activity, and privacy analytics with ZecBlock.',
+      keywords: ['zcash block explorer', 'zcash explorer', 'ZEC explorer', 'zcash blockchain explorer', 'zcash transactions', 'zcash shielded pool', 'privacy', 'ZEC', 'ZecBlock', 'zcash rich list', 'zcash network'],
+      imageAlt: 'ZecBlock - Zcash Block Explorer',
+    };
+  }
+  if (network === 'testnet') {
+    return {
+      title: 'Zcash Testnet Explorer for TAZ | ZecBlock',
+      description: 'Explore the Zcash testnet with ZecBlock. Search TAZ blocks, transactions, and addresses, monitor pending transactions, and inspect testnet network activity.',
+      keywords: ['zcash testnet', 'TAZ', 'TAZ explorer', 'zcash testnet explorer', 'zcash testnet transactions', 'ZecBlock testnet'],
+      imageAlt: 'ZecBlock - Zcash Testnet Explorer for TAZ',
+    };
+  }
+  return {
+    title: 'Zcash Crosslink Explorer | ZecBlock',
+    description: 'Explore the Zcash Crosslink feature network, including blocks, finality, staking, and validators.',
+    keywords: ['zcash crosslink', 'crosslink explorer', 'zcash finality', 'cTAZ'],
+    imageAlt: 'ZecBlock - Zcash Crosslink Explorer',
+  };
+}
+
+// Social platforms cache card images by URL. Bump this when app/opengraph-image.tsx changes.
+const SHARE_IMAGE_VERSION = '2026-09-29';
+
 function absoluteUrl(path: string): string {
   if (/^https?:\/\//i.test(path)) return path;
   const normalizedPath = path === '/' ? '/' : `/${path.replace(/^\/+/, '')}`;
@@ -79,7 +113,7 @@ export function buildPageMetadata({
 }: BuildPageMetadataOptions): Metadata {
   const network = getNetwork();
   const canonical = absoluteUrl(path);
-  const image = absoluteUrl('/opengraph-image');
+  const image = absoluteUrl(`/opengraph-image?v=${SHARE_IMAGE_VERSION}`);
   const isCrosslink = network === 'crosslink-testnet';
   const allowedOnNetwork = networks ? networks.includes(network) : true;
   // Testnet is a developer utility rather than a second copy of the explorer
@@ -126,7 +160,8 @@ export function buildPageMetadata({
       title,
       description,
       images: [image],
-      creator: '@Kenbak',
+      site: '@zecblock',
+      creator: '@zecblock',
     },
     robots: {
       index: shouldIndex,

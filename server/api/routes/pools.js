@@ -119,7 +119,7 @@ router.get('/api/pools/flows', async (req, res) => {
     const cacheTtl = isHourly ? 120 : 300;
 
     const data = await cached(cacheKey, cacheTtl, async () => {
-      const since = Math.floor(Date.now() / 1000) - periodToSeconds(period);
+      const since = period === 'all' ? 0 : Math.floor(Date.now() / 1000) - periodToSeconds(period);
       const params = [since];
       let poolClause = '';
       if (poolFilter !== 'all') {
@@ -162,7 +162,7 @@ router.get('/api/pools/flows', async (req, res) => {
       for (const r of result.rows) {
         const key = isHourly
           ? new Date(r.bucket).toISOString()
-          : new Date(r.date).toISOString().split('T')[0];
+          : r.date;
         if (!byBucket[key]) byBucket[key] = { date: key, shield: 0, deshield: 0, shieldTx: 0, deshieldTx: 0 };
         const amount = useZat ? BigInt(r.total_zat) : Number(r.total_zat) / 1e8;
         if (r.flow_type === 'shield') {
@@ -301,7 +301,7 @@ router.get('/api/pools/turnstile', async (req, res) => {
       const totalMoved = totalReshielded + totalExchange + totalBridge + totalTransferred;
 
       const timeseries = timeseriesResult.rows.map(r => ({
-        date: new Date(r.date).toISOString().split('T')[0],
+        date: r.date,
         deshielded: Number(r.deshielded) / 1e8,
         held: Number(r.held) / 1e8,
         reshielded: Number(r.reshielded) / 1e8,

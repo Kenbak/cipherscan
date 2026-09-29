@@ -15,8 +15,20 @@ import { getApiUrl } from '@/lib/api-config';
 import { isCrosslink, isTestnet } from '@/lib/config';
 import { fetchWithDeadline } from '@/lib/server-fetch';
 import { retainLastGoodOrBuildFallback } from '@/lib/isr-fallback';
+import { buildPageMetadata, getBaseUrl, getSiteCopy } from '@/lib/seo';
+import type { Metadata } from 'next';
 
 export const revalidate = 30;
+
+const homeMetadata = buildPageMetadata({ ...getSiteCopy(), path: '/', indexOnTestnet: true });
+
+export const metadata: Metadata = {
+  ...homeMetadata,
+  alternates: {
+    ...homeMetadata.alternates,
+    types: { 'application/rss+xml': `${getBaseUrl()}/newsletter/rss` },
+  },
+};
 
 interface Block {
   height: number;

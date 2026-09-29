@@ -29,7 +29,7 @@ export function NetworkHistoryCharts({ initialData, initialFetchedAt }: { initia
 
   const { data, loading } = useApiQuery<ChainSizeHistoryResponse>(
     '/v1/network/chain-size-history',
-    { period: '1y' },
+    { period: 'all' },
     { refreshInterval: 300_000, initialFetchedAt, initialData: initialData ?? undefined },
   );
   const sizePoints = useMemo(

@@ -199,7 +199,7 @@ export function BlockFactsCard({
             `sm:order-none` reverts *to* on desktop, which is what broke it
             last time.
           */}
-          <FactBox fit className="order-3 col-span-2 sm:order-none sm:col-span-1 fact-box-timestamp" label="Timestamp" tooltip="Miner-provided block header time; not the time CipherScan first observed the block">
+          <FactBox fit className="order-3 col-span-2 sm:order-none sm:col-span-1 fact-box-timestamp" label="Timestamp" tooltip="Miner-provided block header time; not the time ZecBlock first observed the block">
             <span className="text-sm text-primary whitespace-nowrap">
               {formatRelativeTime(data.timestamp)}
               <span className="text-muted ml-1.5 text-xs">({formatDateUTC(data.timestamp)})</span>

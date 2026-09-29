@@ -188,6 +188,12 @@ router.get('/api/network/fee-distribution', async (req, res) => {
     const cached = await getCached(redisClient, cacheKey);
     if (cached) return res.json(cached);
 
+    if (period === 'all') {
+      const { rows } = await pool.query("SELECT a.date::text AS date, a.fees FROM analytics_history_daily a JOIN blocks b ON b.height=a.anchor_height AND b.hash=a.anchor_hash ORDER BY a.date");
+      const response = { period, daily: rows.map(r=>({date:r.date,p10:r.fees.p10,p25:r.fees.p25,median:r.fees.median,p75:r.fees.p75,p90:r.fees.p90,avgFee:r.fees.avgFee,txCount:r.fees.txCount})), method: 'completed_utc_days_positive_fees' };
+      await setCache(redisClient, cacheKey, response);
+      return res.json(response);
+    }
     const days = period === '7d' ? 7 : period === '90d' ? 90 : period === '1y' ? 365 : 30;
     const cutoff = Math.floor(Date.now() / 1000) - (days * 86400);
 
@@ -238,7 +244,7 @@ router.get('/api/analytics/usage-clock', async (req, res) => {
     const pool = req.app.locals.pool;
     const redisClient = req.app.locals.redisClient;
     const period = req.query.period || '1y';
-    const days = PERIOD_DAYS[period] || 365;
+    const days = PERIOD_DAYS[period] ?? 365;
 
     const cacheKey = `analytics:usage-clock:${period}`;
     const cached = await getCached(redisClient, cacheKey);

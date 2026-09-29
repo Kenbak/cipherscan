@@ -13,7 +13,7 @@ import { ChartCard } from '@/components/network/ChartCard';
 import { PeriodPillTags } from '@/components/ui/PeriodPillTags';
 import { formatUSD, formatValue, type DisplayUnit } from '@/components/crosschain/format';
 
-type Period = '7d' | '30d';
+type Period = '7d' | '30d' | '90d' | '1y' | 'all';
 
 interface TrendPoint {
   date: string;
@@ -30,6 +30,7 @@ interface TrendsResponse {
 }
 
 const PERIOD_OPTIONS: { key: Period; label: string }[] = [
+  {key:'all',label:'ALL'}, {key:'1y',label:'1Y'}, {key:'90d',label:'90D'},
   { key: '7d', label: '7D' },
   { key: '30d', label: '30D' },
 ];
@@ -62,7 +63,7 @@ function TrendTooltip({ active, payload, colors, unit, zecPrice }: {
 export function VolumeTrendsChart({ unit = 'usd', zecPrice = null }: { unit?: DisplayUnit; zecPrice?: number | null }) {
   const { theme } = useTheme();
   const colors = getChartColors(theme);
-  const [period, setPeriod] = useState<Period>('30d');
+  const [period, setPeriod] = useState<Period>('all');
   const [hiddenSeries, setHiddenSeries] = useState<Set<string>>(new Set());
 
   const { data, loading } = useApiQuery<TrendsResponse>('/v1/crosschain/trends', { period, granularity: 'daily' });

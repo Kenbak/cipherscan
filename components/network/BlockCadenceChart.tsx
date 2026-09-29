@@ -35,8 +35,8 @@ export function BlockCadenceChart({ initialData, initialFetchedAt, chainHeight, 
   const step = plotWidth / Math.max(points.length, 1);
 
   return <Card className="h-full"><CardBody>
-    <SectionHeader label="BLOCK_CADENCE" actions={<Link href="/blocks" className="text-caption font-mono text-muted hover:text-primary">All blocks →</Link>} />
-    <p className="text-caption text-muted mb-4">Recent block intervals, in seconds. {targetSeconds != null ? `The rule marks the current ${targetSeconds}s target.` : 'Current target unavailable.'}</p>
+    <SectionHeader label="RECENT_BLOCK_INTERVALS" actions={<Link href="/blocks" className="text-caption font-mono text-muted hover:text-primary">All blocks →</Link>} />
+    <p className="text-caption text-muted mb-4">Individual intervals from block timestamps in the latest 30-block sample. {targetSeconds != null ? `Dashed line: ${targetSeconds}s target.` : 'Current target unavailable.'}</p>
     <div ref={wrapper} className="min-h-[240px]">
       {loading && !points.length ? <ChartSkeleton height={228} /> : !points.length ? <p role="status" className="py-20 text-sm text-muted text-center">{loading ? 'Loading block timestamps…' : 'Block interval data unavailable.'}</p> : <>
         <svg width="100%" height="228" viewBox={`0 0 ${width} 228`} role="group" aria-label="Recent block intervals; each bar links to its block" className="font-mono text-caption">

@@ -222,7 +222,7 @@ export function PrivacyTrendsSection({
                 <RechartsTooltip
                   cursor={{ stroke: colors.referenceLine, strokeDasharray: '3 4' }}
                   contentStyle={tooltipStyle}
-                  labelFormatter={(label) => formatTrendDate(label)}
+                  labelFormatter={(label) => typeof label === 'string' || typeof label === 'number' ? formatTrendDate(label) : ''}
                   formatter={(v) => [`${Number(v).toFixed(1)}%`, 'Shielded tx share']}
                 />
                 <Line isAnimationActive={false}
@@ -263,7 +263,7 @@ export function PrivacyTrendsSection({
                 <RechartsTooltip
                   cursor={{ fill: theme === 'dark' ? 'rgba(156,164,176,0.07)' : 'rgba(89,97,109,0.06)' }}
                   contentStyle={tooltipStyle}
-                  labelFormatter={(label) => formatTrendDate(label)}
+                  labelFormatter={(label) => typeof label === 'string' || typeof label === 'number' ? formatTrendDate(label) : ''}
                   formatter={(value, name) => [Number(value).toLocaleString(), name]}
                 />
                 <Legend wrapperStyle={{ fontSize: 12, color: colors.axis }} />
@@ -304,7 +304,7 @@ export function PrivacyTrendsSection({
                 <RechartsTooltip
                   cursor={{ stroke: colors.referenceLine, strokeDasharray: '3 4' }}
                   contentStyle={tooltipStyle}
-                  labelFormatter={(label) => formatTrendDate(label)}
+                  labelFormatter={(label) => typeof label === 'string' || typeof label === 'number' ? formatTrendDate(label) : ''}
                   formatter={(v) => [`${Number(v).toFixed(0)} / 100`, 'Privacy Score']}
                 />
                 <Line isAnimationActive={false}

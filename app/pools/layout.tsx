@@ -2,7 +2,7 @@ import { buildPageMetadata, getBaseUrl } from '@/lib/seo';
 
 export const metadata = buildPageMetadata({
   title: 'Zcash Shielded Pool Statistics | ZecBlock',
-  description: 'Track ZEC across the Ironwood, Orchard, Sapling, Sprout, and transparent pools, with shielded supply and flow history.',
+  description: 'Explore Zcash shielded pool balances, public supply, and shielding flows across Ironwood, Orchard, Sapling, and Sprout.',
   path: '/pools',
   index: true,
   networks: ['mainnet'],

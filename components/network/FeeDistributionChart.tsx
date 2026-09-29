@@ -14,7 +14,7 @@ import { feeBand } from '@/lib/network-overview';
 import { Card, CardBody } from '@/components/ui/Card';
 import { SectionHeader } from '@/components/ui/SectionHeader';
 
-const PERIODS = ['7d', '30d', '90d', '1y'] as const;
+const PERIODS = ['7d', '30d', '90d', '1y', 'all'] as const;
 type Period = typeof PERIODS[number];
 export interface DayFees { date: string; p10: number; p25: number; median: number; p75: number; p90: number; avgFee: number; txCount: number }
 export interface FeeDistributionResponse { daily: DayFees[] }
@@ -22,7 +22,7 @@ export interface FeeDistributionResponse { daily: DayFees[] }
 export function FeeDistributionChart({ initialData, initialFetchedAt }: { initialFetchedAt?: number; initialData?: FeeDistributionResponse | null }) {
   const { theme } = useTheme();
   const colors = getChartColors(theme);
-  const [period, setPeriod] = useState<Period>('30d');
+  const [period, setPeriod] = useState<Period>('all');
   const { data, loading, error, isRefreshing } = useApiQuery<FeeDistributionResponse>('/v1/network/fee-distribution', { period }, {
     initialFetchedAt,
     initialData: period === '30d' ? initialData ?? undefined : undefined, refreshInterval: 300_000,

@@ -61,7 +61,7 @@ async function loadExplanationEvidence(spec, internalClient, signal) {
   }) : undefined;
   const insights = buildInsights(evidence, spec, summary);
   Object.assign(facts, insights.facts);
-  return { evidenceKey, facts, input: { metric: spec.metric, pool: spec.pool, rankings, period: spec.period, units: evidence.unit, integerEncoding: evidence.csvUnit, window: { start: summary.start, end: summary.end }, series, analysis: insights.analysis, facts, methodology: evidence.note, coverage: { observedThrough: '{{end_date}}', meaning: 'Latest returned observation date, not a verified indexer refresh time. Describe this date when recency matters; do not invent a freshness status.' } } };
+  return { evidenceKey, facts, dataContext: { start: summary.start, end: summary.end, retrievedAt: evidence.receivedAt, source: evidence.source, label: evidence.sourceLabel }, input: { metric: spec.metric, pool: spec.pool, rankings, period: spec.period, units: evidence.unit, integerEncoding: evidence.csvUnit, window: { start: summary.start, end: summary.end }, series, analysis: insights.analysis, facts, methodology: evidence.note, coverage: { observedThrough: '{{end_date}}', meaning: 'Latest returned observation date, not a verified indexer refresh time. Describe this date when recency matters; do not invent a freshness status.' } } };
 }
 
 function renderExplanation(raw, facts) {

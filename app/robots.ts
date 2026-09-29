@@ -17,9 +17,8 @@ export default function robots(): MetadataRoute.Robots {
     };
   }
 
-  // Testnet: allow crawling but throttle aggressively. Only the homepage is
-  // indexed (page-level noindex on child routes), so crawlers gain nothing
-  // from hammering dynamic block/tx/address pages.
+  // Testnet child pages remain crawlable so bots can read their noindex tags.
+  // Crawl-delay is only a hint to supporting crawlers; Googlebot ignores it.
   if (network === 'testnet') {
     return {
       rules: [
@@ -27,7 +26,6 @@ export default function robots(): MetadataRoute.Robots {
           userAgent: 'Googlebot',
           allow: '/',
           disallow: ['/api/'],
-          crawlDelay: 5,
         },
         {
           userAgent: 'Bingbot',
@@ -46,15 +44,14 @@ export default function robots(): MetadataRoute.Robots {
     };
   }
 
-  // Mainnet: crawlable with moderate rate limits to keep serverless function
-  // invocations under control.
+  // These are crawl permissions, not server-side rate limits. Googlebot
+  // manages its own crawl rate and does not support Crawl-delay.
   return {
     rules: [
       {
         userAgent: 'Googlebot',
         allow: '/',
         disallow: ['/api/'],
-        crawlDelay: 2,
       },
       {
         userAgent: 'Bingbot',

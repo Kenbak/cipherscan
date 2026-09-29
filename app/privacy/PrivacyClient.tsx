@@ -80,7 +80,7 @@ export default function PrivacyClient() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [trendView, setTrendView] = useState<TrendChartView>('score');
-  const [trendPeriod, setTrendPeriod] = useState<Period>('30d');
+  const [trendPeriod, setTrendPeriod] = useState<Period>('all');
   const { theme } = useTheme();
 
   const refresh = useCallback(async () => {
@@ -99,7 +99,7 @@ export default function PrivacyClient() {
   useEffect(() => {
     void refresh();
     const controller = new AbortController();
-    fetch(`${getApiUrl()}/v1/privacy/stats?days=1000`, { signal: controller.signal })
+    fetch(`${getApiUrl()}/v1/privacy/stats?days=all`, { signal: controller.signal })
       .then(res => res.ok ? readApiData(res) : null)
       .then(response => {
         const data = response;

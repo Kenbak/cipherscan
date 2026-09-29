@@ -375,7 +375,7 @@ export function NavBar() {
                     aria-expanded={mobileAccordion === cat.id}
                     aria-controls={`mobile-panel-${cat.id}`}
                     onClick={() => setMobileAccordion(prev => prev === cat.id ? null : cat.id)}
-                    className="flex items-center justify-between w-full px-3 py-2.5 rounded-md transition-colors duration-150 text-left mobile-menu-item"
+                    className="flex min-h-11 items-center justify-between w-full px-3 py-2.5 rounded-md transition-colors duration-150 text-left mobile-menu-item"
                   >
                     <span className="text-caption font-mono text-muted tracking-widest uppercase">{cat.label}</span>
                     <svg aria-hidden="true"

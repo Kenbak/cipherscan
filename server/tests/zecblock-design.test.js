@@ -68,7 +68,11 @@ test('metadata uses the new mainnet identity and preserves network indexation bo
     assert.equal(meta.robots.follow, true);
     assert.equal(meta.openGraph.siteName, 'ZecBlock');
     assert.equal(meta.openGraph.images[0].width, 1200);
-    assert.ok(meta.openGraph.images[0].url.endsWith('/opengraph-image'));
+    const shareImage = new URL(meta.openGraph.images[0].url);
+    assert.equal(shareImage.pathname, '/opengraph-image');
+    // Versioned so X/Discord refetch the card after the image changes.
+    assert.ok(shareImage.searchParams.get('v'));
+    assert.equal(meta.twitter.images[0], meta.openGraph.images[0].url);
     assert.equal(meta.alternates.canonical, network === 'mainnet' ? 'https://zecblock.com/pools' : network === 'testnet' ? 'https://testnet.cipherscan.app/pools' : 'https://crosslink.cipherscan.app/pools');
     const home = seo.buildPageMetadata({ title: 'Explorer | ZecBlock', description: 'Search', path: '/', indexOnTestnet: true });
     assert.equal(home.robots.index, network !== 'crosslink-testnet');

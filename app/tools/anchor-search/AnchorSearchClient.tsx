@@ -74,6 +74,9 @@ export default function AnchorSearchClient() {
       <form onSubmit={handleSearch} className="mb-8">
         <div className="flex flex-col sm:flex-row gap-3">
           <input
+            aria-label="Anchor root"
+            autoComplete="off"
+            spellCheck={false}
             type="text"
             value={root}
             onChange={(e) => setRoot(e.target.value)}
@@ -96,7 +99,7 @@ export default function AnchorSearchClient() {
           {/* Diagnosis */}
           <div className={`p-4 rounded-lg border ${
             result.orphaned.length > 0 && result.canonical.length === 0
-              ? 'bg-red-500/5 border-red-500/30'
+              ? 'bg-danger/5 border-danger/30'
               : result.found
                 ? 'bg-brand-gold/5 border-cipher-gold/30'
                 : 'bg-cipher-surface border-cipher-border'
@@ -148,12 +151,12 @@ export default function AnchorSearchClient() {
           {result.orphaned.length > 0 && (
             <div>
               <h3 className="text-sm font-semibold text-primary mb-3 flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-red-400" />
+                <span className="w-2 h-2 rounded-full bg-danger" />
                 Orphaned / Reorg'd Blocks ({result.orphaned.length})
               </h3>
               <div className="space-y-2">
                 {result.orphaned.map((block) => (
-                  <div key={block.hash} className="p-3 bg-red-500/5 border border-red-500/20 rounded-lg flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                  <div key={block.hash} className="p-3 bg-danger/5 border border-danger/20 rounded-lg flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
                     <span className="text-danger font-mono text-sm">
                       #{block.height.toLocaleString()}
                     </span>

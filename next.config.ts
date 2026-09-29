@@ -61,6 +61,12 @@ const nextConfig: NextConfig = {
         destination: '/crosschain',
         permanent: true,
       },
+      // Incoming query parameters (pool, flow_type, min_zec, cursor) are appended.
+      {
+        source: '/txs/shielded',
+        destination: '/txs?type=shielded',
+        permanent: true,
+      },
       {
         source: '/tools/privacy-check',
         destination: '/tools/blend-check',

@@ -3,7 +3,7 @@ import NodesClient from './NodesClient';
 
 export const metadata = buildPageMetadata({
   title: 'Zcash Network Nodes | ZecBlock',
-  description: 'Explore the Zcash peer-to-peer network: verified reachable nodes, client implementations, version adoption, and geographic distribution.',
+  description: 'Explore observed Zcash nodes, crawler reachability, reported client versions, geographic distribution, and peer advertisements.',
   keywords: ['zcash nodes', 'zcash network nodes', 'zcash peer network', 'zebra nodes', 'zakura nodes', 'zcash node map', 'zcash network topology'],
   path: '/network/nodes',
   index: true,
@@ -41,7 +41,7 @@ export default function NodesPage() {
               No IP addresses or exact coordinates are exposed. Tor hidden service nodes
               appear without geographic placement. This product includes GeoLite2 data
               created by MaxMind, available from{' '}
-              <a href="https://www.maxmind.com" className="text-accent hover:underline" rel="noopener noreferrer" target="_blank">
+              <a href="https://www.maxmind.com" className="text-primary hover:underline" rel="noopener noreferrer" target="_blank">
                 maxmind.com
               </a>.
             </p>

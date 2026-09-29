@@ -3,8 +3,8 @@ import Link from 'next/link';
 import { buildPageMetadata } from '@/lib/seo';
 
 export const metadata = buildPageMetadata({
-  title: 'Newsletter | ZecBlock',
-  description: 'Weekly Zcash intelligence — protocol updates, network stats, and privacy insights. No tracking. No surveillance.',
+  title: 'Zcash Weekly Newsletter | ZecBlock',
+  description: 'Weekly Zcash intelligence — protocol updates, network stats, and privacy insights. RSS-first, with no email-open tracking.',
   path: '/newsletter',
   networks: ['mainnet'],
 });
@@ -20,12 +20,12 @@ export default function NewsletterPage() {
         <p className="text-xs text-muted font-mono uppercase tracking-[0.3em] mb-4">
           <span className="opacity-50">{'>'}</span> NEWSLETTER
         </p>
-        <h1 className="type-page font-mono text-primary mb-6">
+        <h1 className="type-page font-sans text-primary mb-6">
           ZecBlock Weekly
         </h1>
         <p className="text-lg sm:text-xl text-secondary max-w-2xl leading-relaxed">
           Weekly Zcash intelligence — protocol updates, network stats, and privacy insights.
-          No tracking pixels. No surveillance. Just signal.
+          RSS-first. No email-open tracking. Just signal.
         </p>
 
         {/* RSS link */}
