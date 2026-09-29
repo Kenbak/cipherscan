@@ -86,9 +86,12 @@ export function parseRoundVote(round: Round, summary: unknown, tally: unknown, n
   const parsed = z.object({ vote_round_id: z.literal(round.vote_round_id), status: z.literal(3), vote_end_time: z.literal(round.vote_end_time), proposals: z.array(proposal) }).safeParse(summary);
   const totals = z.object({ results: z.array(z.object({ vote_round_id: z.literal(round.vote_round_id), proposal_id: integer, vote_decision: integer.default(0), total_value: integer.default(0) })) }).safeParse(tally);
   if (!parsed.success || !totals.success || parsed.data.proposals.length !== round.proposals.length) return vote;
-  const expected = round.proposals.flatMap(p => p.options.map(o => `${p.id}:${o.index}`));
+  const expected = new Set(round.proposals.flatMap(p => p.options.map(o => `${p.id}:${o.index}`)));
   const tuples = new Map(totals.data.results.map(r => [`${r.proposal_id}:${r.vote_decision}`, r.total_value]));
-  if (tuples.size !== expected.length || totals.data.results.length !== expected.length || expected.some(key => !tuples.has(key))) return vote;
+  // The tally endpoint is sparse: an option with no votes may have no row.
+  // Still reject duplicates and unknown options; below, an absent row must
+  // agree with a zero total in the complete, finalized summary.
+  if (tuples.size !== totals.data.results.length || [...tuples.keys()].some(key => !expected.has(key))) return vote;
   if (new Set(parsed.data.proposals.map(p => p.id)).size !== round.proposals.length) return vote;
   for (const p of parsed.data.proposals) {
     const registered = round.proposals.find(r => r.id === p.id);
@@ -96,7 +99,7 @@ export function parseRoundVote(round: Round, summary: unknown, tally: unknown, n
     if (!Number.isSafeInteger(p.options.reduce((n, o) => n + o.total_value, 0))) return vote;
     for (const o of p.options) {
       const original = registered.options.find(r => r.index === o.index);
-      if (!original || original.label !== o.label || original.description !== o.description || tuples.get(`${p.id}:${o.index}`) !== o.total_value) return vote;
+      if (!original || original.label !== o.label || original.description !== o.description || (tuples.get(`${p.id}:${o.index}`) ?? 0) !== o.total_value) return vote;
     }
   }
   return { ...vote, state: 'results', proposals: parsed.data.proposals };
