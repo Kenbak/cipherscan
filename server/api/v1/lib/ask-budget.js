@@ -1,4 +1,5 @@
 'use strict';
+const { askError, askStage } = require('./ask-errors');
 const { createHmac, randomUUID } = require('node:crypto');
 
 // All keys share a Redis Cluster slot. Reserve the conservative maximum, never
@@ -58,10 +59,10 @@ async function admit(redis, config, req, fetchImpl = fetch) {
   const allowed = Number(await redis.eval(ADMIT, { keys: [`ask:{mainnet}:ip:${identity}:${Math.floor(now / 60000)}`, `ask:{mainnet}:ip:${identity}:day`], arguments: [] })) === 1;
   if (!allowed) { const error = new Error('Request allowance reached'); error.quota = true; throw error; }
   const token = req.body?.challenge;
-  if (typeof token !== 'string' || !token || token.length > 2048) throw new Error('Verification required');
-  const response = await fetchImpl('https://challenges.cloudflare.com/turnstile/v0/siteverify', { method: 'POST', redirect: 'error', signal: AbortSignal.any([req.v1.abortSignal, AbortSignal.timeout(5000)]), headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ secret: config.challengeSecret, response: token }) });
-  if (!response.ok) throw new Error('Verification unavailable');
-  const result = await response.json();
-  if (!result.success || result.action !== 'ask' || result.hostname !== config.challengeHostname) throw new Error('Verification failed');
+  if (typeof token !== 'string' || !token || token.length > 2048) throw askError('verification');
+  const response = await askStage('verification', () => fetchImpl('https://challenges.cloudflare.com/turnstile/v0/siteverify', { method: 'POST', redirect: 'error', signal: AbortSignal.any([req.v1.abortSignal, AbortSignal.timeout(5000)]), headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ secret: config.challengeSecret, response: token }) }));
+  if (!response.ok) throw askError('verification');
+  const result = await askStage('verification', () => response.json());
+  if (!result.success || result.action !== 'ask' || result.hostname !== config.challengeHostname) throw askError('verification');
 }
 module.exports = { RESERVE, ADMIT, budgetConfig, maximumCost, reserve, admit };
