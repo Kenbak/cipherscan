@@ -805,7 +805,37 @@ async function renderPulse({ metric, description, value, zscore, mean, std, dire
   return saveTempPng(canvas);
 }
 
+// The image repeats the complete, qualified post. Unlike the old pulse card,
+// it never turns a statistical score into a headline without a comparison.
+async function renderEditorial(story) {
+  ensureFonts();
+  const canvas = createCanvas(W, H), ctx = canvas.getContext('2d');
+  drawBase(ctx, C.cyan);
+  drawHeaderRow(ctx, 'ZCASH / DATA & CONTEXT', C.cyan, 'MAINNET', C.green);
+  const paragraphs = story.content.split('\n').filter(line => !line.startsWith('https://'));
+  let y = 120;
+  for (let i = 0; i < paragraphs.length; i++) {
+    const size = i === 0 ? 34 : 25;
+    ctx.font = `${i === 0 ? 'bold' : 'normal'} ${size}px Geist`;
+    ctx.fillStyle = i === 0 ? C.textPrimary : C.textSecondary;
+    const words = paragraphs[i].split(' ');
+    let line = '';
+    for (const word of words) {
+      if (line && ctx.measureText(`${line} ${word}`).width > W - 2 * PAD) {
+        ctx.fillText(line, PAD, y); y += size + 10; line = word;
+      } else line += `${line ? ' ' : ''}${word}`;
+    }
+    if (line) { ctx.fillText(line, PAD, y); y += size + 10; }
+    y += 14;
+  }
+  // Fail to text-only instead of cropping a methodological qualification.
+  if (y > H - 75) throw new Error('Editorial card content exceeds safe bounds');
+  await drawFooter(ctx);
+  return saveTempPng(canvas);
+}
+
 module.exports = {
+  renderEditorial,
   renderDailyDigest,
   renderLargeFlow,
   renderCrossChain,

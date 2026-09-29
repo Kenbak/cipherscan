@@ -1,5 +1,13 @@
 # Transaction activity and editorial milestones
 
+## Automatic publication successor — prepared 2026-09-29
+
+The new bot described in [social-editorial.md](social-editorial.md) recomputes
+newly completed qualifying weeks for automatic factual publication. It never
+drains this historical draft queue. A durable activation watermark excludes
+older weeks and survives restarts. This is prepared source, not a deployment
+claim. The draft/export commands below remain available for diagnostics.
+
 Implemented locally on 2026-09-23; production rollout and historical count repair
 are separate operational steps. No schema migration is required. The existing
 `server/bot/migrations/001_social_post_outbox.sql` table must exist on mainnet.
