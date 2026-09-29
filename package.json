@@ -59,7 +59,7 @@
     "test:governance": "node --test server/tests/governance.test.js",
     "test:activity": "NODE_PATH=$PWD/server/api/node_modules node --test server/tests/activity-milestones.test.js server/tests/activity-postgres.test.js",
     "test:hashrate-postgres": "NODE_PATH=$PWD/server/api/node_modules node --test server/tests/hashrate-postgres.test.js",
-    "test:crosschain": "NODE_PATH=$PWD/server/api/node_modules node --test server/tests/crosschain-v2.test.js",
+    "test:crosschain": "NODE_PATH=$PWD/server/api/node_modules node --test server/tests/crosschain-v2.test.js server/tests/near-provider-budget.test.js",
     "test:crosschain-postgres": "CROSSCHAIN_TEST_POSTGRES=1 npm run test:crosschain"
   },
   "overrides": {

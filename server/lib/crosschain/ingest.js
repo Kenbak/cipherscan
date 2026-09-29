@@ -99,7 +99,7 @@ function explorerClient({
           signal: AbortSignal.timeout(30000),
         });
       } catch (err) {
-        if (attempt === 4) throw err;
+        if (err.code === "NEAR_COOLDOWN" || attempt === 4) throw err;
         await wait(1000 * 2 ** attempt);
         continue;
       }

@@ -324,3 +324,45 @@ migration or new production writer is needed.
 
 Before release, verify the existing `flow_daily` materialized view was built and
 refreshed under UTC. This local UI task does not certify production view timezone.
+
+## Isolated history worker and shared NEAR budget — 2026-09-29
+
+The backfill can be installed independently of the API/frontend release. Apply
+`create-crosschain-v2.sql` and `create-near-provider-budget.sql` explicitly as the
+mainnet job database user. Both are additive SQL applications (not numbered Rust
+migrations). Production readers stay on legacy data until separately verified.
+
+`NEAR_EXPLORER_SHARED_LIMIT=1` with the job-only `provider-preload.js` wraps NEAR
+Explorer requests from both the existing cron and the isolated v2 worker. A
+PostgreSQL session lock serializes requests and the singleton
+`crosschain_provider_budget` stores a deadline, request/throttle counters and last
+HTTP status, without credentials or swap payloads. Requests are spaced at least
+six seconds at the reservation boundary. HTTP 429 persists the larger of six
+seconds and Retry-After; missing/invalid Retry-After uses 60 seconds. Long active
+cooldowns fail closed before another HTTP request. A separate one-connection pool
+avoids deadlocking the writer's transaction connection. Other partner applications
+must coordinate this same quota; independent API keys do not imply separate limits.
+
+Install an immutable minimal worker release at `/opt/cipherscan-crosschain/<sha>`;
+`current` points to the verified release. It uses the existing API node_modules via
+NODE_PATH and an API .env symlink; credentials are never copied into the artifact.
+Add the preload only to the existing legacy cron command, preserving its schedule,
+script and `/run/cipherscan-sync-swaps.lock`. Back up the exact original crontab.
+The repository's generic cron templates do not install this opt-in limiter:
+**preserve this host override during subsequent cron provisioning while backfill
+is enabled**. Manual Explorer diagnostics must use the same preload and lock.
+
+The supplied systemd timer starts at UTC minutes 02,07,... between legacy runs.
+Each batch takes the same nonblocking flock, processes at most three 1,000-record
+pages per direction, and is killed after 90 seconds. Committed page checkpoints
+survive timeout/cooldown/restart; an interrupted transaction rolls back. Busy live
+sync skips the batch. Start with one page per direction as a canary, inspect real
+records and primary API health, then enable the timer. Disable the timer when both
+backfill checkpoints complete; catch-up/reconciliation and ongoing v2 polling are
+separate rollout steps, required before changing readers. Do not claim complete
+history, status freshness or all provider fields until those checks pass.
+
+Rollback: stop/disable `cipherscan-crosschain-backfill.timer`, stop its service,
+and restore only the legacy cron command from backup. Leave additive tables and
+checkpoints intact. No API restart, production Git checkout change, legacy table
+rewrite or standby writer activation is part of this worker rollout.

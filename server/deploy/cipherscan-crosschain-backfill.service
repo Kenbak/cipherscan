@@ -1,0 +1,12 @@
+[Unit]
+Description=Bounded NEAR Explorer history backfill (new tables only)
+After=network-online.target postgresql.service
+
+[Service]
+Type=oneshot
+ExecStart=/bin/bash /opt/cipherscan-crosschain/current/server/deploy/crosschain-backfill-batch.sh
+TimeoutStartSec=90
+KillMode=control-group
+Nice=10
+IOSchedulingClass=idle
+UMask=0077
