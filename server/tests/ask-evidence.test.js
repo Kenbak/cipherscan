@@ -275,3 +275,14 @@ test('Ask client presents actionable safe failures and never echoes upstream tex
   assert.match(askErrorMessage(error(504, 'ask-timeout')), /too long/);
   assert.doesNotMatch(askErrorMessage(error(500)), /private backend secret/);
 });
+
+test('transaction cards link exact IDs, distinguish pending and preserve fee precision', () => {
+  const React = require('react');
+  const { renderToStaticMarkup } = require('react-dom/server');
+  const { AskTransactions } = load('components/ask/AskTransactions.tsx', { 'next/link': ({ href, children, ...props }) => React.createElement('a', { href, className: props.className }, children) });
+  const id = 'a'.repeat(64);
+  const html = renderToStaticMarkup(React.createElement(AskTransactions, { expanded: true, result: { query: { mode: 'detail', txid: id, limit: 1 }, status: 'found', retrievedAt: new Date().toISOString(), rows: [{ txid: id, status: 'pending', blockHeight: null, blockHash: null, timestamp: null, confirmations: null, size: 100, feeZat: null, coinbase: false, pools: ['Orchard'], componentsKnown: false, transparentInputs: null, transparentOutputs: null }] } }));
+  assert.ok(html.includes(`href="/tx/${id}"`)); assert.match(html, /Pending/); assert.match(html, /Fee: unavailable/); assert.doesNotMatch(html, /confirmations|Block timestamp/);
+  const exact = renderToStaticMarkup(React.createElement(AskTransactions, { result: { rows: [{ txid: id, status: 'indexed', pools: [], feeZat: '9007199254740993', size: null, blockHeight: 1, confirmations: null, timestamp: null }] } }));
+  assert.match(exact, /90071992\.54740993 ZEC/);
+});

@@ -11,6 +11,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { getChartColors } from '@/lib/chart-theme';
 import styles from './ask.module.css';
 import { AskChallenge } from '@/components/ask/AskChallenge';
+import { AskTransactions } from '@/components/ask/AskTransactions';
 import { AskBlocks } from '@/components/ask/AskBlocks';
 import { AskTransfers } from '@/components/ask/AskTransfers';
 import { AskSources } from '@/components/ask/AskSources';
@@ -20,8 +21,8 @@ import { describeMetric, formatChain } from '@/lib/ask/data';
 
 const AskChart = dynamic(() => import('./AskChart'), { ssr: false, loading: () => <div className="h-80 grid place-items-center text-sm text-muted" role="status">Loading chart…</div> });
 const categories = ['Featured', 'Pools', 'Ironwood', 'Cross-chain', 'Network'];
-type Message = { blocks?: AskReply['blocks']; dataContext?: AskReply['dataContext']; id: number; question: string; answer: string; spec?: AnalysisSpec; sources?: AskSource[]; transfers?: AskReply['transfers']; locale?: string; scope?: string };
-type Session = { block?: string; id: number; title: string; messages: Message[]; spec: AnalysisSpec | null; page?: string };
+type Message = { transactions?: AskReply['transactions']; blocks?: AskReply['blocks']; dataContext?: AskReply['dataContext']; id: number; question: string; answer: string; spec?: AnalysisSpec; sources?: AskSource[]; transfers?: AskReply['transfers']; locale?: string; scope?: string };
+type Session = { transaction?: string; block?: string; id: number; title: string; messages: Message[]; spec: AnalysisSpec | null; page?: string };
 type Capability = { mode: 'guided' | 'ai'; provider: string | null; siteKey?: string | null };
 const initialSession: Session = { id: 0, title: 'New analysis', messages: [], spec: null };
 const viewKey = (spec: AnalysisSpec | null) => spec ? JSON.stringify([spec.metric, spec.period, spec.pool, spec.view, spec.start, spec.end]) : '';
@@ -34,7 +35,7 @@ export function AskWorkspace() {
   const [handoff] = useState(peekAskHandoff);
   const [token, setToken] = useState('');
   const [challengeReset, setChallengeReset] = useState(0);
-  const [sessions, setSessions] = useState<Session[]>(() => handoff?.turns.length ? [{ id: 0, title: handoff.turns[0].question, spec: handoff.spec, page: handoff.page, block: handoff.block, messages: handoff.turns.map((turn, i) => ({ id: i + 1, question: turn.question, answer: turn.answer, sources: turn.sources, transfers: turn.transfers, blocks: turn.blocks, locale: turn.locale, scope: turn.scope, dataContext: turn.dataContext, spec: turn.spec || undefined })) }] : [initialSession]);
+  const [sessions, setSessions] = useState<Session[]>(() => handoff?.turns.length ? [{ id: 0, title: handoff.turns[0].question, spec: handoff.spec, page: handoff.page, block: handoff.block, transaction: handoff.transaction, messages: handoff.turns.map((turn, i) => ({ id: i + 1, question: turn.question, answer: turn.answer, sources: turn.sources, transfers: turn.transfers, blocks: turn.blocks, transactions: turn.transactions, locale: turn.locale, scope: turn.scope, dataContext: turn.dataContext, spec: turn.spec || undefined })) }] : [initialSession]);
   const [activeId, setActiveId] = useState(0);
   const [question, setQuestion] = useState('');
   const [busy, setBusy] = useState(false);
@@ -65,9 +66,10 @@ export function AskWorkspace() {
   const { theme } = useTheme();
   const colors = getChartColors(theme);
   const hasMessages = session.messages.length > 0;
-  const latestRecords = !spec ? session.messages.filter(message => message.transfers || message.blocks).at(-1) : undefined;
+  const latestRecords = !spec ? session.messages.filter(message => message.transfers || message.blocks || message.transactions).at(-1) : undefined;
   const transfers = latestRecords?.transfers;
   const blocks = latestRecords?.blocks;
+  const transactions = latestRecords?.transactions;
   const summary = evidence && spec ? summarizeEvidence(evidence, spec, start, end) : null;
   const invalidDates = Boolean(start && end && start > end);
 
@@ -126,17 +128,18 @@ export function AskWorkspace() {
     request.current = controller;
     const timeout = setTimeout(() => controller.abort(new DOMException('Request timed out', 'TimeoutError')), 45000);
     const id = ++serial.current;
-    const append = (answer: string, next?: AnalysisSpec, sources?: AskSource[], answerLocale?: string, scope?: string, transfers?: AskReply['transfers'], dataContext?: AskReply['dataContext'], blocks?: AskReply['blocks']) => setSessions(all => all.map(item => item.id === activeId ? {
+    const append = (answer: string, next?: AnalysisSpec, sources?: AskSource[], answerLocale?: string, scope?: string, transfers?: AskReply['transfers'], dataContext?: AskReply['dataContext'], blocks?: AskReply['blocks'], transactions?: AskReply['transactions']) => setSessions(all => all.map(item => item.id === activeId ? {
       ...item, title: item.messages.length ? item.title : trimmed,
-      messages: [...item.messages, { id, question: trimmed, answer, spec: next, sources, transfers, blocks, dataContext, locale: answerLocale, scope }].slice(-30),
+      messages: [...item.messages, { id, question: trimmed, answer, spec: next, sources, transfers, blocks, transactions, dataContext, locale: answerLocale, scope }].slice(-30),
       block: blocks?.rows[0]?.hash || item.block,
-      spec: transfers || blocks ? null : next ?? item.spec,
+      transaction: transactions ? transactions.query.txid || transactions.rows[0]?.txid : item.transaction,
+      spec: transfers || blocks || transactions ? null : next ?? item.spec,
     } : item));
     try {
       if (!next || capability.mode === 'ai' && token) {
-        const reply = await askChat(trimmed, session.page || 'ask', spec, 'auto', session.messages.map(message => message.question), token, controller.signal, session.block);
+        const reply = await askChat(trimmed, session.page || 'ask', spec, 'auto', session.messages.map(message => message.question), token, controller.signal, session.block, session.transaction);
         if (controller.signal.aborted) return;
-        append(reply.answer, reply.spec ? analysisSchema.parse(reply.spec) : undefined, reply.sources, reply.locale, reply.scope, reply.transfers, reply.dataContext, reply.blocks);
+        append(reply.answer, reply.spec ? analysisSchema.parse(reply.spec) : undefined, reply.sources, reply.locale, reply.scope, reply.transfers, reply.dataContext, reply.blocks, reply.transactions);
       } else {
         append(`Opened ${describeMetric(next.metric).title.toLowerCase()} for ${next.period === '1y' ? 'the past year' : `the past ${next.period.slice(0, -1)} days`}${next.pool === 'all' ? '' : `, filtered to ${next.pool}`}. The analysis shows the source observations and updates as you change the controls.`, next);
       }
@@ -208,7 +211,7 @@ export function AskWorkspace() {
           <div className={styles.transcript} ref={transcript}>
             {session.messages.map(message => <div key={message.id} className="mb-7">
               <div className="ml-8 border border-cipher-border bg-cipher-surface rounded-lg px-4 py-3 text-sm text-primary leading-relaxed break-words">{message.question}</div>
-              <div className="flex gap-3 mt-5"><AskMark small /><div className="min-w-0"><p className="text-caption font-mono text-muted mb-2">ZecBlock</p><p dir="auto" lang={message.locale} className="text-sm text-secondary leading-relaxed whitespace-pre-wrap">{message.answer}</p><>{message.transfers && message.transfers !== transfers ? <details className="mt-3"><summary className="cursor-pointer text-caption text-cipher-gold">View transaction results</summary><AskTransfers result={message.transfers} /></details> : null}</><AskBlocks result={message.blocks !== blocks ? message.blocks : undefined} /><AskSources sources={message.sources || []} dataContext={message.dataContext} />{message.scope ? <p className="mt-2 text-caption text-muted">{message.scope}</p> : null}
+              <div className="flex gap-3 mt-5"><AskMark small /><div className="min-w-0"><p className="text-caption font-mono text-muted mb-2">ZecBlock</p><p dir="auto" lang={message.locale} className="text-sm text-secondary leading-relaxed whitespace-pre-wrap">{message.answer}</p><>{message.transfers && message.transfers !== transfers ? <details className="mt-3"><summary className="cursor-pointer text-caption text-cipher-gold">View transaction results</summary><AskTransfers result={message.transfers} /></details> : null}</><AskBlocks result={message.blocks !== blocks ? message.blocks : undefined} /><AskTransactions result={message.transactions !== transactions ? message.transactions : undefined} /><AskSources sources={message.sources || []} dataContext={message.dataContext} />{message.scope ? <p className="mt-2 text-caption text-muted">{message.scope}</p> : null}
                 {message.spec && viewKey(message.spec) !== viewKey(spec) ? <button onClick={() => updateSpec(message.spec!, true)} className="mt-3 text-caption font-mono text-cipher-gold hover:underline">Restore this view →</button> : null}
               </div></div>
             </div>)}
@@ -216,14 +219,14 @@ export function AskWorkspace() {
             {busy ? <p className="text-sm text-muted py-3" role="status">Reading public sources and preparing your answer…</p> : null}
           </div>
           <div className={styles.conversationFooter}>
-            <div className="flex flex-wrap gap-2 mb-3">{(spec ? ranking ? ['Show as a bar chart', 'Show as a table'] : ['Show 90 days', poolMetric ? spec.pool === 'ironwood' ? 'Just Orchard' : 'Just Ironwood' : 'Show as a line chart', 'Show as a table'] : blocks ? ['Tell me about the latest block', 'Explain this block'] : starters.slice(0, 2).map(item => item.title)).map(text => <button key={text} disabled={busy} onClick={() => void ask(text)} className={styles.followup}>{text}</button>)}</div>
+            <div className="flex flex-wrap gap-2 mb-3">{(spec ? ranking ? ['Show as a bar chart', 'Show as a table'] : ['Show 90 days', poolMetric ? spec.pool === 'ironwood' ? 'Just Orchard' : 'Just Ironwood' : 'Show as a line chart', 'Show as a table'] : transactions ? ['Show the latest 5 transactions', 'Explain this transaction'] : blocks ? ['Tell me about the latest block', 'Explain this block'] : starters.slice(0, 2).map(item => item.title)).map(text => <button key={text} disabled={busy} onClick={() => void ask(text)} className={styles.followup}>{text}</button>)}</div>
             {composer}<p className="mt-3 text-caption text-muted leading-relaxed">{capability.mode === 'ai' ? `Questions are sent to ${capability.provider}. Use public information only.` : 'Guided preview · No AI provider connected.'}</p>
           </div>
         </section>
 
         <section className={styles.analysis} aria-label="Current analysis" aria-busy={loadingData}>
-          <div className="flex justify-between items-center gap-3 border-b border-cipher-border px-5 py-4"><span className="text-caption font-mono text-muted">{blocks ? 'BLOCKS' : transfers ? 'TRANSACTIONS' : 'ANALYSIS'}</span>{!transfers && !blocks ? <div className="flex gap-4"><button className="text-caption text-muted hover:text-primary disabled:opacity-40" onClick={() => setRefresh(value => value + 1)} disabled={!spec || loadingData}>Refresh</button><button className="text-caption text-muted hover:text-primary disabled:opacity-40" onClick={exportCsv} disabled={!summary?.points.length || invalidDates}>Export CSV ↗</button></div> : null}</div>
-          {blocks ? <div className="p-4 sm:p-5"><h2 className="text-xl font-medium">{blocks.query.mode === 'recent' ? 'Latest indexed blocks' : 'Block lookup'}</h2><AskBlocks result={blocks} expanded /></div> : transfers ? <div className="p-4 sm:p-5"><h2 className="text-xl font-medium">Public {transfers.direction === 'deshield' ? 'deshielding' : 'shielding'} transactions</h2><AskTransfers result={transfers} /></div> : !spec ? <div className="p-8 text-sm text-muted leading-relaxed">Choose a starter question to open an analysis here. Its chart, controls and source data will stay alongside your conversation.</div> : <div className="p-4 sm:p-5">
+          <div className="flex justify-between items-center gap-3 border-b border-cipher-border px-5 py-4"><span className="text-caption font-mono text-muted">{blocks ? 'BLOCKS' : transfers || transactions ? 'TRANSACTIONS' : 'ANALYSIS'}</span>{!transfers && !blocks && !transactions ? <div className="flex gap-4"><button className="text-caption text-muted hover:text-primary disabled:opacity-40" onClick={() => setRefresh(value => value + 1)} disabled={!spec || loadingData}>Refresh</button><button className="text-caption text-muted hover:text-primary disabled:opacity-40" onClick={exportCsv} disabled={!summary?.points.length || invalidDates}>Export CSV ↗</button></div> : null}</div>
+          {transactions ? <div className="p-4 sm:p-5"><h2 className="text-xl font-medium">{transactions.query.mode === 'latest' ? 'Latest indexed transactions' : 'Transaction lookup'}</h2><AskTransactions result={transactions} expanded /></div> : blocks ? <div className="p-4 sm:p-5"><h2 className="text-xl font-medium">{blocks.query.mode === 'recent' ? 'Latest indexed blocks' : 'Block lookup'}</h2><AskBlocks result={blocks} expanded /></div> : transfers ? <div className="p-4 sm:p-5"><h2 className="text-xl font-medium">Public {transfers.direction === 'deshield' ? 'deshielding' : 'shielding'} transactions</h2><AskTransfers result={transfers} /></div> : !spec ? <div className="p-8 text-sm text-muted leading-relaxed">Choose a starter question to open an analysis here. Its chart, controls and source data will stay alongside your conversation.</div> : <div className="p-4 sm:p-5">
             <h2 className="text-xl text-primary font-medium tracking-tight">{info?.title}</h2>
             <p className="mt-2 text-caption font-mono text-muted">MAINNET · {ranking ? 'LAST 30 DAYS · BY CHAIN' : 'DAILY'} · {spec.metric === 'activity' ? 'FLOW RECORDS' : info?.unit.toUpperCase()}</p>
             <div className={`${styles.controls} ${!poolMetric ? styles.twoControls : ''}`}>

@@ -21,13 +21,13 @@ export async function askCapability(signal: AbortSignal): Promise<AskCapability>
   if (meta.network !== 'mainnet') throw new Error('Wrong network');
   return data;
 }
-export async function askChat(question: string, page: string, context: AnalysisSpec | null, locale: AskLocale, history: string[], challenge: string, signal: AbortSignal, block?: string): Promise<AskReply> {
-  const response = await fetch(`${getApiUrl()}/v1/ask/chat`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, cache: 'no-store', signal, body: JSON.stringify({ question, page, context, locale, history: history.slice(-4), challenge, block }) });
+export async function askChat(question: string, page: string, context: AnalysisSpec | null, locale: AskLocale, history: string[], challenge: string, signal: AbortSignal, block?: string, transaction?: string): Promise<AskReply> {
+  const response = await fetch(`${getApiUrl()}/v1/ask/chat`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, cache: 'no-store', signal, body: JSON.stringify({ question, page, context, locale, history: history.slice(-4), challenge, block, transaction }) });
   const { data, meta } = await readApiResponse<AskReply>(response);
   if (meta.network !== 'mainnet') throw new Error('Wrong network');
   return data;
 }
-export interface AskHandoff { block?: string; turns: AskTurn[]; spec: AnalysisSpec | null; page: string }
+export interface AskHandoff { transaction?: string; block?: string; turns: AskTurn[]; spec: AnalysisSpec | null; page: string }
 // Memory only, never URL parameters, browser storage or analytics.
 let handoff: AskHandoff | null = null;
 export function saveAskHandoff(value: AskHandoff) { handoff = { ...value, turns: value.turns.slice(-12) }; }

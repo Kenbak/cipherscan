@@ -68,7 +68,7 @@ test('AI explains fetched block facts; free-form French block questions can clas
   let calls = 0;
   const run = async (body, task) => {
     calls++;
-    if (task.name === 'contextual_intent') return task.validator.parse({ intent: 'blocks', blockQuery: { mode: 'latest', identifier: null }, flowQuery: null, spec: null, topics: ['block'], locale: 'fr' });
+    if (task.name === 'contextual_intent') return task.validator.parse({ intent: 'blocks', transactionQuery: null, blockQuery: { mode: 'latest', identifier: null }, flowQuery: null, spec: null, topics: ['block'], locale: 'fr' });
     assert.equal(body.evidence.facts.block_height, '100');
     return task.validator.parse({ summary: 'Bloc {{block_height}} : {{block_transactions}} transactions.', observations: ['Occupation : {{block_capacity}}.'], limitation: '', sources: ['block'] });
   };

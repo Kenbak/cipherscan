@@ -187,7 +187,7 @@ test('enriched evidence stays within provider request budget and both narrative 
   assert.equal(renderExplanation(prose, evidence.facts).limitation, '');
   let calls = 0;
   const result = await chat({ question: 'Compare Orchard and Ironwood', page: 'ask', context: null, history: [], locale: 'en' }, async (body, task) => {
-    if (++calls === 1) return { intent: 'analysis', blockQuery: null, spec, topics: ['pools'], locale: 'en' };
+    if (++calls === 1) return { intent: 'analysis', transactionQuery: null, blockQuery: null, spec, topics: ['pools'], locale: 'en' };
     assert.ok(body.evidence.analysis.comparison);
     assert.match(task.instruction, /strongest relevant finding/);
     return task.validator.parse({ ...prose, sources: ['pools'] });

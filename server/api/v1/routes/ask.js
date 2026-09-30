@@ -6,8 +6,9 @@ const { z } = require('zod');
 const { createHash } = require('node:crypto');
 const { RESERVE, budgetConfig, reserve, admit } = require('../lib/ask-budget');
 const { chatRequestSchema } = require('../../../../lib/ask/chat');
+const { resolveTransactionQuery } = require('../lib/ask-transactions');
 const { resolveBlockQuery } = require('../lib/ask-blocks');
-const { chat, guidedReply, blockReply } = require('../lib/ask-chat');
+const { chat, guidedReply, blockReply, transactionReply } = require('../lib/ask-chat');
 const { analysisSchema, requestSchema, resolveShortcut } = require('../../../../lib/ask/contract');
 const { sendSuccess } = require('../lib/envelope');
 const { sendProblem } = require('../lib/problem');
@@ -115,9 +116,10 @@ function createAskRouter(env = process.env, dependencies = {}) {
     if (!parsed.success) return sendProblem(res, 'validation-error', { detail: 'Provide a supported page, bounded question/history, locale and analysis context.' });
     if (!config || !redisFor(req)?.isReady) {
       const blockQuery = resolveBlockQuery(parsed.data);
-      if (blockQuery) {
+      const transactionQuery = resolveTransactionQuery(parsed.data);
+      if (blockQuery || transactionQuery) {
         try {
-          return sendSuccess(res, await blockReply(blockQuery, parsed.data, dependencies.internalClient, AbortSignal.any([req.v1.abortSignal, AbortSignal.timeout(15000)])));
+          return sendSuccess(res, await (transactionQuery ? transactionReply : blockReply)(transactionQuery || blockQuery, parsed.data, dependencies.internalClient, AbortSignal.any([req.v1.abortSignal, AbortSignal.timeout(15000)])));
         } catch (error) {
           const failure = classifyFailure(error);
           return sendProblem(res, failure.type, { status: failure.status, detail: failure.detail, extra: { code: failure.code } });

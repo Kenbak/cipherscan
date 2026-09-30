@@ -360,6 +360,7 @@ paths:
                   enum:
                     - home
                     - ask
+                    - transactions
                     - blocks
                     - pools
                     - ironwood
@@ -432,6 +433,9 @@ paths:
                         - end
                       additionalProperties: false
                     - type: 'null'
+                transaction:
+                  type: string
+                  pattern: ^[a-fA-F0-9]{64}$
                 block:
                   type: string
                   pattern: ^(?:0|[1-9]\d{0,8}|[a-fA-F0-9]{64})$

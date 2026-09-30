@@ -38,6 +38,10 @@ router.get('/api/seo/tx/:txid', validate('txById'), async (req, res) => {
         t.sapling_spend_count,
         t.sapling_output_count,
         t.fee,
+        t.size,
+        t.vin_count,
+        t.vout_count,
+        t.has_sprout,
         (b.hash IS NOT NULL) AS is_canonical,
         CASE
           WHEN b.hash IS NOT NULL AND chain.max_height >= t.block_height
@@ -71,11 +75,16 @@ router.get('/api/seo/tx/:txid', validate('txById'), async (req, res) => {
       hasSapling: tx.has_sapling || false,
       hasOrchard: tx.has_orchard || false,
       hasIronwood: tx.has_ironwood || false,
-      hasShielded: Boolean(tx.has_sapling || tx.has_orchard || tx.has_ironwood),
+      hasShielded: Boolean(tx.has_sprout || tx.has_sapling || tx.has_orchard || tx.has_ironwood),
       orchardActions: parseInt(tx.orchard_actions) || 0,
       saplingSpendCount: parseInt(tx.sapling_spend_count) || 0,
       saplingOutputCount: parseInt(tx.sapling_output_count) || 0,
       fee: tx.fee ? Number(tx.fee) / 100000000 : 0,
+      feeZat: tx.fee == null ? null : String(tx.fee),
+      size: tx.size == null ? null : Number(tx.size),
+      vinCount: tx.vin_count == null ? null : Number(tx.vin_count),
+      voutCount: tx.vout_count == null ? null : Number(tx.vout_count),
+      hasSprout: tx.has_sprout == null ? null : tx.has_sprout,
     });
   } catch (error) {
     logSafeError('Error fetching transaction metadata:', error);

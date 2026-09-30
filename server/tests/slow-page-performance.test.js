@@ -531,7 +531,11 @@ test('transaction SEO summary performs one bounded database query', async () => 
         orchard_actions: '2',
         sapling_spend_count: '0',
         sapling_output_count: '0',
-        fee: '10000',
+        fee: '10001',
+        size: 1234,
+        vin_count: 2,
+        vout_count: 1,
+        has_sprout: false,
         is_canonical: true,
         confirmations: '10',
       }] };
@@ -554,6 +558,11 @@ test('transaction SEO summary performs one bounded database query', async () => 
   );
   assert.equal(res.body.hasShielded, true);
   assert.equal(res.body.confirmations, 10);
+  assert.equal(res.body.feeZat, '10001');
+  assert.equal(res.body.size, 1234);
+  assert.equal(res.body.vinCount, 2);
+  assert.equal(res.body.voutCount, 1);
+  assert.equal(res.body.hasSprout, false);
   assert.equal(
     res.headers.get('cache-control'),
     'public, s-maxage=30, stale-while-revalidate=300',

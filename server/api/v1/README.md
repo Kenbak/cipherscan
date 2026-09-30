@@ -311,3 +311,37 @@ responses. Browser checks and private mainnet reads complement these tests;
 neither mock tests nor HTTP 200 alone establish production readiness. Database
 migrations, new data feeds, write flows and each deployed network still require
 release acceptance. See the private wiki's ZecBlock launch checklist.
+
+### Ask transaction lookups
+
+Ask also supports specific transaction IDs and the latest 1–10 indexed transactions
+(default five for plural requests). `/txs` has a transaction page descriptor;
+`/tx/:txid` supplies the optional strictly validated `transaction` request field.
+The widget and workspace preserve the chosen ID across follow-ups and handoff.
+The homepage guide now describes per-card Customize controls, stats-bar selection
+and browser-local preferences; Ask does not change those preferences itself.
+
+The strict `transactions` intent uses `transactionQuery={mode:latest|detail,
+txid:null|64-hex,limit:1..10}`. Detail requires an ID and limit one; latest forbids
+an ID. Latest performs one GET to `/api/transactions/list?limit=N`. Detail performs
+one GET to `/api/seo/tx/:txid`, plus one `/api/mempool/tx/:txid` only on 404. A failed
+source is not converted into not-found. No arbitrary URLs, pagination, raw detail
+fanout, SQL, broadcast or other write methods are exposed. Existing deadlines,
+rate limits, AI verification and budget controls are unchanged.
+
+Replies contain `transactions`, linked native records and timestamped source
+context. List ordering is block height then transaction index descending,
+including coinbase; it is not a value ranking or a canonical-status check.
+Individual summaries distinguish confirmed, stale, unknown and mempool pending.
+Mempool `firstSeen` is not treated as an authoritative arrival timestamp. Only
+allowlisted scalar fields enter model evidence. Exact fee zatoshis are converted
+with integer arithmetic, and missing values remain unavailable. No payment
+amount is inferred from fees or shielded component flags.
+
+The existing lightweight transaction summary now adds `feeZat` (decimal string or
+null), nullable `size`, `vinCount`, `voutCount`, and `hasSprout`. It still uses one
+parameterized query and does not load input/output arrays. These additions require
+deploying the legacy API handler; until then a preview pointed at an older API
+can show confirmed status/components while summary fees and sizes remain unavailable.
+Guided English lookups work without inference; paid narration and multilingual
+selection use the existing validated fact/citation pipeline when AI is enabled.

@@ -543,6 +543,7 @@
                     "enum": [
                       "home",
                       "ask",
+                      "transactions",
                       "blocks",
                       "pools",
                       "ironwood",
@@ -645,6 +646,10 @@
                         "type": "null"
                       }
                     ]
+                  },
+                  "transaction": {
+                    "type": "string",
+                    "pattern": "^[a-fA-F0-9]{64}$"
                   },
                   "block": {
                     "type": "string",
