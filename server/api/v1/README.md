@@ -194,6 +194,21 @@ widget or changing chart controls does not invoke paid inference. With no provid
 exact page-guide/product prompts and guided chart recipes remain usable in English.
 Multilingual contextual answers require a configured and evaluated model.
 
+Every mainnet header/footer destination now has an explicit Ask page descriptor
+and reviewed guide. Network, Network Nodes and Privacy Score have distinct topics;
+Mining, Mempool, Forks & Reorgs, tools and resource pages no longer fall back to the
+generic explorer description. Suggested page questions use matching reviewed
+answers in guided mode and the same source documents in paid mode.
+
+Individual chart guides use the definitions in `lib/chart-catalog.ts`. Regenerate
+the public descriptor snapshot with
+`node server/api/v1/tools/write-ask-chart-guides.js` when that catalogue changes;
+coverage tests check for drift and unknown chart routes. These guides explain
+controls, units and methodology. They do not receive plotted rows, URL filters,
+form contents, decrypted memos, article text or current node/mining readings.
+They do not add data tools or enable a provider. Existing supported chart analysis,
+block and transaction readers remain the separate source of live evidence.
+
 Ask now has a bounded read-only block tool: latest indexed block, up to 25 recent
 indexed blocks, or a specific height/hash. Exact English lookup prompts and
 “Explain this page” on Blocks/block details also work without a model. Paid mode

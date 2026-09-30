@@ -70,6 +70,29 @@ test('unsupported multilingual intent stops after classification', async () => {
   assert.equal(calls, 1); assert.match(result.answer, /Zcash/); assert.deepEqual(result.sources, []);
 });
 
+test('page explanations and suggested follow-ups supply the matching guide without unrelated data or classification', async () => {
+  const { pageGuides } = require('../../v1/lib/ask-page-guides');
+  const { pageIds } = require('../../../../lib/ask/pages');
+  for (const guide of pageGuides) {
+    const page = pageIds.find(id => pageById(id).topic === guide.id);
+    assert.ok(page, guide.id);
+    for (const question of ['Explain this page', ...Object.keys(guide.questions)]) {
+      let calls = 0;
+      const result = await chat({ ...input, page, question }, async (body, task) => {
+        calls++;
+        assert.equal(task.name, 'contextual_answer');
+        assert.deepEqual(body.documents.map(doc => doc.id), [guide.id]);
+        assert.equal(body.evidence, null);
+        assert.match(body.page.scope, /no live observations/);
+        return task.validator.parse({ summary: 'This guide explains the page controls and methodology.', observations: [], limitation: '', sources: [guide.id] });
+      }, { dispatch: async () => { throw new Error('A page guide must not fetch unrelated data'); } }, signal, '');
+      assert.equal(calls, 1);
+      assert.equal(result.spec, null);
+      assert.equal(result.sources[0].id, guide.id);
+    }
+  }
+});
+
 test('explicit response language overrides model selection and unprovided citations are rejected', async () => {
   let calls = 0;
   await assert.rejects(chat({ ...input, locale: 'ja' }, async (body) => {

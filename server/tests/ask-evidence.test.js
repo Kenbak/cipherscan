@@ -286,3 +286,60 @@ test('transaction cards link exact IDs, distinguish pending and preserve fee pre
   const exact = renderToStaticMarkup(React.createElement(AskTransactions, { result: { rows: [{ txid: id, status: 'indexed', pools: [], feeZat: '9007199254740993', size: null, blockHeight: 1, confirmations: null, timestamp: null }] } }));
   assert.match(exact, /90071992\.54740993 ZEC/);
 });
+
+test('every mainnet navigation destination has a reviewed, page-specific Ask guide', () => {
+  const { getNavigation } = load('lib/navigation.ts');
+  const { describePage, pageById, pageIds } = require('../../lib/ask/pages');
+  const { getKnowledge, knowledgeIds } = require('../api/v1/lib/ask-knowledge');
+  const { guidedReply } = require('../api/v1/lib/ask-chat');
+  assert.equal(new Set(knowledgeIds).size, knowledgeIds.length);
+  const destinations = getNavigation('mainnet', 'footer').flatMap(section => section.items);
+  for (const { href } of destinations) {
+    const page = describePage(href);
+    assert.ok(pageIds.includes(page.id), href);
+    if (href !== '/ask') assert.notEqual(page.topic, 'explorer', href);
+    assert.equal(pageById(page.id).topic, page.topic, href);
+    const [guide] = getKnowledge([page.topic]);
+    assert.ok(guide?.text.length > 100, href);
+    assert.ok(guide.url.startsWith('/'), href);
+    const reply = guidedReply({ question: 'Explain this page', page: page.id, context: null, history: [], locale: 'auto' });
+    assert.ok(reply.answer.includes(guide.text), href);
+    for (const question of page.questions || []) {
+      assert.ok(guide.questions?.[question], `${href}: ${question}`);
+      const answer = guidedReply({ question, page: page.id, context: null, history: [], locale: 'auto' });
+      assert.equal(answer.answer, guide.questions[question]);
+      assert.equal(answer.spec, null);
+    }
+  }
+});
+
+test('page mapping separates metrics, handles known child routes and never serializes form data', () => {
+  const { describePage } = require('../../lib/ask/pages');
+  const { guidedReply } = require('../api/v1/lib/ask-chat');
+  for (const [path, topic] of [['/network', 'network'], ['/network/nodes', 'nodes'], ['/privacy', 'privacy_score'], ['/privacy/wallets', 'wallet_signals'], ['/mempool/live', 'mempool'], ['/blocks/latest', 'blocks'], ['/txs/latest', 'transactions'], ['/charts/shielded-supply', 'chart_shielded_supply'], ['/governance/nu7', 'governance'], ['/newsletter/example-issue', 'newsletter'], ['/address/' + 'a'.repeat(35), 'address']]) assert.equal(describePage(path).topic, topic, path);
+  for (const path of ['/decrypt', '/tools/broadcast', '/tools/decode']) {
+    const page = describePage(path);
+    assert.deepEqual(Object.keys(page).sort(), ['id', 'questions', 'title', 'topic']);
+    const reply = guidedReply({ question: 'Explain this page', page: page.id, context: null, history: [], locale: 'auto' });
+    assert.equal(reply.spec, null);
+    assert.doesNotMatch(reply.answer, /ZecBlock indexes public Zcash data/);
+  }
+  assert.equal(describePage('/network/private-admin').id, 'explorer');
+  assert.equal(describePage('/mining/').topic, 'mining');
+  assert.match(guidedReply({ question: 'Explain this page', page: 'nodes', context: null, history: [], locale: 'auto' }).answer, /not all Zcash nodes/);
+});
+
+
+test('individual chart guides track the catalogue and reject unknown chart routes', () => {
+  const { CHART_CATALOG } = load('lib/chart-catalog.ts', { './network-overview': load('lib/network-overview.ts') });
+  const snapshot = require('../../lib/ask/chart-pages.json');
+  assert.deepEqual(snapshot, CHART_CATALOG.map(({ id, title, description, unit, window, href }) => ({ id, title, description, unit, window, source: href })), 'Regenerate with write-ask-chart-guides.js when chart metadata changes');
+  const { describePage } = require('../../lib/ask/pages');
+  const { getKnowledge } = require('../api/v1/lib/ask-knowledge');
+  for (const chart of snapshot) {
+    const page = describePage(`/charts/${chart.id}`);
+    assert.equal(page.title, chart.title);
+    assert.ok(getKnowledge([page.topic])[0].text.includes(chart.description));
+  }
+  assert.equal(describePage('/charts/not-a-real-chart').id, 'explorer');
+});
