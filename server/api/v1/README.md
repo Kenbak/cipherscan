@@ -194,11 +194,33 @@ widget or changing chart controls does not invoke paid inference. With no provid
 exact page-guide/product prompts and guided chart recipes remain usable in English.
 Multilingual contextual answers require a configured and evaluated model.
 
-The `/blocks` list and `/block/:heightOrHash` detail routes have distinct reviewed
-page guides. They explain block fields, miner attribution and self-reported
-software markers. Only the allowlisted page ID reaches Ask: current table rows,
-filters and individual block identifiers are not supplied as evidence. These
-guides must not be presented as analysis of the visible blocks.
+Ask now has a bounded read-only block tool: latest indexed block, up to 25 recent
+indexed blocks, or a specific height/hash. Exact English lookup prompts and
+“Explain this page” on Blocks/block details also work without a model. Paid mode
+classifies free-form/multilingual requests into the same validated tool and
+narrates only server-supplied facts using the existing numeric placeholder checks.
+
+The widget sends an optional strictly validated `block` height/hash for a selected
+block; follow-ups and handoff to Ask preserve the returned hash. It never sends DOM
+text, arbitrary URLs, table rows or query strings. Blocks-page explanations use an
+explicitly **unfiltered latest indexed sample**, not the browser's filtered table.
+
+The tool makes at most two fixed GET requests: `/api/blocks/list` with bounded
+limits/height filters and, for a hash, `/api/block/:hash?summary=1`. It does not load
+full canonical block transactions, execute SQL, follow model URLs or page through
+history. Validate response fields, ordering/contiguity, requested heights and hash
+identity. A hash reorg between reads fails rather than attributing replacement data
+to the original block. Missing and orphaned results are distinct; orphan details
+remain a link to their retained page. Fees are exact integer zatoshis rendered as
+ZEC; missing fees/intervals remain unavailable, and transaction counts include
+coinbase. Software markers are self-reported. Observation timestamps and retrieval
+time do not prove indexer synchronization. Results carry `blocks` plus existing
+`dataContext` and appear as native linked cards in both Ask surfaces.
+
+Guided reads retain the existing request limiter and a 15-second deadline; paid
+reads retain bot admission, distributed quotas, cost reservation and response
+limits. No automatic provider retries or expanded spending allowance. Provider
+activation is separate from this capability and remains unchanged.
 
 Paid mode requires all of these **backend** settings:
 

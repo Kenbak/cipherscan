@@ -38,38 +38,24 @@ test('Blocks list and block details resolve to their own guides without serializ
     const reply = guidedReply(request);
     assert.equal(reply.spec, null);
     assert.equal(reply.sources[0].id, id);
-    assert.equal(reply.sources[0].reviewed, '2026-09-30');
+    assert.equal(reply.sources[0].reviewed, '2026-10-01');
     assert.match(reply.answer, /[Hh]eight/);
     assert.match(reply.answer, /[Ff]ees/);
     assert.match(reply.answer, /self-reported/);
     assert.doesNotMatch(reply.answer, /ZecBlock indexes|Zebra is a Zcash full node|3501487/);
   }
   const list = guidedReply({ ...input, page: 'blocks', question: 'Explain this page' });
-  assert.match(list.answer, /not inspected the current rows or selected filters/);
+  assert.match(list.answer, /does not inherit the visible table filters/);
   assert.match(list.answer, /No software tag does not mean zcashd/);
 });
 
-test('AI Blocks explanation receives the specific guide without claiming live row evidence', async () => {
-  let calls = 0;
-  const reply = await chat({ ...input, page: 'blocks', question: 'Explain this page' }, async (body, task) => {
-    calls++;
-    assert.equal(body.page.title, 'Blocks');
-    assert.match(body.page.scope, /no live observations/);
-    assert.equal(body.evidence, null);
-    assert.deepEqual(body.documents.map(doc => doc.id), ['blocks']);
-    return task.validator.parse({ summary: 'Each row is a block; size shows capacity used and fees describe transaction fees.', observations: [], limitation: '', sources: ['blocks'] });
-  }, { dispatch: () => { throw new Error('Page guide must not query unrelated analytics'); } }, signal, '');
-  assert.equal(calls, 1);
-  assert.equal(reply.sources[0].id, 'blocks');
-  assert.equal(reply.spec, null);
-});
 
 test('French contextual follow-up returns sourced prose without forcing a chart or sending challenge secrets', async () => {
   let calls = 0;
   const result = await chat({ ...input, question: 'Et Zebra, à quoi sert-il ?', history: ['Explique les nœuds Zcash'], challenge: 'must-not-reach-model' }, async (body, task) => {
     calls++;
     assert.equal(JSON.stringify(body).includes('must-not-reach-model'), false);
-    if (calls === 1) return task.validator.parse({ intent: 'knowledge', flowQuery: null, spec: null, topics: ['zebra'], locale: 'fr' });
+    if (calls === 1) return task.validator.parse({ intent: 'knowledge', blockQuery: null, flowQuery: null, spec: null, topics: ['zebra'], locale: 'fr' });
     assert.equal(body.locale, 'fr'); assert.deepEqual(body.history, ['Explique les nœuds Zcash']);
     assert.deepEqual(body.documents.map(doc => doc.id), ['zebra']);
     return task.validator.parse({ summary: 'Zebra est un nœud complet Zcash écrit en Rust.', observations: [], limitation: '', sources: ['zebra'] });
@@ -80,14 +66,14 @@ test('French contextual follow-up returns sourced prose without forcing a chart 
 
 test('unsupported multilingual intent stops after classification', async () => {
   let calls = 0;
-  const result = await chat({ ...input, question: 'Écris une recette de cupcakes' }, async () => { calls++; return { intent: 'unsupported', spec: null, topics: [], locale: 'fr' }; }, null, signal, '');
+  const result = await chat({ ...input, question: 'Écris une recette de cupcakes' }, async () => { calls++; return { intent: 'unsupported', blockQuery: null, spec: null, topics: [], locale: 'fr' }; }, null, signal, '');
   assert.equal(calls, 1); assert.match(result.answer, /Zcash/); assert.deepEqual(result.sources, []);
 });
 
 test('explicit response language overrides model selection and unprovided citations are rejected', async () => {
   let calls = 0;
   await assert.rejects(chat({ ...input, locale: 'ja' }, async (body) => {
-    if (++calls === 1) return { intent: 'knowledge', flowQuery: null, spec: null, topics: ['zodl'], locale: 'fr' };
+    if (++calls === 1) return { intent: 'knowledge', blockQuery: null, flowQuery: null, spec: null, topics: ['zodl'], locale: 'fr' };
     assert.equal(body.locale, 'ja');
     return { summary: 'Unsupported citation', observations: [], limitation: '', sources: ['vizor'] };
   }, null, signal, ''), /Unsupported citation/);
@@ -195,7 +181,7 @@ test('paid contextual route enforces bot admission and reserves both provider ca
     fetch: async (url, init) => {
       calls++; assert.equal(verified, 1); assert.equal(reservations, calls);
       const body = JSON.parse(init.body); assert.equal(JSON.stringify(body).includes('challenge-token'), false);
-      const content = calls === 1 ? { intent: 'knowledge', flowQuery: null, spec: null, topics: ['zebra'], locale: 'fr' } : { summary: 'Zebra est un nœud Zcash.', observations: [], limitation: '', sources: ['zebra'] };
+      const content = calls === 1 ? { intent: 'knowledge', blockQuery: null, flowQuery: null, spec: null, topics: ['zebra'], locale: 'fr' } : { summary: 'Zebra est un nœud Zcash.', observations: [], limitation: '', sources: ['zebra'] };
       return Response.json({ choices: [{ finish_reason: 'stop', message: { content: JSON.stringify(content) } }] });
     },
   });

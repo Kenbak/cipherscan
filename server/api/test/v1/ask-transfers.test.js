@@ -48,7 +48,7 @@ test('query schema excludes SQL, hidden amounts and unbounded requests', () => {
 test('contextual transfer intent returns structured rows rather than a daily chart', async () => {
   let calls=0;
   const result=await chat({question:'What are the latest and biggest 5 deshields?',page:'ask',context:null,locale:'auto',history:[]},async(body,task)=>{
-    if (++calls===1) return task.validator.parse({intent:'transfers',flowQuery:query,spec:null,topics:['pools'],locale:'en'});
+    if (++calls===1) return task.validator.parse({intent:'transfers',blockQuery:null,flowQuery:query,spec:null,topics:['pools'],locale:'en'});
     throw new Error('Transaction facts must not need a narration call');
   },client([row(1,Math.floor(Date.now()/1000)-10,1)]),signal,'');
   assert.equal(calls,1); assert.equal(result.spec,null); assert.equal(result.transfers.groups.length,2); assert.match(result.answer,/24 hours/);

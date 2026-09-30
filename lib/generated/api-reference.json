@@ -169,6 +169,10 @@
             }
           ]
         },
+        "block": {
+          "type": "string",
+          "pattern": "^(?:0|[1-9]\\d{0,8}|[a-fA-F0-9]{64})$"
+        },
         "locale": {
           "default": "auto",
           "type": "string",
