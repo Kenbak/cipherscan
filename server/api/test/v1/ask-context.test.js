@@ -6,7 +6,7 @@ const { once } = require('node:events');
 const { createAskRouter, providerConfig } = require('../../v1/routes/ask');
 const { chat, guidedReply, answerTaskFor } = require('../../v1/lib/ask-chat');
 const { chatRequestSchema } = require('../../../../lib/ask/chat');
-const { describePage } = require('../../../../lib/ask/pages');
+const { describePage, pageById } = require('../../../../lib/ask/pages');
 const { maximumCost, reserve, admit } = require('../../v1/lib/ask-budget');
 const { renderExplanation } = require('../../v1/lib/ask-explanation');
 const env = { ASK_ENABLED: 'true', ASK_PROVIDER: 'openai', ASK_MODEL: 'fixture', ASK_API_KEY: 'fixture', ASK_DAILY_CALL_LIMIT: '50', ASK_DAILY_BUDGET_USD: '2', ASK_MONTHLY_BUDGET_USD: '30', ASK_MAX_INPUT_USD_PER_MILLION: '0.125', ASK_MAX_OUTPUT_USD_PER_MILLION: '0.5', ASK_ABUSE_SECRET: 'x'.repeat(32), ASK_TURNSTILE_SECRET: 'fixture', ASK_TURNSTILE_HOSTNAME: 'example.test', ASK_TURNSTILE_SITE_KEY: 'fixture' };
@@ -27,6 +27,41 @@ test('reviewed guides work without inference and do not loosely match unrelated 
   }
   assert.equal(guidedReply({ ...input, question: 'What is Zodl? Also write a cupcake recipe.' }), null);
   assert.match(guidedReply({ ...input, page: 'ironwood', question: 'Explain this page' }).answer, /not a traced fraction/);
+});
+
+test('Blocks list and block details resolve to their own guides without serializing identifiers', () => {
+  for (const [path, id, title] of [['/blocks', 'blocks', 'Blocks'], ['/block/3501487', 'block', 'Block'], ['/block/' + 'a'.repeat(64), 'block', 'Block']]) {
+    const page = describePage(path);
+    assert.deepEqual(page, { id, title, topic: id });
+    assert.deepEqual(pageById(id), page);
+    const request = chatRequestSchema.parse({ ...input, page: id, question: 'Explain this page' });
+    const reply = guidedReply(request);
+    assert.equal(reply.spec, null);
+    assert.equal(reply.sources[0].id, id);
+    assert.equal(reply.sources[0].reviewed, '2026-09-30');
+    assert.match(reply.answer, /[Hh]eight/);
+    assert.match(reply.answer, /[Ff]ees/);
+    assert.match(reply.answer, /self-reported/);
+    assert.doesNotMatch(reply.answer, /ZecBlock indexes|Zebra is a Zcash full node|3501487/);
+  }
+  const list = guidedReply({ ...input, page: 'blocks', question: 'Explain this page' });
+  assert.match(list.answer, /not inspected the current rows or selected filters/);
+  assert.match(list.answer, /No software tag does not mean zcashd/);
+});
+
+test('AI Blocks explanation receives the specific guide without claiming live row evidence', async () => {
+  let calls = 0;
+  const reply = await chat({ ...input, page: 'blocks', question: 'Explain this page' }, async (body, task) => {
+    calls++;
+    assert.equal(body.page.title, 'Blocks');
+    assert.match(body.page.scope, /no live observations/);
+    assert.equal(body.evidence, null);
+    assert.deepEqual(body.documents.map(doc => doc.id), ['blocks']);
+    return task.validator.parse({ summary: 'Each row is a block; size shows capacity used and fees describe transaction fees.', observations: [], limitation: '', sources: ['blocks'] });
+  }, { dispatch: () => { throw new Error('Page guide must not query unrelated analytics'); } }, signal, '');
+  assert.equal(calls, 1);
+  assert.equal(reply.sources[0].id, 'blocks');
+  assert.equal(reply.spec, null);
 });
 
 test('French contextual follow-up returns sourced prose without forcing a chart or sending challenge secrets', async () => {

@@ -194,6 +194,12 @@ widget or changing chart controls does not invoke paid inference. With no provid
 exact page-guide/product prompts and guided chart recipes remain usable in English.
 Multilingual contextual answers require a configured and evaluated model.
 
+The `/blocks` list and `/block/:heightOrHash` detail routes have distinct reviewed
+page guides. They explain block fields, miner attribution and self-reported
+software markers. Only the allowlisted page ID reaches Ask: current table rows,
+filters and individual block identifiers are not supplied as evidence. These
+guides must not be presented as analysis of the visible blocks.
+
 Paid mode requires all of these **backend** settings:
 
 - `ASK_ENABLED=true`, `ASK_PROVIDER=openai|anthropic`, `ASK_MODEL`, `ASK_API_KEY`.

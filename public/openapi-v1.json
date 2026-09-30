@@ -543,6 +543,7 @@
                     "enum": [
                       "home",
                       "ask",
+                      "blocks",
                       "pools",
                       "ironwood",
                       "crosschain",
