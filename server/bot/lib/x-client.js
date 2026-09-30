@@ -138,6 +138,7 @@ class XClient {
           }
         });
       });
+      req.setTimeout(20000, () => req.destroy(new Error('X API request timed out')));
       req.on('error', reject);
       req.write(payload);
       req.end();
@@ -182,6 +183,7 @@ class XClient {
           }
         });
       });
+      req.setTimeout(20000, () => req.destroy(new Error('X API request timed out')));
       req.on('error', reject);
       if (body) req.write(body);
       req.end();
@@ -251,6 +253,7 @@ class XClient {
             });
           }
         );
+        req.setTimeout(20000, () => req.destroy(new Error('X API request timed out')));
         req.on('error', reject);
         req.write(body);
         req.end();
@@ -310,6 +313,7 @@ class XClient {
           });
         }
       );
+      req.setTimeout(20000, () => req.destroy(new Error('X API request timed out')));
       req.on('error', reject);
       req.write(body);
       req.end();
@@ -361,6 +365,7 @@ class XClient {
           });
         }
       );
+      req.setTimeout(20000, () => req.destroy(new Error('X API request timed out')));
       req.on('error', reject);
       req.write(body);
       req.end();
