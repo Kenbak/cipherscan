@@ -672,7 +672,7 @@ export function UsageClockClient({
             Observed share of transactions minus a daily routine model weighted by node locations, in percentage points. A difference is not evidence of bots or automated activity.
 
           </p>
-          {!hasNodes ? <p className={styles.empty}>Node observations are needed to calculate this baseline.</p> : <div className="h-[180px]">
+          {!hasNodes ? <p className={styles.empty}>Node observations are needed to calculate this baseline.</p> : <div className="h-[180px] min-w-0 overflow-hidden">
             <ResponsiveContainer initialDimension={{ width: 500, height: 300 }} width="100%" height="100%">
               <BarChart data={residualBars} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
                 <ReferenceLine y={0} stroke="var(--color-text-muted)" strokeOpacity={0.5} />
