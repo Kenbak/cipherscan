@@ -13,7 +13,9 @@ import { usePaginatedList, type BasePaginationState } from '@/hooks/usePaginated
 import { BlockFilters, type BlockFilterValues } from './BlockFilters';
 import { SOFTWARE_LABELS, classifyMiningSoftware, type MiningSoftware } from '@/lib/mining-software';
 import { getMiningSoftwareEmoji } from '@/lib/coinbase-client';
+import { Tooltip } from '@/components/Tooltip';
 import { CURRENCY } from '@/lib/config';
+import { scheduledSeconds, type BlockSchedule } from '@/lib/block-timing';
 
 interface Block {
   software?: MiningSoftware;
@@ -32,26 +34,13 @@ interface Block {
 
 const PAGE_SIZE = 25;
 
-const INTERVAL_TEXT_COLORS = {
-  'unknown': 'text-muted',
-  'fast':      'text-cipher-gold',
-  'normal':    'text-cipher-green',
-  'slow':      'text-warning',
-  'very-slow': 'text-danger',
-} as const;
-
-const INTERVAL_BAR_COLORS = {
-  'unknown': 'bg-cipher-border',
-  'fast':      'bg-brand-gold/50',
-  'normal':    'bg-cipher-green/50',
-  'slow':      'bg-warning/50',
-  'very-slow': 'bg-danger/50',
-} as const;
+// Consensus serialized block-size limit, in decimal bytes (2 MB).
+const MAX_BLOCK_BYTES = 2_000_000;
+const INTERVAL_SCALE_SECONDS = 300;
 
 /** Column defs close over the block list because interval computation needs
  *  each row's successor (and the trailing block beyond the page boundary). */
-function blockColumns(blocks: Block[], trailingBlock: Block | null): DataTableColumn<Block>[] {
-  const maxSize = Math.max(1, ...blocks.map(b => b.size || 0));
+function blockColumns(blocks: Block[], trailingBlock: Block | null, schedule: BlockSchedule | null): DataTableColumn<Block>[] {
   return [
     {
       id: 'height',
@@ -123,22 +112,26 @@ function blockColumns(blocks: Block[], trailingBlock: Block | null): DataTableCo
     },
     {
       id: 'size',
-      header: 'Size',
+      header: 'Size / 2 MB',
       align: 'right',
       className: 'hidden md:table-cell',
       skeletonWidth: 'w-16',
       cell: (block) => {
-        const sizePct = Math.max(4, Math.min(100, ((block.size || 0) / maxSize) * 100));
+        if (!Number.isFinite(block.size) || block.size < 0) {
+          return <span className="font-mono text-xs text-muted" title="Block size unavailable">—</span>;
+        }
+        const sizePct = (block.size / MAX_BLOCK_BYTES) * 100;
+        const capacity = `${sizePct > 0 && sizePct < 0.01 ? '<0.01' : sizePct.toFixed(2)}% of the 2 MB limit (${block.size.toLocaleString('en-US')} / 2,000,000 bytes)`;
         return (
-          <div className="flex items-center justify-end gap-2">
-            <div className="w-16 lg:w-24 h-1 rounded-full bg-cipher-border-alpha/40 overflow-hidden">
+          <div className="flex items-center justify-end gap-2" title={capacity}>
+            <div aria-hidden="true" className="w-16 lg:w-24 h-1 rounded-full bg-cipher-border-alpha/40 overflow-hidden">
               <div
                 className="h-full rounded-full bg-brand-gold/60 group-hover:bg-brand-gold transition-colors"
-                style={{ width: `${sizePct}%` }}
+                style={{ width: `${Math.min(100, sizePct)}%` }}
               />
             </div>
-            <span className="font-mono text-xs text-muted w-16 text-right">
-              {(block.size / 1024).toFixed(1)} KB
+            <span className="font-mono text-xs text-muted tabular-nums w-16 text-right">
+              {(block.size / 1000).toFixed(1)} kB
             </span>
           </div>
         );
@@ -162,29 +155,37 @@ function blockColumns(blocks: Block[], trailingBlock: Block | null): DataTableCo
     },
     {
       id: 'interval',
-      header: 'Interval',
+      header: 'Block interval',
       align: 'right',
       className: 'hidden lg:table-cell',
       skeletonWidth: 'w-12',
       cell: (block, idx) => {
         const nextBlock = blocks[idx + 1] ?? (idx === blocks.length - 1 ? trailingBlock : null);
-        const gap = block.intervalSeconds ?? (nextBlock?.height === block.height - 1 ? block.timestamp - nextBlock.timestamp : null);
-        const interval = gap !== null && gap >= 0 ? formatBlockInterval(gap) : null;
-        const barPct = gap !== null ? Math.min(100, (gap / 300) * 100) : 0;
-        if (!interval) {
-          return <span className="font-mono text-xs text-muted">--</span>;
+        const gap = block.intervalSeconds ?? (nextBlock && Number(nextBlock.height) === Number(block.height) - 1 ? block.timestamp - nextBlock.timestamp : null);
+        if (gap === null || !Number.isFinite(gap)) {
+          return <span className="font-mono text-xs text-muted" title="Previous block timestamp unavailable">—</span>;
         }
+        const interval = formatBlockInterval(gap);
+        const target = scheduledSeconds(schedule, Number(block.height), Number(block.height) + 1);
+        const description = `${target !== null ? `The tick marks the ${target}s target. ` : ''}${gap > INTERVAL_SCALE_SECONDS ? 'The arrow means more than 5 min.' : 'The bar shows up to 5 min.'}${gap < 0 ? ' Left arrow: timestamp earlier than the previous block’s.' : ''}`;
         return (
-          <div className="flex items-center justify-end gap-2" title={`${gap}s between block ${(block.height - 1).toLocaleString()} and ${block.height.toLocaleString()}`}>
-            <div className="w-12 h-1 rounded-full bg-cipher-border-alpha/40 overflow-hidden">
-              <div
-                className={`h-full rounded-full ${INTERVAL_BAR_COLORS[interval.level]} transition-colors`}
-                style={{ width: `${barPct}%` }}
-              />
-            </div>
-            <span className={`font-mono text-xs ${INTERVAL_TEXT_COLORS[interval.level]} w-14 text-right`}>
-              {interval.label}
-            </span>
+          <div className="flex items-center justify-end gap-2">
+            <Tooltip content={description} label={`Block interval ${interval.label}: scale and target`}>
+              <span className="inline-flex h-6 w-12 items-center" aria-hidden="true">
+                <span className="relative block w-12 h-1 shrink-0 rounded-full bg-cipher-border-alpha/40">
+                  {gap < 0 ? (
+                    <span className="absolute right-full mr-0.5 top-1/2 -translate-y-1/2 text-xs leading-none text-secondary">←</span>
+                  ) : (
+                    <span className="block h-full rounded-full bg-secondary/60" style={{ width: `${Math.min(100, (gap / INTERVAL_SCALE_SECONDS) * 100)}%` }} />
+                  )}
+                  {target !== null && target <= INTERVAL_SCALE_SECONDS && (
+                    <span className="absolute top-1/2 h-2 w-px -translate-y-1/2 bg-primary/70" style={{ left: `${(target / INTERVAL_SCALE_SECONDS) * 100}%` }} />
+                  )}
+                  {gap > INTERVAL_SCALE_SECONDS && <span className="absolute left-full ml-0.5 top-1/2 -translate-y-1/2 text-xs leading-none text-secondary">›</span>}
+                </span>
+              </span>
+            </Tooltip>
+            <span className="font-mono text-xs text-secondary tabular-nums whitespace-nowrap min-w-16 text-right">{interval.label}</span>
           </div>
         );
       },
@@ -272,6 +273,7 @@ export default function BlocksClient({
   });
 
   const [summary, setSummary] = useState<{ height: number | null; blocks24h: number | null; avgBlockTime: number | null; avgBlockFee: number | null; txsPerBlock: number | null }>({ height: null, blocks24h: null, avgBlockTime: null, avgBlockFee: null, txsPerBlock: null });
+  const [schedule, setSchedule] = useState<BlockSchedule | null>(null);
   const [zecPriceUsd, setZecPriceUsd] = useState<number | null>(null);
 
   useEffect(() => {
@@ -280,6 +282,7 @@ export default function BlocksClient({
       .then(res => res.ok ? readApiData(res) : null)
       .then(data => {
         if (!data) return;
+        setSchedule(data.mining?.schedule ?? null);
         const blocks24h = data.mining?.blocks24h ?? null;
         // Excludes each block's mandatory coinbase tx — nobody "sent" it, so
         // counting it here would inflate "per block" activity with a
@@ -363,7 +366,7 @@ export default function BlocksClient({
       <BlockFilters values={filters} />
       {!dataAvailable && <p role="status" className="mb-4 text-sm text-muted">Block data is unavailable for this selection. Software filters require the completed history index; please try again later.</p>}
       <DataTable
-        columns={blockColumns(blocks, trailingBlock ?? null).map((column) => {
+        columns={blockColumns(blocks, trailingBlock ?? null, schedule).map((column) => {
           if (!['height', 'txs', 'size', 'fees', 'interval'].includes(column.id)) return column;
           const order = filters.order || 'newest';
           const active = column.id === 'height' ? ['newest', 'oldest'].includes(order) : order.startsWith(`${column.id}_`);
@@ -380,6 +383,7 @@ export default function BlocksClient({
             </Link>,
           };
         })}
+        footer={<p className="hidden lg:block px-4 py-3 text-xs text-muted">Interval bars: 0–5 min · tick = target at that height · ← timestamp earlier than previous block. Intervals use block timestamps, not arrival times.</p>}
         rows={blocks}
         rowKey={(block) => block.height}
         loading={loading}

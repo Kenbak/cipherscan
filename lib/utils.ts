@@ -32,18 +32,21 @@ export function formatRelativeTime(timestamp: number, now = Date.now()): string 
 
 /** Format an observed interval. Classify only when its height's target is known. */
 export function formatBlockInterval(seconds: number, targetSeconds: number | null = null): { label: string; level: 'unknown' | 'fast' | 'normal' | 'slow' | 'very-slow' } {
+  if (!Number.isFinite(seconds)) return { label: '—', level: 'unknown' };
   const t = targetSeconds;
   let level: 'unknown' | 'fast' | 'normal' | 'slow' | 'very-slow';
-  if (t === null || !Number.isFinite(t) || t <= 0) level = 'unknown';
+  if (seconds < 0 || t === null || !Number.isFinite(t) || t <= 0) level = 'unknown';
   else if (seconds <= t * 0.5) level = 'fast';
   else if (seconds <= t * 2) level = 'normal';
   else if (seconds <= t * 4) level = 'slow';
   else level = 'very-slow';
 
-  if (seconds < 60) return { label: `${seconds}s`, level };
-  const m = Math.floor(seconds / 60);
-  const s = seconds % 60;
-  return { label: s > 0 ? `${m}m ${s}s` : `${m}m`, level };
+  const magnitude = Math.abs(seconds);
+  const sign = seconds < 0 ? '−' : '';
+  if (magnitude < 60) return { label: `${sign}${magnitude}s`, level };
+  const m = Math.floor(magnitude / 60);
+  const s = magnitude % 60;
+  return { label: s > 0 ? `${sign}${m}m ${s}s` : `${sign}${m}m`, level };
 }
 
 /**

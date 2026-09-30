@@ -126,3 +126,13 @@ test('v1 collection decoding preserves opaque pagination, wire times and exact m
   assert.equal(rows[0].block_time, Number(fixture.transactions[0].block_time));
   assert.equal(rows[0].total_output, fixture.transactions[0].total_output);
 });
+
+test('block intervals retain signed timestamp differences and unavailable values', () => {
+  for (const [seconds, label] of [[-5, '−5s'], [-65, '−1m 5s'], [-120, '−2m'], [0, '0s'], [75, '1m 15s'], [601, '10m 1s']]) {
+    assert.equal(utils.formatBlockInterval(seconds).label, label);
+  }
+  for (const value of [NaN, Infinity, -Infinity]) assert.equal(utils.formatBlockInterval(value).label, '—');
+  assert.equal(utils.formatBlockInterval(-5, 75).level, 'unknown');
+  assert.equal(utils.formatBlockInterval(75, 75).level, 'normal');
+  assert.equal(utils.formatBlockInterval(75).level, 'unknown');
+});
