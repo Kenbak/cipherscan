@@ -27,6 +27,7 @@ test('all scheduled editorial types render attributed, bounded ZecBlock PNGs', a
 
 test('card evidence preserves outgoing routes, ties, methodology and amount precision', () => {
   assert.equal(editorialModel(stories[0]).value, '+899.99 ZEC');
+  assert.equal(editorialModel({...stories[0], evidence:{...stories[0].evidence, amount_zat:'51205000000'}}).value, '+512.05 ZEC');
   assert.deepEqual(editorialModel(stories[2]).visual, {kind:'flow',from:'ZEC',to:'SOL'});
   assert.equal(editorialModel(stories[4]).visual.rank,12);
   assert.equal(editorialModel(stories[4]).visual.tied,true);

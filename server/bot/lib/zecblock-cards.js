@@ -254,7 +254,7 @@ function editorialModel(story) {
     case 'flow_deshield': {
       const into = story.type === 'flow_shield';
       const pool = e.pool === 'mixed' ? 'Shielded pools' : e.pool[0].toUpperCase() + e.pool.slice(1);
-      value = `${into ? '+' : '−'}${zecAmount(numeric(e.amount_zat) / 1e8)} ZEC`;
+      value = `${into ? '+' : '−'}${fmt(Math.floor(numeric(e.amount_zat) / 1e6) / 100, 2).replace(/\.00$/, '')} ZEC`;
       label = `${into ? 'Shielding' : 'Deshielding'} · ${pool}`;
       accent = into ? C.shielding : C.deshielding;
       paragraphs.shift();
@@ -296,7 +296,7 @@ function editorialModel(story) {
       date = e.rows.at(-1).date;
       break;
     case 'migration':
-      value = `${zecAmount(numeric(e.amount_zat) / 1e8)} ZEC`;
+      value = `${fmt(Math.floor(numeric(e.amount_zat) / 1e6) / 100, 2).replace(/\.00$/, '')} ZEC`;
       label = 'Pool migration into Ironwood';
       paragraphs[0] = 'Ironwood deposit with an Orchard withdrawal.';
       visual = { kind: 'flow', from: 'Orchard withdrawal', to: 'Ironwood deposit' };
