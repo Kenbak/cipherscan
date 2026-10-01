@@ -21,7 +21,7 @@ export function SearchInterest() {
   return <ValuationChart
     title="Search interest in “zcash”"
     description="Worldwide · weekly Google Trends index. Each export is scaled from 0 to 100 within its own window; this is relative search attention, not search volume or buying demand."
-    data={chartData} loading={loading} format={v=>v.toFixed(0)} domain={[0,100]}
+    data={chartData} loading={loading} format={v=>v.toFixed(0)} domain={[0,100]} intervalDays={7}
     series={[{key:'interest',label:'Completed weeks',color:c.gold},{key:'provisional',label:'Incomplete week',color:c.transparent,dashed:true}]}
     controls={<a href={GOOGLE_TRENDS_URL} target="_blank" rel="noopener noreferrer" className="btn btn-sm btn-secondary">Open Google Trends ↗</a>}
     footer={<>{error && trends && <span className="block mb-2">Refresh failed; showing the last stored snapshot.</span>}{!loading && !trends && <span className="block mb-2">No search-interest snapshot is available from the server yet.</span>}<span className="block font-mono text-secondary mb-2">CSV snapshot · captured {trends?formatDate(trends.capturedAt):'unavailable'} · latest complete week starts {latest?formatDate(latest.date):'—'}</span>{partial && <>Week starting {formatDate(partial.date)} is incomplete and excluded from signal calculations. </>}Manually imported history; automatic daily updates are not connected. Search attention is unscored until a reliable feed and historical validation are available. Source: <a href={GOOGLE_TRENDS_URL} className="underline underline-offset-4">Google Trends</a>.</>}
