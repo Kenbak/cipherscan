@@ -2,10 +2,11 @@
 
 import { useMemo, useState } from 'react';
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer,
 } from 'recharts';
+import { ChartTooltip as Tooltip } from '@/components/charts/ChartTooltip';
 import { useTheme } from '@/contexts/ThemeContext';
-import { getChartColors } from '@/lib/chart-theme';
+import { getChartColors, getChartTooltipStyle } from '@/lib/chart-theme';
 import { useApiQuery } from '@/hooks/useApiQuery';
 import { ChartCard } from '@/components/network/ChartCard';
 import { formatUSD, formatValue, type DisplayUnit } from '@/components/crosschain/format';
@@ -64,9 +65,9 @@ function SizeTooltip({ active, payload, colors, viewMode, unit, zecPrice }: {
   return (
     <div
       className="rounded-lg border px-3 py-2 text-xs font-mono shadow-lg"
-      style={{ backgroundColor: colors.tooltipBg, borderColor: colors.tooltipBorder, color: colors.tooltipText }}
+      style={getChartTooltipStyle(colors)}
     >
-      <p className="mb-1 text-[10px] uppercase tracking-wider text-muted">{row.label}</p>
+      <p className="mb-1 text-caption uppercase tracking-wider text-muted">{row.label}</p>
       <p className="tabular-nums text-secondary">{row.swapCount.toLocaleString()} swaps</p>
       <p className="tabular-nums text-secondary">{fv(row.volumeUsd)} volume</p>
     </div>
@@ -78,7 +79,7 @@ export function SwapSizeDistribution({ unit = 'usd', zecPrice = null }: { unit?:
   const colors = getChartColors(theme);
   const [viewMode, setViewMode] = useState<ViewMode>('count');
 
-  const { data, loading } = useApiQuery<SizeDistributionResponse>('/api/crosschain/size-distribution');
+  const { data, loading } = useApiQuery<SizeDistributionResponse>('/v1/crosschain/size-distribution');
 
   const chartData = useMemo(() => {
     if (!data?.buckets?.length) return [];
@@ -125,8 +126,8 @@ export function SwapSizeDistribution({ unit = 'usd', zecPrice = null }: { unit?:
             <ResponsiveContainer initialDimension={{ width: 500, height: 300 }} width="100%" height="100%">
               <BarChart data={chartData} margin={{ left: 0, right: 8 }}>
                 <CartesianGrid strokeDasharray="2 6" stroke={colors.grid} opacity={0.5} />
-                <XAxis dataKey="label" stroke={colors.axis} tick={{ fill: colors.axis, fontSize: 9 }} interval={0} angle={-30} textAnchor="end" height={50} />
-                <YAxis stroke={colors.axis} tick={{ fill: colors.axis, fontSize: 10 }} tickFormatter={(v: number) => fv(v)} width={50} />
+                <XAxis dataKey="label" stroke={colors.axis} tick={{ fill: colors.axis, fontSize: 12 }} interval={0} angle={-30} textAnchor="end" height={50} />
+                <YAxis stroke={colors.axis} tick={{ fill: colors.axis, fontSize: 12 }} tickFormatter={(v: number) => fv(v)} width={50} />
                 <Tooltip content={<SizeTooltip colors={colors} viewMode={viewMode} unit={unit} zecPrice={zecPrice} />} cursor={{ fill: colors.barCursor }} />
                 <Bar dataKey={dataKey} fill="var(--color-cipher-purple)" fillOpacity={0.75} radius={[3, 3, 0, 0]} />
               </BarChart>

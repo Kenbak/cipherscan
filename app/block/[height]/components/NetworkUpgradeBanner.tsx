@@ -22,7 +22,7 @@ export function NetworkUpgradeBanner({ data }: { data: BlockData }) {
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex flex-wrap items-center gap-2 mb-1">
-            <span className="text-sm font-bold text-cipher-yellow-bright">{upgrade.name}</span>
+            <span className="text-sm font-semibold text-cipher-yellow-bright">{upgrade.name}</span>
             {upgrade.zip && <Badge color="amber">{upgrade.zip}</Badge>}
             <Badge color="green">{badgeLabel}</Badge>
           </div>

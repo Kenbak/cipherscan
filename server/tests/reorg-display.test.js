@@ -65,3 +65,46 @@ test('malformed block paths are rejected before a streaming response starts', as
     assert.equal((await exports.proxy({ nextUrl: { pathname: `/block/${id}` } })).status, 200);
   }
 });
+
+test('block list routing preserves every archive filter and only rewrites unfiltered requests', async () => {
+  const { NextRequest, NextResponse } = require('next/server');
+  for (const mode of ['development', 'production']) {
+    const exports = {};
+    vm.runInNewContext(ts.transpileModule(fs.readFileSync('proxy.ts', 'utf8'), {
+      compilerOptions: { module: ts.ModuleKind.CommonJS },
+    }).outputText, { exports, URL, process: { env: { NODE_ENV: mode } }, setInterval: () => {},
+      require: name => ({
+        'next/server': { NextResponse },
+        './lib/governance-request': {},
+        './lib/network': {},
+      })[name],
+    });
+    assert.ok(exports.config.matcher.includes('/blocks'));
+    if (mode === 'production') {
+      for (const query of ['', '?min_txs=0&utm_source=link']) {
+        const response = await exports.proxy(new NextRequest(`https://cipherscan.app/blocks${query}`, { headers: { host: 'cipherscan.app' } }));
+        assert.equal(response.headers.get('location'), `https://zecblock.com/blocks${query}`);
+        assert.equal(response.headers.get('x-middleware-rewrite'), null);
+      }
+    }
+    for (const host of ['zecblock.com', 'testnet.cipherscan.app', 'crosslink.cipherscan.app', 'preview.vercel.app']) {
+      for (const query of ['', '?utm_source=link']) {
+        const response = await exports.proxy(new NextRequest(`https://${host}/blocks${query}`));
+        assert.equal(response.headers.get('x-middleware-rewrite'), `https://${host}/blocks/latest${query}`);
+        assert.equal(response.headers.get('location'), null);
+      }
+      const filters = ['cursor', 'direction', 'page', 'software', 'pool', 'order', 'from', 'to',
+        'min_height', 'max_height', 'min_interval', 'max_interval', 'min_size', 'max_size',
+        'min_fees', 'max_fees', 'min_txs', 'max_txs'];
+      for (const key of filters) {
+        for (const value of ['', '0', 'test']) {
+          const response = await exports.proxy(new NextRequest(`https://${host}/blocks?${key}=${value}`));
+          assert.equal(response.headers.get('x-middleware-rewrite'), null, `${mode}: ${key}=${value}`);
+          assert.equal(response.headers.get('x-middleware-next'), '1');
+        }
+      }
+      const response = await exports.proxy(new NextRequest(`https://${host}/blocks?min_txs=0&max_txs=10&pool=one&pool=two`));
+      assert.equal(response.headers.get('x-middleware-rewrite'), null);
+    }
+  }
+});

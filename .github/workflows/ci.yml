@@ -45,6 +45,8 @@ jobs:
           cache: npm
       - name: Install dependencies
         run: npm ci --no-audit --no-fund
+      - name: Install API dependencies for integration tests
+        run: npm ci --prefix server/api --no-audit --no-fund
       - name: Run the local/CI frontend verification contract
         run: npm run verify:frontend
       - name: Inbox orchestration and worker lifecycle regressions
@@ -100,7 +102,12 @@ jobs:
           node-version-file: .node-version
       - name: Install dependencies
         run: npm ci --no-audit --no-fund
+      - name: Install shared inventory-test dependencies
+        working-directory: ${{ github.workspace }}
+        run: npm ci --no-audit --no-fund
       - name: Run the local/CI API verification contract
+        env:
+          NODE_PATH: ${{ github.workspace }}/server/api/node_modules
         run: npm run verify
       - name: Route/lib regression tests
         # These live under server/tests/ (not server/api/test/) but exercise

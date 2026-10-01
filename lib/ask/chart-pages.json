@@ -1,0 +1,274 @@
+[
+  {
+    "id": "pool-balances",
+    "title": "Shielded pool balances",
+    "description": "Daily balances from chain state, split by pool. These are stocks of ZEC, not daily inflows.",
+    "unit": "ZEC",
+    "window": "All available history",
+    "source": "/pools#supply"
+  },
+  {
+    "id": "supply",
+    "title": "Issued supply",
+    "description": "Shielded and transparent balances. Future issuance and unmined supply are excluded.",
+    "unit": "ZEC",
+    "window": "All available history",
+    "source": "/pools#supply"
+  },
+  {
+    "id": "shielded-supply",
+    "title": "Shielded share of supply",
+    "description": "Shielded balance divided by issued chain supply. The 21M maximum is not the denominator.",
+    "unit": "%",
+    "window": "All available history",
+    "source": "/pools#supply"
+  },
+  {
+    "id": "turnstile",
+    "title": "After deshielding",
+    "description": "Tracked value by deshielding date and its latest observed destination. Cohort outcomes can change as funds move.",
+    "unit": "ZEC",
+    "window": "All available deshielding cohorts",
+    "source": "/turnstile"
+  },
+  {
+    "id": "pool-share",
+    "title": "Leading mining pool share",
+    "description": "Largest attributed share of each day’s blocks. The leading pool may change; partial days can be volatile.",
+    "unit": "%",
+    "window": "All available history",
+    "source": "/mining#hashrate"
+  },
+  {
+    "id": "search-interest",
+    "title": "Search interest in “zcash”",
+    "description": "Worldwide Google Trends index, normalized within its export window. Incomplete weeks are excluded. Search attention is unscored.",
+    "unit": "Index / 100",
+    "window": "Imported weekly CSV · not automatically updated",
+    "source": "/valuation#attention"
+  },
+  {
+    "id": "daily-activity",
+    "title": "Daily transaction activity",
+    "description": "Shielded and transparent transactions per day. Coinbase is excluded from the transparent count.",
+    "unit": "Transactions",
+    "window": "All available history",
+    "source": "/privacy#trends"
+  },
+  {
+    "id": "privacy-adoption",
+    "title": "Shielded transaction share",
+    "description": "Daily shielded share of shielded plus non-coinbase transparent transactions.",
+    "unit": "%",
+    "window": "All available history",
+    "source": "/privacy#trends"
+  },
+  {
+    "id": "privacy-score",
+    "title": "Privacy Score history",
+    "description": "Recorded model scores out of 100. Formula changes can cause steps; this is not a probability of privacy.",
+    "unit": "Score / 100",
+    "window": "All available history",
+    "source": "/privacy#trends"
+  },
+  {
+    "id": "flow-volume",
+    "title": "Public shielding flows",
+    "description": "Daily public value entering and leaving shielded pools. Private transfers inside pools are not visible.",
+    "unit": "ZEC",
+    "window": "All available history",
+    "source": "/pools#flows"
+  },
+  {
+    "id": "net-flow",
+    "title": "Net public shielding",
+    "description": "Shielding minus deshielding per day. This is not the total change in shielded balances.",
+    "unit": "ZEC",
+    "window": "All available history",
+    "source": "/pools#flows"
+  },
+  {
+    "id": "flow-thresholds",
+    "title": "Flows above an amount",
+    "description": "Counts at or above each ZEC threshold. Thresholds overlap; they do not measure an anonymity set.",
+    "unit": "Transactions",
+    "window": "30 days · thresholds in ZEC",
+    "source": "/privacy#distribution"
+  },
+  {
+    "id": "flow-buckets",
+    "title": "Flows by amount range",
+    "description": "Public flow counts in non-overlapping ZEC ranges. Each flow belongs to one bucket.",
+    "unit": "Transactions",
+    "window": "30 days · ranges in ZEC",
+    "source": "/privacy#distribution"
+  },
+  {
+    "id": "network-hashrate",
+    "title": "Estimated network hashrate",
+    "description": "Daily mining power estimated from difficulty and block production.",
+    "unit": "GSol/s",
+    "window": "All available history",
+    "source": "/mining#metrics"
+  },
+  {
+    "id": "mining-distribution",
+    "title": "Blocks by mining pool",
+    "description": "Observed block production by attributed pool. Unidentified miners retain their source labels.",
+    "unit": "Blocks",
+    "window": "7 days",
+    "source": "/mining#distribution"
+  },
+  {
+    "id": "miner-rewards",
+    "title": "Coinbase reward spending",
+    "description": "Reward cohorts earned, subsequently moved and still held. A movement does not establish a sale.",
+    "unit": "ZEC",
+    "window": "All available history",
+    "source": "/mining#behavior"
+  },
+  {
+    "id": "block-time",
+    "title": "Recent block intervals",
+    "description": "Differences between adjacent block timestamps. Missing predecessors leave gaps; negative intervals are preserved.",
+    "unit": "Seconds",
+    "window": "Latest 30 blocks",
+    "source": "/mining#economics"
+  },
+  {
+    "id": "difficulty",
+    "title": "Mining difficulty",
+    "description": "Difficulty averaged over 20 blocks. Sample positions use actual block heights.",
+    "unit": "Difficulty",
+    "window": "20-block rolling averages · up to 120 samples",
+    "source": "/mining#economics"
+  },
+  {
+    "id": "block-fees",
+    "title": "Fees per block",
+    "description": "Total transaction fees per block, averaged over 20 blocks. Subsidy is separate.",
+    "unit": "ZEC",
+    "window": "20-block rolling averages · up to 120 samples",
+    "source": "/mining#economics"
+  },
+  {
+    "id": "tx-per-block",
+    "title": "Transactions per block",
+    "description": "Reported transaction count averaged over 20 blocks, including coinbase.",
+    "unit": "Transactions / block",
+    "window": "20-block rolling averages · up to 120 samples",
+    "source": "/mining#economics"
+  },
+  {
+    "id": "fees",
+    "title": "Observed transaction fees",
+    "description": "Daily median and 10th/90th percentiles of observed fees. This is not a fee quote.",
+    "unit": "mZEC",
+    "window": "All available history",
+    "source": "/network#network-activity"
+  },
+  {
+    "id": "node-storage",
+    "title": "Explorer node storage",
+    "description": "Disk usage reported by this explorer’s node. It is not a measurement of every node or only block files.",
+    "unit": "GiB",
+    "window": "All available history",
+    "source": "/network#network-technical"
+  },
+  {
+    "id": "protocol-commitments",
+    "title": "Shielded note commitments",
+    "description": "Cumulative Sapling outputs and Orchard/Ironwood actions. Includes padding; these are not unique people or wallets.",
+    "unit": "Entries",
+    "window": "All available history",
+    "source": "/network#network-technical"
+  },
+  {
+    "id": "protocol-nullifiers",
+    "title": "Shielded nullifiers",
+    "description": "Sapling spends and Orchard/Ironwood action counts. Actions can include dummy spends; these are not counts of real transfers.",
+    "unit": "Entries",
+    "window": "All available history",
+    "source": "/network#network-technical"
+  },
+  {
+    "id": "price-vs-realized",
+    "title": "Price and modeled realized price",
+    "description": "Daily historical USD price and modeled cost basis. These are daily observations, not a live quote.",
+    "unit": "USD / ZEC",
+    "window": "All available history",
+    "source": "/valuation#price"
+  },
+  {
+    "id": "mvrv",
+    "title": "MVRV",
+    "description": "Market capitalization divided by modeled realized capitalization. 1× is not a fair-value threshold.",
+    "unit": "Multiple",
+    "window": "All available history",
+    "source": "/valuation#mvrv"
+  },
+  {
+    "id": "nupl",
+    "title": "Modeled unrealized profit / loss",
+    "description": "NUPL = 1 − 1/MVRV. Another view of the same model, not an independent confirming signal.",
+    "unit": "%",
+    "window": "All available history",
+    "source": "/valuation#nupl"
+  },
+  {
+    "id": "sopr",
+    "title": "SOPR · transparent spends",
+    "description": "Spent-output value relative to its creation value. Only the transparent-spend series is shown; missing data stays unavailable.",
+    "unit": "Ratio",
+    "window": "All available history",
+    "source": "/valuation#sopr"
+  },
+  {
+    "id": "realized-cap",
+    "title": "Market and modeled realized cap",
+    "description": "Daily reported market capitalization alongside the modeled realized capitalization estimate.",
+    "unit": "USD",
+    "window": "All available history",
+    "source": "/valuation#price"
+  },
+  {
+    "id": "dormancy",
+    "title": "Age of spent ZEC",
+    "description": "Mean age per positive-value transparent output spent per day. Shielded note ages are not observable.",
+    "unit": "Days",
+    "window": "All available history",
+    "source": "/valuation#dormancy"
+  },
+  {
+    "id": "coin-days",
+    "title": "Coin-days destroyed",
+    "description": "Transparent value moved × output age, summed per day. Spikes do not prove selling.",
+    "unit": "ZEC-days",
+    "window": "All available history",
+    "source": "/valuation#dormancy"
+  },
+  {
+    "id": "hodl-waves",
+    "title": "Unspent ZEC by output age",
+    "description": "Transparent ZEC by time since output creation. Output age is not the age of an owner’s position.",
+    "unit": "ZEC",
+    "window": "All available history",
+    "source": "/valuation#hodl-waves"
+  },
+  {
+    "id": "swap-volume",
+    "title": "Cross-chain swap volume",
+    "description": "Observed ZEC-related swaps through indexed providers, valued in USD. This is not all exchange activity.",
+    "unit": "USD",
+    "window": "All available history",
+    "source": "/crosschain"
+  },
+  {
+    "id": "swap-count",
+    "title": "Cross-chain swap activity",
+    "description": "Observed swaps into and out of ZEC through indexed providers. Coverage is limited to those providers.",
+    "unit": "Swaps",
+    "window": "All available history",
+    "source": "/crosschain"
+  }
+]

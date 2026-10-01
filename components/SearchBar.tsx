@@ -10,6 +10,7 @@ import { isMainnet } from '@/lib/config';
 interface SearchBarProps {
   compact?: boolean;
   subtitle?: string;
+  onNavigate?: () => void;
 }
 
 interface LabelSuggestion {
@@ -21,17 +22,17 @@ interface LabelSuggestion {
 
 // Category styling config (lowercase keys for case-insensitive matching)
 const categoryConfig: Record<string, { color: string; bg: string }> = {
-  'exchange': { color: 'text-cipher-cyan', bg: 'bg-cipher-cyan/10' },
+  'exchange': { color: 'text-cipher-gold', bg: 'bg-brand-gold/10' },
   'mining pool': { color: 'text-cipher-yellow', bg: 'bg-cipher-yellow/10' },
   'mining': { color: 'text-cipher-yellow', bg: 'bg-cipher-yellow/10' },
   'foundation': { color: 'text-cipher-purple', bg: 'bg-cipher-purple/10' },
   'donation': { color: 'text-pink-400', bg: 'bg-pink-400/10' },
   'service': { color: 'text-cipher-green', bg: 'bg-cipher-green/10' },
-  'faucet': { color: 'text-blue-400', bg: 'bg-blue-400/10' },
-  'custom': { color: 'text-gray-400', bg: 'bg-gray-400/10' },
+  'faucet': { color: 'text-cipher-blue', bg: 'bg-cipher-blue/10' },
+  'custom': { color: 'text-muted', bg: 'bg-glass-4' },
 };
 
-export function SearchBar({ compact = false, subtitle }: SearchBarProps) {
+export function SearchBar({ compact = false, subtitle, onNavigate }: SearchBarProps) {
   const [query, setQuery] = useState('');
   const [isFocused, setIsFocused] = useState(false);
   const [suggestions, setSuggestions] = useState<LabelSuggestion[]>([]);
@@ -41,15 +42,14 @@ export function SearchBar({ compact = false, subtitle }: SearchBarProps) {
   const suggestionsRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
+  const navigate = (href: string) => { onNavigate?.(); router.push(href); };
 
-  // Global ⌘K / Ctrl+K — exactly one SearchBar (compact in the navbar, or
-  // full-size in the homepage hero) is ever mounted per page, so focusing
-  // "the" input here is unambiguous without a shared context/store. Skipped
-  // while another input/textarea/contentEditable already has focus so this
-  // doesn't hijack typing elsewhere on the page.
+  // Only the visible field handles the shortcut; navbar fields remain mounted
+  // across routes and breakpoints to keep hydration stable.
   useEffect(() => {
     function handleGlobalKeyDown(e: KeyboardEvent) {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        if (!inputRef.current?.getClientRects().length) return;
         const active = document.activeElement;
         const isTyping =
           active instanceof HTMLElement &&
@@ -116,7 +116,7 @@ export function SearchBar({ compact = false, subtitle }: SearchBarProps) {
   const selectSuggestion = (suggestion: LabelSuggestion) => {
     setShowSuggestions(false);
     setQuery('');
-    router.push(`/address/${encodeURIComponent(suggestion.address)}`);
+    navigate(`/address/${encodeURIComponent(suggestion.address)}`);
   };
 
   // Close suggestions when clicking outside
@@ -153,21 +153,21 @@ export function SearchBar({ compact = false, subtitle }: SearchBarProps) {
     const addressType = detectAddressType(trimmedQuery);
 
     if (addressType !== 'invalid') {
-      router.push(`/address/${encodeURIComponent(trimmedQuery)}`);
+      navigate(`/address/${encodeURIComponent(trimmedQuery)}`);
     } else if (!isNaN(Number(trimmedQuery))) {
-      router.push(`/block/${encodeURIComponent(trimmedQuery)}`);
+      navigate(`/block/${encodeURIComponent(trimmedQuery)}`);
     } else if (BLOCK_HASH_REGEX.test(trimmedQuery)) {
-      router.push(`/block/${encodeURIComponent(trimmedQuery)}`);
+      navigate(`/block/${encodeURIComponent(trimmedQuery)}`);
     } else if (/^[a-fA-F0-9]{64}$/.test(trimmedQuery)) {
-      router.push(`/tx/${encodeURIComponent(trimmedQuery)}`);
+      navigate(`/tx/${encodeURIComponent(trimmedQuery)}`);
     } else if (/^[a-fA-F0-9]+$/.test(trimmedQuery)) {
-      router.push(`/tx/${encodeURIComponent(trimmedQuery)}`);
+      navigate(`/tx/${encodeURIComponent(trimmedQuery)}`);
     } else {
       const addressByLabel = findAddressByLabel(trimmedQuery);
       if (addressByLabel) {
-        router.push(`/address/${encodeURIComponent(addressByLabel)}`);
+        navigate(`/address/${encodeURIComponent(addressByLabel)}`);
       } else if (isValidName(trimmedQuery.toLowerCase())) {
-        router.push(`/name/${encodeURIComponent(trimmedQuery.toLowerCase())}`);
+        navigate(`/name/${encodeURIComponent(trimmedQuery.toLowerCase())}`);
       } else {
         console.warn('No matching address, transaction, or label found');
       }
@@ -260,7 +260,7 @@ export function SearchBar({ compact = false, subtitle }: SearchBarProps) {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <span className="font-medium text-sm truncate suggestion-label">{suggestion.label}</span>
-                  <span className={`text-[10px] px-1.5 py-0.5 rounded font-mono uppercase ${style.bg} ${style.color}`}>
+                  <span className={`text-caption px-1.5 py-0.5 rounded font-mono uppercase ${style.bg} ${style.color}`}>
                     {category}
                   </span>
                 </div>
@@ -283,9 +283,9 @@ export function SearchBar({ compact = false, subtitle }: SearchBarProps) {
   // Compact version for navbar
   if (compact) {
     return (
-      <form onSubmit={handleSearch} className="flex-1 max-w-lg">
+      <form onSubmit={handleSearch} className="w-full">
         <div className="relative">
-          <div className="absolute left-3 top-1/2 -translate-y-1/2 text-cipher-cyan font-mono text-xs">
+          <div className="absolute left-3 top-1/2 -translate-y-1/2 text-cipher-gold font-mono text-xs">
             {'>'}
           </div>
           <input
@@ -296,7 +296,7 @@ export function SearchBar({ compact = false, subtitle }: SearchBarProps) {
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
             onFocus={() => query.length >= 2 && suggestions.length > 0 && setShowSuggestions(true)}
-            placeholder="Search address, tx hash, block number, or name..."
+            placeholder="Address, transaction, block or name"
             className="w-full pl-7 pr-3 py-2 text-xs font-mono search-input"
           />
           <SuggestionsDropdown />
@@ -307,21 +307,13 @@ export function SearchBar({ compact = false, subtitle }: SearchBarProps) {
 
   // Full version for homepage - Enhanced
   return (
-    <form onSubmit={handleSearch} className="max-w-2xl mx-auto px-2 sm:px-0 relative z-50">
+    <form onSubmit={handleSearch} className="max-w-3xl mr-auto relative z-50">
       {/* Search Container with Glow Effect */}
       <div className="relative group">
-        {/* Ambient glow on focus — single color, wide spread, barely visible */}
-        <div
-          className={`absolute -inset-3 rounded-2xl blur-2xl transition-opacity duration-700 ease-out ${
-            isFocused ? 'opacity-100' : 'opacity-0'
-          }`}
-          style={{ background: 'radial-gradient(ellipse at center, rgb(var(--color-cyan-rgb) / 0.08) 0%, transparent 70%)' }}
-        />
-
         {/* Search Input Container */}
         <div className="relative">
           {/* Terminal prompt */}
-          <div className="absolute left-4 sm:left-5 top-1/2 -translate-y-1/2 text-cipher-cyan font-mono text-lg sm:text-xl font-bold">
+          <div className="absolute left-4 sm:left-5 top-1/2 -translate-y-1/2 text-cipher-gold font-mono text-lg sm:text-xl font-semibold">
             {'>'}
           </div>
 
@@ -338,12 +330,12 @@ export function SearchBar({ compact = false, subtitle }: SearchBarProps) {
             }}
             onBlur={() => setIsFocused(false)}
             placeholder="Search address, tx hash, block, or name..."
-            className={`w-full pl-10 sm:pl-12 pr-14 lg:pr-24 py-3 sm:py-3.5 text-[13px] sm:text-sm font-mono
-              search-input-hero border-2 rounded-xl text-primary
+            className={`w-full pl-10 sm:pl-12 pr-14 lg:pr-24 py-3 sm:py-3.5 text-data sm:text-sm font-mono
+              search-input-hero border rounded-md text-primary
               placeholder:text-muted transition duration-300
               ${isFocused
-                ? 'border-cipher-cyan/60 shadow-[0_0_20px_rgb(var(--color-cyan-rgb)_/_0.06)]'
-                : 'border-cipher-border hover:border-white/[0.12]'
+                ? 'border-cipher-gold'
+                : 'border-cipher-border hover:border-cipher-gold/50'
               }
               focus:outline-none`}
           />
@@ -363,9 +355,9 @@ export function SearchBar({ compact = false, subtitle }: SearchBarProps) {
             aria-label="Search"
             className="absolute right-2 top-1/2 -translate-y-1/2
               inline-flex items-center justify-center
-              w-9 h-9 sm:w-10 sm:h-10 rounded-lg
-              text-cipher-cyan border border-cipher-border
-              hover:border-white/[0.12] hover:bg-cipher-hover
+              w-9 h-9 sm:w-10 sm:h-10 rounded-md
+              text-primary border border-cipher-border
+              hover:border-cipher-gold/50 hover:bg-cipher-hover
               transition duration-150"
           >
             <svg className="w-4 h-4 sm:w-[18px] sm:h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -379,7 +371,7 @@ export function SearchBar({ compact = false, subtitle }: SearchBarProps) {
 
       {/* Example Buttons */}
       <div className="mt-2 sm:mt-2.5 flex flex-wrap gap-1.5 sm:gap-2 items-center">
-        <span className="text-[9px] text-muted/50 font-mono uppercase tracking-wider">Try:</span>
+        <span className="text-caption text-muted font-mono uppercase tracking-wider">Try:</span>
         <button
           type="button"
           onClick={() => setQuery('354939')}

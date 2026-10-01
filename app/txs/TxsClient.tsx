@@ -1,9 +1,14 @@
 'use client';
+import { formatDateUTC } from '@/lib/utils';
+import { nonCoinbaseActivity, shieldedListParams } from '@/lib/transaction-list';
+import { readApiData } from '@/lib/api-client';
+import { ChartWatermark } from '@/components/ChartWatermark';
+import { ChartSkeleton } from '@/components/ui/Skeleton';
 
 import { useState, useEffect, useRef, useMemo } from 'react';
 import Link from 'next/link';
+import { RelativeTime } from '@/components/RelativeTime';
 import { parseTransactionListItems, type TransactionListItem as Transaction } from '@/lib/transaction-list';
-import { formatRelativeTime } from '@/lib/utils';
 import { formatZecPrecise, zatToZec } from '@/lib/format-numbers';
 import { getApiUrl } from '@/lib/api-config';
 import { Pagination } from '@/components/Pagination';
@@ -14,8 +19,9 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { getChartColors } from '@/lib/chart-theme';
 import { usePaginatedList, type BasePaginationState } from '@/hooks/usePaginatedList';
 import {
-  ComposedChart, Area, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
+  ComposedChart, Area, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Legend,
 } from 'recharts';
+import { ChartTooltip as Tooltip } from '@/components/charts/ChartTooltip';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -176,7 +182,7 @@ const txColumns: DataTableColumn<Transaction>[] = [
     align: 'right',
     skeletonWidth: 'w-16',
     cell: (tx) => (
-      <span className="text-xs text-muted whitespace-nowrap">{tx.block_time === null ? 'Time unavailable' : formatRelativeTime(tx.block_time)}</span>
+      <RelativeTime timestamp={tx.block_time} className="text-xs text-muted whitespace-nowrap" />
     ),
   },
 ];
@@ -233,7 +239,7 @@ const shieldedColumns: DataTableColumn<ShieldedFlow>[] = [
     align: 'right',
     skeletonWidth: 'w-16',
     cell: (flow) => (
-      <span className="text-xs text-muted whitespace-nowrap">{formatRelativeTime(flow.blockTime)}</span>
+      <RelativeTime timestamp={flow.blockTime} className="text-xs text-muted whitespace-nowrap" />
     ),
   },
 ];
@@ -266,7 +272,7 @@ function useTransactionsList({
   initialTxs: Transaction[];
   initialPagination: Partial<TxPaginationState> | null;
   initialPage: number;
-  initialCursor: number | null;
+  initialCursor: string | null;
   initialCursorIdx: number | null;
   initialDirection: 'next' | 'prev';
   initialUnavailable: boolean;
@@ -285,30 +291,17 @@ function useTransactionsList({
     fetchPage,
     setPage,
   } = usePaginatedList<Transaction, TxPaginationState>({
-    endpoint: '/api/transactions/list',
+    endpoint: '/v1/transactions',
     pageSize: PAGE_SIZE,
     archiveBasePath: '/txs',
-    secondaryCursorParam: 'cursor_idx',
-    secondaryCursorFields: { next: 'nextCursorIdx', prev: 'prevCursorIdx' },
     buildParams: () => ({ type: typeFilter }),
-    getItemsFromResponse: (json) => parseTransactionListItems(json.transactions),
+    parseItems: parseTransactionListItems,
     getLatestKey: (tx) => tx.txid,
-    buildCursors: (visibleItems) => {
-      const firstTx = visibleItems[0] ?? null;
-      const lastTx = visibleItems[visibleItems.length - 1] ?? null;
-      return {
-        nextCursor: lastTx ? Number(lastTx.block_height) : null,
-        nextCursorIdx: lastTx ? Number(lastTx.tx_index ?? 0) : null,
-        prevCursor: firstTx ? Number(firstTx.block_height) : null,
-        prevCursorIdx: firstTx ? Number(firstTx.tx_index ?? 0) : null,
-      };
-    },
     buildArchiveHref: (cursor, cursorIdx, direction, targetPage) => {
       const params = new URLSearchParams();
       if (typeFilter !== 'all') params.set('type', typeFilter);
       if (targetPage > 1 && cursor !== null) {
         params.set('cursor', String(cursor));
-        params.set('cursor_idx', String(cursorIdx ?? 0));
         params.set('direction', direction);
         params.set('page', String(targetPage));
       }
@@ -319,7 +312,6 @@ function useTransactionsList({
     initialPagination,
     initialPage,
     initialCursor,
-    initialSecondaryCursor: initialCursorIdx,
     initialDirection,
     initialUnavailable,
   });
@@ -355,7 +347,7 @@ function useShieldedFlowsList({
   initialFlows: ShieldedFlow[];
   initialPagination: Partial<ShieldedPaginationState> | null;
   initialPage: number;
-  initialCursor: number | null;
+  initialCursor: string | null;
   initialCursorId: number | null;
   initialDirection: 'next' | 'prev';
   initialUnavailable: boolean;
@@ -374,32 +366,11 @@ function useShieldedFlowsList({
     fetchPage,
     setPage,
   } = usePaginatedList<ShieldedFlow, ShieldedPaginationState>({
-    endpoint: '/api/shielded/list',
+    endpoint: '/v1/transactions/shielded',
     pageSize: PAGE_SIZE,
     archiveBasePath: '/txs',
-    secondaryCursorParam: 'cursor_id',
-    secondaryCursorFields: { next: 'nextCursorId', prev: 'prevCursorId' },
-    buildParams: () => {
-      const params: Record<string, string> = {
-        type: 'shielded',
-        flow_type: flowFilter,
-        pool: poolFilter,
-      };
-      if (minZec > 0) params.min_zec = String(minZec);
-      return params;
-    },
-    getItemsFromResponse: (json) => (json.flows as ShieldedFlow[]) || [],
+    buildParams: () => shieldedListParams(flowFilter, poolFilter, minZec),
     getLatestKey: (flow) => `${flow.txid}:${flow.flowType}`,
-    buildCursors: (visibleItems) => {
-      const firstFlow = visibleItems[0] ?? null;
-      const lastFlow = visibleItems[visibleItems.length - 1] ?? null;
-      return {
-        nextCursor: lastFlow ? Number(lastFlow.blockTime) : null,
-        nextCursorId: lastFlow ? Number(lastFlow.id) : null,
-        prevCursor: firstFlow ? Number(firstFlow.blockTime) : null,
-        prevCursorId: firstFlow ? Number(firstFlow.id) : null,
-      };
-    },
     buildArchiveHref: (cursor, cursorId, direction, targetPage) => {
       const params = new URLSearchParams();
       params.set('type', 'shielded');
@@ -408,7 +379,6 @@ function useShieldedFlowsList({
       if (minZec > 0) params.set('min_zec', String(minZec));
       if (targetPage > 1 && cursor !== null) {
         params.set('cursor', String(cursor));
-        params.set('cursor_id', String(cursorId ?? 0));
         params.set('direction', direction);
         params.set('page', String(targetPage));
       }
@@ -419,7 +389,6 @@ function useShieldedFlowsList({
     initialPagination,
     initialPage,
     initialCursor,
-    initialSecondaryCursor: initialCursorId,
     initialDirection,
     initialUnavailable,
   });
@@ -466,16 +435,16 @@ function TrendsChart() {
   const { theme } = useTheme();
   const colors = getChartColors(theme);
   const [hidden, setHidden] = useState<Record<string, boolean>>({});
-  const [period, setPeriod] = useState<TrendPeriod>('30');
+  const [period, setPeriod] = useState<TrendPeriod>('all');
   const [data, setData] = useState<TrendDay[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setLoading(true);
     const base = getApiUrl();
-    const days = period === 'all' ? 1000 : Number(period);
-    fetch(`${base}/api/privacy-stats?days=${days}`)
-      .then(res => res.ok ? res.json() : null)
+    const days = period === 'all' ? 'all' : Number(period);
+    fetch(`${base}/v1/privacy/stats?days=${days}`)
+      .then(res => res.ok ? readApiData(res) : null)
       .then(json => {
         if (json?.trends?.daily) setData(json.trends.daily);
       })
@@ -517,7 +486,7 @@ function TrendsChart() {
           </FilterGroup>
         </div>
         {loading ? (
-          <div className="h-[320px] flex items-center justify-center text-muted text-sm">Loading...</div>
+          <ChartSkeleton height={320} />
         ) : (
         <div className="h-[320px]">
           <ResponsiveContainer initialDimension={{ width: 500, height: 300 }} width="100%" height="100%">
@@ -525,14 +494,14 @@ function TrendsChart() {
               <CartesianGrid strokeDasharray="3 3" stroke={colors.grid} vertical={false} />
               <XAxis
                 dataKey="date"
-                tick={{ fontSize: 11, fill: colors.axis }}
+                tick={{ fontSize: 12, fill: colors.axis }}
                 tickLine={false}
                 axisLine={{ stroke: colors.grid }}
                 interval="preserveStartEnd"
               />
               <YAxis
                 yAxisId="left"
-                tick={{ fontSize: 11, fill: colors.axis }}
+                tick={{ fontSize: 12, fill: colors.axis }}
                 tickLine={false}
                 axisLine={false}
                 tickFormatter={(v: number) => v >= 1000 ? `${(v / 1000).toFixed(0)}K` : String(v)}
@@ -540,7 +509,7 @@ function TrendsChart() {
               <YAxis
                 yAxisId="right"
                 orientation="right"
-                tick={{ fontSize: 11, fill: colors.axis }}
+                tick={{ fontSize: 12, fill: colors.axis }}
                 tickLine={false}
                 axisLine={false}
                 domain={[0, 100]}
@@ -563,7 +532,7 @@ function TrendsChart() {
                 }}
               />
               <Legend
-                wrapperStyle={{ fontSize: 11, cursor: 'pointer' }}
+                wrapperStyle={{ fontSize: 12, cursor: 'pointer' }}
                 onClick={(entry) => {
                   const key = (entry as { dataKey?: string }).dataKey;
                   if (key) setHidden(prev => ({ ...prev, [key]: !prev[key] }));
@@ -599,7 +568,7 @@ function TrendsChart() {
                 yAxisId="right"
                 type="monotone"
                 dataKey="shieldedPct"
-                stroke={colors.cyan}
+                stroke={colors.gold}
                 strokeWidth={2}
                 dot={false}
                 hide={!!hidden['shieldedPct']}
@@ -608,6 +577,7 @@ function TrendsChart() {
           </ResponsiveContainer>
         </div>
         )}
+        <ChartWatermark />
       </div>
 
       <div className="grid grid-cols-3 gap-3 mt-4">
@@ -670,7 +640,7 @@ export interface TxsClientProps {
   initialFlowFilter?: FlowFilter;
   initialPoolFilter?: PoolFilter;
   initialMinZec?: number;
-  initialCursor?: number | null;
+  initialCursor?: string | null;
   initialCursorIdx?: number | null;
   initialCursorId?: number | null;
   initialDirection?: 'next' | 'prev';
@@ -704,9 +674,9 @@ export default function TxsClient({
   const [generalSummary, setGeneralSummary] = useState<{
     totalTxs: number | null;
     txs24h: number | null;
-    shieldedPct24h: number | null;
+    shieldedPctToday: number | null;
     txsPerBlock: number | null;
-  }>({ totalTxs: null, txs24h: null, shieldedPct24h: null, txsPerBlock: null });
+  }>({ totalTxs: null, txs24h: null, shieldedPctToday: null, txsPerBlock: null });
 
   const [shieldedSummary, setShieldedSummary] = useState<{
     shieldedPct: number | null;
@@ -717,25 +687,26 @@ export default function TxsClient({
   useEffect(() => {
     const base = getApiUrl();
     Promise.allSettled([
-      fetch(`${base}/api/network/stats`),
-      fetch(`${base}/api/privacy-stats`),
+      fetch(`${base}/v1/network/stats`),
+      fetch(`${base}/v1/privacy/stats`),
     ]).then(async ([networkRes, privacyRes]) => {
       let txs24h: number | null = null;
       let txsPerBlock: number | null = null;
       if (networkRes.status === 'fulfilled' && networkRes.value.ok) {
-        const data = await networkRes.value.json();
-        txs24h = data.blockchain?.tx24h ? Number(data.blockchain.tx24h) : null;
-        const blocks24h = data.mining?.blocks24h ? Number(data.mining.blocks24h) : null;
-        txsPerBlock = txs24h && blocks24h ? Math.round((txs24h / blocks24h) * 10) / 10 : null;
+        const data = await readApiData(networkRes.value);
+        ({ txs24h, txsPerBlock } = nonCoinbaseActivity(data.blockchain, data.mining));
       }
-      let shieldedPct24h: number | null = null;
+      let totalTxs: number | null = null;
+      let shieldedPctToday: number | null = null;
       let avgPerDay: number | null = null;
       let poolSize: string | null = null;
       if (privacyRes.status === 'fulfilled' && privacyRes.value.ok) {
-        const data = await privacyRes.value.json();
-        const dailyTrends = data.trends?.daily || [];
+        const data = await readApiData(privacyRes.value);
+        totalTxs = data.totals?.totalTx != null ? Number(data.totals.totalTx) : null;
+        const today = new Date().toISOString().slice(0, 10);
+        const dailyTrends = (data.trends?.daily || []).filter((row: { date: string }) => row.date.slice(0, 10) === today);
         if (dailyTrends.length > 0) {
-          shieldedPct24h = dailyTrends[0].shieldedPercentage;
+          shieldedPctToday = dailyTrends[0].shieldedPercentage;
         }
         const pct = data.metrics?.shieldedPercentage != null ? Number(data.metrics.shieldedPercentage) : null;
         avgPerDay = data.metrics?.avgShieldedPerDay != null ? Math.round(Number(data.metrics.avgShieldedPerDay)) : null;
@@ -747,7 +718,7 @@ export default function TxsClient({
           : null;
         setShieldedSummary({ shieldedPct: pct, avgPerDay, poolSize });
       }
-      setGeneralSummary({ totalTxs: null, txs24h, shieldedPct24h, txsPerBlock });
+      setGeneralSummary({ totalTxs, txs24h, shieldedPctToday, txsPerBlock });
     });
   }, []);
 
@@ -810,7 +781,7 @@ export default function TxsClient({
           <span className="text-xs font-mono text-muted">
             {!activeList.dataAvailable
               ? 'Transaction data temporarily unavailable'
-              : `${activeList.pagination.total.toLocaleString()} ${isShielded ? 'shielded txs' : 'transactions'}`}
+              : isShielded ? 'Public shielding flows and shielded activity' : 'Confirmed on-chain activity'}
           </span>
         }
       />
@@ -820,14 +791,14 @@ export default function TxsClient({
         {isShielded ? (
           <>
             <MetricCard size="compact"
-              label="Shielded Txs"
-              value={activeList.pagination.total > 0 ? activeList.pagination.total.toLocaleString() : '—'}
-              hint="Total shielded flows"
+              label="Matching transactions"
+              value={activeList.dataAvailable ? activeList.pagination.total.toLocaleString() : '—'}
+              hint="Current shielded filters"
             />
             <MetricCard size="compact"
-              label="% Shielded"
+              label="Shielded · all time"
               value={shieldedSummary.shieldedPct != null ? `${shieldedSummary.shieldedPct.toFixed(1)}%` : '—'}
-              hint="Of all network activity"
+              hint="Of non-coinbase txs"
             />
             <MetricCard size="compact"
               label="Avg Shielded / Day"
@@ -844,8 +815,8 @@ export default function TxsClient({
           <>
             <MetricCard size="compact"
               label="Total Transactions"
-              value={activeList.pagination.total > 0 ? activeList.pagination.total.toLocaleString() : '—'}
-              hint="All confirmed Zcash txs"
+              value={generalSummary.totalTxs != null ? generalSummary.totalTxs.toLocaleString() : '—'}
+              hint="All time · includes coinbase"
             />
             <MetricCard size="compact"
               label="Transactions (24h)"
@@ -853,13 +824,13 @@ export default function TxsClient({
               hint="Excluding coinbase"
             />
             <MetricCard size="compact"
-              label="% Shielded (24h)"
-              value={generalSummary.shieldedPct24h != null ? `${generalSummary.shieldedPct24h.toFixed(1)}%` : '—'}
+              label="Shielded · today (UTC)"
+              value={generalSummary.shieldedPctToday != null ? `${generalSummary.shieldedPctToday.toFixed(1)}%` : '—'}
               hint="Of non-coinbase txs"
             />
             <MetricCard size="compact"
-              label="Txs Per Block"
-              value={generalSummary.txsPerBlock != null ? generalSummary.txsPerBlock.toLocaleString() : '—'}
+              label="Txs Per Block · 24h"
+              value={generalSummary.txsPerBlock != null ? generalSummary.txsPerBlock.toLocaleString(undefined, { maximumFractionDigits: 1 }) : '—'}
               hint="Coinbase not counted"
             />
           </>
@@ -904,6 +875,12 @@ export default function TxsClient({
             ))}
           </FilterGroup>
         </div>
+      )}
+
+      {isShielded && shieldedList.flows[0]?.blockTime != null && (
+        <p className="mb-3 text-xs text-muted">
+          Newest transaction in this view: {formatDateUTC(Number(shieldedList.flows[0].blockTime))}. Indexed observations can lag the chain tip.
+        </p>
       )}
 
       {/* Data Table */}

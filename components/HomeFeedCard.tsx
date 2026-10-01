@@ -8,6 +8,7 @@ import { RecentShieldedTxs } from '@/components/RecentShieldedTxs';
 import { RecentTransactions } from '@/components/RecentTransactions';
 import { RecentReorgs } from '@/components/RecentReorgs';
 import { TopMiners } from '@/components/TopMiners';
+import { MiningSoftwareMiniChart } from '@/components/MiningSoftwareMiniChart';
 import { IronwoodProgressCard } from '@/components/IronwoodProgressCard';
 import { ShieldedPoolMiniChart } from '@/components/ShieldedPoolMiniChart';
 import { SlidersIcon } from '@/components/icons/common';
@@ -18,9 +19,9 @@ import { HomeFeedTableSkeleton } from '@/components/HomeFeedTableSkeleton';
 // feed here — swapping it into this slot breaks the fixed, no-scroll card
 // height every other option holds to. It stays available as its own
 // permanent section below instead of a Customize option.
-export type HomeFeedType = 'blocks' | 'shielded' | 'transactions' | 'reorgs' | 'miners' | 'ironwood' | 'poolsChart';
+export type HomeFeedType = 'blocks' | 'shielded' | 'transactions' | 'reorgs' | 'miners' | 'software' | 'ironwood' | 'poolsChart';
 
-const FEED_ORDER: HomeFeedType[] = ['blocks', 'shielded', 'transactions', 'reorgs', 'miners', 'ironwood', 'poolsChart'];
+const FEED_ORDER: HomeFeedType[] = ['blocks', 'shielded', 'transactions', 'reorgs', 'miners', 'software', 'ironwood', 'poolsChart'];
 
 const FEED_META: Record<HomeFeedType, { sectionLabel: string; menuLabel: string; viewAllHref: string }> = {
   blocks: { sectionLabel: 'RECENT_BLOCKS', menuLabel: 'Recent Blocks', viewAllHref: '/blocks' },
@@ -28,6 +29,7 @@ const FEED_META: Record<HomeFeedType, { sectionLabel: string; menuLabel: string;
   transactions: { sectionLabel: 'RECENT_TRANSACTIONS', menuLabel: 'Recent Transactions', viewAllHref: '/txs' },
   reorgs: { sectionLabel: 'RECENT_REORGS', menuLabel: 'Forks & Reorgs', viewAllHref: '/reorgs' },
   miners: { sectionLabel: 'TOP_MINERS', menuLabel: 'Top Miners (24h)', viewAllHref: '/mining' },
+  software: { sectionLabel: 'MINING_SOFTWARE', menuLabel: 'Mining Software (30d)', viewAllHref: '/mining#software' },
   ironwood: { sectionLabel: 'IRONWOOD_PROGRESS', menuLabel: 'Ironwood Migration', viewAllHref: '/ironwood' },
   poolsChart: { sectionLabel: 'SHIELDED_POOLS', menuLabel: 'Shielded Pool Trend', viewAllHref: '/pools' },
 };
@@ -50,12 +52,10 @@ const CheckIcon = () => (
 export function HomeFeedCard({
   storageKey,
   defaultType,
-  initialBlocks,
   initialShieldedTxs,
 }: {
   storageKey: string;
   defaultType: HomeFeedType;
-  initialBlocks?: any[];
   initialShieldedTxs?: any[];
 }) {
   const [type, setType] = useState<HomeFeedType>(defaultType);
@@ -115,7 +115,7 @@ export function HomeFeedCard({
       <div className="home-feed-placeholder">
         <div className="relative" aria-hidden="true">
           <div className="invisible">
-            <SectionHeader label="Loading activity" size="lg" actions={
+            <SectionHeader label="LOADING_ACTIVITY" size="lg" actions={
               <div>
                 <button disabled tabIndex={-1} className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-mono">
                   <SlidersIcon className="w-3.5 h-3.5" />
@@ -152,7 +152,7 @@ export function HomeFeedCard({
                     <button
                       key={feed}
                       onClick={() => select(feed)}
-                      className="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-md text-[13px] dropdown-item"
+                      className="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-md text-data dropdown-item"
                     >
                       {FEED_META[feed].menuLabel}
                       {feed === type && <CheckIcon />}
@@ -165,7 +165,7 @@ export function HomeFeedCard({
         />
 
         {type === 'blocks' && (
-          <RecentBlocks initialBlocks={type === defaultType ? initialBlocks : undefined} footer={viewAllLink} />
+          <RecentBlocks footer={viewAllLink} />
         )}
         {type === 'shielded' && (
           <RecentShieldedTxs
@@ -177,6 +177,7 @@ export function HomeFeedCard({
         {type === 'transactions' && <RecentTransactions footer={viewAllLink} />}
         {type === 'reorgs' && <RecentReorgs footer={viewAllLink} />}
         {type === 'miners' && <TopMiners footer={viewAllLink} />}
+        {type === 'software' && <MiningSoftwareMiniChart footer={viewAllLink} />}
         {type === 'ironwood' && <IronwoodProgressCard footer={viewAllLink} />}
         {type === 'poolsChart' && <ShieldedPoolMiniChart footer={viewAllLink} />}
       </div>

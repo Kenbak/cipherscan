@@ -1,5 +1,6 @@
 'use client';
 
+import { readApiData } from '@/lib/api-client';
 import { useState, useEffect, useRef } from 'react';
 import { getApiUrl } from '@/lib/api-config';
 import { getCoinbaseClientEmoji, getCoinbaseClientInfo } from '@/lib/coinbase-client';
@@ -41,7 +42,7 @@ export default function BlockPageClient({
         setLoading(true);
         setLoadError(null);
 
-        const apiUrl = `${getApiUrl()}/api/block/${height}`;
+        const apiUrl = `${getApiUrl()}/v1/blocks/${height}`;
 
         const response = await fetch(apiUrl, { signal: controller.signal });
 
@@ -55,7 +56,7 @@ export default function BlockPageClient({
           throw new Error(`Block API returned ${response.status}`);
         }
 
-        const blockData = await response.json();
+        const blockData = await readApiData(response);
 
         setData(transformExpressBlockData(blockData));
       } catch (error) {

@@ -1,7 +1,9 @@
 'use client';
 
+import { readApiData } from '@/lib/api-client';
 import { useState } from 'react';
 import Link from 'next/link';
+import { PageHeader } from '@/components/ui/SectionHeader';
 import { Card, CardBody } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Tooltip } from '@/components/Tooltip';
@@ -99,15 +101,15 @@ export default function BroadcastClient() {
     setResult(null);
 
     try {
-      const res = await fetch(`${getApiUrl()}/api/tx/broadcast`, {
+      const res = await fetch(`${getApiUrl()}/v1/transactions/broadcast`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ rawTx: hex }),
       });
-      const data = await res.json();
-      setResult(data);
-    } catch {
-      setResult({ success: false, error: 'Network error. Could not reach the API.' });
+      const data = await readApiData(res);
+      setResult({ ...data, success: true });
+    } catch (error) {
+      setResult({ success: false, error: error instanceof Error ? error.message : 'Network error. Could not reach the API.' });
     } finally {
       setLoading(false);
     }
@@ -128,14 +130,7 @@ export default function BroadcastClient() {
 
   return (
     <>
-      {/* Header */}
-      <div className="mb-8">
-        <Link href="/tools" className="text-xs font-mono text-muted hover:text-primary transition-colors mb-4 inline-block">
-          &larr; All Tools
-        </Link>
-        <h1 className="text-2xl md:text-3xl font-bold text-primary">Broadcast Transaction</h1>
-        <p className="text-sm text-secondary mt-1">Submit a signed raw transaction to the Zcash network</p>
-      </div>
+      <PageHeader eyebrow="TOOLS" eyebrowHref="/tools" title="Broadcast Transaction" subtitle="Submit a signed raw transaction to the Zcash network" />
 
       {/* Warning */}
       <div className="alert alert-warning mb-6">
@@ -147,7 +142,7 @@ export default function BroadcastClient() {
           <p className="text-sm text-secondary mt-1">
             The transaction must be fully constructed and signed before pasting here.
             No private keys are sent to the server — this endpoint only relays
-            the raw hex to a Zebra node.
+            the signed transaction to the network node.
           </p>
         </div>
       </div>
@@ -157,10 +152,13 @@ export default function BroadcastClient() {
         <CardBody>
           <div className="space-y-4">
             <div>
-              <label className="input-label mb-2 block font-mono uppercase tracking-wider text-xs">
+              <label htmlFor="signed-transaction-hex" className="input-label mb-2 block font-mono uppercase tracking-wider text-xs">
                 Signed Transaction Hex
               </label>
               <textarea
+                id="signed-transaction-hex"
+                name="signed-transaction-hex"
+                autoComplete="off"
                 value={rawHex}
                 onChange={(e) => setRawHex(e.target.value)}
                 placeholder="Paste signed raw transaction hex here..."
@@ -224,7 +222,7 @@ export default function BroadcastClient() {
                       </span>
                     </div>
                     <div className="block-hash-bg px-3 py-2 rounded border border-cipher-border w-fit flex items-center gap-2">
-                      <code className="text-xs text-cipher-cyan break-all block">{result.txid}</code>
+                      <code className="text-xs text-cipher-gold break-all block">{result.txid}</code>
                       <button
                         onClick={() => copyTxid(result.txid!)}
                         className={`p-1 rounded transition-colors flex-shrink-0 ${txidCopied ? 'text-cipher-green' : 'text-muted hover:text-primary'}`}
@@ -321,12 +319,12 @@ export default function BroadcastClient() {
               {/* Suggestion */}
               <div className="tx-summary-box border border-cipher-border rounded-lg p-3 md:p-4">
                 <div className="flex items-start gap-2 md:gap-3">
-                  <svg className="w-4 h-4 md:w-5 md:h-5 text-cipher-cyan flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4 md:w-5 md:h-5 text-cipher-gold flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                   <p className="text-secondary text-xs md:text-sm leading-relaxed">
                     Try using the{' '}
-                    <Link href="/tools/decode" className="text-cipher-cyan hover:underline">Decode tool</Link>
+                    <Link href="/tools/decode" className="text-cipher-gold hover:underline">Decode tool</Link>
                     {' '}to inspect the transaction before broadcasting. This can help identify issues with the transaction format.
                   </p>
                 </div>
@@ -340,24 +338,24 @@ export default function BroadcastClient() {
       <Card variant="glass" className="mt-8">
         <CardBody>
           <div className="flex items-start gap-4">
-            <div className="w-10 h-10 rounded-xl bg-cipher-cyan/10 flex items-center justify-center flex-shrink-0">
-              <svg className="w-5 h-5 text-cipher-cyan" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="w-10 h-10 rounded-xl bg-brand-gold/10 flex items-center justify-center flex-shrink-0">
+              <svg className="w-5 h-5 text-cipher-gold" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
             <div className="flex-1">
               <h3 className="font-semibold text-primary mb-2">How to create a signed transaction</h3>
               <p className="text-sm text-secondary leading-relaxed mb-3">
-                Use a Zcash library (<code className="text-xs font-mono text-cipher-cyan">zcash_primitives</code>,{' '}
-                <code className="text-xs font-mono text-cipher-cyan">librustzcash</code>) or{' '}
-                <code className="text-xs font-mono text-cipher-cyan">zcash-cli</code> to construct and sign
+                Use a Zcash library (<code className="text-xs font-mono text-cipher-gold">zcash_primitives</code>,{' '}
+                <code className="text-xs font-mono text-cipher-gold">librustzcash</code>) or{' '}
+                <code className="text-xs font-mono text-cipher-gold">zcash-cli</code> to construct and sign
                 a transaction offline. The resulting hex can be pasted here.
               </p>
               <div className="flex flex-wrap gap-3 text-xs">
-                <Link href="/tools/decode" className="text-cipher-cyan hover:underline font-mono">
+                <Link href="/tools/decode" className="text-cipher-gold hover:underline font-mono">
                   &gt; Decode a transaction
                 </Link>
-                <Link href="/docs" className="text-cipher-cyan hover:underline font-mono">
+                <Link href="/docs" className="text-cipher-gold hover:underline font-mono">
                   &gt; API documentation
                 </Link>
               </div>

@@ -1,10 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { getApiUrl } from '@/lib/api-config';
+import { PoolCurrencyProvider } from '@/components/pools/PoolCurrency';
+import { useApiQuery } from '@/hooks/useApiQuery';
 import { PageHeader, SectionHeader } from '@/components/ui';
-import { PageSectionNav } from '@/components/PageSectionNav';
+import { HashLink } from '@/components/ui/HashLink';
 import { PoolDistributionChart } from '@/components/network/PoolDistributionChart';
 import { FlowVolumeChart } from '@/components/pools/FlowVolumeChart';
 import { FlowLegend } from '@/components/pools/FlowLegend';
@@ -19,14 +19,16 @@ import { ShieldFlowBadge } from '@/components/ShieldFlowBadge';
 
 const SECTIONS = [
   { id: 'overview', label: 'Overview' },
-  { id: 'supply', label: 'Supply' },
-  { id: 'flows', label: 'Flows' },
+  { id: 'supply', label: 'Supply history' },
+  { id: 'flows', label: 'Public flows' },
+  { id: 'recent-flows', label: 'Recent transactions' },
+  { id: 'methodology', label: 'Data & definitions' },
 ] as const;
 
 interface RecentFlow {
   txid: string;
   flowType: string;
-  amountZec: number;
+  amountZec: number | null;
   pool: string;
   blockTime: number;
 }
@@ -39,74 +41,54 @@ function formatTimeAgo(unixSec: number): string {
   return `${Math.floor(diff / 86400)}d ago`;
 }
 
-function TurnstileLinkCard() {
-  return (
-    <Link
-      href="/turnstile"
-      className="group flex items-center justify-between gap-4 rounded-2xl border border-cipher-border bg-cipher-surface p-5 sm:p-6 transition-colors hover:border-cipher-cyan/30"
-    >
-      <div>
-        <p className="text-sm font-semibold text-primary group-hover:text-primary transition-colors">
-          Turnstile Tracker
-        </p>
-        <p className="mt-1 max-w-xl text-xs leading-relaxed text-secondary font-sans">
-          When ZEC leaves a shielded pool, where does it go — held transparent, reshielded, exchanged, or moved
-          elsewhere?
-        </p>
-      </div>
-      <span className="shrink-0 text-[10px] font-mono text-cipher-cyan">Open →</span>
-    </Link>
-  );
+function RelatedPoolPages() {
+  const links = [
+    { href: '/turnstile', title: 'Turnstile tracker', description: 'Follow observable activity after ZEC leaves a shielded pool.' },
+    { href: '/privacy', title: 'Privacy score', description: 'Explore shielded participation and the inputs to the privacy index.' },
+    { href: '/ironwood', title: 'Ironwood migration', description: 'Track migration into the newest shielded pool.' },
+    { href: '/network#issuance', title: 'Issuance & halving', description: 'Understand block subsidies and the remaining issuance schedule.' },
+  ];
+  return <nav aria-label="Related pool analytics" className="mt-10">
+    <p className="text-caption font-mono text-muted mb-3">EXPLORE FURTHER</p>
+    <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-3">{links.map(link => <Link key={link.href} href={link.href} className="rounded-lg border border-cipher-border p-4 hover:bg-glass-3 transition-colors">
+      <span className="flex justify-between gap-3 text-sm font-mono text-secondary">{link.title}<span aria-hidden="true">→</span></span>
+      <span className="block mt-2 text-xs leading-relaxed text-muted">{link.description}</span>
+    </Link>)}</div>
+  </nav>;
 }
 
 function RecentLargeFlows() {
-  const [flows, setFlows] = useState<RecentFlow[]>([]);
-  const [status, setStatus] = useState<'loading' | 'ready' | 'unavailable'>('loading');
-
-  useEffect(() => {
-    fetch(`${getApiUrl()}/api/shielded/list?limit=10&min_zec=10`)
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data) => {
-        if (data?.flows) setFlows(data.flows);
-        else if (data?.data) setFlows(data.data);
-        setStatus(data ? 'ready' : 'unavailable');
-      })
-      .catch(() => setStatus('unavailable'));
-  }, []);
-
-  if (status === 'loading' || (status === 'ready' && flows.length === 0)) return null;
-
-  if (status === 'unavailable') {
-    return (
-      <Card variant="glass">
-        <CardBody>
-          <p className="text-xs text-muted font-mono" role="status">
-            Recent large-flow data is temporarily unavailable.
-          </p>
-        </CardBody>
-      </Card>
-    );
-  }
+  const { data, loading } = useApiQuery<RecentFlow[]>('/v1/transactions/shielded', { limit: 10, min_zec: 10 });
+  const flows = Array.isArray(data) ? data : [];
+  const status = loading ? 'loading' : Array.isArray(data) ? 'ready' : 'unavailable';
 
   return (
     <Card variant="glass">
       <CardBody>
         <SectionHeader
-          label="RECENT_LARGE_FLOWS"
+          label="RECENT_PUBLIC_FLOWS"
           actions={
-            <Link href="/txs?type=shielded" className="text-[10px] font-mono text-cipher-cyan hover:underline">
-              View all →
+            <Link
+              href="/txs?type=shielded"
+              className="inline-flex items-center gap-2 rounded-sm py-1 text-caption font-mono text-secondary underline-offset-4 transition-colors hover:text-primary hover:underline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-current"
+            >
+              View all shielded transactions <span aria-hidden="true">→</span>
             </Link>
           }
         />
+        <p className="mb-5 text-xs leading-relaxed text-muted">Latest indexed shielding and deshielding flows of at least 10 ZEC. Fully shielded amounts are private and are not included.</p>
         <DataTable
+          loading={status === 'loading'}
+          skeletonRows={10}
+          empty={<p className="p-6 text-xs text-muted" role="status">{status === 'unavailable' ? 'Recent public-flow data is temporarily unavailable.' : 'No matching public flows are available.'}</p>}
           bare
           columns={[
+            { id: 'txid', header: 'Transaction', cell: (f: RecentFlow) => <HashLink value={f.txid} responsive copy={false} href={`/tx/${f.txid}`} /> },
             {
               id: 'type',
               header: 'Type',
               cell: (f: RecentFlow) => (
-                <ShieldFlowBadge type={f.flowType === 'shield' ? 'shielding' : 'unshielding'} variant="full" />
+                f.flowType === 'shield' || f.flowType === 'deshield' ? <ShieldFlowBadge type={f.flowType === 'shield' ? 'shielding' : 'unshielding'} variant="full" /> : <span className="text-muted">{f.flowType || 'Unknown'}</span>
               ),
             },
             {
@@ -120,7 +102,7 @@ function RecentLargeFlows() {
               align: 'right',
               cell: (f) => (
                 <span className="font-mono text-xs tabular-nums text-primary">
-                  {(f.amountZec || 0).toFixed(2)} ZEC
+                  {f.amountZec != null && Number.isFinite(f.amountZec) ? `${f.amountZec.toLocaleString(undefined, { maximumFractionDigits: 2 })} ZEC` : '—'}
                 </span>
               ),
             },
@@ -145,34 +127,22 @@ function RecentLargeFlows() {
 }
 
 export default function PoolsPage() {
-  const [overview, setOverview] = useState<PoolOverviewData | null>(null);
-  const [overviewStatus, setOverviewStatus] = useState<'loading' | 'ready' | 'unavailable'>('loading');
-
-  useEffect(() => {
-    fetch(`${getApiUrl()}/api/pools/overview`)
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data) => {
-        if (data?.current) {
-          setOverview(data);
-          setOverviewStatus('ready');
-        } else {
-          setOverviewStatus('unavailable');
-        }
-      })
-      .catch(() => setOverviewStatus('unavailable'));
-  }, []);
+  const { data: overview, loading } = useApiQuery<PoolOverviewData>('/v1/shielded-pools/overview');
+  const overviewStatus = loading ? 'loading' : overview?.current ? 'ready' : 'unavailable';
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+    <PoolCurrencyProvider><div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
       <PageHeader
         eyebrow="POOL_ANALYTICS"
         title="Zcash Shielded Pools"
-        subtitle="Track how ZEC moves between transparent and shielded pools. Where it goes, and whether it stays."
+        subtitle="Supply held in shielded pools, its history, and the public flows moving ZEC in and out."
       />
 
-      <PageSectionNav sections={SECTIONS} ariaLabel="Pool analytics sections" className="mb-10" />
+      <nav aria-label="Pool analytics sections" className="flex flex-wrap items-center gap-x-5 gap-y-3 text-caption font-mono text-muted border-b border-cipher-border pb-5 mb-8">
+        {SECTIONS.map(section => <a key={section.id} href={`#${section.id}`} className="hover:text-primary">{section.label}</a>)}
+      </nav>
 
-      <section id="overview" className="scroll-mt-36 mb-14">
+      <section id="overview" className="scroll-mt-56 sm:scroll-mt-36 mb-14">
         {overviewStatus === 'loading' ? (
           <PoolOverviewSkeleton />
         ) : overviewStatus === 'ready' && overview ? (
@@ -188,40 +158,31 @@ export default function PoolsPage() {
         )}
       </section>
 
-      <section id="supply-definitions" className="scroll-mt-36 mb-14 text-sm text-secondary">
-        <h2 className="mb-2 font-semibold text-primary">Supply definitions</h2>
-        <p>
-          The map partitions the 21 million ZEC cap into public supply, shielded balances,
-          and remaining issuance. Public supply groups transparent balances with other issued value;
-          it is a visual grouping, not the transparent pool balance. Other issued is calculated from the same
-          snapshot as chain supply minus transparent and shielded balances. It includes the deferred-development
-          lockbox, which contains already-issued ZEC, not unmined supply. Historical snapshots do not
-          store a separate lockbox balance, so this remainder is not labelled entirely as lockbox.
-          Unmined is the cap minus issued chain supply. Percentages use the 21M cap and may differ
-          slightly from 100% after display rounding. The shielded-supply statistic instead uses issued supply.
-        </p>
-        <p className="mt-2">
-          Balances come from stored node snapshots and are not refreshed on every block. The timeline
-          excludes records with missing or inconsistent supply totals; it does not substitute current
-          supply for historical data. Public pool aggregates do not reveal individual shielded balances.
-        </p>
-      </section>
-
-      <section id="supply" className="scroll-mt-36 mb-14">
+      <section id="supply" className="scroll-mt-56 sm:scroll-mt-36 mb-14">
         <PoolDistributionChart />
       </section>
 
-      <section id="flows" className="scroll-mt-36 mb-14">
+      <section id="flows" className="scroll-mt-56 sm:scroll-mt-36 mb-14">
         <FlowVolumeChart />
       </section>
 
-      <section className="mb-14">
-        <TurnstileLinkCard />
-      </section>
-
-      <section className="mb-14">
+      <section id="recent-flows" className="scroll-mt-56 sm:scroll-mt-36 mb-14">
         <RecentLargeFlows />
       </section>
-    </div>
+
+      <section id="methodology" className="scroll-mt-56 sm:scroll-mt-36">
+        <details className="group rounded-lg border border-cipher-border overflow-hidden">
+          <summary className="list-none cursor-pointer flex items-center justify-between gap-4 p-5 sm:p-6 hover:bg-glass-3">
+            <span><span className="block text-sm font-mono text-primary">Data &amp; definitions</span><span className="block mt-2 text-xs text-muted">Supply denominators, snapshot coverage and what public flows can show.</span></span>
+            <span className="text-muted group-open:rotate-90 transition-transform" aria-hidden="true">›</span>
+          </summary>
+          <div className="grid sm:grid-cols-2 gap-6 p-5 sm:p-6 border-t border-cipher-border text-xs leading-relaxed text-secondary">
+            <div><h3 className="font-mono text-primary mb-2">Supply &amp; percentages</h3><p>The overview uses the latest indexed pool statistics. The map compares balances with the 21 million ZEC cap; the summary compares shielded balances with issued chain supply. Each pool’s legend percentage uses total shielded supply.</p><p className="mt-3">On mainnet, the ZEC/USD controls convert pool balances at the current ZEC quote, including historical snapshots and the remaining issuance equivalent. They do not use historical exchange rates. Percentages and map proportions stay based on ZEC; public-flow charts and transaction amounts remain in ZEC. Quotes refresh every 30 seconds; USD is unavailable when the quote is missing or older than five minutes.</p><p className="mt-3">Public supply groups transparent balances with other issued value, including the separate deferred-development lockbox. Other issued is chain supply minus transparent and shielded balances; historical snapshots do not store a separate lockbox balance. Remaining issuance is the cap minus chain supply. The three map segments partition the 21 million ZEC cap.</p></div>
+            <div><h3 className="font-mono text-primary mb-2">History &amp; public flows</h3><p>The timeline uses recorded daily snapshots with a supply total and pool breakdown. Gaps are skipped; the latest snapshot is separate from daily history. Dates are shown in UTC. Mainnet activation markers jump to the first available daily snapshot on or after the activation block.</p><p className="mt-3">Shielding and deshielding show public value entering and leaving pools. Net flow is inflow minus outflow; it is not a count of users or a measure of individual privacy. Pool balance changes can also include issuance and migrations. Fully shielded transfer amounts remain hidden.</p></div>
+          </div>
+        </details>
+      </section>
+      <RelatedPoolPages />
+    </div></PoolCurrencyProvider>
   );
 }

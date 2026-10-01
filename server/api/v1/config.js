@@ -72,6 +72,7 @@ function parseIntOr(value, fallback) {
 
 function loadV1Config(env = process.env) {
   return {
+    znsUrl: (env.NEXT_PUBLIC_NETWORK || env.ZCASH_NETWORK || env.NETWORK) === 'mainnet' ? (env.ZNS_MAINNET_URL || 'https://light.zcash.me/zns-mainnet-test') : (env.ZNS_TESTNET_URL || 'https://light.zcash.me/zns-testnet'),
     enabled: parseBool(env.API_V1_ENABLED, false),
     launched: parseBool(env.API_V1_LAUNCHED, false),
     previewKey: env.API_V1_PREVIEW_KEY || '',

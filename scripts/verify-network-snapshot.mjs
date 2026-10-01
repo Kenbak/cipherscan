@@ -8,7 +8,7 @@ const url = `${base}/network`;
 const response = await fetch(url);
 assert.equal(response.status, 200);
 const html = await response.text();
-const statsResponse = await fetch('https://api.mainnet.cipherscan.app/api/network/stats');
+const statsResponse = await fetch(`${process.env.NETWORK_VERIFY_API_URL || 'https://api.mainnet.cipherscan.app'}/v1/network/stats`);
 assert.equal(statsResponse.status, 200);
 const statsFixture = await statsResponse.json();
 assert.equal((html.match(/<h1(?:\s|>)/g) || []).length, 1);
@@ -29,7 +29,7 @@ try {
   await page.clock.install({ time: new Date(Date.now() + 600_000) });
   let calls = 0;
   let failed = true;
-  await page.route('**/api/network/stats', async route => {
+  await page.route('**/v1/network/stats', async route => {
     calls++;
     if (failed) await route.fulfill({ status: 503, headers: { 'access-control-allow-origin': '*' }, json: { error: 'verification outage' } });
     else await route.fulfill({ headers: { 'access-control-allow-origin': '*' }, json: statsFixture });
@@ -38,7 +38,7 @@ try {
   await page.goto(url);
   console.log('Loaded cached Network page');
   const refreshDelayed = () => page.evaluate(() =>
-    [...document.querySelectorAll('[role="status"]')].some(el => el.textContent.includes('Live refresh delayed')));
+    [...document.querySelectorAll('[role="status"]')].some(el => el.textContent.includes('Network summary could not refresh')));
   const waitUntil = async predicate => {
     for (let attempt = 0; attempt < 200; attempt++) {
       if (await predicate()) return;
@@ -49,14 +49,14 @@ try {
   await waitUntil(refreshDelayed);
   assert.equal(calls, 1, 'stale seeded stats should fetch once on mount');
   assert.equal(await page.locator('h1').count(), 1);
-  assert.ok(await page.locator('#network-overview').isVisible());
+  assert.ok(await page.locator('section[aria-label="Network overview"]').isVisible());
   assert.ok(await page.locator('a[href^="/block/"]').count() > 0, 'retain seeded recent blocks');
   for (const selector of ['title', 'meta[name="description"]', 'link[rel="canonical"]', 'meta[name="robots"]',
     'meta[property="og:title"]', 'meta[property="og:description"]', 'meta[property="og:url"]',
     'meta[property="og:image"]', 'meta[name="twitter:card"]', 'meta[name="twitter:title"]', 'meta[name="twitter:image"]']) {
     assert.ok(await page.locator(selector).count() > 0, `Missing ${selector}`);
   }
-  assert.equal(await page.locator('link[rel="canonical"]').getAttribute('href'), 'https://cipherscan.app/network');
+  assert.equal(await page.locator('link[rel="canonical"]').getAttribute('href'), 'https://zecblock.com/network');
   assert.match(await page.locator('meta[name="robots"]').getAttribute('content'), /^index, follow/);
   const schemas = (await page.locator('script[type="application/ld+json"]').allTextContents()).map(value => JSON.parse(value));
   assert.ok(schemas.some(value => value['@type'] === 'WebPage' && value.url.endsWith('/network')));

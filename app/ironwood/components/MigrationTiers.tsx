@@ -1,5 +1,6 @@
 'use client';
 
+import { readApiData } from '@/lib/api-client';
 import { useEffect, useMemo, useState } from 'react';
 import { ShareableCard } from '@/components/ShareableCard';
 import { getApiUrl } from '@/lib/api-config';
@@ -9,7 +10,7 @@ import type { ChartColors, TierTx } from './types';
 
 export const TIER_BOUNDARIES_ZAT = [1e8, 10e8, 100e8, 1000e8, 5000e8, 10000e8];
 export const TIER_LABELS = ['Under 1', '1–10', '10–100', '100–1K', '1K–5K', '5K–10K', '10K+'];
-export const TIER_COLORS = ['#94a3b8', '#60a5fa', '#a78bfa', '#f59e0b', '#ef4444', '#dc2626', '#991b1b'];
+export const TIER_COLORS = ['var(--color-text-muted)', 'var(--color-cipher-blue)', 'var(--color-purple)', 'var(--color-gold)', 'var(--color-orange)', 'var(--danger)', 'var(--color-text-primary)'];
 
 export function formatTierVolumePct(pct: number): string {
   if (pct < 0.1 && pct > 0) return `${pct.toFixed(2)}%`;
@@ -42,9 +43,9 @@ export function MigrationTiers({
   const [scrubIdx, setScrubIdx] = useState(1000);
   useEffect(() => {
     if (!activated) return;
-    const url = `${getApiUrl()}/api/migration/tiers`;
-    fetch(url).then(r => r.json()).then(d => {
-      if (d.success && d.txs) setAllTxs(d.txs);
+    const url = `${getApiUrl()}/v1/migration/tiers`;
+    fetch(url).then(r => readApiData(r)).then(d => {
+      if (d && d.txs) setAllTxs(d.txs);
     }).catch(() => {});
   }, [activated]);
 
@@ -92,16 +93,16 @@ export function MigrationTiers({
         title="Who's migrating?"
         sourceHeight={tipHeight}
         isLive={activated}
-        shareText={`Ironwood migration by size: ${tierData.map(t => `${t.label} ZEC: ${t.count} txs (${t.volumePct.toFixed(0)}% vol)`).join(' · ')}\n\nhttps://cipherscan.app/ironwood`}
-        fileName="cipherscan-migration-tiers.png"
+        shareText={`Ironwood migration by size: ${tierData.map(t => `${t.label} ZEC: ${t.count} txs (${t.volumePct.toFixed(0)}% vol)`).join(' · ')}\n\nhttps://zecblock.com/ironwood`}
+        fileName="zecblock-migration-tiers.png"
       >
         <p className="text-xs text-muted mb-5">
           Orchard → Ironwood migration volume by transaction size. Drag the scrubber to see how the distribution evolved.
         </p>
 
-        <div className="flex flex-wrap items-baseline gap-x-5 gap-y-1 mb-4 text-[10px] font-mono text-muted">
-          <span><span className="text-primary font-bold text-sm">{totalTxs.toLocaleString()}</span> transactions</span>
-          <span><span className="text-primary font-bold text-sm">{fmtValue(totalVolZat, currencyMode, zecPrice)}</span> total</span>
+        <div className="flex flex-wrap items-baseline gap-x-5 gap-y-1 mb-4 text-caption font-mono text-muted">
+          <span><span className="text-primary font-semibold text-sm">{totalTxs.toLocaleString()}</span> transactions</span>
+          <span><span className="text-primary font-semibold text-sm">{fmtValue(totalVolZat, currencyMode, zecPrice)}</span> total</span>
         </div>
 
         {/* Mobile — horizontal breakdown (iOS Storage-style) */}
@@ -111,13 +112,13 @@ export function MigrationTiers({
                 <div className="mb-1.5 flex items-baseline justify-between gap-3">
                   <div className="min-w-0">
                     <span className="text-xs font-mono font-semibold text-primary">{tier.label}</span>
-                    <span className="ml-2 text-[10px] font-mono text-muted">{tier.count.toLocaleString()} txs</span>
+                    <span className="ml-2 text-caption font-mono text-muted">{tier.count.toLocaleString()} txs</span>
                   </div>
                   <div className="shrink-0 text-right">
-                    <span className="text-xs font-mono font-bold tabular-nums text-primary">
+                    <span className="text-xs font-mono font-semibold tabular-nums text-primary">
                       {fmtValue(tier.volumeZat, currencyMode, zecPrice)}
                     </span>
-                    <span className="ml-1.5 text-[10px] font-mono text-muted">{formatTierVolumePct(tier.volumePct)}</span>
+                    <span className="ml-1.5 text-caption font-mono text-muted">{formatTierVolumePct(tier.volumePct)}</span>
                   </div>
                 </div>
                 <div className="h-2 overflow-hidden rounded-full bg-glass-3">
@@ -140,10 +141,10 @@ export function MigrationTiers({
             const barPct = maxVol > 0 ? (tier.volumeZec / maxVol) * 100 : 0;
             return (
               <div key={tier.label} className="flex flex-col items-center">
-                <div className="mb-1 text-[11px] font-mono font-bold text-primary">
+                <div className="mb-1 text-caption font-mono font-semibold text-primary">
                   {fmtValue(tier.volumeZat, currencyMode, zecPrice)}
                 </div>
-                <div className="mb-2 text-[9px] font-mono text-muted">{formatTierVolumePct(tier.volumePct)}</div>
+                <div className="mb-2 text-caption font-mono text-muted">{formatTierVolumePct(tier.volumePct)}</div>
                 <div className="relative flex h-[140px] w-full justify-center">
                   <div className="relative h-full w-8 overflow-hidden rounded-t-md bg-glass-3">
                     <div
@@ -152,14 +153,14 @@ export function MigrationTiers({
                     />
                   </div>
                 </div>
-                <div className="mt-2 text-center text-[10px] font-mono text-muted">{tier.label}</div>
-                <div className="text-[10px] font-mono text-muted/60">{tier.count} txs</div>
+                <div className="mt-2 text-center text-caption font-mono text-muted">{tier.label}</div>
+                <div className="text-caption font-mono text-muted">{tier.count} txs</div>
               </div>
             );
           })}
         </div>
 
-        <div className="mb-4 mt-3 hidden text-center text-[10px] font-mono text-muted sm:block">
+        <div className="mb-4 mt-3 hidden text-center text-caption font-mono text-muted sm:block">
           Orchard → Ironwood volume by migration size · {totalTxs.toLocaleString()} total txs
         </div>
 
@@ -196,13 +197,13 @@ export function MigrationTiers({
             <button
               type="button"
               onClick={() => { setMode('live'); setScrubIdx(maxIdx); }}
-              className="shrink-0 rounded-full border border-cipher-border/50 px-2.5 py-0.5 text-[10px] font-mono uppercase tracking-wider text-muted hover:border-cipher-border transition"
+              className="shrink-0 rounded-full border border-cipher-border/50 px-2.5 py-0.5 text-caption font-mono uppercase tracking-wider text-muted hover:border-cipher-border transition"
             >
-              <span className={`mr-1 inline-block h-1.5 w-1.5 rounded-full ${mode === 'live' ? 'bg-emerald-400 animate-pulse' : 'bg-current opacity-30'}`} />
+              <span className={`mr-1 inline-block h-1.5 w-1.5 rounded-full ${mode === 'live' ? 'bg-cipher-green animate-pulse' : 'bg-current opacity-30'}`} />
               Live
             </button>
           </div>
-          <div className="flex items-center justify-between text-[10px] font-mono text-muted mt-1">
+          <div className="flex items-center justify-between text-caption font-mono text-muted mt-1">
             <span>Block {allTxs[0]?.h?.toLocaleString() ?? '—'}</span>
             <span>{mode === 'live' ? `${totalTxs} migrations` : scrubDate ?? `${visibleTxs.length} migrations`}</span>
           </div>

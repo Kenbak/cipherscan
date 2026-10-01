@@ -30,13 +30,13 @@ function getIntensity(summary: PulseSummary | null): PulseIntensity {
 const INTENSITY_CONFIG: Record<PulseIntensity, { duration: string; opacity: string; glow: string }> = {
   calm: { duration: '3s', opacity: 'opacity-40', glow: '' },
   medium: { duration: '1.5s', opacity: 'opacity-70', glow: '' },
-  active: { duration: '0.8s', opacity: 'opacity-100', glow: 'shadow-[0_0_12px_rgba(86,212,200,0.4)]' },
+  active: { duration: '0.8s', opacity: 'opacity-100', glow: '' },
 };
 
 export function PulseWidget() {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
-  const { data: summary } = useApiQuery<PulseSummary>('/api/pulse/summary');
+  const { data: summary } = useApiQuery<PulseSummary>('/v1/pulse/summary');
 
   const intensity = getIntensity(summary);
   const config = INTENSITY_CONFIG[intensity];
@@ -68,7 +68,7 @@ export function PulseWidget() {
         <div className="rounded-xl border border-cipher-border bg-cipher-surface/95 backdrop-blur-xl shadow-2xl overflow-hidden">
           {/* Intensity counts */}
           <div className="flex items-center gap-3 border-b border-cipher-border-subtle px-4 py-2.5">
-            <span className="font-mono text-[9px] uppercase tracking-widest text-muted">7d signals</span>
+            <span className="font-mono text-caption uppercase tracking-widest text-muted">7d signals</span>
             <div className="flex items-center gap-3 ml-auto">
               {([
                 { key: 'extreme', label: 'E', opacity: 'opacity-100' },
@@ -76,8 +76,8 @@ export function PulseWidget() {
                 { key: 'mild', label: 'M', opacity: 'opacity-40' },
               ] as const).map(({ key, label, opacity }) => (
                 <div key={key} className="flex items-center gap-1">
-                  <span className={`h-1.5 w-1.5 rounded-full bg-cipher-cyan ${opacity}`} />
-                  <span className="font-mono text-[10px] tabular-nums text-secondary">
+                  <span className={`h-1.5 w-1.5 rounded-full bg-brand-gold ${opacity}`} />
+                  <span className="font-mono text-caption tabular-nums text-secondary">
                     {summary?.bySeverity[key] ?? 0}
                   </span>
                 </div>
@@ -90,16 +90,16 @@ export function PulseWidget() {
             {(!summary || summary.recent.length === 0) ? (
               <div className="px-4 py-4 text-center">
                 <p className="text-xs text-muted font-mono">No anomalies in 7 days</p>
-                <p className="text-[10px] text-muted/60 mt-0.5">Network within normal parameters</p>
+                <p className="text-caption text-muted mt-0.5">Network within normal parameters</p>
               </div>
             ) : (
               summary.recent.slice(0, 3).map((event, i) => (
                 <div key={`${event.date}-${event.metric}`} className="flex items-center gap-2 px-4 py-2">
-                  <span className={`font-mono text-[10px] ${event.direction === 'up' ? 'text-cipher-cyan' : 'text-blue-400'}`}>
+                  <span className={`font-mono text-caption ${event.direction === 'up' ? 'text-cipher-gold' : 'text-cipher-blue'}`}>
                     {event.direction === 'up' ? '▲' : '▼'}
                   </span>
                   <span className="text-xs text-primary truncate flex-1">{event.description}</span>
-                  <span className="text-[10px] font-mono text-muted shrink-0">
+                  <span className="text-caption font-mono text-muted shrink-0">
                     {new Date(event.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                   </span>
                 </div>
@@ -111,10 +111,10 @@ export function PulseWidget() {
           <div className="border-t border-cipher-border-subtle px-4 py-2">
             <Link
               href="/pulse"
-              className="flex items-center justify-end gap-1 text-[11px] font-mono text-muted hover:text-primary transition-colors"
+              className="flex items-center justify-end gap-1 text-caption font-mono text-muted hover:text-primary transition-colors"
               onClick={() => setOpen(false)}
             >
-              View Pulse <span className="text-[9px]">→</span>
+              View Pulse <span className="text-caption">→</span>
             </Link>
           </div>
         </div>
@@ -123,7 +123,7 @@ export function PulseWidget() {
       {/* Pulse heartbeat icon */}
       <button
         onClick={() => setOpen(o => !o)}
-        className={`relative flex items-center justify-center w-9 h-9 rounded-full border border-cipher-border/60 transition hover:border-cipher-cyan/40 ${config.glow}`}
+        className={`relative flex items-center justify-center w-9 h-9 rounded-full border border-cipher-border/60 transition hover:border-cipher-gold/40 ${config.glow}`}
         style={{ background: 'var(--card-glass-bg)', backdropFilter: 'var(--card-glass-blur)' }}
         aria-label="Network Pulse"
         title="Network Pulse"
@@ -132,7 +132,7 @@ export function PulseWidget() {
           viewBox="0 0 32 16"
           fill="none"
           className={`w-5 h-2.5 ${config.opacity}`}
-          style={{ filter: intensity === 'active' ? 'drop-shadow(0 0 3px rgba(86,212,200,0.6))' : undefined }}
+
         >
           <path
             d="M0 8 H8 L11 2 L14 14 L17 4 L20 12 L22 8 H32"
@@ -140,7 +140,7 @@ export function PulseWidget() {
             strokeWidth="1.8"
             strokeLinecap="round"
             strokeLinejoin="round"
-            className="text-cipher-cyan"
+            className="text-cipher-gold"
             style={{
               strokeDasharray: '60',
               strokeDashoffset: '60',

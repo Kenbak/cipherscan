@@ -3,12 +3,12 @@
  *
  * Determines which backend to use based on network:
  * - Mainnet: PostgreSQL API (fast, indexed) on api.mainnet.cipherscan.app
- * - Testnet: PostgreSQL API (fast, indexed) on api.testnet.cipherscan.app
+ * - Testnet: PostgreSQL API (fast, indexed) on api.testnet.zecblock.com
  * - Crosslink Testnet: PostgreSQL API + crosslink finality enrichment
  *
  * Network is auto-detected from the domain:
  * - cipherscan.app → mainnet
- * - testnet.cipherscan.app → testnet
+ * - testnet.zecblock.com → testnet
  * - crosslink.cipherscan.app → crosslink-testnet
  * - localhost → testnet (default)
  */
@@ -35,7 +35,7 @@ function detectNetwork(): Network {
 
   // Client-side: detect from hostname.
   const hostname = window.location.hostname;
-  if (hostname === 'cipherscan.app' || hostname.includes('mainnet')) return 'mainnet';
+  if (['zecblock.com', 'www.zecblock.com', 'cipherscan.app'].includes(hostname) || hostname.includes('mainnet')) return 'mainnet';
   if (hostname.includes('crosslink')) return 'crosslink-testnet';
   return 'testnet';
 }
@@ -43,8 +43,8 @@ function detectNetwork(): Network {
 export const NETWORK = detectNetwork();
 
 const DEFAULT_API_URLS: Record<Network, string> = {
-  'mainnet': 'https://api.mainnet.cipherscan.app',
-  'testnet': 'https://api.testnet.cipherscan.app',
+  'mainnet': 'https://api.zecblock.com',
+  'testnet': 'https://api.testnet.zecblock.com',
   'crosslink-testnet': normalizeApiBaseUrl(
     process.env.NEXT_PUBLIC_CROSSLINK_API_URL || 'https://api.crosslink.cipherscan.app',
   ),

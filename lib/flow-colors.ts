@@ -1,6 +1,8 @@
+import { getPrivacyColors } from './privacy-palette';
+
 /**
  * Semantic colors for shield/deshield flows and turnstile outcomes.
- * Matches ShieldFlowBadge: green = into privacy, orange = out of privacy, purple = shielded state.
+ * Matches ShieldFlowBadge: green = into privacy, orange = out of privacy, gold = shielded state.
  */
 
 export type FlowTheme = 'dark' | 'light';
@@ -21,17 +23,17 @@ export interface FlowColors {
 export function getFlowColors(theme: FlowTheme): FlowColors {
   const isDark = theme === 'dark';
   return {
-    shielding: isDark ? '#00E676' : '#059669',
-    deshielding: isDark ? '#FF6B35' : '#C2410C',
-    shielded: isDark ? '#A78BFA' : '#7C3AED',
-    netFlow: isDark ? '#A78BFA' : '#7C3AED',
+    shielding: isDark ? '#65C79A' : '#14734B',
+    deshielding: isDark ? '#E2A66E' : '#A34A16',
+    shielded: getPrivacyColors(theme).shielded,
+    netFlow: isDark ? '#B6A0E0' : '#7040B5',
     // Turnstile outcomes — held uses ZEC yellow to distinguish from transferred slate
-    held: isDark ? '#F4B728' : '#D49B00',
-    reshielded: isDark ? '#00E676' : '#059669',
+    held: isDark ? '#F8BC21' : '#DB9E00',
+    reshielded: isDark ? '#65C79A' : '#14734B',
     moved: isDark ? '#94a3b8' : '#64748b',
     transferred: isDark ? '#64748b' : '#475569',
-    bridge: isDark ? '#A78BFA' : '#7C3AED',
-    exchange: isDark ? '#FF6B35' : '#C2410C',
+    bridge: isDark ? '#B6A0E0' : '#7040B5',
+    exchange: isDark ? '#E2A66E' : '#A34A16',
   };
 }
 

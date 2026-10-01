@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { PageHeader } from '@/components/ui/SectionHeader';
 import { Card, CardBody } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { TxTypeBadge } from '@/components/ui/TxTypeBadge';
@@ -235,25 +236,17 @@ export default function DecodeClient() {
 
   return (
     <>
-      {/* Header */}
-      <div className="mb-8">
-        <Link href="/tools" className="text-xs font-mono text-muted hover:text-primary transition-colors mb-4 inline-block">
-          &larr; All Tools
-        </Link>
-        <h1 className="text-2xl md:text-3xl font-bold text-primary">Decode Raw Transaction</h1>
-        <p className="text-sm text-secondary mt-1">Parse a raw transaction hex into human-readable fields</p>
-      </div>
+      <PageHeader eyebrow="TOOLS" eyebrowHref="/tools" title="Decode Raw Transaction" subtitle="Parse a raw transaction hex into human-readable fields" />
 
       {/* Info */}
-      <div className="alert alert-info mb-6">
+      <div className="mb-6 flex items-start gap-3 rounded-lg border border-cipher-border bg-cipher-surface p-4 text-secondary">
         <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
         <div>
-          <p className="font-medium">100% Client-Side Decoding</p>
+          <p className="font-medium text-primary">Decoded in your browser</p>
           <p className="text-sm text-secondary mt-1">
-            This tool parses the raw transaction hex directly in your browser.
-            <strong className="text-primary"> No data is sent to any server</strong>, it works offline too.
+            Transaction hex stays in your browser. Decoding works offline once this page has loaded.
           </p>
         </div>
       </div>
@@ -263,10 +256,13 @@ export default function DecodeClient() {
         <CardBody>
           <div className="space-y-4">
             <div>
-              <label className="input-label mb-2 block font-mono uppercase tracking-wider text-xs">
+              <label htmlFor="raw-transaction-hex" className="input-label mb-2 block font-mono uppercase tracking-wider text-xs">
                 Raw Transaction Hex
               </label>
               <textarea
+                id="raw-transaction-hex"
+                name="raw-transaction-hex"
+                autoComplete="off"
                 value={rawHex}
                 onChange={(e) => setRawHex(e.target.value)}
                 placeholder="Paste raw transaction hex here (e.g., 050000800a27a726...)"
@@ -320,7 +316,7 @@ export default function DecodeClient() {
           {/* Human-readable summary box */}
           <div className="tx-summary-box border border-cipher-border rounded-lg p-3 md:p-4">
             <div className="flex items-start gap-2 md:gap-3">
-              <svg className="w-4 h-4 md:w-5 md:h-5 text-cipher-cyan flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4 md:w-5 md:h-5 text-cipher-gold flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
               <p className="text-secondary text-xs md:text-sm leading-relaxed">
@@ -352,7 +348,7 @@ export default function DecodeClient() {
                   <InfoRow
                     icon={Icons.Shield}
                     label="Network Upgrade"
-                    value={<Badge color="cyan">{result.consensusBranchName}</Badge>}
+                    value={<Badge color="gold">{result.consensusBranchName}</Badge>}
                     tooltip="The consensus branch this transaction targets"
                   />
                 )}
@@ -407,14 +403,14 @@ export default function DecodeClient() {
                         Data Breakdown
                       </span>
                     </div>
-                    <div className="text-2xl font-bold font-mono text-primary mb-1">
+                    <div className="text-2xl font-semibold font-mono text-primary mb-1">
                       {result.size.toLocaleString()}
                     </div>
                     <div className="text-xs text-muted mb-4">bytes total</div>
                     <div className="h-3 rounded-full overflow-hidden flex bg-cipher-elevated">
                       {comp.transparentPct > 0 && (
                         <div
-                          className="h-full bg-cipher-cyan/70 transition-[width] duration-700"
+                          className="h-full bg-brand-gold/70 transition-[width] duration-700"
                           style={{ width: `${comp.transparentPct}%` }}
                           title={`Public: ${comp.transparentBytes.toLocaleString()} bytes`}
                         />
@@ -429,7 +425,7 @@ export default function DecodeClient() {
                     </div>
                     <div className="space-y-1.5 mt-3">
                       <div className="flex items-center gap-1.5">
-                        <div className="w-2.5 h-2.5 rounded-sm bg-cipher-cyan/70" />
+                        <div className="w-2.5 h-2.5 rounded-sm bg-brand-gold/70" />
                         <span className="text-xs text-muted">
                           Public data ({comp.transparentPct.toFixed(0)}%)
                         </span>
@@ -458,12 +454,12 @@ export default function DecodeClient() {
                   <h3 className="text-lg font-semibold text-primary flex items-center gap-2">
                     <Icons.ArrowLeft />
                     Inputs
-                    <Badge color="cyan" className="ml-1">{totalInputCount}</Badge>
+                    <Badge color="gold" className="ml-1">{totalInputCount}</Badge>
                   </h3>
                   {result.vin.length > 0 && (
                     <button
                       onClick={() => setShowInputs(!showInputs)}
-                      className="text-sm text-cipher-cyan hover:text-cipher-green transition-colors font-mono"
+                      className="text-sm text-cipher-gold hover:text-cipher-green transition-colors font-mono"
                     >
                       {showInputs ? 'Summary' : 'Details'}
                     </button>
@@ -484,7 +480,7 @@ export default function DecodeClient() {
                       </div>
                     ) : result.vin.length > 0 ? (
                       <div>
-                        <div className="text-2xl font-bold font-mono text-primary">
+                        <div className="text-2xl font-semibold font-mono text-primary">
                           {result.vin.some((v) => !!v.coinbase) ? 'COINBASE' : `${result.vin.length} transparent`}
                         </div>
                         {(result.nSpendsSapling > 0 || result.orchardActions > 0 || result.ironwoodActions > 0) && (
@@ -505,7 +501,7 @@ export default function DecodeClient() {
                     {result.vin.map((vin, i) => (
                       <div
                         key={i}
-                        className="block-tx-row p-4 rounded-lg border border-cipher-border hover:border-cipher-cyan/50 transition"
+                        className="block-tx-row p-4 rounded-lg border border-cipher-border"
                       >
                         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-3 gap-2">
                           <div className="flex items-center gap-2">
@@ -538,7 +534,7 @@ export default function DecodeClient() {
                               </label>
                               <div className="block-hash-bg px-3 py-2 rounded border border-cipher-border">
                                 <Link href={`/tx/${vin.txid}`}>
-                                  <code className="text-xs text-cipher-cyan hover:underline break-all block">
+                                  <code className="text-xs text-cipher-gold hover:underline break-all block">
                                     {vin.txid}
                                   </code>
                                 </Link>
@@ -589,7 +585,7 @@ export default function DecodeClient() {
                   {result.vout.length > 0 && (
                     <button
                       onClick={() => setShowOutputs(!showOutputs)}
-                      className="text-sm text-cipher-cyan hover:text-cipher-green transition-colors font-mono"
+                      className="text-sm text-cipher-gold hover:text-cipher-green transition-colors font-mono"
                     >
                       {showOutputs ? 'Summary' : 'Details'}
                     </button>
@@ -610,7 +606,7 @@ export default function DecodeClient() {
                       </div>
                     ) : result.vout.length > 0 ? (
                       <div>
-                        <div className="text-2xl font-bold font-mono text-primary">
+                        <div className="text-2xl font-semibold font-mono text-primary">
                           {totalTransparentOutput.toFixed(8)}
                         </div>
                         <div className="text-sm text-muted font-mono">ZEC</div>
@@ -632,7 +628,7 @@ export default function DecodeClient() {
                     {result.vout.map((vout, i) => (
                       <div
                         key={i}
-                        className="block-tx-row p-4 rounded-lg border border-cipher-border hover:border-cipher-cyan/50 transition"
+                        className="block-tx-row p-4 rounded-lg border border-cipher-border"
                       >
                         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-3 gap-2">
                           <div className="flex items-center gap-2">
@@ -650,7 +646,7 @@ export default function DecodeClient() {
                             </label>
                             <div className="block-hash-bg px-3 py-2 rounded border border-cipher-border">
                               <Link href={`/address/${vout.scriptPubKey.address}`}>
-                                <code className="text-xs text-cipher-cyan hover:underline break-all block">
+                                <code className="text-xs text-cipher-gold hover:underline break-all block">
                                   {vout.scriptPubKey.address}
                                 </code>
                               </Link>
@@ -684,10 +680,10 @@ export default function DecodeClient() {
                   </div>
 
                 {/* Privacy notice */}
-                <div className="flex items-start gap-3 p-3 rounded-lg border border-cipher-purple/20 bg-cipher-purple/5 mb-4">
-                  <span className="text-cipher-purple mt-0.5"><Icons.Shield /></span>
+                <div className="flex items-start gap-3 p-3 rounded-lg border border-cipher-shielded/20 bg-cipher-shielded/5 mb-4">
+                  <span className="text-cipher-shielded mt-0.5"><Icons.Shield /></span>
                   <div>
-                    <p className="text-sm font-semibold text-cipher-purple mb-0.5">Privacy Protection Active</p>
+                    <p className="text-sm font-semibold text-cipher-shielded mb-0.5">Privacy Protection Active</p>
                     <p className="text-xs text-secondary">
                       Addresses and amounts are encrypted using zero-knowledge proofs.
                     </p>
@@ -697,12 +693,12 @@ export default function DecodeClient() {
                   <div className="space-y-3">
                     {/* Sapling Spends */}
                     {result.nSpendsSapling > 0 && (
-                      <div className="shielded-input-row p-4 rounded-lg border border-cipher-cyan/20">
+                      <div className="shielded-input-row p-4 rounded-lg border border-cipher-gold/20">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <TxTypeBadge category="sapling" icon={<Icons.Shield />} label="SAPLING SPENDS" />
                           </div>
-                          <span className="text-xl font-bold font-mono text-primary">{result.nSpendsSapling}</span>
+                          <span className="text-xl font-semibold font-mono text-primary">{result.nSpendsSapling}</span>
                         </div>
                         <div className="flex items-center gap-2 mt-2">
                           <Badge color="muted">(amount hidden)</Badge>
@@ -712,12 +708,12 @@ export default function DecodeClient() {
 
                     {/* Sapling Outputs */}
                     {result.nOutputsSapling > 0 && (
-                      <div className="shielded-input-row p-4 rounded-lg border border-cipher-cyan/20">
+                      <div className="shielded-input-row p-4 rounded-lg border border-cipher-gold/20">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <TxTypeBadge category="sapling" icon={<Icons.Shield />} label="SAPLING OUTPUTS" />
                           </div>
-                          <span className="text-xl font-bold font-mono text-primary">{result.nOutputsSapling}</span>
+                          <span className="text-xl font-semibold font-mono text-primary">{result.nOutputsSapling}</span>
                         </div>
                         <div className="flex items-center gap-2 mt-2">
                           <Badge color="muted">(amount hidden)</Badge>
@@ -727,31 +723,37 @@ export default function DecodeClient() {
 
                     {/* Sapling Value Balance */}
                     {result.valueBalanceSapling !== undefined && result.valueBalanceSapling !== 0 && (
-                      <div className="shielded-input-row p-4 rounded-lg border border-cipher-cyan/20">
+                      <div className="shielded-input-row p-4 rounded-lg border border-cipher-gold/20">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <TxTypeBadge category="sapling" icon={<Icons.Currency />} label="SAPLING VALUE BALANCE" />
                           </div>
-                          <span className="text-lg font-bold font-mono text-primary">
+                          <span className="text-lg font-semibold font-mono text-primary">
                             {result.valueBalanceSapling.toFixed(8)} ZEC
                           </span>
                         </div>
                       </div>
                     )}
 
-                    {/* Orchard Actions */}
-                    {result.ironwoodActions > 0 && <div className="p-4 rounded-lg border border-cipher-border">
-                      <p className="text-sm text-muted">Ironwood actions</p>
-                      <p className="font-mono text-primary">{result.ironwoodActions}</p>
-                      <p className="text-sm text-muted">Value balance: {result.valueBalanceIronwood?.toFixed(8)} ZEC</p>
+                    {/* Ironwood bundle */}
+                    {result.ironwoodActions > 0 && <div className="shielded-input-row p-4 rounded-lg border border-cipher-ironwood/20">
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <TxTypeBadge category="ironwood" icon={<Icons.Shield />} label="IRONWOOD ACTIONS" />
+                        <span className="text-xl font-semibold font-mono text-primary tabular-nums">{result.ironwoodActions}</span>
+                      </div>
+                      <div className="flex flex-wrap items-center justify-between gap-2 mt-3">
+                        <span className="text-sm text-muted">Value balance</span>
+                        <span className="font-mono text-sm text-primary tabular-nums break-all">{result.valueBalanceIronwood != null ? `${result.valueBalanceIronwood.toFixed(8)} ZEC` : 'Unavailable'}</span>
+                      </div>
                     </div>}
+                    {/* Orchard Actions */}
                     {result.orchardActions > 0 && (
-                      <div className="shielded-input-row p-4 rounded-lg border border-cipher-purple/20">
+                      <div className="shielded-input-row p-4 rounded-lg border border-cipher-shielded/20">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <TxTypeBadge category="orchard" icon={<Icons.Shield />} label="ORCHARD ACTIONS" />
                           </div>
-                          <span className="text-xl font-bold font-mono text-primary">{result.orchardActions}</span>
+                          <span className="text-xl font-semibold font-mono text-primary">{result.orchardActions}</span>
                         </div>
                         <div className="flex items-center gap-2 mt-2">
                           <Badge color="muted">(amount hidden)</Badge>
@@ -764,12 +766,12 @@ export default function DecodeClient() {
 
                     {/* Orchard Value Balance */}
                     {result.valueBalanceOrchard !== undefined && result.valueBalanceOrchard !== 0 && (
-                      <div className="shielded-input-row p-4 rounded-lg border border-cipher-purple/20">
+                      <div className="shielded-input-row p-4 rounded-lg border border-cipher-shielded/20">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <TxTypeBadge category="orchard" icon={<Icons.Currency />} label="ORCHARD VALUE BALANCE" />
                           </div>
-                          <span className="text-lg font-bold font-mono text-primary">
+                          <span className="text-lg font-semibold font-mono text-primary">
                             {result.valueBalanceOrchard.toFixed(8)} ZEC
                           </span>
                         </div>
@@ -821,8 +823,8 @@ export default function DecodeClient() {
       <Card variant="glass" className="mt-8">
         <CardBody>
           <div className="flex items-start gap-4">
-            <div className="w-10 h-10 rounded-xl bg-cipher-cyan/10 flex items-center justify-center flex-shrink-0">
-              <svg className="w-5 h-5 text-cipher-cyan" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="w-10 h-10 rounded-xl bg-brand-gold/10 flex items-center justify-center flex-shrink-0">
+              <svg className="w-5 h-5 text-cipher-gold" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
@@ -831,14 +833,14 @@ export default function DecodeClient() {
               <p className="text-sm text-secondary leading-relaxed mb-3">
                 A raw transaction is a hex-encoded representation of a Zcash transaction containing all
                 inputs, outputs, and signatures. You can obtain one from a wallet, the{' '}
-                <code className="text-xs font-mono text-cipher-cyan">getrawtransaction</code>{' '}
+                <code className="text-xs font-mono text-cipher-gold">getrawtransaction</code>{' '}
                 RPC call, or by constructing one programmatically.
               </p>
               <div className="flex flex-wrap gap-3 text-xs">
-                <Link href="/tools/broadcast" className="text-cipher-cyan hover:underline font-mono">
+                <Link href="/tools/broadcast" className="text-cipher-gold hover:underline font-mono">
                   &gt; Broadcast a transaction
                 </Link>
-                <Link href="/docs" className="text-cipher-cyan hover:underline font-mono">
+                <Link href="/docs" className="text-cipher-gold hover:underline font-mono">
                   &gt; API documentation
                 </Link>
               </div>

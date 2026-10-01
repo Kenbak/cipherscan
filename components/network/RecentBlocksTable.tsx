@@ -26,7 +26,7 @@ const columns: DataTableColumn<RecentBlock>[] = [
     header: 'Block',
     skeletonWidth: 'w-24',
     cell: (b) => (
-      <Link href={`/block/${b.height}`} className="font-mono text-sm text-cipher-cyan hover:underline">
+      <Link href={`/block/${b.height}`} className="font-mono text-sm text-cipher-gold hover:underline">
         {b.height.toLocaleString()}
       </Link>
     ),
@@ -69,7 +69,7 @@ const columns: DataTableColumn<RecentBlock>[] = [
 
 export function RecentBlocksTable({ initialData, initialFetchedAt }: { initialFetchedAt?: number; initialData?: RecentBlocksResponse | null }) {
   const { data, loading } = useApiQuery<RecentBlocksResponse>(
-    '/api/network/blocks/recent',
+    '/v1/network/blocks/recent-summary',
     { limit: 15 },
     { refreshInterval: 60_000, initialFetchedAt, initialData: initialData ?? undefined },
   );
@@ -80,7 +80,7 @@ export function RecentBlocksTable({ initialData, initialFetchedAt }: { initialFe
       <SectionHeader
         label="RECENT_BLOCKS"
         actions={
-          <Link href="/blocks" className="text-xs font-mono text-cipher-cyan hover:underline">
+          <Link href="/blocks" className="text-xs font-mono text-cipher-gold hover:underline">
             View all →
           </Link>
         }

@@ -1,46 +1,87 @@
-export function getChartColors(theme: 'dark' | 'light') {
-  const isDark = theme === 'dark';
+import { getPrivacyColors } from './privacy-palette';
+import type { MiningSoftware } from './mining-software';
+
+export function getMiningSoftwareColors(theme: 'dark' | 'light'): Record<MiningSoftware, string> {
+  const colors = getChartColors(theme);
   return {
-    grid: isDark ? '#1e293b' : '#e2e8f0',
-    axis: isDark ? '#64748b' : '#94a3b8',
-    tooltipBg: isDark ? '#0f1419' : '#ffffff',
-    tooltipBorder: isDark ? '#1e293b' : '#e2e8f0',
-    tooltipText: isDark ? '#e2e8f0' : '#1e293b',
-
-    // Pool colors — semantic system (distinct hues for scanability)
-    ironwood: isDark ? '#F4B728' : '#D49B00',
-    orchard: isDark ? '#A78BFA' : '#7C3AED',
-    sapling: isDark ? '#56D4C8' : '#0d9488',
-    sprout: isDark ? '#64748b' : '#475569',
-    transparent: isDark ? '#94a3b8' : '#64748b',
-    shielded: isDark ? '#A78BFA' : '#7C3AED',
-    coinbase: isDark ? '#94a3b8' : '#64748b',
-    cyan: '#56D4C8',
-    yellow: isDark ? '#F4B728' : '#D49B00',
-    purple: isDark ? '#A78BFA' : '#7C3AED',
-
-    // Ironwood page — hero accent = gold, everything else defers
-    orchardPool: isDark ? '#A78BFA' : '#7C3AED',
-    ironwoodPool: isDark ? '#F4B728' : '#D49B00',
-    verifiedRing: isDark ? '#10b981' : '#059669',
-
-    // Scatter chart — gold = standard denomination, red = distinctive amount
-    denominated: isDark ? '#F4B728' : '#D49B00',
-    distinctive: isDark ? '#f87171' : '#dc2626',
-
-    // Inflow bar segments — gold at varying opacity
-    inflowOrchard: isDark ? 'rgba(244,183,40,1)' : 'rgba(180,130,0,1)',
-    inflowTransparent: isDark ? 'rgba(244,183,40,0.65)' : 'rgba(180,130,0,0.65)',
-    inflowSapling: isDark ? 'rgba(244,183,40,0.4)' : 'rgba(180,130,0,0.4)',
-    inflowCoinbase: isDark ? 'rgba(244,183,40,0.2)' : 'rgba(180,130,0,0.2)',
-
-    // Chart structural elements
-    referenceLine: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.1)',
-    cursor: isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.15)',
-    gridStroke: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.06)',
-    /** Ironwood / gold-accent bar charts */
-    barCursor: isDark ? 'rgba(244,183,40,0.08)' : 'rgba(244,183,40,0.12)',
-    /** Privacy / cyan-accent bar charts */
-    barCursorCyan: isDark ? 'rgba(86, 212, 200, 0.08)' : 'rgba(13, 148, 136, 0.1)',
+    zebra: colors.axis,
+    zakura: colors.zakura,
+    other: colors.orchard,
+    unknown: colors.referenceLine,
+    conflicting: colors.distinctive,
+    missing: colors.deshielding,
   };
 }
+
+/** Assay information palette. Match semantic roles in app/globals.css. */
+export function getChartColors(theme: 'dark' | 'light') {
+  const dark = theme === 'dark';
+  const privacy = getPrivacyColors(theme);
+  const gold = dark ? '#F8BC21' : '#DB9E00';
+  const iris = dark ? '#B6A0E0' : '#7040B5';
+  const sage = dark ? '#91AC90' : '#14734B';
+  const steel = dark ? '#A1A9AD' : '#687587';
+  const stone = dark ? '#7F897A' : '#526073';
+  const hoverFill = dark ? 'rgba(156,164,176,0.07)' : 'rgba(89,97,109,0.06)';
+  const hoverStroke = dark ? '#565D68' : '#A3ADBA';
+  return {
+    hoverFill,
+    hoverStroke,
+    grid: dark ? '#2C3037' : '#CED3DB',
+    axis: dark ? '#9CA4B0' : '#59616D',
+    tooltipBg: dark ? '#111316' : '#FFFFFF',
+    tooltipBorder: dark ? '#2C3037' : '#CED3DB',
+    tooltipText: dark ? '#F1F3F5' : '#171A20',
+    ironwood: privacy.ironwood,
+    orchard: iris,
+    sapling: sage,
+    zakura: dark ? '#E8A1C4' : '#A63871',
+    sprout: stone,
+    transparent: steel,
+    shielded: privacy.shielded,
+    shielding: dark ? '#65C79A' : '#14734B',
+    deshielding: dark ? '#E2A66E' : '#A34F12',
+    coinbase: steel,
+    gold,
+    yellow: gold,
+    purple: iris,
+    orchardPool: iris,
+    ironwoodPool: privacy.ironwood,
+    verifiedRing: dark ? '#65C79A' : '#14734B',
+    denominated: gold,
+    distinctive: dark ? '#D58D86' : '#B13D38',
+    // Source identity stays consistent across composition and inflow views.
+    inflowOrchard: iris,
+    inflowTransparent: steel,
+    inflowSapling: sage,
+    inflowCoinbase: stone,
+    referenceLine: dark ? '#565D68' : '#A3ADBA',
+    cursor: dark ? '#9CA4B0' : '#59616D',
+    gridStroke: dark ? '#20242A' : '#E4E7EC',
+    barCursor: hoverFill,
+    barCursorGold: hoverFill,
+  };
+}
+
+/** Default and custom chart tooltips use the same surface, spacing and type. */
+export function getChartTooltipStyle(colors: ReturnType<typeof getChartColors>) {
+  return {
+    background: colors.tooltipBg,
+    backgroundColor: colors.tooltipBg,
+    border: `1px solid ${colors.tooltipBorder}`,
+    borderRadius: 8,
+    padding: '12px 16px',
+    color: colors.tooltipText,
+    fontFamily: 'var(--font-geist-mono), monospace',
+    fontSize: 12,
+    lineHeight: 1.5,
+    boxShadow: 'none',
+  };
+}
+
+/** Responsive categorical date axes leave room for the final label. */
+export const CHART_DATE_AXIS = {
+  interval: 'preserveStartEnd' as const,
+  minTickGap: 48,
+  padding: { left: 12, right: 24 },
+};

@@ -1,14 +1,19 @@
 /** The deadline covers headers AND body consumption. */
-export async function fetchLiveJson(url: string, timeoutMs = 15000): Promise<any> {
+export async function fetchLiveResponse<T>(url: string, read: (response: Response) => Promise<T>, timeoutMs = 15000): Promise<T> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
   try {
     const response = await fetch(url, { signal: controller.signal, cache: 'no-store' });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    return await response.json();
+    return await read(response);
   } finally {
     clearTimeout(timeout);
   }
+}
+
+/** JSON consumers retain the same body-inclusive deadline. */
+export function fetchLiveJson(url: string, timeoutMs = 15000): Promise<any> {
+  return fetchLiveResponse(url, response => response.json(), timeoutMs);
 }
 
 /** One polling loop, independent of socket state. Resume events cannot multiply it. */

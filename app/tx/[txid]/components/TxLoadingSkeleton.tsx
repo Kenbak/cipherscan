@@ -1,13 +1,12 @@
 'use client';
+import { Skeleton } from '@/components/ui/Skeleton';
 
 import { Card, CardBody } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { formatRelativeTime } from '@/lib/utils';
 import type { TxMeta } from '@/lib/seo';
 
-function Skeleton({ className = '' }: { className?: string }) {
-  return <div className={`animate-pulse rounded bg-cipher-border ${className}`} />;
-}
+
 
 function statusColor(status: TxMeta['status']): 'green' | 'amber' | 'orange' | 'muted' {
   if (status === 'confirmed') return 'green';
@@ -47,7 +46,7 @@ export function TxLoadingSkeleton({ initialMeta = null }: { initialMeta?: TxMeta
                 Block #{initialMeta.blockHeight.toLocaleString()} · {initialMeta.confirmations.toLocaleString()} confirmation{initialMeta.confirmations === 1 ? '' : 's'} · {formatRelativeTime(initialMeta.timestamp)}
               </span>
             )}
-            {initialMeta.hasShielded && <Badge color="purple">SHIELDED</Badge>}
+            {initialMeta.hasShielded && <Badge color="shielded">SHIELDED</Badge>}
           </div>
         ) : (
           <div className="flex items-center gap-2 mb-4" aria-hidden="true">

@@ -42,7 +42,6 @@ export interface AttestationEndpoint {
   status: string;
 }
 export interface AttestationData {
-  success: boolean;
   network: string;
   generatedAt: string | null;
   servedAt: string;

@@ -3,12 +3,10 @@
 import { useEffect, useState } from 'react';
 import { IconTooltip } from './IconTooltip';
 
-// Deliberately non-numeric — hex glyphs read as a plausible (if odd) real
-// value at a glance, which defeats the point. Symbols can't be mistaken for
-// a number no matter how briefly you look.
-const GLYPHS = '#%*+~^&';
+// Block textures convey redaction without suggesting a numerical value.
+const GLYPHS = '█▓▒';
 const LENGTH = 4;
-const TICK_MS = 220;
+const TICK_MS = 480;
 
 function randomGlyph(): string {
   return GLYPHS[Math.floor(Math.random() * GLYPHS.length)];
@@ -18,58 +16,52 @@ function randomGlyphs(): string[] {
   return Array.from({ length: LENGTH }, randomGlyph);
 }
 
-// Deterministic — no Math.random() — so the server-rendered HTML and the
-// client's first render agree exactly. Randomizing here caused a hydration
-// mismatch on every RedactedAmount instance (server picks one random set,
-// client's initial render picks another), forcing React to discard and
-// re-render the whole tree on mount. The actual churn only starts in
-// useEffect below, which runs client-only after hydration is already done.
+// Stable server markup; also the static reduced-motion representation.
 function initialGlyphs(): string[] {
-  return Array.from({ length: LENGTH }, (_, i) => GLYPHS[i % GLYPHS.length]);
+  return Array.from({ length: LENGTH }, () => '█');
 }
 
-/**
- * Placeholder for an amount that isn't just unloaded but genuinely
- * unknowable — a fully-shielded transaction's value never touches the
- * transparent pool, so there's no number to reveal once "loading" finishes.
- *
- * A static mask (dots, dashes) reads as empty; a shimmer/pulse reads as
- * "still loading" — CipherScan's own convention for that state (see
- * SkeletonTable). Instead this continuously mutates a few symbol glyphs, one
- * at a time, at random — the same visual idea as ciphertext that's actively
- * encrypted rather than absent. Symbols only, never digits — a churning hex
- * value reads as a plausible (if odd) real number at a glance. Each instance
- * runs its own interval so multiple rows drift out of sync instead of
- * flickering in lockstep.
- */
-export function RedactedAmount({ className = '' }: { className?: string }) {
+/** A durable hidden value, never a loading state or an estimated value. */
+export function RedactedAmount({
+  className = '',
+  label = 'Amount hidden — fully shielded transaction',
+  unit = 'ZEC',
+}: { className?: string; label?: string; unit?: string | null }) {
   const [glyphs, setGlyphs] = useState<string[]>(initialGlyphs);
 
   useEffect(() => {
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-
-    // Shuffle once immediately post-mount (client-only, after hydration) so
-    // instances don't all sit on the same deterministic pattern for the
-    // first 220ms before the interval below kicks in.
-    setGlyphs(randomGlyphs());
-
-    const interval = setInterval(() => {
-      setGlyphs(prev => {
-        const next = [...prev];
-        next[Math.floor(Math.random() * LENGTH)] = randomGlyph();
-        return next;
-      });
-    }, TICK_MS);
-    return () => clearInterval(interval);
+    const preference = window.matchMedia('(prefers-reduced-motion: reduce)');
+    let interval: ReturnType<typeof setInterval> | undefined;
+    const updateMotion = () => {
+      clearInterval(interval);
+      if (preference.matches) {
+        setGlyphs(initialGlyphs());
+        return;
+      }
+      setGlyphs(randomGlyphs());
+      interval = setInterval(() => {
+        setGlyphs(prev => {
+          const next = [...prev];
+          next[Math.floor(Math.random() * LENGTH)] = randomGlyph();
+          return next;
+        });
+      }, TICK_MS);
+    };
+    updateMotion();
+    preference.addEventListener('change', updateMotion);
+    return () => {
+      clearInterval(interval);
+      preference.removeEventListener('change', updateMotion);
+    };
   }, []);
 
   return (
     <IconTooltip
-      label="Amount hidden — fully shielded transaction"
+      label={label}
       className={`font-mono text-sm text-secondary whitespace-nowrap ${className}`}
     >
-      <span aria-hidden="true" className="tabular-nums">{glyphs.join('')}</span>
-      <span aria-hidden="true" className="text-muted/40 ml-1.5">ZEC</span>
+      <span aria-hidden="true" className="redacted-blocks">{glyphs.map((glyph, i) => <span key={i}>{glyph}</span>)}</span>
+      {unit && <span aria-hidden="true" className="text-muted ml-1.5">{unit}</span>}
     </IconTooltip>
   );
 }

@@ -1,4 +1,5 @@
 'use client';
+import { ChartSkeleton } from '@/components/ui/Skeleton';
 
 import { useMemo, useState } from 'react';
 import {
@@ -8,21 +9,24 @@ import {
   XAxis,
   YAxis,
   CartesianGrid,
-  Tooltip,
+
   Legend,
   ResponsiveContainer,
   ReferenceLine,
 } from 'recharts';
+import { ChartTooltip as Tooltip } from '@/components/charts/ChartTooltip';
 import { useTheme } from '@/contexts/ThemeContext';
-import { getChartColors } from '@/lib/chart-theme';
+import { getChartColors, getChartTooltipStyle } from '@/lib/chart-theme';
 import { formatChartDate } from '@/lib/chart-dates';
 import { getFlowColors } from '@/lib/flow-colors';
 import { formatZecCompact } from '@/lib/format-numbers';
 import { useApiQuery } from '@/hooks/useApiQuery';
 import { ShareableCard } from '@/components/ShareableCard';
 import { PeriodPillTags } from '@/components/ui/PeriodPillTags';
+import { openAskChart } from '@/lib/ask/widget-context';
+import { NETWORK } from '@/lib/api-config';
 
-type Period = '30d' | '90d' | '1y';
+type Period = '30d' | '90d' | '1y' | 'all';
 type PoolFilter = 'all' | 'ironwood' | 'sapling' | 'orchard';
 
 interface FlowPoint {
@@ -45,6 +49,7 @@ const PERIOD_OPTIONS: { key: Period; label: string }[] = [
   { key: '30d', label: '30D' },
   { key: '90d', label: '90D' },
   { key: '1y', label: '1Y' },
+  { key: 'all', label: 'ALL' },
 ];
 
 function FlowTooltip({
@@ -66,13 +71,9 @@ function FlowTooltip({
   return (
     <div
       className="rounded-lg border px-3 py-2 text-xs font-mono shadow-lg"
-      style={{
-        backgroundColor: colors.tooltipBg,
-        borderColor: colors.tooltipBorder,
-        color: colors.tooltipText,
-      }}
+      style={getChartTooltipStyle(colors)}
     >
-      <p className="mb-2 text-[10px] uppercase tracking-wider text-muted">{formatChartDate(dateStr)}</p>
+      <p className="mb-2 text-caption uppercase tracking-wider text-muted">{formatChartDate(dateStr)}</p>
       {payload.map((entry) => {
         const key = String(entry.name ?? '');
         const abs = Math.abs(Number(entry.value ?? 0));
@@ -94,12 +95,12 @@ export function FlowVolumeChart() {
   const { theme } = useTheme();
   const colors = getChartColors(theme);
   const flowColors = getFlowColors(theme);
-  const [period, setPeriod] = useState<Period>('30d');
+  const [period, setPeriod] = useState<Period>('all');
   const [poolFilter, setPoolFilter] = useState<PoolFilter>('all');
   const [hiddenSeries, setHiddenSeries] = useState<Set<string>>(new Set());
 
   const { data: apiRes, loading } = useApiQuery<{ points: FlowPoint[] }>(
-    '/api/pools/flows',
+    '/v1/shielded-pools/flows',
     { period, pool: poolFilter },
   );
   const points = useMemo(
@@ -108,7 +109,7 @@ export function FlowVolumeChart() {
   );
 
   const poolLabel = POOL_OPTIONS.find((p) => p.key === poolFilter)?.label ?? 'All';
-  const shareText = `Zcash shielding and deshielding flow (${poolLabel}, ${period.toUpperCase()}) on CipherScan.\n\nhttps://cipherscan.app/pools#flows`;
+  const shareText = `Zcash shielding and deshielding flow (${poolLabel}, ${period.toUpperCase()}) on ZecBlock.\n\nhttps://zecblock.com/pools#flows`;
 
   const barSize = useMemo(
     () => Math.max(4, Math.floor(600 / Math.max(points.length, 1))),
@@ -117,6 +118,7 @@ export function FlowVolumeChart() {
 
   const controls = (
     <div className="mb-4 flex flex-wrap items-center justify-end gap-2" data-html2canvas-ignore="true">
+      {NETWORK === 'mainnet' ? <button type="button" disabled={loading || !points.length} onClick={() => openAskChart({ version: 1, metric: 'flows', period: period === 'all' ? '1y' : period, pool: poolFilter, view: 'bar', start: null, end: null })} className="mr-auto text-xs text-cipher-gold hover:underline disabled:opacity-40">{period === 'all' ? 'Explain the last year' : 'Explain this chart'}</button> : null}
       <PeriodPillTags
         options={POOL_OPTIONS}
         value={poolFilter}
@@ -133,12 +135,7 @@ export function FlowVolumeChart() {
   );
 
   const chartBody = loading ? (
-    <div className="flex items-center justify-center" style={{ height: CHART_HEIGHT }}>
-      <div className="w-full max-w-md space-y-3 px-6">
-        <div className="h-4 skeleton-bg animate-pulse rounded" />
-        <div className="h-48 skeleton-bg animate-pulse rounded" />
-      </div>
-    </div>
+    <ChartSkeleton height={CHART_HEIGHT} />
   ) : points.length === 0 ? (
     <div
       className="flex items-center justify-center text-xs font-mono text-muted"
@@ -153,19 +150,19 @@ export function FlowVolumeChart() {
         <XAxis
           dataKey="date"
           stroke={colors.axis}
-          tick={{ fill: colors.axis, fontSize: 10 }}
+          tick={{ fill: colors.axis, fontSize: 12 }}
           tickFormatter={(v) => formatChartDate(String(v))}
           interval="preserveStartEnd"
         />
         <YAxis
           stroke={colors.axis}
-          tick={{ fill: colors.axis, fontSize: 10 }}
+          tick={{ fill: colors.axis, fontSize: 12 }}
           tickFormatter={(v) => formatZecCompact(Math.abs(v))}
           width={54}
         />
         <Tooltip content={<FlowTooltip colors={colors} />} />
         <Legend
-          wrapperStyle={{ fontSize: 11, paddingTop: 8, cursor: 'pointer' }}
+          wrapperStyle={{ fontSize: 12, paddingTop: 8, cursor: 'pointer' }}
           onClick={(data) => {
             const key = String(data.dataKey ?? '');
             if (!key) return;
@@ -225,11 +222,11 @@ export function FlowVolumeChart() {
 
   return (
     <ShareableCard
-      title="Flow Volume"
+      title="Public flows into and out of pools"
       sourceHeight={0}
-      isLive
+      isLive={false}
       shareText={shareText}
-      fileName="cipherscan-flow-volume.png"
+      fileName="zecblock-flow-volume.png"
       watermark
       className=""
       footerNote={`${poolLabel} · ${period.toUpperCase()}`}

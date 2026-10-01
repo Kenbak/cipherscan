@@ -1,4 +1,6 @@
+import { readApiData } from '@/lib/api-client';
 import type { Metadata } from 'next';
+import { notFound } from 'next/navigation';
 import {
   buildPageMetadata,
   formatNumber,
@@ -22,6 +24,21 @@ export function generateStaticParams(): Array<{ height: string }> {
   return [];
 }
 
+async function getTipHeight(): Promise<number> {
+  const res = await fetchWithDeadline(`${getApiUrl()}/v1/network/info`, { next: { revalidate: 30 } });
+  if (!res.ok) throw new Error(`Chain tip returned HTTP ${res.status}`);
+
+  const data = await readApiData(res);
+  const rawHeight = data.height ?? data.blocks;
+  const tipHeight = rawHeight === null || rawHeight === undefined || rawHeight === ''
+    ? Number.NaN
+    : Number(rawHeight);
+  if (!Number.isSafeInteger(tipHeight) || tipHeight < 0) {
+    throw new Error('Chain tip payload is malformed');
+  }
+  return tipHeight;
+}
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { height } = await params;
   const resolution = await getBlockResolution(height);
@@ -29,19 +46,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (resolution.state === 'absent') {
     // Check if this is a future block (valid height above tip)
     if (/^\d+$/.test(height)) {
-      const res = await fetchWithDeadline(`${getApiUrl()}/api/info`, { next: { revalidate: 30 } });
-      if (!res.ok) throw new Error(`Chain tip returned HTTP ${res.status}`);
-
-      const data = await res.json();
-      const rawHeight = data.height ?? data.blocks;
-      const tipHeight = rawHeight === null || rawHeight === undefined || rawHeight === ''
-        ? Number.NaN
-        : Number(rawHeight);
-      if (!Number.isSafeInteger(tipHeight) || tipHeight < 0) {
-        throw new Error('Chain tip payload is malformed');
-      }
+      const tipHeight = await getTipHeight();
       if (Number(height) > tipHeight) {
-        const title = `Zcash Block #${formatNumber(Number(height))} — Estimated Arrival | CipherScan`;
+        const title = `Zcash Block #${formatNumber(Number(height))} — Estimated Arrival | ZecBlock`;
         const description = `Zcash block #${formatNumber(Number(height))} has not been mined yet. Estimated to arrive in approximately ${formatNumber(Number(height) - tipHeight)} blocks. Arrival time depends on network upgrades and mining variance.`;
         return buildPageMetadata({
           title,
@@ -54,8 +61,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       }
     }
 
-    const title = `Zcash Block ${truncateHash(height)} Not Found | CipherScan`;
-    const description = `CipherScan could not find Zcash block ${truncateHash(height)}.`;
+    const title = `Zcash Block ${truncateHash(height)} Not Found | ZecBlock`;
+    const description = `ZecBlock could not find Zcash block ${truncateHash(height)}.`;
 
     return buildPageMetadata({
       title,
@@ -68,10 +75,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   }
 
   if (resolution.state === 'unavailable') {
-    const title = `Zcash Block ${truncateHash(height)} Status Unknown | CipherScan`;
+    const title = `Zcash Block ${truncateHash(height)} Status Unknown | ZecBlock`;
     const fallback = buildPageMetadata({
       title,
-      description: `CipherScan cannot currently verify Zcash block ${truncateHash(height)} because the block index is temporarily unavailable.`,
+      description: `ZecBlock cannot currently verify Zcash block ${truncateHash(height)} because the block index is temporarily unavailable.`,
       path: `/block/${encodeURIComponent(height)}`,
       index: false,
       imageAlt: title,
@@ -107,24 +114,27 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const replacementHash = block.canonicalBlock?.hash?.toLowerCase();
 
   const title = isOrphaned
-    ? `Orphaned Zcash Block #${blockLabel} | CipherScan`
-    : `Zcash Block #${blockLabel} | CipherScan`;
+    ? `Orphaned Zcash Block #${blockLabel} | ZecBlock`
+    : `Zcash Block #${blockLabel} | ZecBlock`;
 
+  // Block hashes share long runs of leading zeros; the tail is what tells them apart.
+  const hashTail = (hash: string) => `…${hash.slice(-12)}`;
+  const txLabel = `${formatNumber(transactionCount)} transaction${transactionCount !== 1 ? 's' : ''}`;
   let description: string;
   if (isOrphaned) {
     const replacement = replacementHash
-      ? ` Canonical replacement: ${truncateHash(replacementHash)}.`
+      ? ` Canonical replacement: ${hashTail(replacementHash)}.`
       : '';
-    description = `Orphaned Zcash block #${blockLabel} recorded ${formatNumber(transactionCount)} transaction${transactionCount !== 1 ? 's' : ''} before it was replaced in a chain reorganization. Hash: ${truncateHash(canonicalHash)}.${replacement}`;
+    description = `Orphaned Zcash block #${blockLabel} (hash ${hashTail(canonicalHash)}) recorded ${txLabel} before it was replaced in a chain reorganization.${replacement}`;
   } else {
     const validTimestamp = Number.isFinite(timestamp) && timestamp > 0;
     const datePart = validTimestamp
-      ? ` mined on ${new Date(timestamp * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`
+      ? `, mined ${new Date(timestamp * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' })} UTC,`
       : '';
     const sizePart = Number.isFinite(size) && size > 0
-      ? `, size ${(size / 1024).toFixed(1)} KB`
+      ? ` (${(size / 1024).toFixed(1)} KB)`
       : '';
-    description = `Zcash block #${blockLabel}${datePart}. Contains ${formatNumber(transactionCount)} transaction${transactionCount !== 1 ? 's' : ''}${sizePart}. Hash: ${truncateHash(canonicalHash)}.`;
+    description = `Zcash block #${blockLabel}${datePart} with ${txLabel}${sizePart}. See its transactions, miner, fees and timing.`;
   }
 
   return buildPageMetadata({
@@ -136,6 +146,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   });
 }
 
-export default function BlockLayout({ children }: { children: React.ReactNode }) {
+// The existence check lives here, above this segment's loading boundary, so a
+// missing block is decided before streaming commits the response to 200.
+export default async function BlockLayout({ params, children }: Props) {
+  const { height } = await params;
+  const resolution = await getBlockResolution(height);
+  if (resolution.state === 'absent') {
+    const isFutureHeight = /^\d+$/.test(height) && Number(height) > await getTipHeight();
+    if (!isFutureHeight) notFound();
+  }
   return children;
 }

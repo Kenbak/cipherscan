@@ -35,9 +35,9 @@ function toneClasses(tone: PrivacyEventPoint['tone']) {
   switch (tone) {
     case 'shield':
       return {
-        ring: 'ring-cipher-purple/40',
-        fill: 'bg-cipher-purple',
-        text: 'text-cipher-purple',
+        ring: 'ring-cipher-shielded/40',
+        fill: 'bg-cipher-shielded',
+        text: 'text-cipher-shielded',
       };
     case 'deshield':
       return {
@@ -47,9 +47,9 @@ function toneClasses(tone: PrivacyEventPoint['tone']) {
       };
     default:
       return {
-        ring: 'ring-cipher-cyan/40',
-        fill: 'bg-cipher-cyan',
-        text: 'text-cipher-cyan',
+        ring: 'ring-cipher-gold/40',
+        fill: 'bg-brand-gold',
+        text: 'text-cipher-gold',
       };
   }
 }
@@ -87,7 +87,7 @@ export function PrivacyEventRail({
 
                 <div className={`pb-4 ${index === ordered.length - 1 ? 'pb-0' : ''}`}>
                   <div className="flex flex-wrap items-baseline justify-between gap-2">
-                    <p className={`text-[10px] font-mono uppercase tracking-[0.18em] ${classes.text}`}>
+                    <p className={`text-caption font-mono uppercase tracking-[0.18em] ${classes.text}`}>
                       {point.title}
                     </p>
                     <p className="text-xs font-medium text-primary">
@@ -97,7 +97,7 @@ export function PrivacyEventRail({
                     </p>
                   </div>
                   {point.subtitle && (
-                    <p className="mt-1 text-[11px] leading-relaxed text-secondary break-words">
+                    <p className="mt-1 text-caption leading-relaxed text-secondary break-words">
                       {point.subtitle}
                     </p>
                   )}
@@ -114,7 +114,7 @@ export function PrivacyEventRail({
     return (
       <div className={`rounded-2xl border border-cipher-border bg-cipher-surface/20 p-4 ${className}`}>
         <div className="relative">
-          <div className="absolute left-4 right-4 top-2 h-px bg-gradient-to-r from-cipher-purple/40 via-cipher-cyan/30 to-cipher-orange/40" />
+          <div className="absolute left-4 right-4 top-2 h-px bg-gradient-to-r from-cipher-shielded/40 via-cipher-gold/30 to-cipher-orange/40" />
           <div className="grid grid-cols-2 gap-6 pt-0">
             {ordered.map((point, index) => {
               const classes = toneClasses(point.tone);
@@ -128,7 +128,7 @@ export function PrivacyEventRail({
                   <div className={`mb-3 inline-flex h-4 w-4 items-center justify-center rounded-full ring-4 ${classes.ring}`}>
                     <div className={`h-2.5 w-2.5 rounded-full ${classes.fill}`} />
                   </div>
-                  <p className={`text-[10px] font-mono uppercase tracking-[0.18em] ${classes.text}`}>
+                  <p className={`text-caption font-mono uppercase tracking-[0.18em] ${classes.text}`}>
                     {point.title}
                   </p>
                   <p className="mt-1 text-xs font-medium text-primary">
@@ -137,7 +137,7 @@ export function PrivacyEventRail({
                       : formatAbsolute(point.timestamp)}
                   </p>
                   {point.subtitle && (
-                    <p className={`mt-1 text-[11px] leading-relaxed text-secondary break-words ${isStart ? 'max-w-[10rem]' : 'ml-auto max-w-[10rem]'}`}>
+                    <p className={`mt-1 text-caption leading-relaxed text-secondary break-words ${isStart ? 'max-w-[10rem]' : 'ml-auto max-w-[10rem]'}`}>
                       {point.subtitle}
                     </p>
                   )}
@@ -153,7 +153,7 @@ export function PrivacyEventRail({
   return (
     <div className={`rounded-2xl border border-cipher-border bg-cipher-surface/20 p-4 ${className}`}>
       <div className="relative min-h-[122px]">
-        <div className="absolute left-4 right-4 top-10 h-px bg-gradient-to-r from-cipher-purple/40 via-cipher-cyan/30 to-cipher-orange/40" />
+        <div className="absolute left-4 right-4 top-10 h-px bg-gradient-to-r from-cipher-shielded/40 via-cipher-gold/30 to-cipher-orange/40" />
         {ordered.map((point, index) => {
           const left = ordered.length === 1
             ? 0.5
@@ -170,7 +170,7 @@ export function PrivacyEventRail({
                 <div className={`mb-3 inline-flex h-4 w-4 items-center justify-center rounded-full ring-4 ${classes.ring}`}>
                   <div className={`h-2.5 w-2.5 rounded-full ${classes.fill}`} />
                 </div>
-                <p className={`text-[10px] font-mono uppercase tracking-[0.18em] ${classes.text}`}>
+                <p className={`text-caption font-mono uppercase tracking-[0.18em] ${classes.text}`}>
                   {point.title}
                 </p>
                 <p className="mt-1 text-xs font-medium text-primary">
@@ -179,7 +179,7 @@ export function PrivacyEventRail({
                     : formatAbsolute(point.timestamp)}
                 </p>
                 {point.subtitle && (
-                  <p className="mt-1 max-w-[9rem] text-[11px] leading-relaxed text-secondary break-words">
+                  <p className="mt-1 max-w-[9rem] text-caption leading-relaxed text-secondary break-words">
                     {point.subtitle}
                   </p>
                 )}

@@ -5,14 +5,14 @@ export function generateMetadata(): Metadata {
   const network = getNetwork();
   if (network !== 'mainnet') {
     return {
-      title: 'Page Not Found | CipherScan',
+      title: 'Page Not Found | ZecBlock',
       description: 'The NU7 vote tracker is only available on mainnet.',
       robots: { index: false, follow: false },
     };
   }
 
   return buildPageMetadata({
-    title: 'NU7 Coinholder Vote Results & Verification | CipherScan',
+    title: 'NU7 Coinholder Vote Results & Verification | ZecBlock',
     description:
       'See published Zcash NU7 coinholder vote results, ZEC participation by question, and instructions to independently verify the tally with your own voting-chain node.',
     keywords: [
@@ -27,7 +27,7 @@ export function generateMetadata(): Metadata {
     ],
     path: '/governance/nu7',
     index: true,
-    imageAlt: 'CipherScan NU7 coinholder vote tracker',
+    imageAlt: 'ZecBlock NU7 coinholder vote tracker',
     networks: ['mainnet'],
   });
 }

@@ -122,7 +122,7 @@ async function fetchSwapBatch(swapDirection, cursor, startTs, endTs) {
 
   if (cursor) {
     params.lastDepositAddress = cursor.address;
-    params.lastDepositMemo = cursor.memo || '';
+    if (cursor.memo) params.lastDepositMemo = cursor.memo;
   }
 
   const txs = await nearRequest('/transactions', params);

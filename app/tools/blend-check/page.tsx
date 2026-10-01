@@ -1,5 +1,6 @@
 'use client';
 
+import { readApiData } from '@/lib/api-client';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { getApiUrl } from '@/lib/api-config';
 import { Card, CardHeader, CardBody } from '@/components/ui/Card';
@@ -77,7 +78,7 @@ function getScoreColor(score: number): string {
 function getScoreBg(score: number): string {
   if (score >= 70) return 'bg-cipher-green';
   if (score >= 40) return 'bg-cipher-orange';
-  return 'bg-red-400';
+  return 'bg-danger';
 }
 
 function getScoreBadgeColor(score: number): 'green' | 'orange' | 'muted' {
@@ -132,21 +133,21 @@ export default function BlendCheckPage() {
     try {
       const [blendRes, splitRes] = await Promise.all([
         fetch(
-          `${getApiUrl()}/api/blend-check?amount=${parsed}`,
+          `${getApiUrl()}/v1/privacy/blend-check?amount=${parsed}`,
           { signal: controller.signal }
         ),
         fetch(
-          `${getApiUrl()}/api/blend-check/split?amount=${parsed}`,
+          `${getApiUrl()}/v1/privacy/blend-check/split?amount=${parsed}`,
           { signal: controller.signal }
         ),
       ]);
 
       if (!blendRes.ok) throw new Error(`API error: ${blendRes.status}`);
-      const blendData = await blendRes.json();
+      const blendData = await readApiData(blendRes);
       setResult(blendData);
 
       if (splitRes.ok) {
-        const splitData = await splitRes.json();
+        const splitData = await readApiData(splitRes);
         setSplitResult(splitData);
         setSelectedPlanIdx(0);
       }
@@ -196,7 +197,7 @@ export default function BlendCheckPage() {
           <span className="text-muted opacity-50 font-mono text-xs">{'>'}</span>
           <span className="text-xs font-mono text-muted uppercase tracking-wider">BLEND_CHECK</span>
         </div>
-        <h1 className="text-2xl sm:text-3xl font-semibold text-primary tracking-tight">
+        <h1 className="type-page text-primary ">
           Blend Check
         </h1>
         <p className="text-sm text-secondary mt-2 max-w-lg">
@@ -211,7 +212,7 @@ export default function BlendCheckPage() {
           {/* Amount input */}
           <Card>
             <CardHeader>
-              <h2 className="text-sm font-semibold text-secondary uppercase tracking-wider">
+              <h2 className="text-sm font-semibold text-secondary lowercase tracking-tight">
                 How much are you shielding?
               </h2>
             </CardHeader>
@@ -223,7 +224,7 @@ export default function BlendCheckPage() {
                   value={amount}
                   onChange={handleAmountChange}
                   placeholder="0.00"
-                  className="w-full px-5 py-4 rounded-xl border border-cipher-border bg-cipher-hover text-2xl font-mono text-primary placeholder:text-muted/20 focus:outline-none focus:border-cipher-cyan/40 focus:shadow-[0_0_0_3px_rgba(0,212,255,0.06)] transition"
+                  className="w-full px-5 py-4 rounded-xl border border-cipher-border bg-cipher-hover text-2xl font-mono text-primary placeholder:text-muted focus:outline-none focus:border-cipher-gold/40 focus:shadow-[0_0_0_3px_rgba(248,188,33,0.06)] transition"
                   autoFocus
                 />
                 <span className="absolute right-5 top-1/2 -translate-y-1/2 text-muted font-mono text-lg">
@@ -237,7 +238,7 @@ export default function BlendCheckPage() {
                     onClick={() => handleSuggestionClick(q)}
                     className={`px-3 py-1.5 rounded-lg border text-xs font-mono transition ${
                       amount === formatZec(q)
-                        ? 'border-cipher-cyan/40 bg-cipher-cyan/10 text-cipher-cyan'
+                        ? 'border-cipher-gold/40 bg-brand-gold/10 text-cipher-gold'
                         : 'border-cipher-border text-muted hover:text-primary hover:border-white/[0.12]'
                     }`}
                   >
@@ -248,7 +249,7 @@ export default function BlendCheckPage() {
 
               {loading && (
                 <div className="flex items-center gap-2 text-muted text-xs font-mono mt-5">
-                  <div className="animate-spin rounded-full h-3 w-3 border border-cipher-cyan border-t-transparent" />
+                  <div className="animate-spin rounded-full h-3 w-3 border border-cipher-gold border-t-transparent" />
                   Scanning shielded pool...
                 </div>
               )}
@@ -265,7 +266,7 @@ export default function BlendCheckPage() {
               <CardBody>
                 <div className="flex items-start gap-4">
                   <div className={`w-14 h-14 rounded-xl flex items-center justify-center shrink-0 ${getScoreBg(score)}/10 border border-cipher-border`}>
-                    <span className={`text-2xl font-bold font-mono ${getScoreColor(score)}`}>
+                    <span className={`text-2xl font-semibold font-mono ${getScoreColor(score)}`}>
                       {score}
                     </span>
                   </div>
@@ -301,7 +302,7 @@ export default function BlendCheckPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-primary">
-                      Try <span className="font-mono font-semibold text-cipher-cyan">{formatZec(bestNearby.amount)} ZEC</span> instead?
+                      Try <span className="font-mono font-semibold text-cipher-gold">{formatZec(bestNearby.amount)} ZEC</span> instead?
                     </p>
                     <p className="text-xs text-muted mt-0.5">
                       {formatNumber(bestNearby.count)} others used this amount recently
@@ -319,7 +320,7 @@ export default function BlendCheckPage() {
           {splitResult && hasResult && (
             <Card className="animate-fade-in-up stagger-5">
               <CardHeader>
-                <h2 className="text-sm font-semibold text-secondary uppercase tracking-wider">
+                <h2 className="text-sm font-semibold text-secondary lowercase tracking-tight">
                   Split Plan
                 </h2>
               </CardHeader>
@@ -331,9 +332,9 @@ export default function BlendCheckPage() {
                     </p>
                     <p className="text-xs text-muted mt-2">
                       {bestNearby ? (
-                        <>Try rounding to <button onClick={() => handleSuggestionClick(bestNearby.amount)} className="text-cipher-cyan font-mono hover:underline">{formatZec(bestNearby.amount)} ZEC</button> instead.</>
+                        <>Try rounding to <button onClick={() => handleSuggestionClick(bestNearby.amount)} className="text-cipher-gold font-mono hover:underline">{formatZec(bestNearby.amount)} ZEC</button> instead.</>
                       ) : (
-                        <>Try a round number like <button onClick={() => handleSuggestionClick(1)} className="text-cipher-cyan font-mono hover:underline">1</button>, <button onClick={() => handleSuggestionClick(5)} className="text-cipher-cyan font-mono hover:underline">5</button>, or <button onClick={() => handleSuggestionClick(10)} className="text-cipher-cyan font-mono hover:underline">10 ZEC</button>.</>
+                        <>Try a round number like <button onClick={() => handleSuggestionClick(1)} className="text-cipher-gold font-mono hover:underline">1</button>, <button onClick={() => handleSuggestionClick(5)} className="text-cipher-gold font-mono hover:underline">5</button>, or <button onClick={() => handleSuggestionClick(10)} className="text-cipher-gold font-mono hover:underline">10 ZEC</button>.</>
                       )}
                     </p>
                   </div>
@@ -353,7 +354,7 @@ export default function BlendCheckPage() {
                           onClick={() => setSelectedPlanIdx(i)}
                           className={`px-3 py-1.5 rounded-lg border text-xs font-mono transition ${
                             selectedPlanIdx === i
-                              ? 'border-cipher-cyan/40 bg-cipher-cyan/10 text-cipher-cyan'
+                              ? 'border-cipher-gold/40 bg-brand-gold/10 text-cipher-gold'
                               : 'border-cipher-border text-muted hover:text-primary hover:border-white/[0.12]'
                           }`}
                         >
@@ -382,7 +383,7 @@ export default function BlendCheckPage() {
                                       ? 'border-cipher-green bg-cipher-green/20'
                                       : piece.blendScore >= 40
                                       ? 'border-cipher-orange bg-cipher-orange/20'
-                                      : 'border-red-400 bg-red-400/20'
+                                      : 'border-danger bg-danger/20'
                                   }`} />
                                   {i < plan.pieces.length - 1 && (
                                     <div className="w-px flex-1 bg-cipher-border my-0.5" />
@@ -411,12 +412,12 @@ export default function BlendCheckPage() {
                                           style={{ width: `${Math.max(piece.blendScore, 5)}%` }}
                                         />
                                       </div>
-                                      <span className={`text-[10px] font-mono ${getScoreColor(piece.blendScore)}`}>
+                                      <span className={`text-caption font-mono ${getScoreColor(piece.blendScore)}`}>
                                         {piece.blendScore}
                                       </span>
                                     </div>
                                   </div>
-                                  <p className="text-[10px] text-muted mt-1 font-mono">
+                                  <p className="text-caption text-muted mt-1 font-mono">
                                     {piece.isRemainder && piece.blendScore < 40
                                       ? 'Shield this separately, at a different time'
                                       : piece.blendScore >= 70
@@ -433,7 +434,7 @@ export default function BlendCheckPage() {
                           <div className="mt-4 pt-3 border-t border-cipher-border flex items-center justify-between">
                             <p className="text-xs text-muted font-mono">
                               Weakest piece: <span className={getScoreColor(plan.minBlendScore)}>{plan.minBlendScore}/100</span>
-                              <span className="text-muted/50 ml-2">
+                              <span className="text-muted ml-2">
                                 (was {score})
                               </span>
                             </p>
@@ -446,7 +447,7 @@ export default function BlendCheckPage() {
                                 setCopied(true);
                                 setTimeout(() => setCopied(false), 2000);
                               }}
-                              className="text-xs font-mono text-cipher-cyan hover:text-cipher-green transition-colors flex items-center gap-1.5"
+                              className="text-xs font-mono text-cipher-gold hover:text-cipher-green transition-colors flex items-center gap-1.5"
                             >
                               {copied ? (
                                 <>
@@ -483,7 +484,7 @@ export default function BlendCheckPage() {
               {/* Period breakdown */}
               <Card>
                 <CardHeader>
-                  <h2 className="text-sm font-semibold text-secondary uppercase tracking-wider">
+                  <h2 className="text-sm font-semibold text-secondary lowercase tracking-tight">
                     Shielded Pool Matches
                   </h2>
                 </CardHeader>
@@ -494,22 +495,22 @@ export default function BlendCheckPage() {
                       const labels: Record<string, string> = { '24h': '24 Hours', '7d': '7 Days', '30d': '30 Days', 'all': 'All Time' };
                       return (
                         <div key={p} className="rounded-xl border border-cipher-border bg-cipher-hover p-4">
-                          <div className="text-[10px] font-mono text-muted uppercase tracking-wider mb-2">
+                          <div className="text-caption font-mono text-muted uppercase tracking-wider mb-2">
                             {labels[p]}
                           </div>
-                          <div className="text-xl font-bold font-mono text-primary">
+                          <div className="text-xl font-semibold font-mono text-primary">
                             {formatNumber(d.total)}
                           </div>
                           <div className="flex items-center gap-3 mt-2">
                             <div className="flex items-center gap-1">
                               <div className="w-1.5 h-1.5 rounded-full bg-cipher-green/60" />
-                              <span className="text-[10px] font-mono text-muted">
+                              <span className="text-caption font-mono text-muted">
                                 {formatNumber(d.shields)} in
                               </span>
                             </div>
                             <div className="flex items-center gap-1">
-                              <div className="w-1.5 h-1.5 rounded-full bg-purple-400/60" />
-                              <span className="text-[10px] font-mono text-muted">
+                              <div className="w-1.5 h-1.5 rounded-full bg-cipher-purple/60" />
+                              <span className="text-caption font-mono text-muted">
                                 {formatNumber(d.deshields)} out
                               </span>
                             </div>
@@ -518,13 +519,13 @@ export default function BlendCheckPage() {
                       );
                     })}
                   </div>
-                  <div className="mt-4 pt-3 border-t border-cipher-border flex items-center gap-4 text-[10px] font-mono text-muted">
+                  <div className="mt-4 pt-3 border-t border-cipher-border flex items-center gap-4 text-caption font-mono text-muted">
                     <div className="flex items-center gap-1.5">
                       <div className="w-1.5 h-1.5 rounded-full bg-cipher-green/60" />
                       <span>in = shielding (t → z)</span>
                     </div>
                     <div className="flex items-center gap-1.5">
-                      <div className="w-1.5 h-1.5 rounded-full bg-purple-400/60" />
+                      <div className="w-1.5 h-1.5 rounded-full bg-cipher-purple/60" />
                       <span>out = deshielding (z → t)</span>
                     </div>
                   </div>
@@ -535,7 +536,7 @@ export default function BlendCheckPage() {
               {result.nearbyPopular.length > 0 && (
                 <Card>
                   <CardHeader>
-                    <h2 className="text-sm font-semibold text-secondary uppercase tracking-wider">
+                    <h2 className="text-sm font-semibold text-secondary lowercase tracking-tight">
                       Popular Nearby
                     </h2>
                   </CardHeader>
@@ -549,11 +550,11 @@ export default function BlendCheckPage() {
                             onClick={() => handleSuggestionClick(np.amount)}
                             className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg border transition text-left group ${
                               isSelected
-                                ? 'border-cipher-cyan/30 bg-cipher-cyan/5'
+                                ? 'border-cipher-gold/30 bg-brand-gold/5'
                                 : 'border-transparent hover:border-cipher-border hover:bg-cipher-hover'
                             }`}
                           >
-                            <span className={`font-mono text-sm w-24 shrink-0 ${isSelected ? 'text-cipher-cyan font-semibold' : 'text-primary'}`}>
+                            <span className={`font-mono text-sm w-24 shrink-0 ${isSelected ? 'text-cipher-gold font-semibold' : 'text-primary'}`}>
                               {formatZec(np.amount)}
                             </span>
                             <div className="flex-1 h-1.5 rounded-full bg-cipher-hover overflow-hidden">
@@ -569,7 +570,7 @@ export default function BlendCheckPage() {
                         );
                       })}
                     </div>
-                    <p className="text-[10px] text-muted font-mono mt-3">
+                    <p className="text-caption text-muted font-mono mt-3">
                       Ranked by blend score. Click any amount to check it.
                     </p>
                   </CardBody>
@@ -614,19 +615,19 @@ export default function BlendCheckPage() {
                   </p>
                   <div className="pt-3 border-t border-cipher-border space-y-2 text-xs text-muted font-mono">
                     <p className="flex gap-2">
-                      <span className="text-cipher-cyan shrink-0">$</span>
+                      <span className="text-cipher-gold shrink-0">$</span>
                       Use round numbers: 1, 2.5, 5, 10, 25, 50, 100 ZEC
                     </p>
                     <p className="flex gap-2">
-                      <span className="text-cipher-cyan shrink-0">$</span>
+                      <span className="text-cipher-gold shrink-0">$</span>
                       Split large or odd amounts into multiple transactions
                     </p>
                     <p className="flex gap-2">
-                      <span className="text-cipher-cyan shrink-0">$</span>
+                      <span className="text-cipher-gold shrink-0">$</span>
                       Shield the leftover at a different time to avoid correlation
                     </p>
                     <p className="flex gap-2">
-                      <span className="text-cipher-cyan shrink-0">$</span>
+                      <span className="text-cipher-gold shrink-0">$</span>
                       Use a unified address (u1...) for maximum privacy
                     </p>
                   </div>

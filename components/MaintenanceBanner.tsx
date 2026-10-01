@@ -1,5 +1,6 @@
 'use client';
 
+import { readApiData } from '@/lib/api-client';
 import { useState, useEffect, useCallback } from 'react';
 import { getApiUrl } from '@/lib/api-config';
 
@@ -14,13 +15,13 @@ export function MaintenanceBanner() {
   const checkStaleness = useCallback(async () => {
     try {
       const API_URL = getApiUrl();
-      const res = await fetch(`${API_URL}/api/blocks?limit=1`);
+      const res = await fetch(`${API_URL}/v1/blocks?limit=1`);
       if (!res.ok) {
         setStatus('unavailable');
         return;
       }
-      const data = await res.json();
-      const latest = data.blocks?.[0];
+      const data = await readApiData(res);
+      const latest = data?.[0];
       if (!latest?.timestamp) {
         setStatus('unavailable');
         return;
@@ -48,7 +49,7 @@ export function MaintenanceBanner() {
 
   return (
     <div
-      className="bg-cipher-orange/90 text-black px-4 py-2 text-center text-sm font-medium relative"
+      className="border-b border-warning/30 bg-warning/10 text-primary px-12 py-3 text-center text-sm font-medium relative"
       role="status"
       aria-live="polite"
     >
@@ -59,7 +60,7 @@ export function MaintenanceBanner() {
       </span>
       <button
         onClick={() => setDismissed(true)}
-        className="absolute right-4 top-1/2 -translate-y-1/2 hover:text-amber-900 transition-colors"
+        className="absolute right-1 top-1/2 -translate-y-1/2 flex h-11 w-11 items-center justify-center text-secondary hover:text-primary transition-colors"
         aria-label="Dismiss"
       >
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

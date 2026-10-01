@@ -24,6 +24,7 @@ function loadTypeScriptModule(relativePath, imports = {}) {
     if (Object.prototype.hasOwnProperty.call(imports, specifier)) {
       return imports[specifier];
     }
+    if (specifier === '@/lib/api-client') return loadTypeScriptModule('lib/api-client.ts');
     return createRequire(filename)(specifier);
   };
   const evaluate = new Function('exports', 'require', 'module', '__filename', '__dirname', output);
@@ -82,6 +83,7 @@ function captureBlockApiRoute() {
     get(route, callback) { handlers.set(route, callback); },
   };
   loadJavaScriptModule('server/api/routes/blocks.js', {
+    '../lib/mining-software': require('../api/lib/mining-software'),
     express: { Router: () => router },
     '../mining-pools': {
       getPoolName: () => null,
@@ -251,19 +253,19 @@ test('block resolution is shared, cached, and preserves unavailable states', asy
       });
     }
     if (identifier === '506') {
-      return new Response(JSON.stringify({ height: 506 }), {
+      return new Response(JSON.stringify(v1Fixture({ height: 506 })), {
         status: 200,
         headers: { 'Content-Type': 'application/json' },
       });
     }
 
-    return new Response(JSON.stringify({
+    return new Response(JSON.stringify(v1Fixture({
       height: '123',
       hash: 'b'.repeat(64),
       transactionCount: '1',
       isOrphaned: true,
       canonicalBlock: { hash: 'c'.repeat(64) },
-    }), {
+    })), {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
     });
@@ -359,7 +361,7 @@ test('block summary feed avoids transaction detail fan-out', async () => {
 
 test('block metadata uses resolved canonical identity through the shared builder', async () => {
   let resolution;
-  let fetchTip = async () => new Response(JSON.stringify({ height: 1_000 }), {
+  let fetchTip = async () => new Response(JSON.stringify(v1Fixture({ height: 1_000 })), {
     headers: { 'content-type': 'application/json' },
   });
   const metadataCalls = [];
@@ -398,7 +400,9 @@ test('block metadata uses resolved canonical identity through the shared builder
   assert.equal(metadataCalls.at(-1).path, '/block/123');
   assert.equal(metadataCalls.at(-1).index, true);
   assert.equal(metadataCalls.at(-1).indexOnTestnet, undefined);
-  assert.equal(metadataCalls.at(-1).description.includes('Contains 1 transaction'), true);
+  assert.equal(metadataCalls.at(-1).description.includes('with 1 transaction'), true);
+  // Canonical block descriptions identify the block by height, not a zero-padded hash.
+  assert.equal(metadataCalls.at(-1).description.includes(blockHash.slice(0, 12)), false);
 
   resolution = {
     state: 'found',
@@ -414,6 +418,8 @@ test('block metadata uses resolved canonical identity through the shared builder
   await layoutModule.generateMetadata({ params: Promise.resolve({ height: blockHash }) });
   assert.equal(metadataCalls.at(-1).path, `/block/${blockHash}`);
   assert.equal(metadataCalls.at(-1).index, true);
+  // Orphan pages are keyed by hash, so the description names its distinguishing tail.
+  assert.equal(metadataCalls.at(-1).description.includes(`…${blockHash.slice(-12)}`), true);
 
   resolution = { state: 'absent' };
   await layoutModule.generateMetadata({ params: Promise.resolve({ height: '999' }) });
@@ -437,8 +443,8 @@ test('block metadata uses resolved canonical identity through the shared builder
 
 test('shared metadata policy indexes blocks only on mainnet', () => {
   const cases = [
-    { network: 'mainnet', baseUrl: 'https://cipherscan.app', index: true },
-    { network: 'testnet', baseUrl: 'https://testnet.cipherscan.app', index: false },
+    { network: 'mainnet', baseUrl: 'https://zecblock.com', index: true },
+    { network: 'testnet', baseUrl: 'https://testnet.zecblock.com', index: false },
     { network: 'crosslink-testnet', baseUrl: 'https://crosslink.cipherscan.app', index: false },
   ];
 
@@ -499,8 +505,8 @@ test('block consumers share one resolver and transaction JSON-LD escapes opening
 test('sitemap serializers escape, deduplicate, bound, and omit ignored fields', () => {
   const sitemap = loadTypeScriptModule('lib/sitemaps.ts');
   const xml = sitemap.serializeUrlSet([
-    { url: 'https://cipherscan.app/a?x=1&y=<two>', lastModified: '2026-07-15' },
-    { url: 'https://cipherscan.app/a?x=1&y=<two>' },
+    { url: 'https://zecblock.com/a?x=1&y=<two>', lastModified: '2026-07-15' },
+    { url: 'https://zecblock.com/a?x=1&y=<two>' },
   ]);
 
   assert.equal((xml.match(/<url>/g) || []).length, 1);
@@ -510,7 +516,7 @@ test('sitemap serializers escape, deduplicate, bound, and omit ignored fields', 
   assert.equal(xml.includes('<changefreq>'), false);
 
   const tooMany = Array.from({ length: sitemap.MAX_SITEMAP_URLS + 1 }, (_, index) => ({
-    url: `https://cipherscan.app/block/${index}`,
+    url: `https://zecblock.com/block/${index}`,
   }));
   assert.throws(() => sitemap.serializeUrlSet(tooMany), /cannot contain more than/);
 });
@@ -529,21 +535,21 @@ test('sitemap cohorts are disjoint and block ranges require aligned explicit con
   const newsletters = [{
     slug: '2026-07-15', title: 'Issue', summary: '', date: '2026-07-15', issue: 1, content: '',
   }];
-  const core = sitemap.getStaticSitemapEntries('core', 'https://cipherscan.app', newsletters);
-  const content = sitemap.getStaticSitemapEntries('content', 'https://cipherscan.app', newsletters);
-  const tools = sitemap.getStaticSitemapEntries('tools', 'https://cipherscan.app', newsletters);
+  const core = sitemap.getStaticSitemapEntries('core', 'https://zecblock.com', newsletters);
+  const content = sitemap.getStaticSitemapEntries('content', 'https://zecblock.com', newsletters);
+  const tools = sitemap.getStaticSitemapEntries('tools', 'https://zecblock.com', newsletters);
   const allUrls = [...core, ...content, ...tools].map((entry) => entry.url);
 
   assert.equal(new Set(allUrls).size, allUrls.length);
-  assert.ok(allUrls.includes('https://cipherscan.app/privacy/wallets'));
-  assert.ok(allUrls.includes('https://cipherscan.app/newsletter/2026-07-15'));
-  assert.ok(allUrls.includes('https://cipherscan.app/tools/unit-converter'));
-  assert.equal(allUrls.includes('https://cipherscan.app/migration'), false);
+  assert.ok(allUrls.some((url) => url === 'https://zecblock.com/privacy/wallets'));
+  assert.ok(allUrls.some((url) => url === 'https://zecblock.com/newsletter/2026-07-15'));
+  assert.ok(allUrls.some((url) => url === 'https://zecblock.com/tools/unit-converter'));
+  assert.equal(allUrls.some((url) => url === 'https://zecblock.com/migration'), false);
 
-  const indexEntries = sitemap.getMainnetSitemapIndexEntries('https://cipherscan.app', ranges);
-  assert.ok(indexEntries.some(({ url }) => url === 'https://cipherscan.app/sitemap-core.xml'));
+  const indexEntries = sitemap.getMainnetSitemapIndexEntries('https://zecblock.com', ranges);
+  assert.ok(indexEntries.some(({ url }) => url === 'https://zecblock.com/sitemap-core.xml'));
   assert.ok(indexEntries.some(({ url }) => (
-    url === 'https://cipherscan.app/sitemap-blocks-3400000-3449999.xml'
+    url === 'https://zecblock.com/sitemap-blocks-3400000-3449999.xml'
   )));
 });
 
@@ -569,7 +575,6 @@ test('legacy migration and swap routes permanently consolidate authority', async
   assert.deepEqual(rewrites.fallback, []);
 
   const latestRoutes = [
-    ['/blocks', '/blocks/latest', ['cursor', 'direction', 'page']],
     ['/txs', '/txs/latest', ['cursor', 'cursor_idx', 'cursor_id', 'direction', 'page', 'type', 'flow_type', 'pool', 'min_zec']],
   ];
   for (const [source, destination, queryKeys] of latestRoutes) {
@@ -577,13 +582,21 @@ test('legacy migration and swap routes permanently consolidate authority', async
     assert.equal(rewrite.destination, destination);
     assert.deepEqual(rewrite.missing, queryKeys.map((key) => ({ type: 'query', key })));
   }
+  assert.equal(rewrites.beforeFiles.some((route) => route.source === '/blocks'), false);
+  // https://github.com/vercel/vercel/blob/main/packages/routing-utils/src/schemas.ts
+  // Next accepts larger arrays, but Vercel rejects them after a successful build.
+  for (const route of [...redirects, ...Object.values(rewrites).flat()]) {
+    for (const condition of ['has', 'missing']) {
+      assert.ok((route[condition]?.length ?? 0) <= 16, `${route.source}: too many ${condition} conditions for Vercel`);
+    }
+  }
 });
 
 test('root sitemap is a mainnet index, a testnet homepage set, and an empty Crosslink set', async () => {
   const sitemap = loadTypeScriptModule('lib/sitemaps.ts');
   const cases = [
-    { network: 'mainnet', baseUrl: 'https://cipherscan.app', root: 'sitemapindex' },
-    { network: 'testnet', baseUrl: 'https://testnet.cipherscan.app', root: 'urlset' },
+    { network: 'mainnet', baseUrl: 'https://zecblock.com', root: 'sitemapindex' },
+    { network: 'testnet', baseUrl: 'https://testnet.zecblock.com', root: 'urlset' },
     { network: 'crosslink-testnet', baseUrl: null, root: 'urlset' },
   ];
 
@@ -606,10 +619,10 @@ test('root sitemap is a mainnet index, a testnet homepage set, and an empty Cros
     assert.match(xml, new RegExp(`<${testCase.root}`));
 
     if (testCase.network === 'mainnet') {
-      assert.match(xml, /https:\/\/cipherscan\.app\/sitemap-core\.xml/);
+      assert.match(xml, /https:\/\/zecblock\.com\/sitemap-core\.xml/);
       assert.equal(xml.includes('<priority>'), false);
     } else if (testCase.network === 'testnet') {
-      assert.match(xml, /https:\/\/testnet\.cipherscan\.app\//);
+      assert.match(xml, /https:\/\/testnet\.zecblock\.com\//);
       assert.equal(xml.includes('/blocks'), false);
     } else {
       assert.equal(baseUrlCalls, 0);
@@ -632,7 +645,7 @@ test('child sitemap isolates static cohorts and returns explicit 404/503 failure
     '@/lib/refresh-cache': refreshCache,
     '@/lib/seo': {
       getApiUrl: () => 'https://api.mainnet.cipherscan.app',
-      getBaseUrl: () => 'https://cipherscan.app',
+      getBaseUrl: () => 'https://zecblock.com',
       getNetwork: () => network,
     },
     '@/lib/sitemaps': sitemap,
@@ -645,25 +658,25 @@ test('child sitemap isolates static cohorts and returns explicit 404/503 failure
 
   global.fetch = async () => new Response(null, { status: 503 });
   const route = loadRoute();
-  const core = await route.GET(new Request('https://cipherscan.app/sitemaps/core'), {
+  const core = await route.GET(new Request('https://zecblock.com/sitemaps/core'), {
     params: Promise.resolve({ slug: 'core' }),
   });
   assert.equal(core.status, 200);
-  assert.match(await core.text(), /https:\/\/cipherscan\.app\/privacy\/wallets/);
+  assert.match(await core.text(), /https:\/\/zecblock\.com\/privacy\/wallets/);
 
-  const unavailable = await route.GET(new Request('https://cipherscan.app/sitemaps/addresses'), {
+  const unavailable = await route.GET(new Request('https://zecblock.com/sitemaps/addresses'), {
     params: Promise.resolve({ slug: 'addresses' }),
   });
   assert.equal(unavailable.status, 503);
   assert.equal(unavailable.headers.get('retry-after'), '60');
 
-  const unknown = await route.GET(new Request('https://cipherscan.app/sitemaps/blocks-1-50000'), {
+  const unknown = await route.GET(new Request('https://zecblock.com/sitemaps/blocks-1-50000'), {
     params: Promise.resolve({ slug: 'blocks-1-50000' }),
   });
   assert.equal(unknown.status, 404);
 
   const testnetRoute = loadRoute('testnet');
-  const testnetChild = await testnetRoute.GET(new Request('https://testnet.cipherscan.app/sitemaps/core'), {
+  const testnetChild = await testnetRoute.GET(new Request('https://testnet.zecblock.com/sitemaps/core'), {
     params: Promise.resolve({ slug: 'core' }),
   });
   assert.equal(testnetChild.status, 404);
@@ -682,7 +695,7 @@ test('ZNS child sitemap coalesces one bounded registration refresh', async () =>
     '@/lib/refresh-cache': refreshCache,
     '@/lib/seo': {
       getApiUrl: () => 'https://api.mainnet.cipherscan.app',
-      getBaseUrl: () => 'https://cipherscan.app',
+      getBaseUrl: () => 'https://zecblock.com',
       getNetwork: () => 'mainnet',
     },
     '@/lib/sitemaps': sitemap,
@@ -692,21 +705,22 @@ test('ZNS child sitemap coalesces one bounded registration refresh', async () =>
         return { registered: 5000 };
       },
       isValidName: (name) => /^name\d+$/.test(name),
-      listZnsRegistrations: async (limit, offset) => {
+      listZnsRegistrations: async (limit, cursor) => {
         registrationCalls += 1;
-        return Array.from({ length: limit }, (_, index) => ({ name: `name${offset + index}` }));
+        const offset = Number(cursor || 0);
+        return { items: Array.from({ length: limit }, (_, index) => ({ name: `name${offset + index}` })), page: { nextCursor: String(offset + limit), hasNext: true } };
       },
     },
   });
 
   const responses = await Promise.all(Array.from({ length: 3 }, () => route.GET(
-    new Request('https://cipherscan.app/sitemaps/names'),
+    new Request('https://zecblock.com/sitemaps/names'),
     { params: Promise.resolve({ slug: 'names' }) },
   )));
   const bodies = await Promise.all(responses.map((response) => response.text()));
   assert.equal(statusCalls, 1);
   assert.equal(registrationCalls, 10);
-  assert.ok(bodies.every((body) => body.includes('https://cipherscan.app/name/name4999')));
+  assert.ok(bodies.every((body) => [...body.matchAll(/<loc>(.*?)<\/loc>/g)].some((match) => match[1] === 'https://zecblock.com/name/name4999')));
 });
 
 test('transaction archive metadata indexes only unfiltered first pages', async () => {
@@ -721,7 +735,7 @@ test('transaction archive metadata indexes only unfiltered first pages', async (
     },
     '@/lib/seo': {
       buildPageMetadata: (options) => options,
-      getBaseUrl: () => 'https://cipherscan.app',
+      getBaseUrl: () => 'https://zecblock.com',
     },
     '@/lib/server-fetch': {
       fetchWithDeadline: (url, init) => global.fetch(url, init),
@@ -738,7 +752,7 @@ test('transaction archive metadata indexes only unfiltered first pages', async (
 
   const txFirst = await txs.generateMetadata({ searchParams: Promise.resolve({}) });
   const txArchive = await txs.generateMetadata({
-    searchParams: Promise.resolve({ cursor: '100', cursor_idx: '1', direction: 'next', page: '2' }),
+    searchParams: Promise.resolve({ cursor: Buffer.from(JSON.stringify({ v: 1, route: '/v1/transactions', cursor: 100, cursor_idx: 1 })).toString('base64url'), direction: 'next', page: '2' }),
   });
   const txFilter = await txs.generateMetadata({ searchParams: Promise.resolve({ type: 'coinbase' }) });
   assert.equal(txFirst.index, true);
@@ -749,7 +763,7 @@ test('transaction archive metadata indexes only unfiltered first pages', async (
 
   const shieldedFirst = await txs.generateMetadata({ searchParams: Promise.resolve({ type: 'shielded' }) });
   const shieldedArchive = await txs.generateMetadata({
-    searchParams: Promise.resolve({ type: 'shielded', cursor: '100', cursor_id: '1', direction: 'next', page: '2' }),
+    searchParams: Promise.resolve({ type: 'shielded', cursor: Buffer.from(JSON.stringify({ v: 1, route: '/v1/transactions/shielded', cursor: 100, cursor_id: 1 })).toString('base64url'), direction: 'next', page: '2' }),
   });
   const shieldedFilter = await txs.generateMetadata({
     searchParams: Promise.resolve({ type: 'shielded', pool: 'orchard' }),
@@ -826,8 +840,10 @@ test('crawl graph avoids canonical block aliases and known shared redirect targe
   assert.equal(blocksClient.includes('href={`/block/${block.hash.toLowerCase()}`'), false);
   assert.equal(reorgs.includes('href={`/block/${block.canonicalBlock?.hash || block.canonicalHash}`'), false);
   assert.match(footer, /href="https:\/\/www\.cipherpay\.app\/"/);
-  assert.equal(footer.includes('https://www.cipherpay.app/en'), false);
-  assert.match(footer, /href="\/charts"/);
+  const footerHrefs = [...footer.matchAll(/href="([^"]+)"/g)].map((match) => match[1]);
+  assert.equal(footerHrefs.some((href) => href === 'https://www.cipherpay.app/en'), false);
+  assert.match(footer, /getNavigation/);
+  assert.match(fs.readFileSync(path.join(repositoryRoot, 'lib/navigation.ts'), 'utf8'), /href: '\/charts'/);
   assert.match(sitemapDefinitions, /['"]\/usage-clock['"]/);
   assert.match(richListPage, /next: \{ revalidate: 60 \}/);
   assert.match(richListClient, /initialAddresses/);
@@ -839,4 +855,23 @@ test('crawl graph avoids canonical block aliases and known shared redirect targe
   );
   assert.equal(content.includes('github.com/ZcashFoundation/zebra/security/advisories/GHSA-28xj-328h-72vm'), false);
   assert.equal(content.includes('github.com/ZcashFoundation/zebra/security/advisories/GHSA-jg86-rwhm-fhg4'), false);
+});
+
+function v1Fixture(body) {
+ const { success, ...rest } = body;
+ const collection = rest.pagination && (rest.blocks || rest.transactions || rest.flows);
+ return { data: collection || rest, meta: { requestId: '00000000-0000-4000-8000-000000000000', network: 'mainnet', generatedAt: '2026-09-07T00:00:00.000Z', indexedHeight: 123, source: { indexedHeight: null, observedAt: null }, freshness: { status: 'unknown', ageSeconds: null }, ...(collection ? { page: { limit: 25, hasNext: false, hasPrev: false, nextCursor: null, prevCursor: null, total: rest.pagination.total ?? 0 } } : {}) } };
+}
+
+
+test('robots omit unsupported Googlebot crawl delays on every network', () => {
+ const previous=process.env.NEXT_PUBLIC_NETWORK;
+ try {
+  for(const network of ['mainnet','testnet','crosslink-testnet']) {
+   process.env.NEXT_PUBLIC_NETWORK=network;
+   const {default:robots}=loadTypeScriptModule('app/robots.ts', {'@/lib/seo': {getNetwork:()=>network,getBaseUrl:()=> 'https://zecblock.com'}});
+   const rules=[robots().rules].flat();
+   for(const rule of rules) if([rule.userAgent].flat().includes('Googlebot')) assert.equal(rule.crawlDelay,undefined);
+  }
+ } finally { if(previous===undefined)delete process.env.NEXT_PUBLIC_NETWORK;else process.env.NEXT_PUBLIC_NETWORK=previous; }
 });

@@ -140,7 +140,7 @@ export default function UnitConverterClient() {
         >
           ← All Tools
         </Link>
-        <h1 className="text-2xl md:text-3xl font-bold text-primary">ZEC ↔ Zatoshi</h1>
+        <h1 className="type-page text-primary">ZEC ↔ Zatoshi</h1>
         <p className="text-sm text-secondary mt-1">
           1 ZEC = 100,000,000 zatoshis (10<sup>8</sup>). Convert between ZEC and the smallest protocol unit.
         </p>
@@ -210,7 +210,7 @@ export default function UnitConverterClient() {
 
           <Card>
             <CardBody>
-              <h2 className="text-sm font-bold text-primary mb-2 font-mono">Why zatoshis?</h2>
+              <h2 className="text-sm font-semibold text-primary mb-2 font-mono">Why zatoshis?</h2>
               <p className="text-sm text-secondary leading-relaxed">
                 Zatoshi is the smallest unit of ZEC (1 zatoshi = 10<sup>-8</sup> ZEC). Wallets and protocols
                 often work in zatoshis to avoid floating-point issues. Transaction amounts in the blockchain
@@ -224,7 +224,7 @@ export default function UnitConverterClient() {
         <div className="min-w-0">
           <Card className="h-full">
             <CardBody>
-              <h2 className="text-sm font-bold text-primary mb-1 font-mono">Reference values</h2>
+              <h2 className="text-sm font-semibold text-primary mb-1 font-mono">Reference values</h2>
               <p className="text-xs text-muted mb-4">Copy for use in scripts or APIs.</p>
               <div className="space-y-0">
                 <CopyableRow label="1 ZEC" valueDisplay="100,000,000 zatoshi" valueToCopy="100000000" />

@@ -17,13 +17,12 @@ export function BlockPageError({
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <Card className="text-center" role="alert" ariaLive="assertive">
         <CardBody className="py-16">
-          <div className="text-5xl mb-6" aria-hidden="true">{temporarilyUnavailable ? '⚠️' : '🔍'}</div>
-          <h1 className="text-2xl font-bold font-mono text-primary mb-3">
+          <h1 className="type-page font-sans text-primary mb-3">
             {temporarilyUnavailable ? 'Block Data Temporarily Unavailable' : 'Block No Longer Available'}
           </h1>
           <p className="text-secondary mb-3">
             {temporarilyUnavailable
-              ? 'CipherScan could not refresh this block from the block index. Please try again shortly.'
+              ? 'ZecBlock could not refresh this block from the block index. Please try again shortly.'
               : 'This block is no longer present in the block index.'}
           </p>
           {initialSummary ? (
@@ -37,7 +36,7 @@ export function BlockPageError({
               <code className="font-mono text-secondary break-all">{identifier}</code>
             </p>
           )}
-          <Link href="/" className="text-cipher-cyan hover:text-cipher-green transition-colors font-mono text-sm">
+          <Link href="/" className="btn btn-md btn-secondary">
             ← Back to Explorer
           </Link>
         </CardBody>

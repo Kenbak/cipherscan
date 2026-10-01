@@ -59,7 +59,7 @@ export function IconTooltip({ label, children, className = '' }: IconTooltipProp
       tabIndex={0}
       role="img"
       aria-label={label}
-      className={`inline-flex items-center justify-center rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cipher-cyan/60 ${className}`}
+      className={`inline-flex items-center justify-center rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cipher-gold/60 ${className}`}
       onMouseEnter={handleShow}
       onMouseLeave={handleHide}
       onFocus={handleShow}
@@ -68,7 +68,7 @@ export function IconTooltip({ label, children, className = '' }: IconTooltipProp
       {children}
       {show && coords && typeof document !== 'undefined' && createPortal(
         <div
-          className="fixed z-[9999] px-2.5 py-1.5 text-[11px] font-mono leading-none tooltip-content whitespace-nowrap pointer-events-none animate-fade-in"
+          className="fixed z-[9999] px-2.5 py-1.5 text-caption font-mono leading-none tooltip-content whitespace-nowrap pointer-events-none animate-fade-in"
           style={{ top: coords.top, left: coords.left, transform: 'translate(-50%, -100%)', marginTop: -8 }}
         >
           {label}

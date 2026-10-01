@@ -1,5 +1,6 @@
 'use client';
 
+import { readApiData } from '@/lib/api-client';
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Tooltip } from '@/components/Tooltip';
@@ -104,22 +105,22 @@ export function CrosslinkChainView({
     try {
       const api = getApiUrl();
       const [blocksRes, crosslinkRes, bftRes, bftChainRes, divRes] = await Promise.all([
-        fetch(`${api}/api/blocks?limit=${blocksToShow}`),
-        fetch(`${api}/api/crosslink`),
-        fetch(`${api}/api/crosslink/bft-tip`),
-        fetch(`${api}/api/crosslink/bft-chain?limit=${blocksToShow}`),
+        fetch(`${api}/v1/blocks?limit=${blocksToShow}`),
+        fetch(`${api}/v1/crosslink`),
+        fetch(`${api}/v1/crosslink/bft-tip`),
+        fetch(`${api}/v1/crosslink/bft-chain?limit=${blocksToShow}`),
         variant === 'full'
-          ? fetch(`${api}/api/crosslink/divergence-history?limit=10`)
+          ? fetch(`${api}/v1/crosslink/divergence-history?limit=10`)
           : Promise.resolve(null),
       ]);
 
       if (blocksRes.ok) {
-        const data = await blocksRes.json();
-        setBlocks(data.blocks || []);
+        const data = await readApiData(blocksRes);
+        setBlocks(data || []);
       }
       if (crosslinkRes.ok) {
-        const data = await crosslinkRes.json();
-        if (data.success) {
+        const data = await readApiData(crosslinkRes);
+        if (data) {
           setStats({
             tipHeight: data.tipHeight,
             finalizedHeight: data.finalizedHeight,
@@ -130,8 +131,8 @@ export function CrosslinkChainView({
         }
       }
       if (bftRes.ok) {
-        const data = await bftRes.json();
-        if (data.success) {
+        const data = await readApiData(bftRes);
+        if (data) {
           setBftTip({
             votedBlockHash: data.votedBlockHash,
             signatureCount: data.signatureCount,
@@ -139,12 +140,12 @@ export function CrosslinkChainView({
         }
       }
       if (bftChainRes.ok) {
-        const data = await bftChainRes.json();
-        if (data.success) setDecisions(data.decisions || []);
+        const data = await readApiData(bftChainRes);
+        if (data) setDecisions(data.decisions || []);
       }
       if (divRes && divRes.ok) {
-        const data = await divRes.json();
-        if (data.success) setDivergenceEvents(data.events || []);
+        const data = await readApiData(divRes);
+        if (data) setDivergenceEvents(data.events || []);
       }
     } catch (err) {
       console.error('Chain view fetch error:', err);
@@ -175,7 +176,7 @@ export function CrosslinkChainView({
   if (loading && blocks.length === 0) {
     return (
       <div className="card p-8 flex items-center justify-center min-h-[240px]">
-        <div className="animate-spin rounded-full h-6 w-6 border-2 border-cipher-cyan border-t-transparent" />
+        <div className="animate-spin rounded-full h-6 w-6 border-2 border-cipher-gold border-t-transparent" />
       </div>
     );
   }
@@ -224,12 +225,12 @@ export function CrosslinkChainView({
       </div>
 
       {variant === 'compact' && (
-        <div className="mt-3 flex items-center justify-between text-[11px] font-mono">
+        <div className="mt-3 flex items-center justify-between text-caption font-mono">
           <span className="text-muted">
             {stats &&
               `Finalized through #${stats.finalizedHeight.toLocaleString()} · gap ${stats.finalityGap}`}
           </span>
-          <Link href="/chain" className="text-cipher-cyan hover:underline">
+          <Link href="/chain" className="text-cipher-gold hover:underline">
             Open Chain View →
           </Link>
         </div>
@@ -268,9 +269,9 @@ function ChainRow({
 
   if (isTip) {
     badgeLabel = 'TIP';
-    badgeClass = 'text-cipher-cyan bg-cipher-cyan/10 border-cipher-cyan/40';
-    accentClass = 'bg-cipher-cyan';
-    borderClass = 'border-cipher-cyan/50';
+    badgeClass = 'text-cipher-gold bg-brand-gold/10 border-cipher-gold/40';
+    accentClass = 'bg-brand-gold';
+    borderClass = 'border-cipher-gold/50';
   } else if (isVotingOn) {
     badgeLabel = 'VOTING';
     badgeClass = 'text-cipher-orange bg-cipher-orange/10 border-cipher-orange/40';
@@ -278,39 +279,39 @@ function ChainRow({
     borderClass = 'border-cipher-orange/50';
   } else if (isFinalized) {
     badgeLabel = 'FINAL';
-    badgeClass = 'text-cipher-cyan-muted bg-[rgba(94,187,206,0.08)] border-[rgba(94,187,206,0.3)]';
-    accentClass = 'bg-cipher-cyan-muted';
+    badgeClass = 'text-cipher-gold-muted bg-[rgba(94,187,206,0.08)] border-[rgba(94,187,206,0.3)]';
+    accentClass = 'bg-cipher-gold-muted';
     borderClass = 'border-cipher-border';
   } else {
     badgeLabel = 'PENDING';
-    badgeClass = 'text-neutral-500 dark:text-neutral-400 border-cipher-border';
-    accentClass = 'bg-cipher-cyan/50';
+    badgeClass = 'text-muted border-cipher-border';
+    accentClass = 'bg-brand-gold/50';
     borderClass = 'border-cipher-border';
   }
 
   return (
     <Link
       href={`/block/${block.height}`}
-      className={`group flex items-stretch rounded-md border ${borderClass} bg-white dark:bg-white/[0.03] overflow-hidden hover:border-cipher-cyan/60 transition-colors`}
+      className={`group flex items-stretch rounded-md border ${borderClass} bg-white dark:bg-white/[0.03] overflow-hidden hover:border-cipher-gold/60 transition-colors`}
     >
       <span className={`block w-1 shrink-0 ${accentClass}`} />
 
       <div className="flex-1 min-w-0 px-3 py-2 flex items-center gap-3">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 min-w-0">
-            <span className="font-mono text-[13px] font-semibold tabular-nums text-black dark:text-white group-hover:text-primary transition-colors shrink-0">
+            <span className="font-mono text-data font-semibold tabular-nums text-black dark:text-white group-hover:text-primary transition-colors shrink-0">
               #{block.height.toLocaleString()}
             </span>
             <span
-              className={`shrink-0 inline-flex items-center px-1.5 py-[1px] rounded border text-[9px] font-mono uppercase tracking-wider ${badgeClass}`}
+              className={`shrink-0 inline-flex items-center px-1.5 py-[1px] rounded border text-caption font-mono uppercase tracking-wider ${badgeClass}`}
             >
               {badgeLabel}
             </span>
-            <code className="hidden sm:inline text-[10px] font-mono text-neutral-600 dark:text-neutral-300 truncate">
+            <code className="hidden sm:inline text-caption font-mono text-secondary truncate">
               {block.hash.slice(0, 8)}…{block.hash.slice(-6)}
             </code>
           </div>
-          <div className="mt-0.5 font-mono text-[10px] flex items-center gap-1.5 text-neutral-500 dark:text-neutral-400">
+          <div className="mt-0.5 font-mono text-caption flex items-center gap-1.5 text-muted">
             <span className="tabular-nums text-black dark:text-white">
               {fmtAge(block.timestamp)}
             </span>
@@ -365,9 +366,9 @@ function BftChip({
 }) {
   if (state === 'pending') {
     return (
-      <div className="flex items-center gap-1.5 text-[10px] font-mono">
+      <div className="flex items-center gap-1.5 text-caption font-mono">
         <span className="inline-block w-1.5 h-1.5 rounded-full bg-cipher-orange/60 animate-pulse" />
-        <span className="text-neutral-500 dark:text-neutral-400 uppercase tracking-wider">
+        <span className="text-muted uppercase tracking-wider">
           pending
         </span>
       </div>
@@ -376,9 +377,9 @@ function BftChip({
 
   if (state === 'final') {
     return (
-      <div className="flex items-center gap-1.5 text-[10px] font-mono">
-        <span className="inline-block w-1.5 h-1.5 rounded-full bg-cipher-cyan-muted" />
-        <span className="text-cipher-cyan-muted uppercase tracking-wider">
+      <div className="flex items-center gap-1.5 text-caption font-mono">
+        <span className="inline-block w-1.5 h-1.5 rounded-full bg-cipher-gold-muted" />
+        <span className="text-cipher-gold-muted uppercase tracking-wider">
           bft ✓
         </span>
       </div>
@@ -400,15 +401,15 @@ function BftChip({
         {isVoting && (
           <span className="absolute inset-0 rounded-full bg-cipher-orange/30 animate-ping opacity-60" />
         )}
-        <span className="relative font-mono text-[10px] font-semibold tabular-nums">
+        <span className="relative font-mono text-caption font-semibold tabular-nums">
           {count}
         </span>
       </span>
-      <div className="text-[10px] font-mono leading-tight">
+      <div className="text-caption font-mono leading-tight">
         <div className="text-black dark:text-white tabular-nums">
           {isVoting ? 'voting' : `of ${total}`}
         </div>
-        <div className="text-neutral-500 dark:text-neutral-400 tabular-nums">
+        <div className="text-muted tabular-nums">
           {isVoting
             ? `${count}/${total}`
             : blocksInDecision && blocksInDecision > 1
@@ -470,12 +471,12 @@ function TipStat({
 }) {
   return (
     <div className="card p-4">
-      <div className="text-[10px] font-mono text-muted uppercase tracking-wider mb-1 flex items-center gap-1">
+      <div className="text-caption font-mono text-muted uppercase tracking-wider mb-1 flex items-center gap-1">
         <span>{label}</span>
         {tooltip && <Tooltip content={tooltip} />}
       </div>
       <div
-        className={`text-lg sm:text-xl font-mono font-bold ${
+        className={`text-lg sm:text-xl font-mono font-semibold ${
           accent === 'orange' ? 'text-cipher-orange' : 'text-primary'
         }`}
       >
@@ -502,11 +503,11 @@ function FrontierMarker({
         <span className="relative inline-flex h-2 w-2 rounded-full bg-cipher-green" />
       </span>
       <div className="min-w-0">
-        <div className="text-[11px] font-semibold text-cipher-green whitespace-nowrap">
+        <div className="text-caption font-semibold text-cipher-green whitespace-nowrap">
           Finality Frontier
         </div>
         {!compact && (
-          <div className="text-[9px] text-muted font-mono whitespace-nowrap">
+          <div className="text-caption text-muted font-mono whitespace-nowrap">
             {finalizerCount} finalizers · {totalStakeZec.toFixed(1)} cTAZ
           </div>
         )}
@@ -532,9 +533,9 @@ function BftVoteMarker({
         <span className="relative inline-flex h-2 w-2 rounded-full bg-cipher-orange" />
       </span>
       <div className="min-w-0">
-        <div className="text-[11px] font-semibold text-cipher-orange whitespace-nowrap">Voting now</div>
+        <div className="text-caption font-semibold text-cipher-orange whitespace-nowrap">Voting now</div>
         {!compact && (
-          <div className="text-[9px] text-muted font-mono whitespace-nowrap">
+          <div className="text-caption text-muted font-mono whitespace-nowrap">
             {signatureCount}/{finalizerCount} sigs · {pct}%
           </div>
         )}
@@ -586,12 +587,12 @@ function DivergencePanel({
           <span className="relative flex h-2.5 w-2.5 mt-1.5 shrink-0">
             <span
               className={`absolute inline-flex h-full w-full animate-ping rounded-full opacity-60 ${
-                openEvent ? 'bg-cipher-orange' : 'bg-cipher-cyan'
+                openEvent ? 'bg-cipher-orange' : 'bg-brand-gold'
               }`}
             />
             <span
               className={`relative inline-flex h-2.5 w-2.5 rounded-full ${
-                openEvent ? 'bg-cipher-orange' : 'bg-cipher-cyan'
+                openEvent ? 'bg-cipher-orange' : 'bg-brand-gold'
               }`}
             />
           </span>
@@ -609,7 +610,7 @@ function DivergencePanel({
                   . Started {fmtAgo(openEvent.start_time)} at finalized block{' '}
                   <Link
                     href={`/block/${openEvent.start_finalized_height}`}
-                    className="text-cipher-cyan hover:underline"
+                    className="text-cipher-gold hover:underline"
                   >
                     #{openEvent.start_finalized_height.toLocaleString()}
                   </Link>
@@ -620,7 +621,7 @@ function DivergencePanel({
                   We&apos;ve diverged at finalized block{' '}
                   <Link
                     href={`/block/${recurringHeight[0]}`}
-                    className="text-cipher-cyan hover:underline"
+                    className="text-cipher-gold hover:underline"
                   >
                     #{recurringHeight[0].toLocaleString()}
                   </Link>{' '}
@@ -648,7 +649,7 @@ function DivergencePanel({
         <div className="mt-4 pt-4 border-t border-cipher-border overflow-x-auto">
           <table className="w-full text-xs font-mono min-w-[560px]">
             <thead>
-              <tr className="text-left text-muted text-[10px] uppercase tracking-wider">
+              <tr className="text-left text-muted text-caption uppercase tracking-wider">
                 <th className="py-2 pr-4">Started</th>
                 <th className="py-2 pr-4">Diverged at</th>
                 <th className="py-2 pr-4 text-right">Peak gap</th>
@@ -663,7 +664,7 @@ function DivergencePanel({
                   <td className="py-2 pr-4">
                     <Link
                       href={`/block/${e.start_finalized_height}`}
-                      className="text-cipher-cyan hover:underline"
+                      className="text-cipher-gold hover:underline"
                     >
                       #{e.start_finalized_height.toLocaleString()}
                     </Link>

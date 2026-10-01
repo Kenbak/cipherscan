@@ -1,5 +1,6 @@
 'use client';
 
+import { readApiData } from '@/lib/api-client';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Tooltip } from '@/components/Tooltip';
@@ -65,23 +66,23 @@ function MetricCell({
   tooltip: string;
   value: string | number;
   suffix?: string;
-  color?: 'purple' | 'cyan' | 'muted';
+  color?: 'purple' | 'gold' | 'muted';
 }) {
   const colorClass = {
     purple: 'text-primary',
-    cyan: 'text-primary',
+    gold: 'text-primary',
     muted: 'text-primary',
   }[color];
 
   return (
     <div>
       <div className="flex items-center gap-1.5 mb-1">
-        <span className="text-[10px] text-muted font-mono uppercase tracking-wide">{label}</span>
+        <span className="text-caption text-muted font-mono uppercase tracking-wide">{label}</span>
         <Tooltip content={tooltip} />
       </div>
       <div className="flex items-baseline gap-1">
         <span className={`text-lg sm:text-xl font-semibold font-mono ${colorClass}`}>{value}</span>
-        {suffix && <span className="text-[10px] text-muted font-mono">{suffix}</span>}
+        {suffix && <span className="text-caption text-muted font-mono">{suffix}</span>}
       </div>
     </div>
   );
@@ -99,11 +100,11 @@ export function PrivacyWidget({ initialStats = null, initialRiskStats = null }: 
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const apiUrl = `${getApiUrl()}/api/privacy-stats`;
+        const apiUrl = `${getApiUrl()}/v1/privacy/stats`;
 
         const response = await fetch(apiUrl);
-        const result = await response.json();
-        const statsData = result.success ? result.data : result;
+        const result = await readApiData(response);
+        const statsData = result;
         setStats(statsData);
       } catch (error) {
         console.error('Error fetching privacy stats:', error);
@@ -112,12 +113,12 @@ export function PrivacyWidget({ initialStats = null, initialRiskStats = null }: 
 
     const fetchRiskStats = async () => {
       try {
-        const apiUrl = `${getApiUrl()}/api/privacy/risks?limit=1&period=7d`;
+        const apiUrl = `${getApiUrl()}/v1/privacy/risks?limit=1&period=7d`;
 
         const response = await fetch(apiUrl);
         if (response.ok) {
-          const data = await response.json();
-          if (data.success && data.stats) {
+          const data = await readApiData(response);
+          if (data && data.stats) {
             setRiskStats({
               total: data.stats.total,
               highRisk: data.stats.highRisk,
@@ -225,14 +226,14 @@ export function PrivacyWidget({ initialStats = null, initialRiskStats = null }: 
               className="lg:pl-5 group/risk"
             >
               <div className="flex items-center gap-1.5 mb-1">
-                <span className="text-[10px] text-muted font-mono uppercase tracking-wide">Privacy Risks</span>
+                <span className="text-caption text-muted font-mono uppercase tracking-wide">Privacy Risks</span>
                 <Tooltip content="Transactions where shielding patterns may reveal address links" />
               </div>
               <div className="flex items-baseline gap-1">
                 <span className={`text-lg sm:text-xl font-semibold font-mono ${hasHighRisk ? 'text-danger' : 'text-cipher-orange'}`}>
                   {riskStats!.total}
                 </span>
-                <span className="text-[10px] text-muted font-mono">7d</span>
+                <span className="text-caption text-muted font-mono">7d</span>
               </div>
             </Link>
           </>

@@ -82,14 +82,20 @@ function BlockRewardBreakdown({
 
   return (
     <FactBox label="Coinbase Outputs" tooltip="The visible outputs created by this block's coinbase transaction. Deferred-development-lockbox accrual is part of the subsidy but is not a transaction output.">
+      {minerPool && !data.minerAddress && (
+        <p className="mb-2 text-caption text-muted" title="Pool identified from the public coinbase tag; payout recipient remains shielded">
+          Pool · {minerPoolUrl ? <a href={minerPoolUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{minerPool}</a> : minerPool}
+          <span className="ml-1.5">(coinbase tag)</span>
+        </p>
+      )}
       <BoldZec value={total} />
       <div className="mt-2 space-y-1">
         {recipients.map((r, i) => (
-          <div key={i} className="flex flex-wrap items-center justify-between gap-2 text-[11px]">
+          <div key={i} className="flex flex-wrap items-center justify-between gap-2 text-caption">
             <div className="flex items-center gap-1.5 min-w-0 text-muted">
               <span className="shrink-0">{r.label}</span>
               {r.address ? (
-                <CopyableHash value={r.address} href={`/address/${r.address}`} textSize="text-[11px]" colorClass="text-primary" />
+                <CopyableHash value={r.address} href={`/address/${r.address}`} textSize="text-caption" colorClass="text-primary" />
               ) : (
                 <span className="font-mono text-cipher-yellow">Shielded Pool</span>
               )}
@@ -126,7 +132,7 @@ function CoinbaseTagValue({
     <div>
       <div className="flex flex-wrap items-center gap-2">
         {clientEmoji && (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm bg-cipher-surface text-[11px] font-mono text-secondary border border-cipher-border">
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm bg-cipher-surface text-caption font-mono text-secondary border border-cipher-border">
             <span role="img" aria-label={clientInfo.name ? `Mined with ${clientInfo.name}` : 'Block-template client marker'}>{clientEmoji}</span>
             {clientInfo.name && <span>{clientInfo.name}{clientInfo.version ? ` ${clientInfo.version}` : ''}</span>}
           </span>
@@ -134,7 +140,7 @@ function CoinbaseTagValue({
         {decoded && <code className="text-xs text-secondary break-all">{decoded}</code>}
         <button
           onClick={() => setShowHex((v) => !v)}
-          className="inline-flex items-center gap-1 text-[10px] font-mono text-muted hover:text-secondary transition-colors"
+          className="inline-flex items-center gap-1 text-caption font-mono text-muted hover:text-secondary transition-colors"
         >
           <svg className={`w-2.5 h-2.5 transition-transform ${showHex ? 'rotate-90' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -144,7 +150,7 @@ function CoinbaseTagValue({
       </div>
       {showHex && (
         <div className="mt-2 block-hash-bg p-2 rounded border border-cipher-border">
-          <code className="text-[10px] text-muted break-all">{hex}</code>
+          <code className="text-caption text-muted break-all">{hex}</code>
         </div>
       )}
     </div>
@@ -193,7 +199,7 @@ export function BlockFactsCard({
             `sm:order-none` reverts *to* on desktop, which is what broke it
             last time.
           */}
-          <FactBox fit className="order-3 col-span-2 sm:order-none sm:col-span-1 fact-box-timestamp" label="Timestamp" tooltip="Miner-provided block header time; not the time CipherScan first observed the block">
+          <FactBox fit className="order-3 col-span-2 sm:order-none sm:col-span-1 fact-box-timestamp" label="Timestamp" tooltip="Miner-provided block header time; not the time ZecBlock first observed the block">
             <span className="text-sm text-primary whitespace-nowrap">
               {formatRelativeTime(data.timestamp)}
               <span className="text-muted ml-1.5 text-xs">({formatDateUTC(data.timestamp)})</span>
@@ -228,9 +234,13 @@ export function BlockFactsCard({
             />
           )}
 
-          {data.coinbaseHex && (
+          {data.coinbaseHex != null && (
             <FactBox label="Coinbase Tag" tooltip="Arbitrary data embedded by the miner in the coinbase transaction — decoded client-side from the raw bytes">
-              <CoinbaseTagValue hex={data.coinbaseHex} clientEmoji={coinbaseClientEmoji} clientInfo={coinbaseClientInfo} />
+              {data.coinbaseHex === "" ? (
+                <p className="text-sm text-muted">No optional tag included by the miner.</p>
+              ) : (
+                <CoinbaseTagValue hex={data.coinbaseHex} clientEmoji={coinbaseClientEmoji} clientInfo={coinbaseClientInfo} />
+              )}
             </FactBox>
           )}
         </div>
@@ -288,13 +298,13 @@ export function BlockFactsCard({
 
               {data.finalSaplingRoot && (
                 <FactBox label="Sapling Root" tooltip="Root hash of the Sapling note commitment tree after this block">
-                  <CopyableHash value={data.finalSaplingRoot} colorClass="text-cipher-purple" />
+                  <CopyableHash value={data.finalSaplingRoot} colorClass="text-cipher-green" />
                 </FactBox>
               )}
 
               {data.finalIronwoodRoot && (
                 <FactBox label="Ironwood Root" tooltip="Root hash of the Ironwood note commitment tree after this block">
-                  <CopyableHash value={data.finalIronwoodRoot} colorClass="text-cipher-yellow" />
+                  <CopyableHash value={data.finalIronwoodRoot} colorClass="text-cipher-ironwood" />
                 </FactBox>
               )}
             </div>

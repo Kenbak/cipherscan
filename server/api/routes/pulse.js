@@ -6,6 +6,7 @@
  */
 
 const express = require('express');
+const { pulseEventDescription } = require('../../../lib/pulse-copy');
 const router = express.Router();
 const { mainnetOnly } = require('../lib/network-features');
 router.use('/api/pulse', mainnetOnly('Pulse analytics'));
@@ -64,7 +65,7 @@ router.get('/api/pulse', async (req, res) => {
     const days = Math.min(Math.max(parseInt(req.query.days) || 30, 1), 365);
     const metric = req.query.metric || null;
 
-    const cacheKey = `zcash:pulse:feed:v2:${days}:${limit}:${offset}:${metric || 'all'}`;
+    const cacheKey = `zcash:pulse:feed:v3:${days}:${limit}:${offset}:${metric || 'all'}`;
 
     const data = await cached(cacheKey, 300, async () => {
       let query = `
@@ -113,7 +114,7 @@ router.get('/api/pulse', async (req, res) => {
           value: Number(r.value),
           zscore: Number(r.zscore),
           direction: r.direction,
-          description: r.description,
+          description: pulseEventDescription(r.metric, r.direction, r.description),
           detail: r.detail,
           severity: classifySeverity(Math.abs(Number(r.zscore))),
           createdAt: r.created_at,
@@ -141,7 +142,7 @@ router.get('/api/pulse', async (req, res) => {
 
 router.get('/api/pulse/summary', async (req, res) => {
   try {
-    const data = await cached('zcash:pulse:summary', 300, async () => {
+    const data = await cached('zcash:pulse:summary:v2', 300, async () => {
       const { rows } = await pool.query(`
         SELECT metric, zscore, direction, description, date
         FROM metric_anomalies
@@ -161,7 +162,7 @@ router.get('/api/pulse/summary', async (req, res) => {
             metric: r.metric,
             zscore: Number(r.zscore),
             direction: r.direction,
-            description: r.description,
+            description: pulseEventDescription(r.metric, r.direction, r.description),
             severity: sev,
           });
         }

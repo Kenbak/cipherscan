@@ -13,8 +13,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   return buildPageMetadata({
     title: validPubkey
-      ? `Crosslink Finalizer ${truncateHash(normalizedPubkey)} | CipherScan`
-      : 'Invalid Crosslink Finalizer | CipherScan',
+      ? `Crosslink Finalizer ${truncateHash(normalizedPubkey)} | ZecBlock`
+      : 'Invalid Crosslink Finalizer | ZecBlock',
     description: validPubkey
       ? `View Crosslink finalizer ${normalizedPubkey}, including stake, voting participation, and recent staking activity.`
       : 'This finalizer identifier is not a valid 64-character public key.',
@@ -23,8 +23,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     canonical: validPubkey,
     networks: ['crosslink-testnet'],
     imageAlt: validPubkey
-      ? `CipherScan Crosslink finalizer ${truncateHash(normalizedPubkey)}`
-      : 'CipherScan Crosslink finalizer lookup',
+      ? `ZecBlock Crosslink finalizer ${truncateHash(normalizedPubkey)}`
+      : 'ZecBlock Crosslink finalizer lookup',
   });
 }
 

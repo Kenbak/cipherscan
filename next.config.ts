@@ -11,14 +11,8 @@ const nextConfig: NextConfig = {
   async rewrites() {
     return {
       beforeFiles: [
-        {
-          source: '/blocks',
-          destination: '/blocks/latest',
-          missing: ['cursor', 'direction', 'page'].map((key) => ({
-            type: 'query' as const,
-            key,
-          })),
-        },
+        // /blocks is handled in proxy.ts: its filters exceed Vercel's
+        // 16-condition limit for a single has/missing routing rule.
         {
           source: '/txs',
           destination: '/txs/latest',
@@ -39,6 +33,19 @@ const nextConfig: NextConfig = {
   },
   async redirects() {
     return [
+      // Mainnet brand migration only; testnet and Crosslink keep their own identity.
+      {
+        source: '/:path*',
+        has: [{ type: 'host', value: '(?:www\\.)?cipherscan\\.app' }],
+        destination: 'https://zecblock.com/:path*',
+        permanent: true,
+      },
+      {
+        source: '/:path*',
+        has: [{ type: 'host', value: 'www\\.zecblock\\.com' }],
+        destination: 'https://zecblock.com/:path*',
+        permanent: true,
+      },
       {
         source: '/migration',
         destination: '/ironwood',
@@ -52,6 +59,12 @@ const nextConfig: NextConfig = {
       {
         source: '/flows',
         destination: '/crosschain',
+        permanent: true,
+      },
+      // Incoming query parameters (pool, flow_type, min_zec, cursor) are appended.
+      {
+        source: '/txs/shielded',
+        destination: '/txs?type=shielded',
         permanent: true,
       },
       {

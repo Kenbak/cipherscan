@@ -1,0 +1,11 @@
+[Unit]
+Description=Backfill between the five-minute legacy swap sync runs
+
+[Timer]
+OnCalendar=*-*-* *:02/5:00 UTC
+AccuracySec=1s
+Persistent=false
+Unit=cipherscan-crosschain-backfill.service
+
+[Install]
+WantedBy=timers.target

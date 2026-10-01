@@ -9,10 +9,11 @@ export function PeriodSelector({ value, onChange }: { value: Period; onChange: (
       {PERIODS.map(p => (
         <button
           key={p}
+          aria-pressed={value === p}
           onClick={() => onChange(p)}
-          className={`px-1.5 py-0.5 text-[10px] font-mono rounded transition whitespace-nowrap ${
+          className={`px-1.5 py-0.5 text-caption font-mono rounded transition whitespace-nowrap ${
             value === p
-              ? 'bg-cipher-cyan/15 text-cipher-cyan font-bold'
+              ? 'bg-brand-gold/15 text-cipher-gold font-semibold'
               : 'text-muted hover:text-primary'
           }`}
         >

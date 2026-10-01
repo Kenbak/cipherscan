@@ -38,17 +38,17 @@ const OVERVIEW_REFRESH_MS = 30000;
 /**
  * Homepage-sized "Ironwood migration progress" widget — a stat block, not a
  * table, since this data is a handful of fixed numbers rather than a
- * variable-length recent-activity list. Reuses the same /api/migration/overview
+ * variable-length recent-activity list. Reuses the same /v1/migration/overview
  * endpoint the site-wide IronwoodBanner already polls, so this always agrees
  * with what that banner says elsewhere on the page.
  */
 export const IronwoodProgressCard = memo(function IronwoodProgressCard({ footer }: { footer?: ReactNode } = {}) {
   const { data, loading, error } = useApiQuery<MigrationOverview>(
-    '/api/migration/overview',
+    '/v1/migration/overview',
     undefined,
     { refreshInterval: OVERVIEW_REFRESH_MS },
   );
-  const unavailable = !!error || (!loading && (!data || data.success === false));
+  const unavailable = !!error || (!loading && (!data || !(data)));
 
   if (loading) {
     return (
@@ -78,7 +78,7 @@ export const IronwoodProgressCard = memo(function IronwoodProgressCard({ footer 
       <div className="card p-0 overflow-hidden flex flex-col" style={{ height: CARD_HEIGHT_PX }}>
         <div className="flex-1 flex flex-col items-center justify-center px-5 text-center">
           <p className="text-sm text-secondary font-mono mb-1">Ironwood activates in</p>
-          <p className="text-2xl font-bold font-mono text-cipher-yellow tabular-nums">
+          <p className="text-2xl font-semibold font-mono text-cipher-ironwood tabular-nums">
             {data.blocksUntilActivation.toLocaleString()} blocks
           </p>
         </div>
@@ -97,9 +97,9 @@ export const IronwoodProgressCard = memo(function IronwoodProgressCard({ footer 
   return (
     <div className="card p-0 overflow-hidden flex flex-col" style={{ height: CARD_HEIGHT_PX }}>
       <div className="px-5 py-4 flex-1 min-h-0">
-        <span className="text-[10px] font-mono text-muted uppercase tracking-widest">ZEC Migrated to Ironwood</span>
+        <span className="text-caption font-mono text-muted uppercase tracking-widest">ZEC Migrated to Ironwood</span>
         <div className="mt-1 flex items-baseline gap-1.5">
-          <span className="text-2xl sm:text-3xl font-bold font-mono text-cipher-yellow tabular-nums">
+          <span className="text-2xl sm:text-3xl font-semibold font-mono text-cipher-ironwood tabular-nums">
             {formatZecCompact(ironwoodZec)}
           </span>
           <span className="text-sm text-muted font-mono">ZEC</span>
@@ -108,7 +108,7 @@ export const IronwoodProgressCard = memo(function IronwoodProgressCard({ footer 
         {verifiedPct !== null && (
           <div className="mt-4">
             <div className="flex items-center justify-between mb-1.5">
-              <span className="text-[10px] font-mono text-muted uppercase tracking-widest">Supply Verified</span>
+              <span className="text-caption font-mono text-muted uppercase tracking-widest">Supply Verified</span>
               <span className="text-xs font-mono text-primary tabular-nums">{verifiedPct.toFixed(1)}%</span>
             </div>
             <div className="h-1.5 w-full rounded-full bg-cipher-hover overflow-hidden">
@@ -122,19 +122,19 @@ export const IronwoodProgressCard = memo(function IronwoodProgressCard({ footer 
 
         <div className="mt-4 pt-4 border-t border-cipher-border/50 grid grid-cols-2 gap-3">
           <div>
-            <span className="text-[10px] font-mono text-muted uppercase tracking-widest block mb-1">Orchard → Ironwood</span>
+            <span className="text-caption font-mono text-muted uppercase tracking-widest block mb-1">Orchard → Ironwood</span>
             <span className="text-sm font-mono font-semibold text-primary tabular-nums">{migratedPercent.toFixed(1)}%</span>
           </div>
           <div>
-            <span className="text-[10px] font-mono text-muted uppercase tracking-widest block mb-1">Velocity</span>
+            <span className="text-caption font-mono text-muted uppercase tracking-widest block mb-1">Velocity</span>
             <span className="text-sm font-mono font-semibold text-primary tabular-nums">{formatZecCompact(velocityZecPerHour)} ZEC/hr</span>
           </div>
           <div>
-            <span className="text-[10px] font-mono text-muted uppercase tracking-widest block mb-1">Migrated Today</span>
+            <span className="text-caption font-mono text-muted uppercase tracking-widest block mb-1">Migrated Today</span>
             <span className="text-sm font-mono font-semibold text-primary tabular-nums">{formatZecCompact(migratedTodayZec)} ZEC</span>
           </div>
           <div>
-            <span className="text-[10px] font-mono text-muted uppercase tracking-widest block mb-1">Orchard Remaining</span>
+            <span className="text-caption font-mono text-muted uppercase tracking-widest block mb-1">Orchard Remaining</span>
             <span className="text-sm font-mono font-semibold text-primary tabular-nums">{formatZecCompact(orchardZec)} ZEC</span>
           </div>
         </div>

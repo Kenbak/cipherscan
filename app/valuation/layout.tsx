@@ -1,9 +1,9 @@
-import { buildPageMetadata } from '@/lib/seo';
+import { buildPageMetadata, getBaseUrl } from '@/lib/seo';
 
 export const metadata = buildPageMetadata({
-  title: 'Zcash On-Chain Valuation Metrics | CipherScan',
+  title: 'Zcash Valuation & Market Context | ZecBlock',
   description:
-    'Realized price vs market price, MVRV ratio, SOPR, and NUPL for Zcash — Glassnode-level on-chain analytics built from transparent UTXO data.',
+    'Explore ZEC price, modeled MVRV and realized price, transparent spending, and shielded supply, with sources and data limitations.',
   keywords: [
     'zcash MVRV',
     'zcash realized price',
@@ -14,9 +14,11 @@ export const metadata = buildPageMetadata({
   ],
   path: '/valuation',
   networks: ['mainnet'],
-  imageAlt: 'CipherScan Zcash on-chain valuation metrics',
+  imageAlt: 'ZecBlock Zcash on-chain valuation metrics',
 });
 
 export default function ValuationLayout({ children }: { children: React.ReactNode }) {
-  return children;
+  const url = `${getBaseUrl()}/valuation`;
+  const schema = {'@context':'https://schema.org','@type':'WebPage','@id':`${url}#webpage`,url,name:metadata.title,description:metadata.description,isPartOf:{'@id':`${getBaseUrl()}/#website`}};
+  return <><script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify(schema).replace(/</g,'\\u003c')}} />{children}</>;
 }

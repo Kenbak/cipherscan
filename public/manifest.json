@@ -1,21 +1,35 @@
 {
-  "name": "CipherScan - Zcash Blockchain Explorer",
-  "short_name": "CipherScan",
-  "description": "Explore the Zcash blockchain with clarity. Privacy meets transparency.",
+  "name": "ZecBlock — Zcash Block Explorer",
+  "short_name": "ZecBlock",
+  "description": "Search Zcash blocks, transactions, and addresses. Explore shielded pools, network activity, and privacy analytics with ZecBlock.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0A0E27",
-  "theme_color": "#00D4FF",
+  "background_color": "#0B0C0E",
+  "theme_color": "#F8BC21",
   "icons": [
+    {
+      "src": "/brand/zecblock-mark.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
     {
       "src": "/icon-192.png",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
     },
     {
       "src": "/icon-512.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ]
 }

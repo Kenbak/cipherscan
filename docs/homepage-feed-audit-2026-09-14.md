@@ -56,3 +56,9 @@ This correction deliberately does not combine those lifecycle changes with the i
 ## Verification
 
 Typecheck, lint (existing warnings), production build, 13 live-refresh/timestamp/navbar tests, 19 sitemap-security tests, 9 performance regressions, and 4 build route-cache tests passed. Browser verification uses captured production types for delayed hydration/preferences and a separate actual-API smoke for transaction ages. The local smoke substitutes an allowed Origin/CORS header because the production API rejects localhost origins with HTTP 500; it does not modify the response data. Production verification uses the site's actual origin.
+
+## ZecBlock branch integration — 16 September 2026
+
+The redesign branch now includes these main fixes while retaining its v1 transport and opaque cursors. `readApiCollection` validates the envelope/pagination before the transaction decoder runs for server rendering, filtered pagination, and silent refresh. The homepage uses the same decoder after `readApiData`. The live smoke uses the loopback read-only v1 preview and does not rewrite Origin/CORS headers. Main's legacy endpoint descriptions above remain the historical incident record.
+
+The shared redesigned navigation now handles an unavailable pathname and keeps compact search mounted. Governance links use the shared navigation registry. The delayed-hydration check selects the rendered feed's enclosing page rather than the separate loading shell. Existing saved-preference keys are retained.

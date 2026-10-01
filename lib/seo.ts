@@ -1,3 +1,4 @@
+import { readApiData } from '@/lib/api-client';
 import { cache } from 'react';
 import type { Metadata } from 'next';
 import {
@@ -27,8 +28,8 @@ export function getNetwork(): SeoNetwork {
 export function getBaseUrl(): string {
   const network = getNetwork();
   const urls: Record<SeoNetwork, string> = {
-    mainnet: 'https://cipherscan.app',
-    testnet: 'https://testnet.cipherscan.app',
+    mainnet: 'https://zecblock.com',
+    testnet: 'https://testnet.zecblock.com',
     'crosslink-testnet': 'https://crosslink.cipherscan.app',
   };
   return urls[network];
@@ -37,6 +38,40 @@ export function getBaseUrl(): string {
 export function getApiUrl(): string {
   return getApiUrlForNetwork(getNetwork());
 }
+
+/**
+ * Network homepage copy. The homepage owns this metadata; the root layout only
+ * sets site-wide defaults so pages without metadata (such as the 404) don't
+ * inherit the homepage's title, canonical or index policy.
+ */
+export function getSiteCopy(): { title: string; description: string; keywords: string[]; imageAlt: string } {
+  const network = getNetwork();
+  if (network === 'mainnet') {
+    return {
+      title: 'Zcash Block Explorer & Privacy Analytics | ZecBlock',
+      description: 'Search Zcash blocks, transactions, and addresses. Explore shielded pools, network activity, and privacy analytics with ZecBlock.',
+      keywords: ['zcash block explorer', 'zcash explorer', 'ZEC explorer', 'zcash blockchain explorer', 'zcash transactions', 'zcash shielded pool', 'privacy', 'ZEC', 'ZecBlock', 'zcash rich list', 'zcash network'],
+      imageAlt: 'ZecBlock - Zcash Block Explorer',
+    };
+  }
+  if (network === 'testnet') {
+    return {
+      title: 'Zcash Testnet Explorer for TAZ | ZecBlock',
+      description: 'Explore the Zcash testnet with ZecBlock. Search TAZ blocks, transactions, and addresses, monitor pending transactions, and inspect testnet network activity.',
+      keywords: ['zcash testnet', 'TAZ', 'TAZ explorer', 'zcash testnet explorer', 'zcash testnet transactions', 'ZecBlock testnet'],
+      imageAlt: 'ZecBlock - Zcash Testnet Explorer for TAZ',
+    };
+  }
+  return {
+    title: 'Zcash Crosslink Explorer | ZecBlock',
+    description: 'Explore the Zcash Crosslink feature network, including blocks, finality, staking, and validators.',
+    keywords: ['zcash crosslink', 'crosslink explorer', 'zcash finality', 'cTAZ'],
+    imageAlt: 'ZecBlock - Zcash Crosslink Explorer',
+  };
+}
+
+// Social platforms cache card images by URL. Bump this when app/opengraph-image.tsx changes.
+const SHARE_IMAGE_VERSION = '2026-09-29';
 
 function absoluteUrl(path: string): string {
   if (/^https?:\/\//i.test(path)) return path;
@@ -78,7 +113,7 @@ export function buildPageMetadata({
 }: BuildPageMetadataOptions): Metadata {
   const network = getNetwork();
   const canonical = absoluteUrl(path);
-  const image = absoluteUrl('/og-image.png?v=2');
+  const image = absoluteUrl(`/opengraph-image?v=${SHARE_IMAGE_VERSION}`);
   const isCrosslink = network === 'crosslink-testnet';
   const allowedOnNetwork = networks ? networks.includes(network) : true;
   // Testnet is a developer utility rather than a second copy of the explorer
@@ -96,14 +131,14 @@ export function buildPageMetadata({
     title,
     description,
     url: canonical,
-    siteName: 'CipherScan',
+    siteName: 'ZecBlock',
     locale: 'en_US',
     images: [
       {
         url: image,
-        width: 1051,
-        height: 520,
-        alt: imageAlt || `${title} — CipherScan`,
+        width: 1200,
+        height: 630,
+        alt: imageAlt || `${title} — ZecBlock`,
       },
     ],
   };
@@ -125,7 +160,8 @@ export function buildPageMetadata({
       title,
       description,
       images: [image],
-      creator: '@Kenbak',
+      site: '@zecblock',
+      creator: '@zecblock',
     },
     robots: {
       index: shouldIndex,
@@ -211,11 +247,11 @@ export const getBlockResolution = cache(async (identifier: string): Promise<Bloc
       // Use the same long revalidation for the tip lookup so this fetch does
       // not pull the page-level s-maxage back to 30s.  An hour-old tip is
       // fine here — the 100-block margin absorbs the drift.
-      const tipRes = await fetchWithDeadline(`${getApiUrl()}/api/info`, {
+      const tipRes = await fetchWithDeadline(`${getApiUrl()}/v1/network/info`, {
         next: { revalidate: 3600 },
       });
       if (tipRes.ok) {
-        const tipData = await tipRes.json();
+        const tipData = await readApiData(tipRes);
         const tipHeight = Number(tipData.height ?? tipData.blocks);
         if (Number.isSafeInteger(tipHeight) && requestedHeight < tipHeight - 100) {
           revalidateSeconds = 3600;
@@ -229,7 +265,7 @@ export const getBlockResolution = cache(async (identifier: string): Promise<Bloc
   let response: Response;
 
   try {
-    response = await fetchWithDeadline(`${getApiUrl()}/api/block/${encodeURIComponent(normalizedIdentifier)}?summary=1`, {
+    response = await fetchWithDeadline(`${getApiUrl()}/v1/blocks/${encodeURIComponent(normalizedIdentifier)}?summary=1`, {
       next: { revalidate: revalidateSeconds },
     });
   } catch {
@@ -246,7 +282,7 @@ export const getBlockResolution = cache(async (identifier: string): Promise<Bloc
 
   let block: unknown;
   try {
-    block = await response.json();
+    block = await readApiData(response);
   } catch {
     return { state: 'unavailable' };
   }
@@ -285,11 +321,11 @@ export const getTxResolution = cache(async (txid: string): Promise<TxResolution>
     // re-invoking the serverless function on every crawler visit.
     // Pending/absent paths fall through to the mempool fetch (revalidate 10s)
     // which pulls the effective page revalidation down automatically.
-    const res = await fetchWithDeadline(`${getApiUrl()}/api/seo/tx/${encodeURIComponent(txid)}`, {
+    const res = await fetchWithDeadline(`${getApiUrl()}/v1/transactions/${encodeURIComponent(txid)}/summary`, {
       next: { revalidate: 300 },
     });
     if (res.ok) {
-      const data = await res.json();
+      const data = await readApiData(res);
       const indexedStatus: TxMeta['status'] = data.status === 'stale'
         ? 'stale'
         : data.status === 'unknown' || data.isCanonical === false
@@ -336,13 +372,12 @@ export const getTxMeta = cache(async (txid: string): Promise<TxMeta | null> => {
 
 async function getPendingTxResolution(txid: string): Promise<TxResolution> {
   try {
-    const mempoolRes = await fetchWithDeadline(`${getApiUrl()}/api/mempool/tx/${encodeURIComponent(txid)}`, {
+    const mempoolRes = await fetchWithDeadline(`${getApiUrl()}/v1/mempool/${encodeURIComponent(txid)}`, {
       next: { revalidate: 10 },
     });
     if (!mempoolRes.ok) return { state: 'unavailable' };
 
-    const mempoolData = await mempoolRes.json();
-    if (!mempoolData.success) return { state: 'unavailable' };
+    const mempoolData = await readApiData(mempoolRes);
     if (!mempoolData.inMempool) return { state: 'absent' };
     if (!mempoolData.transaction) {
       return { state: 'unavailable' };
@@ -391,14 +426,14 @@ export type AddressResolution =
 
 export const getAddressResolution = cache(async (address: string): Promise<AddressResolution> => {
   try {
-    const res = await fetchWithDeadline(`${getApiUrl()}/api/address/${encodeURIComponent(address)}?limit=1`, {
+    const res = await fetchWithDeadline(`${getApiUrl()}/v1/addresses/${encodeURIComponent(address)}?limit=1`, {
       next: { revalidate: 60 },
     });
     if (res.status === 404 || res.status === 410) return { state: 'absent' };
     if (!res.ok) return { state: 'unavailable' };
-    const data = await res.json();
+    const data = await readApiData(res);
 
-    const isShielded = data.type === 'shielded' || (data.note && (
+    const isShielded = data.type === 'shielded' || data.type === 'unified' || (data.note && (
       data.note.includes('Shielded address') ||
       data.note.includes('Fully shielded')
     ));

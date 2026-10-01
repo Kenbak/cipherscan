@@ -1,7 +1,7 @@
 import { buildPageMetadata } from '@/lib/seo';
 
 export const metadata = buildPageMetadata({
-  title: 'Zcash Turnstile Tracker | CipherScan',
+  title: 'Zcash Turnstile Tracker | ZecBlock',
   description:
     'Track where deshielded ZEC goes: transparent addresses, reshielding, exchanges, and other transfers. Updated hourly.',
   keywords: [
@@ -12,10 +12,10 @@ export const metadata = buildPageMetadata({
     'zcash exchange flow',
     'zcash privacy analytics',
     'ZEC turnstile tracker',
-    'CipherScan',
+    'ZecBlock',
   ],
   path: '/turnstile',
-  imageAlt: 'CipherScan Turnstile Tracker — Zcash deshielding analytics',
+  imageAlt: 'ZecBlock Turnstile Tracker — Zcash deshielding analytics',
   networks: ['mainnet'],
 });
 

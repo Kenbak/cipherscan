@@ -115,11 +115,11 @@ router.get('/api/pools/flows', async (req, res) => {
     const format = req.query.format || 'zec'; // 'zec' (default) or 'zatoshi'
     const useZat = format === 'zatoshi';
     const isHourly = granularity === 'hourly';
-    const cacheKey = `zcash:pools:flows:${period}:${poolFilter}:${granularity}:${format}`;
+    const cacheKey = `zcash:pools:flows:v3:${period}:${poolFilter}:${granularity}:${format}`;
     const cacheTtl = isHourly ? 120 : 300;
 
     const data = await cached(cacheKey, cacheTtl, async () => {
-      const since = Math.floor(Date.now() / 1000) - periodToSeconds(period);
+      const since = period === 'all' ? 0 : Math.floor(Date.now() / 1000) - periodToSeconds(period);
       const params = [since];
       let poolClause = '';
       if (poolFilter !== 'all') {
@@ -130,7 +130,7 @@ router.get('/api/pools/flows', async (req, res) => {
       let result;
       if (isHourly) {
         result = await pool.query(`
-          SELECT DATE_TRUNC('hour', TO_TIMESTAMP(block_time)) as bucket,
+          SELECT DATE_TRUNC('hour', TO_TIMESTAMP(block_time) AT TIME ZONE 'UTC') AT TIME ZONE 'UTC' as bucket,
                  flow_type, pool,
                  SUM(amount_zat) as total_zat, COUNT(*) as tx_count
           FROM shielded_flows
@@ -141,14 +141,14 @@ router.get('/api/pools/flows', async (req, res) => {
       } else {
         try {
           result = await pool.query(`
-            SELECT date, flow_type, pool, total_zat, tx_count
+            SELECT date::text AS date, flow_type, pool, total_zat, tx_count
             FROM flow_daily
-            WHERE date >= DATE(TO_TIMESTAMP($1))${poolFilter !== 'all' ? ' AND pool = $2' : ''}
+            WHERE date >= (TO_TIMESTAMP($1) AT TIME ZONE 'UTC')::date${poolFilter !== 'all' ? ' AND pool = $2' : ''}
             ORDER BY date
           `, params);
         } catch {
           result = await pool.query(`
-            SELECT DATE(TO_TIMESTAMP(block_time)) as date, flow_type, pool,
+            SELECT (TO_TIMESTAMP(block_time) AT TIME ZONE 'UTC')::date::text as date, flow_type, pool,
                    SUM(amount_zat) as total_zat, COUNT(*) as tx_count
             FROM shielded_flows
             WHERE block_time >= $1${poolClause}
@@ -162,7 +162,7 @@ router.get('/api/pools/flows', async (req, res) => {
       for (const r of result.rows) {
         const key = isHourly
           ? new Date(r.bucket).toISOString()
-          : new Date(r.date).toISOString().split('T')[0];
+          : r.date;
         if (!byBucket[key]) byBucket[key] = { date: key, shield: 0, deshield: 0, shieldTx: 0, deshieldTx: 0 };
         const amount = useZat ? BigInt(r.total_zat) : Number(r.total_zat) / 1e8;
         if (r.flow_type === 'shield') {
@@ -301,7 +301,7 @@ router.get('/api/pools/turnstile', async (req, res) => {
       const totalMoved = totalReshielded + totalExchange + totalBridge + totalTransferred;
 
       const timeseries = timeseriesResult.rows.map(r => ({
-        date: new Date(r.date).toISOString().split('T')[0],
+        date: r.date,
         deshielded: Number(r.deshielded) / 1e8,
         held: Number(r.held) / 1e8,
         reshielded: Number(r.reshielded) / 1e8,

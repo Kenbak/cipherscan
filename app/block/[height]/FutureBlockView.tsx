@@ -1,5 +1,6 @@
 'use client';
 
+import { readApiData } from '@/lib/api-client';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Card, CardBody } from '@/components/ui/Card';
@@ -49,10 +50,10 @@ export function FutureBlockView({
   useEffect(() => {
     const poll = async () => {
       try {
-        const apiUrl = `${getApiUrl()}/api/network/stats`;
+        const apiUrl = `${getApiUrl()}/v1/network/stats`;
         const res = await fetch(apiUrl);
         if (res.ok) {
-          const data = await res.json();
+          const data = await readApiData(res);
           setSchedule(data.mining?.schedule ?? null);
           const h = Number(data.blockchain?.height);
           if (Number.isSafeInteger(h) && h >= 0) {
@@ -84,13 +85,12 @@ export function FutureBlockView({
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-fade-in">
         <Card>
           <CardBody className="text-center py-16">
-            <div className="text-5xl mb-6">⛏️</div>
-            <h1 className="text-2xl font-bold font-mono text-primary mb-3">
+            <h1 className="type-page font-mono text-primary mb-3">
               Block #{targetHeight.toLocaleString()} Has Been Mined!
             </h1>
             {upgrade ? (
               <p className="text-secondary mb-6">
-                <span className="text-cipher-yellow-bright font-semibold">{upgrade.name}</span> has reached on the Zcash network.
+                <span className="text-cipher-yellow-bright font-semibold">{upgrade.name}</span> has activated on the Zcash network.
               </p>
             ) : (
               <p className="text-secondary mb-6">
@@ -100,14 +100,14 @@ export function FutureBlockView({
             <div className="flex flex-wrap items-center justify-center gap-3">
               <Link
                 href={`/block/${targetHeight}`}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-cipher-cyan/10 border border-cipher-cyan/30 text-cipher-cyan font-mono text-sm hover:bg-cipher-cyan/20 transition-colors"
+                className="btn btn-md btn-primary"
               >
                 View Block →
               </Link>
               {upgrade?.link && (
                 <Link
                   href={upgrade.link}
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-cipher-yellow-bright/10 border border-cipher-yellow-bright/30 text-cipher-yellow-bright font-mono text-sm hover:bg-cipher-yellow-bright/20 transition-colors"
+                  className="btn btn-md btn-secondary"
                 >
                   {upgrade.linkText || 'Migration Tracker →'}
                 </Link>
@@ -123,9 +123,9 @@ export function FutureBlockView({
     <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 animate-fade-in">
       {/* Header */}
       <div className="mb-6">
-        <span className="text-[10px] font-mono text-muted tracking-wider">&gt; FUTURE_BLOCK</span>
+        <span className="text-caption font-mono text-muted tracking-wider">&gt; FUTURE_BLOCK</span>
         <div className="flex flex-wrap items-center gap-3 mt-1">
-          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold font-mono text-primary">
+          <h1 className="type-page font-mono text-primary">
             Zcash Block #{targetHeight.toLocaleString()}
           </h1>
           {upgrade ? (
@@ -153,7 +153,7 @@ export function FutureBlockView({
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex flex-wrap items-center gap-2 mb-1">
-                <span className="text-sm font-bold text-cipher-yellow-bright">{upgrade.name}</span>
+                <span className="text-sm font-semibold text-cipher-yellow-bright">{upgrade.name}</span>
                 {upgrade.zip && <Badge color="amber">{upgrade.zip}</Badge>}
               </div>
               <p className="text-xs sm:text-sm text-secondary leading-relaxed">
@@ -162,7 +162,7 @@ export function FutureBlockView({
               {upgrade.link && (
                 <Link
                   href={upgrade.link}
-                  className="inline-flex items-center gap-1.5 mt-3 text-xs font-mono text-cipher-yellow-bright hover:text-cipher-yellow-glow transition-colors"
+                  className="inline-flex items-center gap-1.5 mt-3 text-xs font-mono text-cipher-yellow-bright hover:text-cipher-ironwood transition-colors"
                 >
                   {upgrade.linkText || 'Migration tracker →'}
                 </Link>
@@ -177,7 +177,7 @@ export function FutureBlockView({
         <CardBody>
           <div className="text-center py-6">
             {/* Big countdown */}
-            <div className="font-mono text-4xl sm:text-5xl font-bold text-primary mb-2 tabular-nums">
+            <div className="font-mono text-4xl sm:text-5xl font-semibold text-primary mb-2 tabular-nums">
               {secondsRemaining === null ? 'Unavailable' : formatDuration(secondsRemaining)}
             </div>
             <div className="text-sm text-muted font-mono">estimated time remaining</div>
@@ -204,7 +204,7 @@ export function FutureBlockView({
               Current Height
             </div>
             <div className="flex-1 font-mono text-xs sm:text-sm text-primary">
-              <Link href={`/block/${currentHeight}`} className="text-cipher-cyan hover:underline">
+              <Link href={`/block/${currentHeight}`} className="text-cipher-gold hover:underline">
                 #{currentHeight.toLocaleString()}
               </Link>
             </div>
@@ -249,12 +249,12 @@ export function FutureBlockView({
           {/* Progress bar */}
           <div className="pt-4 mt-4 border-t border-cipher-border">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-[10px] font-mono text-muted uppercase tracking-wider">Chain progress</span>
-              <span className="text-[10px] font-mono text-secondary">{(progress * 100).toFixed(4)}%</span>
+              <span className="text-caption font-mono text-muted uppercase tracking-wider">Chain progress</span>
+              <span className="text-caption font-mono text-secondary">{(progress * 100).toFixed(4)}%</span>
             </div>
             <div className="h-1.5 rounded-full bg-cipher-border overflow-hidden">
               <div
-                className="h-full rounded-full bg-gradient-to-r from-cipher-cyan to-cipher-purple transition-[width] duration-1000"
+                className="h-full rounded-full bg-gradient-to-r from-cipher-gold to-cipher-purple transition-[width] duration-1000"
                 style={{ width: `${Math.min(progress * 100, 100)}%` }}
               />
             </div>

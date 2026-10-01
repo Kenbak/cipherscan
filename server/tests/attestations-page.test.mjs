@@ -19,24 +19,28 @@ function loadTs(file, mocks = {}) {
   return loaded.exports;
 }
 const Link = ({ href, children, ...props }) => React.createElement('a', { href, ...props }, children);
+const apiClient = loadTs('lib/api-client.ts');
 const Header = loadTs('components/ui/SectionHeader.tsx');
 const Client = loadTs('app/network/attestations/AttestationsClient.tsx', {
-  '@/hooks/useApiQuery': { useApiQuery: (_path, _params, options) => ({ data: options.initialData ?? null, loading: false, error: null }) },
+  '@/components/ui/SectionHeader': Header,
+  '@/hooks/useApiQuery': { useApiQuery: (path, _params, options) => { assert.equal(path, '/v1/network/attestations'); return { data: options.initialData ?? null, loading: false, error: null }; } },
   '@/lib/canary-status': require('../../lib/canary-status'),
   '@/lib/attestation-status': require('../../lib/attestation-status'),
 }).default;
 function loadPage(network, data) {
   const seo = loadTs('lib/seo.ts', {
+    '@/lib/api-client': apiClient,
     '@/lib/network': { getConfiguredNetwork: () => network },
     '@/lib/api-config': { getApiUrlForNetwork: () => 'https://private-service.internal' },
     '@/lib/server-fetch': {},
   });
   return loadTs('app/network/attestations/page.tsx', {
     'next/link': Link,
+    '@/lib/api-client': apiClient,
     'next/navigation': { notFound: () => { throw new Error('NOT_FOUND'); } },
     '@/components/ui/SectionHeader': Header,
     '@/lib/seo': seo,
-    '@/lib/server-fetch': { fetchWithDeadline: async () => ({ ok: data !== null, json: async () => data }) },
+    '@/lib/server-fetch': { fetchWithDeadline: async (url) => { assert.equal(url, 'https://private-service.internal/v1/network/attestations'); return { ok: data !== null, json: async () => ({ data, meta: { requestId: 'attestation-test', network } }) }; } },
     '@/lib/network': { normalizeApiBaseUrl: (url) => url },
     './AttestationsClient': Client,
   });
@@ -51,15 +55,18 @@ for (const network of ['mainnet', 'testnet']) {
     for (const endpoint of data.endpoints) assert.ok(html.includes(endpoint.hostname));
     assert.match(html, /No endpoint is being reported as verified/);
     assert.ok(!html.includes('private-service.internal'));
+    assert.ok(html.includes(`${network === 'mainnet' ? 'https://api.zecblock.com' : 'https://api.testnet.zecblock.com'}/v1/network/attestations`));
     assert.equal(page.metadata.robots.index, network === 'mainnet');
     assert.equal(page.metadata.robots.follow, true);
-    const host = network === 'mainnet' ? 'cipherscan.app' : 'testnet.cipherscan.app';
+    const host = network === 'mainnet' ? 'zecblock.com' : 'testnet.zecblock.com';
     assert.equal(page.metadata.alternates.canonical, `https://${host}/network/attestations`);
     assert.equal(page.metadata.openGraph.url, page.metadata.alternates.canonical);
     assert.equal(page.metadata.twitter.card, 'summary_large_image');
     assert.ok(page.metadata.openGraph.images[0].alt);
     const schemas = [...html.matchAll(/<script type="application\/ld\+json">(.*?)<\/script>/g)].map((match) => JSON.parse(match[1]));
     assert.equal(schemas[0].url, page.metadata.alternates.canonical);
+    assert.equal(schemas[0].publisher['@id'], 'https://zecblock.com/#organization');
+    assert.match(page.metadata.title, /ZecBlock/);
   });
 }
 test('API outage still renders meaningful HTML, and Crosslink returns notFound', async () => {

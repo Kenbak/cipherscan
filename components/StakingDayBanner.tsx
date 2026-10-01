@@ -1,5 +1,6 @@
 'use client';
 
+import { readApiData } from '@/lib/api-client';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { STAKING_DAY_PERIOD, STAKING_DAY_WINDOW } from '@/lib/config';
 import { getApiUrl } from '@/lib/api-config';
@@ -73,10 +74,10 @@ export function StakingDayBanner() {
 
   const fetchTip = useCallback(async () => {
     try {
-      const res = await fetch(`${getApiUrl()}/api/crosslink`);
+      const res = await fetch(`${getApiUrl()}/v1/crosslink`);
       if (!res.ok) return;
-      const data = await res.json();
-      if (data.success && data.tipHeight != null) {
+      const data = await readApiData(res);
+      if (data && data.tipHeight != null) {
         setStaking(computeStakingDay(data.tipHeight));
       }
     } catch {}
@@ -149,7 +150,7 @@ export function StakingDayBanner() {
               <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-cipher-green"></span>
             </span>
           ) : (
-            <span className="inline-flex rounded-full h-2.5 w-2.5 bg-gray-500/50"></span>
+            <span className="inline-flex rounded-full h-2.5 w-2.5 bg-muted/50"></span>
           )}
           <span className="text-xs font-mono font-semibold uppercase tracking-wider flex items-center gap-1">
             {staking.isStakingOpen ? (
@@ -166,7 +167,7 @@ export function StakingDayBanner() {
             notifyOn={notifyOn}
             onToggle={handleNotifyToggle}
           />
-          <span className="text-[10px] font-mono text-muted">
+          <span className="text-caption font-mono text-muted">
             Period #{staking.periodNumber}
           </span>
         </div>
@@ -176,13 +177,13 @@ export function StakingDayBanner() {
       <div className="relative h-2 rounded-full bg-cipher-border-alpha/50 overflow-hidden mb-2">
         <div
           className={`absolute top-0 left-0 h-full rounded-full transition-[width] duration-500 ${
-            staking.isStakingOpen ? 'bg-cipher-green' : 'bg-gray-500'
+            staking.isStakingOpen ? 'bg-cipher-green' : 'bg-muted'
           }`}
           style={{ width: `${Math.min(progressPercent, 100)}%` }}
         />
       </div>
 
-      <div className="flex items-center justify-between text-[10px] font-mono text-muted">
+      <div className="flex items-center justify-between text-caption font-mono text-muted">
         <span>
           Block {staking.positionInPeriod}/{staking.isStakingOpen ? STAKING_DAY_WINDOW : STAKING_DAY_PERIOD}
         </span>
@@ -213,7 +214,7 @@ function NotifyButton({
 
   if (perm === 'denied') {
     return (
-      <span className="text-[10px] font-mono text-muted/50 flex items-center gap-1 cursor-not-allowed" title="Notifications blocked in browser settings">
+      <span className="text-caption font-mono text-muted flex items-center gap-1 cursor-not-allowed" title="Notifications blocked in browser settings">
         <BellSlashIcon />
         <span className="hidden sm:inline">Blocked</span>
       </span>
@@ -224,7 +225,7 @@ function NotifyButton({
     return (
       <button
         onClick={onToggle}
-        className="text-[10px] font-mono text-cipher-green flex items-center gap-1 hover:opacity-80 transition-opacity"
+        className="text-caption font-mono text-cipher-green flex items-center gap-1 hover:opacity-80 transition-opacity"
         title="Click to disable staking notifications"
       >
         <BellActiveIcon />
@@ -236,7 +237,7 @@ function NotifyButton({
   return (
     <button
       onClick={onToggle}
-      className="text-[10px] font-mono text-secondary flex items-center gap-1 hover:text-primary transition-colors"
+      className="text-caption font-mono text-secondary flex items-center gap-1 hover:text-primary transition-colors"
       title="Get a browser notification when the staking window opens"
     >
       <BellIcon />

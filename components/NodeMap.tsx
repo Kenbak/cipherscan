@@ -1,4 +1,5 @@
 'use client';
+import { LoadingRegion, Skeleton } from '@/components/ui/Skeleton';
 
 import { useState, useMemo } from 'react';
 import Link from 'next/link';
@@ -77,7 +78,7 @@ interface NodeMapProps {
 
 // Color tiers based on node count (cipher-yellow intensity scale)
 const NODE_TIERS = {
-  high: { fill: '#F4B728', glow: '#F4B728', label: '10+' },      // cipher-yellow (full)
+  high: { fill: '#F8BC21', glow: '#F8BC21', label: '10+' },      // cipher-yellow (full)
   medium: { fill: '#D49A20', glow: '#D49A20', label: '5-9' },    // mid yellow
   low: { fill: '#A07818', glow: '#A07818', label: '2-4' },       // deep yellow
   single: { fill: '#7A6030', glow: '#7A6030', label: '1' },      // muted yellow
@@ -111,12 +112,12 @@ function getFlagEmoji(countryCode: string): string {
 
 export function NodeMap({ initialLocations, initialStats, initialFetchedAt }: NodeMapProps) {
   const locationsQuery = useApiQuery<NodeLocationsResponse>(
-    '/api/network/nodes',
+    '/v1/network/nodes',
     undefined,
     { refreshInterval: 300_000, initialFetchedAt, initialData: initialLocations ?? undefined },
   );
   const statsQuery = useApiQuery<NodeStatsResponse>(
-    '/api/network/nodes/stats',
+    '/v1/network/nodes/stats',
     undefined,
     { refreshInterval: 300_000, initialFetchedAt, initialData: initialStats ?? undefined },
   );
@@ -175,14 +176,11 @@ export function NodeMap({ initialLocations, initialStats, initialFetchedAt }: No
   // ==========================================================================
 
   if (loading && worldDots.length === 0) {
-    return (
-      <div className="bg-cipher-surface border border-cipher-border rounded-xl p-6">
-        <div className="flex items-center justify-center py-16">
-          <div className="animate-spin rounded-full h-8 w-8 border-2 border-cipher-cyan border-t-transparent" />
-          <span className="ml-3 text-secondary font-mono">Loading node map...</span>
-        </div>
-      </div>
-    );
+    return <LoadingRegion label="Loading node map" className="card p-0 overflow-hidden">
+      <div className="px-4 sm:px-6 py-4 border-b border-cipher-border"><Skeleton className="h-6 w-48 mb-2" /><Skeleton className="h-4 w-80" /></div>
+      <div className="relative w-full" style={{ aspectRatio: `${MAP_WIDTH} / ${MAP_HEIGHT}`, maxHeight: 460 }}><Skeleton className="absolute left-1/2 top-1/2 -translate-x-1/2 w-32 h-4" /></div>
+      <div className="px-5 py-4 border-t border-cipher-border"><Skeleton className="h-4 w-64" /></div>
+    </LoadingRegion>;
   }
 
   if (error && locations.length === 0) {
@@ -205,14 +203,14 @@ export function NodeMap({ initialLocations, initialStats, initialFetchedAt }: No
       <div className="px-4 sm:px-6 py-4 border-b border-cipher-border">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-cipher-cyan/10 flex items-center justify-center flex-shrink-0">
-              <svg className="w-4 h-4 sm:w-5 sm:h-5 text-cipher-cyan" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-brand-gold/10 flex items-center justify-center flex-shrink-0">
+              <svg className="w-4 h-4 sm:w-5 sm:h-5 text-cipher-gold" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
             <div>
-              <h2 className="text-base sm:text-lg font-bold text-primary">Network Node Map</h2>
-              <p className="text-[10px] sm:text-xs text-muted">Global distribution of Zcash network nodes</p>
+              <h2 className="text-base sm:text-lg font-semibold text-primary">Network Node Map</h2>
+              <p className="text-caption sm:text-xs text-muted">Observed reachable nodes · discovery coverage can change</p>
             </div>
           </div>
 
@@ -220,25 +218,19 @@ export function NodeMap({ initialLocations, initialStats, initialFetchedAt }: No
             <div className="flex items-center gap-5 sm:gap-6">
               <div className="text-center">
                 <div className="flex items-baseline justify-center gap-1">
-                  <span className="font-bold text-primary font-mono text-lg sm:text-xl">{stats.activeNodes}</span>
-                  {trends?.change24h !== null && trends?.change24h !== undefined && (
-                    <span className={`text-[10px] font-mono font-semibold ${
-                      trends.change24h > 0 ? 'text-cipher-green' : trends.change24h < 0 ? 'text-danger' : 'text-muted'
-                    }`}>
-                      {trends.change24h > 0 ? '+' : ''}{trends.change24h}%
-                    </span>
-                  )}
+                  <span className="font-semibold text-primary font-mono text-lg sm:text-xl">{stats.activeNodes}</span>
+
                 </div>
-                <div className="text-[10px] text-muted uppercase tracking-wider">Nodes</div>
+                <div className="text-caption text-muted uppercase tracking-wider">Reachable</div>
               </div>
               <div className="text-center">
-                <div className="font-bold text-primary font-mono text-lg sm:text-xl">{stats.countries}</div>
-                <div className="text-[10px] text-muted uppercase tracking-wider">Countries</div>
+                <div className="font-semibold text-primary font-mono text-lg sm:text-xl">{stats.countries}</div>
+                <div className="text-caption text-muted uppercase tracking-wider">Countries</div>
               </div>
               {stats.torNodes > 0 && (
                 <div className="text-center">
-                  <div className="font-bold text-cipher-purple font-mono text-lg sm:text-xl">{stats.torNodes}</div>
-                  <div className="text-[10px] text-muted uppercase tracking-wider">Tor</div>
+                  <div className="font-semibold text-cipher-purple font-mono text-lg sm:text-xl">{stats.torNodes}</div>
+                  <div className="text-caption text-muted uppercase tracking-wider">Tor</div>
                 </div>
               )}
             </div>
@@ -253,10 +245,10 @@ export function NodeMap({ initialLocations, initialStats, initialFetchedAt }: No
         {selectedCountryData && (
           <button
             onClick={() => setSelectedCountry(null)}
-            className="absolute top-3 right-3 z-10 flex items-center gap-2 backdrop-blur-sm border border-cipher-cyan/30 rounded-lg px-3 py-1.5 text-xs font-mono transition hover:border-cipher-cyan/60 bg-cipher-surface-solid"
+            className="absolute top-3 right-3 z-10 flex items-center gap-2 backdrop-blur-sm border border-cipher-gold/30 rounded-lg px-3 py-1.5 text-xs font-mono transition hover:border-cipher-gold/60 bg-cipher-surface-solid"
           >
             <span>{getFlagEmoji(selectedCountryData.countryCode)}</span>
-            <span className="text-cipher-cyan font-semibold">{selectedCountryData.country}</span>
+            <span className="text-cipher-gold font-semibold">{selectedCountryData.country}</span>
             <span className="text-muted">({selectedCountryData.nodeCount})</span>
             <span className="text-muted hover:text-primary ml-1">✕</span>
           </button>
@@ -305,7 +297,7 @@ export function NodeMap({ initialLocations, initialStats, initialFetchedAt }: No
             {/* Scan line animation */}
             <linearGradient id="scanGradient" x1="0" x2="1" y1="0" y2="0">
               <stop offset="0%" stopColor="transparent" />
-              <stop offset="50%" stopColor="#F4B728" stopOpacity="0.08" />
+              <stop offset="50%" stopColor="#F8BC21" stopOpacity="0.08" />
               <stop offset="100%" stopColor="transparent" />
             </linearGradient>
           </defs>
@@ -394,9 +386,9 @@ export function NodeMap({ initialLocations, initialStats, initialFetchedAt }: No
                     textAnchor="middle"
                     dominantBaseline="central"
                     fill="#08090F"
-                    fontSize={radius > 16 ? 11 : 9}
-                    fontWeight="700"
-                    fontFamily="ui-monospace, 'JetBrains Mono', monospace"
+                    fontSize={12}
+                    fontWeight="600"
+                    fontFamily="var(--font-geist-mono), monospace"
                     className="pointer-events-none select-none"
                   >
                     {count}
@@ -408,13 +400,13 @@ export function NodeMap({ initialLocations, initialStats, initialFetchedAt }: No
 
         {/* Hover tooltip (country + count only, no city) */}
         {hoveredNode && (
-            <div className="absolute top-3 left-3 backdrop-blur-sm border border-cipher-cyan/20 rounded-lg px-4 py-3 shadow-2xl z-10 pointer-events-none bg-cipher-surface-solid">
+            <div className="absolute top-3 left-3 backdrop-blur-sm border border-cipher-gold/20 rounded-lg px-4 py-3 shadow-2xl z-10 pointer-events-none bg-cipher-surface-solid">
             <div className="flex items-center gap-2">
               <span className="text-lg">{getFlagEmoji(hoveredNode.countryCode)}</span>
               <span className="font-semibold text-primary text-sm">{hoveredNode.country}</span>
             </div>
             <div className="flex items-center gap-3 text-xs mt-1.5">
-              <span className="font-mono font-bold" style={{ color: getNodeTier(hoveredNode.nodeCount).fill }}>
+              <span className="font-mono font-semibold" style={{ color: getNodeTier(hoveredNode.nodeCount).fill }}>
                 {hoveredNode.nodeCount} node{hoveredNode.nodeCount > 1 ? 's' : ''}
               </span>
               {hoveredNode.avgPingMs != null && hoveredNode.avgPingMs > 0 && (
@@ -422,12 +414,12 @@ export function NodeMap({ initialLocations, initialStats, initialFetchedAt }: No
               )}
             </div>
             {(hoveredNode.topClient || hoveredNode.topIsp) && (
-              <div className="flex items-center gap-2 text-[11px] font-mono text-muted mt-1">
+              <div className="flex items-center gap-2 text-caption font-mono text-muted mt-1">
                 {hoveredNode.topClient && (
                   <span>Mostly {clientLabel(hoveredNode.topClient)}</span>
                 )}
                 {hoveredNode.topClient && hoveredNode.topIsp && hoveredNode.topIsp !== 'Unresolved' && (
-                  <span className="text-muted/40">&middot;</span>
+                  <span className="text-muted">&middot;</span>
                 )}
                 {hoveredNode.topIsp && hoveredNode.topIsp !== 'Unresolved' && (
                   <span className="truncate max-w-[160px]">{hoveredNode.topIsp}</span>
@@ -438,7 +430,7 @@ export function NodeMap({ initialLocations, initialStats, initialFetchedAt }: No
         )}
 
         {/* Legend */}
-        <div className="absolute bottom-3 left-3 backdrop-blur-sm border border-cipher-border rounded-lg px-3 py-2 text-[10px] pointer-events-none bg-cipher-surface-solid">
+        <div className="absolute bottom-3 left-3 backdrop-blur-sm border border-cipher-border rounded-lg px-3 py-2 text-caption pointer-events-none bg-cipher-surface-solid">
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-1.5">
               <span className="w-2.5 h-2.5 rounded-full" style={{ background: NODE_TIERS.high.fill, boxShadow: `0 0 6px ${NODE_TIERS.high.glow}` }}></span>
@@ -479,8 +471,8 @@ export function NodeMap({ initialLocations, initialStats, initialFetchedAt }: No
       {/* Trends */}
       {trends && (
         <div className="px-4 sm:px-6 py-3 border-t border-cipher-border">
-          <div className="flex items-center gap-4">
-            <span className="text-[10px] text-muted uppercase tracking-wider font-mono">Trend</span>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+            <span className="text-caption text-muted uppercase tracking-wider font-mono">Observed count change</span>
             {[
               { label: '24h', value: trends.change24h },
               { label: '7d', value: trends.change7d },
@@ -488,10 +480,8 @@ export function NodeMap({ initialLocations, initialStats, initialFetchedAt }: No
             ].map(({ label, value }) => (
               value !== null && value !== undefined ? (
                 <div key={label} className="flex items-center gap-1">
-                  <span className="text-[10px] text-muted font-mono">{label}</span>
-                  <span className={`text-xs font-mono font-semibold ${
-                    value > 0 ? 'text-cipher-green' : value < 0 ? 'text-danger' : 'text-muted'
-                  }`}>
+                  <span className="text-caption text-muted font-mono">{label}</span>
+                  <span className="text-xs font-mono text-secondary">
                     {value > 0 ? '+' : ''}{value}%
                   </span>
                 </div>
@@ -504,11 +494,11 @@ export function NodeMap({ initialLocations, initialStats, initialFetchedAt }: No
       {/* Top Countries */}
       {topCountries.length > 0 && (
         <div className="px-4 sm:px-6 py-4 border-t border-cipher-border">
-          <div className="flex items-center justify-between mb-3">
+          <div className="flex flex-wrap gap-2 items-center justify-between mb-3">
             <h3 className="text-sm font-semibold text-secondary">Top Countries</h3>
             {stats?.lastUpdated && (
-              <span className="text-[10px] text-muted font-mono hidden sm:inline">
-                Last sync: {new Date(stats.lastUpdated).toLocaleString('en-US', { timeZone: 'UTC' })} UTC
+              <span className="text-caption text-muted font-mono">
+                Last observed: {new Date(stats.lastUpdated).toLocaleString('en-GB', { timeZone: 'UTC' })} UTC
               </span>
             )}
           </div>
@@ -521,13 +511,13 @@ export function NodeMap({ initialLocations, initialStats, initialFetchedAt }: No
                   onClick={() => setSelectedCountry(isActive ? null : country.countryCode)}
                   className={`flex items-center gap-1.5 sm:gap-2 rounded-lg px-2 sm:px-3 py-1 sm:py-1.5 transition ${
                     isActive
-                      ? 'bg-cipher-cyan/10 border border-cipher-cyan/30 ring-1 ring-cipher-cyan/20'
+                      ? 'bg-brand-gold/10 border border-cipher-gold/30 ring-1 ring-cipher-gold/20'
                       : 'bg-cipher-bg/50 border border-transparent hover:bg-cipher-bg hover:border-cipher-border'
                   }`}
                 >
                   <span className="text-sm sm:text-base">{getFlagEmoji(country.countryCode)}</span>
-                  <span className={`text-[10px] sm:text-xs ${isActive ? 'text-primary font-semibold' : 'text-secondary'}`}>{country.country}</span>
-                  <span className="text-[10px] sm:text-xs font-mono font-bold" style={{ color: getNodeTier(country.nodeCount).fill }}>
+                  <span className={`text-caption sm:text-xs ${isActive ? 'text-primary font-semibold' : 'text-secondary'}`}>{country.country}</span>
+                  <span className="text-caption sm:text-xs font-mono font-semibold" style={{ color: getNodeTier(country.nodeCount).fill }}>
                     {country.nodeCount}
                   </span>
                 </button>
@@ -538,8 +528,8 @@ export function NodeMap({ initialLocations, initialStats, initialFetchedAt }: No
               const othersCount = (stats?.activeNodes || 0) - top10Sum;
               return othersCount > 0 ? (
                 <span className="flex items-center gap-1.5 rounded-lg px-2 sm:px-3 py-1 sm:py-1.5 bg-cipher-bg/50 border border-transparent">
-                  <span className="text-[10px] sm:text-xs text-muted">Others</span>
-                  <span className="text-[10px] sm:text-xs font-mono font-bold text-muted">{othersCount}</span>
+                  <span className="text-caption sm:text-xs text-muted">Others</span>
+                  <span className="text-caption sm:text-xs font-mono font-semibold text-muted">{othersCount}</span>
                 </span>
               ) : null;
             })()}

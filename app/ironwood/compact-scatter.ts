@@ -1,3 +1,4 @@
+import { readApiData } from '@/lib/api-client';
 import type { ScatterData, ScatterTx } from './components/types';
 
 type CompactPoint = [
@@ -100,7 +101,7 @@ function decodeSummary(summary: CompactSummary | undefined, txs: ScatterTx[]): S
 }
 
 export function decodeCompactScatter(response: CompactScatterResponse): ScatterData {
-  if (!response.success || response.version !== 1) throw new Error('Unsupported scatter response');
+  if (!response || response.version !== 1) throw new Error('Unsupported scatter response');
   const dictionaries = response.dictionaries;
   const points = response.points ?? [];
   if (points.length > 0 && !dictionaries) throw new Error('Scatter dictionaries are missing');
@@ -131,8 +132,8 @@ async function fetchCompact(
 ): Promise<CompactScatterResponse> {
   const response = await fetch(url, { signal });
   if (!response.ok) throw new Error(`Scatter request failed with HTTP ${response.status}`);
-  const body = await response.json() as CompactScatterResponse;
-  if (!body.success || body.network !== expectedNetwork) {
+  const body = await readApiData(response) as CompactScatterResponse;
+  if (!body || body.network !== expectedNetwork) {
     throw new Error('Scatter response network mismatch');
   }
   return body;
@@ -160,18 +161,18 @@ export async function loadAllScatter(
   signal: AbortSignal,
 ): Promise<{ data: ScatterData; cursor: ScatterCursor }> {
   const manifest = await fetchCompact(
-    `${apiBase}/api/migration/scatter/compact?manifest=1`,
+    `${apiBase}/v1/migration/scatter/compact?manifest=1`,
     expectedNetwork,
     signal,
   ) as CompactManifest;
   const chunks = await mapWithConcurrency(manifest.chunks, 4, (chunk) => fetchCompact(
-    `${apiBase}/api/migration/scatter/compact?chunkStart=${chunk.start}`,
+    `${apiBase}/v1/migration/scatter/compact?chunkStart=${chunk.start}`,
     expectedNetwork,
     signal,
   ));
   const tailAfter = Math.max(0, manifest.mutableTailStart - 1);
   const tail = await fetchCompact(
-    `${apiBase}/api/migration/scatter/compact?afterHeight=${tailAfter}`,
+    `${apiBase}/v1/migration/scatter/compact?afterHeight=${tailAfter}`,
     expectedNetwork,
     signal,
   );

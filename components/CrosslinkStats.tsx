@@ -1,5 +1,6 @@
 'use client';
 
+import { readApiData } from '@/lib/api-client';
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { Tooltip } from '@/components/Tooltip';
@@ -20,7 +21,7 @@ const STAT_TOOLTIPS: Record<string, string> = {
   'Finality Gap': 'Blocks between the PoW tip and the last finalized block. A smaller gap means faster finalization.',
   'Finalizers': 'Validator nodes that vote on blocks to confirm them as final. More finalizers means stronger security.',
   'Total Stake': 'Total cTAZ locked in delegation bonds across all finalizers. Stake determines voting power.',
-  'Peers': 'Number of network peers connected to the CipherScan node. More peers means better network visibility.',
+  'Peers': 'Number of network peers connected to the ZecBlock node. More peers means better network visibility.',
 };
 
 function StatCard({ label, value, sub, color, tooltip }: {
@@ -32,14 +33,14 @@ function StatCard({ label, value, sub, color, tooltip }: {
 }) {
   return (
     <div className="flex flex-col items-center justify-center p-3 sm:p-4">
-      <span className="text-[10px] font-mono text-muted uppercase tracking-wider mb-1 flex items-center gap-1">
+      <span className="text-caption font-mono text-muted uppercase tracking-wider mb-1 flex items-center gap-1">
         {label}
         {tooltip && <Tooltip content={tooltip} />}
       </span>
-      <span className={`text-lg sm:text-xl font-mono font-bold ${color || 'text-primary'}`}>
+      <span className={`text-lg sm:text-xl font-mono font-semibold ${color || 'text-primary'}`}>
         {value}
       </span>
-      {sub && <span className="text-[10px] font-mono text-muted mt-0.5">{sub}</span>}
+      {sub && <span className="text-caption font-mono text-muted mt-0.5">{sub}</span>}
     </div>
   );
 }
@@ -49,10 +50,10 @@ export function CrosslinkStats() {
 
   const fetchStats = useCallback(async () => {
     try {
-      const res = await fetch(`${getApiUrl()}/api/crosslink`);
+      const res = await fetch(`${getApiUrl()}/v1/crosslink`);
       if (!res.ok) return;
-      const data = await res.json();
-      if (data.success) {
+      const data = await readApiData(res);
+      if (data) {
         setStats({
           tipHeight: data.tipHeight,
           finalizedHeight: data.finalizedHeight,

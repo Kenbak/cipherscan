@@ -1,0 +1,252 @@
+/* Round-trip flow.
+   Mobile: one column with a vertical rail down the left.
+   Desktop: two endpoint panels either side of a centred rail.
+   Desktop markers and amounts share three equal columns. Address links lead
+   the supporting details; transaction and time use a quieter second tier. */
+
+.flow {
+  position: relative;
+  display: grid;
+  gap: 18px;
+  padding: 4px 0 2px;
+}
+
+/* Vertical rail behind the stages (mobile). */
+.flow::before {
+  content: '';
+  position: absolute;
+  top: 10px;
+  bottom: 10px;
+  left: 7px;
+  border-left: 1px dashed var(--color-border);
+}
+
+.stage {
+  position: relative;
+  min-width: 0;
+  padding-left: 26px;
+}
+
+/* Direction key: icon and label on one line. */
+.stageKey {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: var(--text-data);
+  font-weight: 500;
+  line-height: 1.4;
+  color: var(--color-text-primary);
+}
+
+.pool {
+  font-weight: 400;
+  text-transform: capitalize;
+  color: var(--color-text-muted);
+}
+
+.endpointMarker {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 15px;
+  height: 20px;
+  background: var(--color-surface-solid);
+}
+
+.amount {
+  margin-top: 10px;
+  font: 400 1.25rem/1.3 var(--font-geist-mono);
+  font-variant-numeric: tabular-nums lining-nums;
+  letter-spacing: -0.02em;
+  color: var(--color-text-primary);
+}
+
+.amountUnit {
+  font-size: var(--text-caption);
+  font-weight: 400;
+  color: var(--color-text-muted);
+}
+
+.rows {
+  margin-top: 12px;
+  display: grid;
+  gap: 6px;
+}
+
+.address,
+.eventMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: baseline;
+}
+
+.addressLabel,
+.eventMeta,
+.eventTime {
+  font-size: var(--text-caption);
+  line-height: 1.5;
+  color: var(--color-text-muted);
+}
+
+.eventMeta {
+  margin-top: 4px;
+}
+
+.eventTime {
+  font-variant-numeric: tabular-nums;
+}
+
+.more {
+  margin-top: 4px;
+  font-size: var(--text-caption);
+  color: var(--color-text-secondary);
+}
+
+.more summary {
+  cursor: pointer;
+  padding: 3px 0;
+}
+
+.moreList {
+  display: grid;
+  gap: 6px;
+  padding: 4px 0;
+}
+
+/* The rail annotation: interval plus what the pair actually shows. */
+.link {
+  position: relative;
+  padding-left: 26px;
+}
+
+.linkMarker {
+  position: absolute;
+  left: 0;
+  top: 1px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 15px;
+  background: var(--color-surface-solid);
+}
+
+.linkDelay {
+  font-size: var(--text-data);
+  font-weight: 500;
+  line-height: 1.4;
+  color: var(--color-text-primary);
+}
+
+.linkMatch {
+  margin-top: 3px;
+  font-size: var(--text-caption);
+  line-height: 1.5;
+  color: var(--color-text-secondary);
+}
+
+.linkPrivacy {
+  margin-top: 4px;
+  font-size: var(--text-caption);
+  line-height: 1.5;
+  color: var(--color-text-muted);
+}
+
+.caveat {
+  margin-top: 16px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  background: var(--color-hover);
+  font-size: var(--text-caption);
+  line-height: 1.5;
+  color: var(--color-text-muted);
+}
+
+.caveatLabel {
+  color: var(--color-text-primary);
+}
+
+.caveatDetail {
+  margin-top: 4px;
+}
+
+@media (min-width: 900px) {
+  .flow {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0;
+    align-items: start;
+    padding: 2px 0 4px;
+    max-width: 1080px;
+    margin-inline: auto;
+  }
+
+  /* A long rail connects the two endpoint headings through the private interval. */
+  .flow::before {
+    top: 12px;
+    bottom: auto;
+    left: 16.6667%;
+    right: 16.6667%;
+    border-left: 0;
+    border-top: 1px dashed var(--color-border);
+  }
+
+  .stage,
+  .link {
+    padding-left: 0;
+  }
+
+  .stage {
+    width: min(100%, 18rem);
+    justify-self: center;
+    padding-top: 28px;
+  }
+
+  .stageKey {
+    justify-content: center;
+  }
+
+  .amount {
+    text-align: center;
+  }
+
+  .rows {
+    width: fit-content;
+    max-width: 100%;
+    margin-inline: auto;
+  }
+
+  .address,
+  .eventMeta {
+    justify-content: center;
+  }
+
+  .eventTime,
+  .more {
+    text-align: center;
+  }
+
+  .caveat {
+    text-align: center;
+  }
+
+  /* Centre column aligns to the rail; its text stays centred because it
+     annotates the connection rather than listing values. */
+  .link {
+    text-align: center;
+    padding-top: 28px;
+  }
+
+  .linkMarker,
+  .endpointMarker {
+    position: absolute;
+    left: 50%;
+    top: 0;
+    transform: translateX(-50%);
+    width: 30px;
+    height: 20px;
+    background: var(--color-surface-solid);
+  }
+}

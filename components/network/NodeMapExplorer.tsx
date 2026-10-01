@@ -1,4 +1,5 @@
 'use client';
+import { VisualizationSkeleton } from '@/components/ui/Skeleton';
 
 import { lazy, Suspense, useRef, useState } from 'react';
 import { Tabs } from '@/components/ui/Tabs';
@@ -11,20 +12,20 @@ const TopologyGraph = lazy(() =>
 type MapTab = 'topology' | 'client' | 'infra';
 
 const TABS: { id: MapTab; label: string }[] = [
-  { id: 'topology', label: 'Topology Graph' },
-  { id: 'client', label: 'Client Map' },
-  { id: 'infra', label: 'Infra Map' },
+  { id: 'topology', label: 'Topology' },
+  { id: 'client', label: 'Geography · clients' },
+  { id: 'infra', label: 'Geography · hosting' },
 ];
 
 const TAB_DESCRIPTIONS: Record<MapTab, string> = {
-  topology: 'Observed active nodes and advertised addresses. Links show gossip relationships, not confirmed connections between remote nodes.',
+  topology: 'Observed active nodes and advertised addresses. Links show gossip relationships, not confirmed remote connections; positions are topological, not geographic.',
   client: 'World map colored by the dominant client implementation observed in each region.',
   infra: 'World map colored by the dominant hosting provider (ISP/ASN) observed in each region.',
 };
 
 /**
  * Single "Node Map" surface for the /network/nodes deep-dive: one component,
- * three lenses onto the same crawler dataset, instead of stacking separate
+ * three lenses onto the same observed network, instead of stacking separate
  * hero visualizations. Non-active lenses aren't mounted, so the 3D WebGL
  * scene only loads when actually selected.
  */
@@ -35,17 +36,11 @@ export function NodeMapExplorer() {
 
   return (
     <div>
-      <div className="mb-4">
-        <h3 className="text-sm font-semibold text-primary">Node Map</h3>
-        <p className="mt-0.5 text-[11px] text-muted">
-          Explore observed nodes as a gossip graph or on a world map colored by client or hosting provider.
-        </p>
-      </div>
-
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
+      <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-4 mb-4">
+        <h2 className="font-mono text-sm font-semibold text-primary">Gossip &amp; geography</h2>
         <Tabs tabs={TABS} active={tab} onChange={setTab} className="border-b-0" />
       </div>
-      <p className="text-[11px] text-muted mb-4">{TAB_DESCRIPTIONS[tab]}</p>
+      <p className="text-caption text-muted mb-4">{TAB_DESCRIPTIONS[tab]}</p>
 
       {/* Keep topology mounted (hidden) once loaded so the WebGL scene and
           computed force layout survive tab switches — avoids a full refetch +
@@ -53,11 +48,9 @@ export function NodeMapExplorer() {
       {topologyMounted.current && (
         <div style={{ display: tab === 'topology' ? 'block' : 'none' }}>
           <Suspense fallback={
-            <div className="h-[400px] flex items-center justify-center">
-              <div className="animate-pulse text-muted text-sm font-mono">Loading topology...</div>
-            </div>
+            <VisualizationSkeleton className="h-[360px] sm:h-[500px]" />
           }>
-            <TopologyGraph />
+            <TopologyGraph active={tab === 'topology'} />
           </Suspense>
         </div>
       )}

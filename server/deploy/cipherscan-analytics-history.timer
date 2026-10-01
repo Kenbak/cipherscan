@@ -1,0 +1,9 @@
+[Unit]
+Description=Resume missing historical analytics in paced batches
+[Timer]
+OnBootSec=10min
+OnUnitInactiveSec=5min
+RandomizedDelaySec=30
+Unit=cipherscan-analytics-history.service
+[Install]
+WantedBy=timers.target

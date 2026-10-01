@@ -12,7 +12,7 @@ type StakingActionType =
   | 'UpdateFinalizerKey'
   | string;
 
-type BadgeColor = 'cyan' | 'purple' | 'green' | 'orange' | 'muted';
+type BadgeColor = 'gold' | 'purple' | 'green' | 'orange' | 'muted';
 
 interface StakingActionBadgeProps {
   type: StakingActionType | null | undefined;
@@ -22,9 +22,9 @@ interface StakingActionBadgeProps {
 const CONFIG: Record<string, { label: string; color: BadgeColor; short: string }> = {
   CreateNewDelegationBond: { label: 'Stake', short: 'STAKE', color: 'green' },
   BeginDelegationUnbonding: { label: 'Unstake', short: 'UNSTAKE', color: 'orange' },
-  WithdrawDelegationBond: { label: 'Withdraw', short: 'WITHDRAW', color: 'cyan' },
-  RetargetDelegationBond: { label: 'Retarget', short: 'RETARGET', color: 'cyan' },
-  RegisterFinalizer: { label: 'Register Finalizer', short: 'REGISTER', color: 'cyan' },
+  WithdrawDelegationBond: { label: 'Withdraw', short: 'WITHDRAW', color: 'gold' },
+  RetargetDelegationBond: { label: 'Retarget', short: 'RETARGET', color: 'gold' },
+  RegisterFinalizer: { label: 'Register Finalizer', short: 'REGISTER', color: 'gold' },
   ConvertFinalizerRewardToDelegationBond: {
     label: 'Convert Reward',
     short: 'CONVERT',

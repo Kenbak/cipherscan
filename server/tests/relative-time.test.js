@@ -87,22 +87,52 @@ test('callers without a server clock retain a deterministic UTC server fallback'
   assert.match(html, />[^<]+ UTC<\/time>/);
 });
 
-test('navbar markup stays identical when server pathname is unavailable or rewritten', () => {
+test('navbar search controls stay present when server pathname is unavailable or rewritten', () => {
   let pathname = null;
   const { NavBar } = load('components/NavBar.tsx', {
     'next/navigation': { usePathname: () => pathname },
     'next/link': { default: ({ children, ...props }) => React.createElement('a', props, children) },
     'next/image': { default: () => null },
+    '@/components/BrandLogo': { BrandLogo: () => null },
+    '@/lib/dialog-focus': { containDialogFocus: () => {} },
+    '@/hooks/useBodyScrollLock': { useBodyScrollLock: () => {} },
+    '@/lib/navigation': load('lib/navigation.ts'),
     '@/components/SearchBar': { SearchBar: () => React.createElement('input', { 'aria-label': 'Search' }) },
     '@/components/DonateButton': { DonateButton: () => null },
     '@/components/ThemeToggle': { ThemeToggle: () => null },
     '@/contexts/ThemeContext': { useTheme: () => ({ theme: 'dark' }) },
-    '@/lib/config': { NETWORK_LABEL: 'MAINNET', NETWORK_COLOR: '', isMainnet: true, isCrosslink: false },
+    '@/lib/config': { NETWORK: 'mainnet', MAINNET_URL: 'https://zecblock.com', TESTNET_URL: 'https://testnet.zecblock.com', CROSSLINK_URL: 'https://crosslink.zecblock.com', NETWORK_LABEL: 'MAINNET', NETWORK_COLOR: '', isMainnet: true, isCrosslink: false },
   });
   const server = renderToStaticMarkup(React.createElement(NavBar));
   for (const route of ['/', '/txs', '/txs/latest']) {
     pathname = route;
-    assert.equal(renderToStaticMarkup(React.createElement(NavBar)), server);
+    const html = renderToStaticMarkup(React.createElement(NavBar));
+    assert.equal((html.match(/nav-search-compact/g) || []).length, 2);
+    assert.deepEqual(html.match(/<input[^>]+aria-label="Search"[^>]*>/g), server.match(/<input[^>]+aria-label="Search"[^>]*>/g));
   }
   assert.equal((server.match(/nav-search-compact/g) || []).length, 2);
+});
+
+
+test('v1 collection decoding preserves opaque pagination, wire times and exact money', async () => {
+  const { readApiCollection } = load('lib/api-client.ts');
+  const nextCursor = 'opaque_cursor_not_a_height';
+  const { items, page } = await readApiCollection({ ok: true, json: async () => ({
+    data: fixture.transactions,
+    meta: { requestId: 'v1-regression', network: 'mainnet', page: { limit: 25, hasNext: true, hasPrev: false, nextCursor, prevCursor: null } },
+  }) });
+  const rows = parseTransactionListItems(items);
+  assert.equal(page.nextCursor, nextCursor);
+  assert.equal(rows[0].block_time, Number(fixture.transactions[0].block_time));
+  assert.equal(rows[0].total_output, fixture.transactions[0].total_output);
+});
+
+test('block intervals retain signed timestamp differences and unavailable values', () => {
+  for (const [seconds, label] of [[-5, '−5s'], [-65, '−1m 5s'], [-120, '−2m'], [0, '0s'], [75, '1m 15s'], [601, '10m 1s']]) {
+    assert.equal(utils.formatBlockInterval(seconds).label, label);
+  }
+  for (const value of [NaN, Infinity, -Infinity]) assert.equal(utils.formatBlockInterval(value).label, '—');
+  assert.equal(utils.formatBlockInterval(-5, 75).level, 'unknown');
+  assert.equal(utils.formatBlockInterval(75, 75).level, 'normal');
+  assert.equal(utils.formatBlockInterval(75).level, 'unknown');
 });

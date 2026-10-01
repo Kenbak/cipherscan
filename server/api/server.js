@@ -17,6 +17,7 @@ const fs = require('fs');
 const { createListCache } = require('./list-cache');
 const { createRequestObservability } = require('./request-observability');
 const createV1Router = require('./v1');
+const { sendProblem: sendV1Problem } = require('./v1/lib/problem');
 const { isKnownServiceKey, createServiceKeyOnlySkip } = require('./service-auth');
 const {
   createInstanceId,
@@ -273,6 +274,7 @@ app.use(helmet());
 // CORS configuration (only allow your domains)
 const allowedOrigins = [
   'https://testnet.cipherscan.app',
+  'https://testnet.zecblock.com',
   'https://cipherscan.app',
   'https://zecblock.com',
   'https://www.zecblock.com',
@@ -304,7 +306,7 @@ app.use(cors({
       callback(null, true);
     } else {
       console.warn(`⚠️  Blocked request from unauthorized origin: ${origin}`);
-      callback(new Error('Not allowed by CORS'));
+      callback(Object.assign(new Error('Not allowed by CORS'), { status: 403 }));
     }
   },
   credentials: true,
@@ -314,6 +316,14 @@ app.use(cors({
     'X-CipherScan-Indexed-Height',
     'X-CipherScan-Data-Age-Blocks',
     'Server-Timing',
+    'Retry-After',
+    'RateLimit-Limit',
+    'RateLimit-Remaining',
+    'RateLimit-Reset',
+    'Deprecation',
+    'Sunset',
+    'Link',
+    'Payment-Required', 'WWW-Authenticate', 'Payment-Response', 'Payment-Receipt', 'X-Session-Balance', 'X-Session-Id',
   ],
 }));
 
@@ -332,6 +342,7 @@ const OWN_ORIGINS = [
   'https://www.zecblock.com',
   'https://www.cipherscan.app',
   'https://testnet.cipherscan.app',
+  'https://testnet.zecblock.com',
   'https://crosslink.cipherscan.app',
   'http://localhost:3000',
   'http://localhost:3001',
@@ -372,7 +383,10 @@ const wss = new WebSocket.Server({
 const limiter = rateLimit({
   windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS, 10) || 60 * 1000,
   max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS, 10) || 600,
-  message: 'Too many requests, please try again later.',
+  handler: (req, res) => {
+    if (req.path === '/v1' || req.path.startsWith('/v1/')) return sendV1Problem(res, 'rate-limited', { detail: 'Too many requests, please try again later.' });
+    res.status(429).send('Too many requests, please try again later.');
+  },
   standardHeaders: true,
   legacyHeaders: false,
   skip: createServiceKeyOnlySkip(SERVICE_API_KEYS),
@@ -381,7 +395,8 @@ const limiter = rateLimit({
 app.use(limiter);
 
 // Body parser
-app.use(express.json());
+const legacyJsonParser = express.json();
+app.use((req, res, next) => req.path === '/v1' || req.path.startsWith('/v1/') ? next() : legacyJsonParser(req, res, next));
 
 // Request logging — path is redacted (see redactPathForLogging) so
 // addresses, tx/block hashes, and heights never reach application logs.
@@ -873,6 +888,9 @@ app.use((req, res) => {
 // Global error handler
 app.use((err, req, res, next) => {
   logSafeError('Unhandled error:', err);
+  if (req.path === '/v1' || req.path.startsWith('/v1/')) {
+    return sendV1Problem(res, err.status === 403 ? 'access-denied' : 'internal-error', { detail: err.status === 403 ? 'Origin is not allowed.' : 'Internal server error.' });
+  }
   res.status(500).json({ error: 'Internal server error' });
 });
 

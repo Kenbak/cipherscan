@@ -1,12 +1,18 @@
 'use client';
+import { formatDateLabelUTC } from '@/lib/utils';
+import { CHART_DATE_AXIS } from '@/lib/chart-theme';
+import { ChartWatermark } from '@/components/ChartWatermark';
+import { PageLoadingBody } from '@/components/ui/PageLoading';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+import Link from 'next/link';
+import { useApiQuery } from '@/hooks/useApiQuery';
 import {
-  AreaChart, Area, PieChart, Pie, Cell,
-  XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip,
+  AreaChart, Area,
+  XAxis, YAxis, CartesianGrid,
   ResponsiveContainer, Legend,
 } from 'recharts';
-import { getApiUrl } from '@/lib/api-config';
+import { ChartTooltip as RechartsTooltip } from '@/components/charts/ChartTooltip';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getChartColors } from '@/lib/chart-theme';
 import { Card, CardBody } from '@/components/ui/Card';
@@ -15,14 +21,16 @@ import { PageSectionNav } from '@/components/PageSectionNav';
 
 const SECTIONS = [
   { id: 'fee-lanes', label: 'Fee Lanes' },
-  { id: 'fingerprints', label: 'Fingerprints' },
-  { id: 'usage', label: 'Usage' },
+  { id: 'usage', label: 'Pattern matches' },
+  { id: 'fingerprints', label: 'Wallet signals' },
+  { id: 'methodology', label: 'Methodology' },
 ] as const;
 
 const PERIODS = ['7d', '30d', '90d', '1y'] as const;
 type Period = (typeof PERIODS)[number];
 
 interface FeeLaneData {
+  period: string;
   totalShieldedTxs: number;
   buckets: {
     standard: { count: number; pct: number };
@@ -55,15 +63,13 @@ interface WalletFingerprint {
 }
 
 interface FingerprintData {
+  period: string;
   totalShielded: number;
   totalFullyShieldedOrchard: number;
   wallets: WalletFingerprint[];
 }
 
-const formatDate = (dateStr: string) => {
-  const d = new Date(dateStr);
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-};
+const formatDate = formatDateLabelUTC;
 
 const formatNumber = (n: number) => n.toLocaleString();
 
@@ -71,55 +77,27 @@ export default function WalletsClient() {
   const { theme } = useTheme();
   const colors = getChartColors(theme as 'dark' | 'light');
   const [period, setPeriod] = useState<Period>('30d');
-  const [feeLanes, setFeeLanes] = useState<FeeLaneData | null>(null);
-  const [fingerprints, setFingerprints] = useState<FingerprintData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    setLoading(true);
-    setError(null);
-    const api = getApiUrl();
-
-    Promise.all([
-      fetch(`${api}/api/privacy/fee-lanes?period=${period}`).then(r => r.json()),
-      fetch(`${api}/api/privacy/wallet-fingerprints?period=${period}`).then(r => r.json()),
-    ])
-      .then(([feeData, fpData]) => {
-        if (feeData.success) setFeeLanes(feeData);
-        if (fpData.success) setFingerprints(fpData);
-        setLoading(false);
-      })
-      .catch(err => {
-        setError('Failed to load wallet analysis data');
-        setLoading(false);
-        console.error(err);
-      });
-  }, [period]);
-
+  const feeQuery = useApiQuery<FeeLaneData>('/v1/privacy/fee-lanes', { period });
+  const fingerprintQuery = useApiQuery<FingerprintData>('/v1/privacy/wallet-fingerprints', { period });
+  const feeLanes = feeQuery.data?.period===period && feeQuery.data.buckets ? feeQuery.data : null;
+  const fingerprints = fingerprintQuery.data?.period===period && Array.isArray(fingerprintQuery.data.wallets) ? fingerprintQuery.data : null;
+  const loading = feeQuery.loading || fingerprintQuery.loading || feeQuery.isRefreshing || fingerprintQuery.isRefreshing;
+  const error = feeQuery.error && fingerprintQuery.error ? 'Wallet analysis is temporarily unavailable.' : null;
   const usageData = buildUsageEstimates(fingerprints);
 
   if (loading && !feeLanes) {
     return (
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <h1 className="text-3xl font-bold mb-2">Wallet Anonymity Analysis</h1>
-        <p className="text-secondary mb-8">
-          Analyzing on-chain wallet fingerprints...
-        </p>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-          {[1, 2, 3].map(i => (
-            <div key={i} className="h-24 rounded-lg animate-pulse bg-cipher-hover" />
-          ))}
-        </div>
-        <div className="h-64 rounded-lg animate-pulse bg-cipher-hover" />
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+        <PageHeader eyebrow="WALLET_ANALYSIS" title="Zcash Wallet Signals" subtitle="Fee patterns, observable wallet signals and their limits. Matches describe transaction behavior, not identified users." />
+        <PageLoadingBody layout="wallets" />
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <h1 className="text-3xl font-bold mb-4">Wallet Anonymity Analysis</h1>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+        <h1 className="type-page mb-4">Zcash Wallet Signals</h1>
         <Card variant="standard">
           <CardBody>
             <p className="text-danger">{error}</p>
@@ -130,16 +108,17 @@ export default function WalletsClient() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
       <PageHeader
         eyebrow="WALLET_ANALYSIS"
-        title="Wallet Anonymity Analysis"
-        subtitle="How distinguishable is your wallet on-chain?"
+        title="Zcash Wallet Signals"
+        subtitle="Fee patterns, observable wallet signals and their limits. Matches describe transaction behavior, not identified users."
         actions={
           <div className="filter-group">
             {PERIODS.map(p => (
               <button
                 key={p}
+                aria-pressed={period === p}
                 onClick={() => setPeriod(p)}
                 className={`filter-btn ${period === p ? 'filter-btn-active' : ''}`}
               >
@@ -155,84 +134,38 @@ export default function WalletsClient() {
       {/* ================================================================ */}
       {/* COMPONENT 1: FEE LANE ANONYMITY BUCKETS                         */}
       {/* ================================================================ */}
-      <section id="fee-lanes" className="mb-12 scroll-mt-20">
-        <h2 className="text-xl font-semibold mb-1">Do you blend in?</h2>
+      <section id="fee-lanes" className="mb-12 scroll-mt-[calc(var(--app-nav-height,4rem)+var(--app-stats-height,2.75rem)+var(--app-ironwood-height,0px)+1.5rem)]">
+        <h2 className="type-section text-primary mb-3">Fee patterns</h2>
         <p className="text-sm text-secondary mb-6">
-          ZIP-317 defines a standard fee of 5,000 zat per logical action. Transactions paying this
-          rate share the largest anonymity set.
+          Compare fee patterns across observed shielded transactions. The ZIP-317 standard rate is 5,000 zat per logical action.
         </p>
 
         {feeLanes && (
           <>
-            {/* Hero stat row */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-              <StatCard
-                label="Standard Fee"
-                value={`${feeLanes.buckets.standard.pct}%`}
-                subtext={`${formatNumber(feeLanes.buckets.standard.count)} txs`}
-                accent="cyan"
-              />
-              <StatCard
-                label="Priority Fee (4x)"
-                value={`${feeLanes.buckets.priority.pct}%`}
-                subtext={`${formatNumber(feeLanes.buckets.priority.count)} txs`}
-                accent="yellow"
-              />
-              <StatCard
-                label="Non-Standard"
-                value={`${feeLanes.buckets.non_standard.pct}%`}
-                subtext={`${formatNumber(feeLanes.buckets.non_standard.count)} txs`}
-                accent="amber"
-              />
-            </div>
-
-            {/* Battery bar */}
-            <Card variant="standard" className="mb-6">
-              <CardBody>
-                <div className="flex items-center gap-2 mb-3">
-                  <span className="text-sm font-medium text-secondary">
-                    Fee Lane Distribution
-                  </span>
-                  <span className="text-xs text-muted">
-                    ({formatNumber(feeLanes.totalShieldedTxs)} shielded txs in {period})
-                  </span>
-                </div>
-                <BatteryBar buckets={feeLanes.buckets} />
-                <div className="flex items-center gap-4 mt-3 text-xs text-secondary">
-                  <span className="flex items-center gap-1">
-                    <span className="w-3 h-3 rounded-sm bg-cipher-teal" />
-                    Standard (5000 zat)
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <span className="w-3 h-3 rounded-sm bg-cipher-yellow-bright" />
-                    Priority (20000 zat)
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <span className="w-3 h-3 rounded-sm bg-amber-500" />
-                    Non-Standard
-                  </span>
-                </div>
-              </CardBody>
-            </Card>
+            <FeeDistribution data={feeLanes} period={period} />
 
             {/* Stacked area chart */}
             <Card variant="standard" className="mb-6">
               <CardBody>
                 <h3 className="text-sm font-medium text-secondary mb-4">
-                  Fee Lane Evolution Over Time
+                  Fee patterns over time
                 </h3>
-                <ResponsiveContainer initialDimension={{ width: 500, height: 300 }} width="100%" height={300}>
-                  <AreaChart data={feeLanes.history}>
+                <p className="text-xs text-muted mb-3">
+                  {feeLanes.history.length ? `Latest observation: ${feeLanes.history.map(row => row.date).sort().at(-1)?.slice(0, 10)} (UTC). Daily samples; today may be incomplete.` : 'Fee history unavailable.'}
+                </p>
+                <><ResponsiveContainer initialDimension={{ width: 500, height: 300 }} width="100%" height={300}>
+                  <AreaChart data={feeLanes.history} margin={{ right: 16, left: 0 }}>
                     <CartesianGrid strokeDasharray="2 6" stroke={colors.grid} opacity={0.5} />
                     <XAxis
                       dataKey="date"
+                      {...CHART_DATE_AXIS}
                       stroke={colors.axis}
                       tickFormatter={formatDate}
-                      tick={{ fontSize: 11 }}
+                      tick={{ fontSize: 12 }}
                     />
                     <YAxis
                       stroke={colors.axis}
-                      tick={{ fontSize: 11 }}
+                      tick={{ fontSize: 12 }}
                       tickFormatter={(v: number) => v > 999 ? `${(v / 1000).toFixed(1)}k` : String(v)}
                     />
                     <RechartsTooltip
@@ -249,8 +182,8 @@ export default function WalletsClient() {
                       type="monotone"
                       dataKey="standard"
                       stackId="1"
-                      stroke="#56D4C8"
-                      fill="#56D4C8"
+                      stroke={colors.shielding}
+                      fill={colors.shielding}
                       fillOpacity={0.6}
                       name="Standard"
                     />
@@ -258,8 +191,8 @@ export default function WalletsClient() {
                       type="monotone"
                       dataKey="priority"
                       stackId="1"
-                      stroke="#F4B728"
-                      fill="#F4B728"
+                      stroke={colors.gold}
+                      fill={colors.gold}
                       fillOpacity={0.6}
                       name="Priority"
                     />
@@ -267,48 +200,17 @@ export default function WalletsClient() {
                       type="monotone"
                       dataKey="non_standard"
                       stackId="1"
-                      stroke="#f59e0b"
-                      fill="#f59e0b"
+                      stroke={colors.deshielding}
+                      fill={colors.deshielding}
                       fillOpacity={0.6}
                       name="Non-Standard"
                     />
                     <Legend />
                   </AreaChart>
-                </ResponsiveContainer>
+                </ResponsiveContainer><ChartWatermark /></>
               </CardBody>
             </Card>
 
-            {/* Dynamic takeaway */}
-            <Card variant="glass" className="mb-6">
-              <CardBody>
-                <p className="text-sm leading-relaxed">
-                  {feeLanes.buckets.standard.pct >= 90 ? (
-                    <span>
-                      <strong className="text-cipher-teal">{feeLanes.buckets.standard.pct}%</strong>{' '}
-                      of shielded transactions pay the standard fee — you blend into a large crowd.
-                      Non-standard fees account for only{' '}
-                      <strong className="text-amber-500">{feeLanes.buckets.non_standard.pct}%</strong>{' '}
-                      of traffic, making them a fingerprinting risk for those users.
-                    </span>
-                  ) : feeLanes.buckets.standard.pct >= 70 ? (
-                    <span>
-                      <strong className="text-cipher-teal">{feeLanes.buckets.standard.pct}%</strong>{' '}
-                      of shielded transactions use the standard fee lane. While this is a decent
-                      anonymity set, the{' '}
-                      <strong className="text-amber-500">{feeLanes.buckets.non_standard.pct}%</strong>{' '}
-                      using non-standard fees could improve their privacy by switching to ZIP-317 compliant wallets.
-                    </span>
-                  ) : (
-                    <span>
-                      Only{' '}
-                      <strong className="text-amber-500">{feeLanes.buckets.standard.pct}%</strong>{' '}
-                      of shielded transactions use the standard fee, which means fee-based fingerprinting
-                      is currently a significant privacy risk on the network.
-                    </span>
-                  )}
-                </p>
-              </CardBody>
-            </Card>
           </>
         )}
       </section>
@@ -316,155 +218,78 @@ export default function WalletsClient() {
       {/* ================================================================ */}
       {/* COMPONENT 2: WALLET FINGERPRINTING MATRIX                       */}
       {/* ================================================================ */}
-      <section id="fingerprints" className="mb-12 scroll-mt-20">
-        <h2 className="text-xl font-semibold mb-1">What your wallet reveals</h2>
-        <p className="text-sm text-secondary mb-6">
-          Each wallet leaves a unique on-chain signature. Tap a wallet to see details.
-        </p>
 
-        {fingerprints && (
-          <div className="space-y-3">
-            {fingerprints.wallets.map(wallet => (
-              <WalletCard key={wallet.name} wallet={wallet} />
-            ))}
-
-            {/* Legend */}
-            <div className="flex flex-wrap items-center gap-4 pt-2 text-xs text-secondary">
-              <span className="flex items-center gap-1.5">
-                <span className="inline-block w-8 h-5 rounded-full bg-emerald-400/20 border border-emerald-400/40" />
-                Confirmed
-              </span>
-              <span className="flex items-center gap-1.5">
-                <span className="inline-block w-8 h-5 rounded-full bg-amber-400/20 border border-amber-400/40" />
-                Inferred
-              </span>
-              <span className="flex items-center gap-1.5">
-                <span className="inline-block w-8 h-5 rounded-full bg-slate-500/20 border border-slate-500/40" />
-                Unknown
-              </span>
-              <span className="flex items-center gap-1.5">
-                <span className="inline-block w-8 h-5 rounded-full bg-purple-500/15 border border-purple-500/30" />
-                Nym Mixnet
-              </span>
-            </div>
-          </div>
-        )}
-      </section>
 
       {/* ================================================================ */}
       {/* COMPONENT 3: WALLET USAGE DISTRIBUTION                          */}
       {/* ================================================================ */}
-      <section id="usage" className="mb-12 scroll-mt-20">
-        <h2 className="text-xl font-semibold mb-1">Who uses what</h2>
+      <section id="usage" className="mb-12 scroll-mt-[calc(var(--app-nav-height,4rem)+var(--app-stats-height,2.75rem)+var(--app-ironwood-height,0px)+1.5rem)]">
+        <h2 className="type-section text-primary mb-3">Observed pattern matches</h2>
         <p className="text-sm text-secondary mb-6">
-          Estimated wallet usage based on on-chain fingerprint matching. Confidence varies — see
-          methodology below.
+          Counts of transactions matching known implementation patterns. These are not counts of users or verified wallet market shares; patterns can overlap.
         </p>
 
-        {usageData && (
-          <>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-              <Card variant="standard">
-                <CardBody>
-                  <h3 className="text-sm font-medium text-secondary mb-4">
-                    Estimated Distribution (last {period})
-                  </h3>
-                  <ResponsiveContainer initialDimension={{ width: 500, height: 300 }} width="100%" height={280}>
-                    <PieChart>
-                      <Pie
-                        data={usageData}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={60}
-                        outerRadius={100}
-                        paddingAngle={2}
-                        dataKey="value"
-                        nameKey="name"
-                      >
-                        {usageData.map((entry, idx) => (
-                          <Cell key={entry.name} fill={WALLET_COLORS[entry.name] || USAGE_COLORS_FALLBACK[idx % USAGE_COLORS_FALLBACK.length]} />
-                        ))}
-                      </Pie>
-                      <RechartsTooltip
-                        contentStyle={{
-                          backgroundColor: colors.tooltipBg,
-                          border: `1px solid ${colors.tooltipBorder}`,
-                          borderRadius: 8,
-                          color: colors.tooltipText,
-                          fontSize: 12,
-                        }}
-                        formatter={(value, name) => [
-                          `${formatNumber(Number(value))} txs`,
-                          String(name),
-                        ]}
-                      />
-                      <Legend
-                        verticalAlign="bottom"
-                        formatter={(value) => (
-                          <span className="text-xs">{String(value)}</span>
-                        )}
-                      />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </CardBody>
-              </Card>
-
-              <Card variant="standard">
-                <CardBody>
-                  <h3 className="text-sm font-medium text-secondary mb-4">
-                    On-Chain Ceiling
-                  </h3>
-                  {fingerprints && (
-                    <div className="space-y-4">
-                      <div className="flex items-baseline justify-between">
-                        <span className="text-secondary">
-                          Total shielded txs ({period})
-                        </span>
-                        <span className="text-2xl font-bold font-mono">
-                          {formatNumber(fingerprints.totalShielded)}
-                        </span>
-                      </div>
-                      <div className="flex items-baseline justify-between">
-                        <span className="text-secondary">
-                          Fully-shielded Orchard
-                        </span>
-                        <span className="text-2xl font-bold font-mono">
-                          {formatNumber(fingerprints.totalFullyShieldedOrchard)}
-                        </span>
-                      </div>
-                      <div className="flex items-baseline justify-between">
-                        <span className="text-secondary">
-                          Identified by fingerprint
-                        </span>
-                        <span className="text-2xl font-bold font-mono">
-                          {formatNumber(
-                            usageData
-                              .filter(d => d.name !== 'Unknown / Other')
-                              .reduce((s, d) => s + d.value, 0)
-                          )}
-                        </span>
-                      </div>
-                      <div className="text-xs text-muted pt-3 border-t border-cipher-border space-y-1.5">
-                        <p className="font-medium text-secondary">Why is &quot;Unknown&quot; so large?</p>
-                        <ul className="list-disc list-inside space-y-0.5 text-[11px]">
-                          <li>Sapling-only txs (no Orchard action count to fingerprint)</li>
-                          <li>SDK wallets (Edge, Unstoppable, YWallet) identical to ZODL on-chain</li>
-                          <li>Transactions with expiry=0 (disabled) or missing data</li>
-                          <li>Wallets we haven&apos;t fingerprinted yet</li>
-                        </ul>
-                        <p className="text-[10px] italic">We prefer honesty over false precision.</p>
+        {usageData && fingerprints && (
+          <div className="rounded-lg border border-cipher-border overflow-hidden">
+            <dl className="grid sm:grid-cols-3 border-b border-cipher-border bg-glass-3 divide-y sm:divide-y-0 sm:divide-x divide-cipher-border">
+              {[
+                { label: `Shielded transactions · ${period}`, value: fingerprints.totalShielded },
+                { label: 'Fully-shielded Orchard', value: fingerprints.totalFullyShieldedOrchard },
+                { label: 'Pattern matches · may overlap', value: usageData.reduce((sum, entry) => sum + entry.value, 0) },
+              ].map(stat => (
+                <div key={stat.label} className="px-4 py-4 sm:px-5">
+                  <dt className="text-caption text-muted">{stat.label}</dt>
+                  <dd className="mt-1 text-xl sm:text-2xl font-mono tabular-nums text-primary">{formatNumber(stat.value)}</dd>
+                </div>
+              ))}
+            </dl>
+            <div className="px-4 sm:px-5">
+              <div aria-hidden="true" className="hidden sm:grid grid-cols-[minmax(0,1fr)_6rem_6rem] gap-6 py-3 border-b border-cipher-border text-caption font-mono uppercase text-muted">
+                <span>Pattern</span><span>Confidence</span><span className="text-right">Matches</span>
+              </div>
+              <ul aria-label="Observed wallet pattern matches" className="divide-y divide-cipher-border">
+                {usageData.map(entry => (
+                  <li key={entry.name} className="grid grid-cols-[minmax(0,1fr)_auto] sm:grid-cols-[minmax(0,1fr)_6rem_6rem] gap-x-4 sm:gap-x-6 gap-y-2 py-3 items-center">
+                    <div className="min-w-0">
+                      <p className="text-sm text-primary">{entry.name}</p>
+                      <div aria-hidden="true" className="h-1 rounded-full bg-glass-6 overflow-hidden mt-2">
+                        <div className="h-full rounded-full bg-cipher-blue" style={{ width: `${Math.min(100, fingerprints.totalShielded ? entry.value / fingerprints.totalShielded * 100 : 0)}%` }} />
                       </div>
                     </div>
-                  )}
-                </CardBody>
-              </Card>
+                    <span className="text-caption text-muted col-start-1 row-start-2 sm:col-auto sm:row-auto"><span className="capitalize">{entry.confidence}</span><span className="sm:sr-only"> confidence</span></span>
+                    <span className="text-sm font-mono tabular-nums text-primary text-right col-start-2 row-start-1 sm:col-auto sm:row-auto">{formatNumber(entry.value)}</span>
+                  </li>
+                ))}
+              </ul>
+              {usageData.length === 0 && <p className="py-5 text-sm text-muted">No matching patterns in this period.</p>}
+              <p className="text-caption text-muted py-3 border-t border-cipher-border">Bar lengths compare each pattern with all observed shielded transactions. Matches can overlap.</p>
             </div>
-
-            {/* Methodology accordion */}
-            <MethodologyAccordion />
-          </>
+            <details className="border-t border-cipher-border px-4 sm:px-5">
+              <summary className="min-h-11 py-3 cursor-pointer text-sm text-secondary">What these matches can tell us</summary>
+              <ul className="list-disc pl-4 pb-4 space-y-1 text-caption text-muted leading-relaxed">
+                <li>Shared SDK patterns cannot distinguish individual wallet apps.</li>
+                <li>Sapling-only transactions have no Orchard action count to compare.</li>
+                <li>Disabled expiry, missing data and unrecognized implementations limit matching.</li>
+              </ul>
+            </details>
+          </div>
         )}
       </section>
+
+      <section id="fingerprints" className="mb-12 scroll-mt-[calc(var(--app-nav-height,4rem)+var(--app-stats-height,2.75rem)+var(--app-ironwood-height,0px)+1.5rem)]">
+        <h2 className="type-section text-primary mb-3">Wallet implementation signals</h2>
+        <p className="text-sm text-secondary mb-6">
+          Some wallets share the same transaction patterns. Expand a wallet family to inspect evidence and confidence.
+        </p>
+
+        {fingerprints && (
+          <div className="rounded-lg border border-cipher-border overflow-hidden divide-y divide-cipher-border">
+            {fingerprints.wallets.map(wallet => <WalletCard key={wallet.name} wallet={wallet} />)}
+          </div>
+        )}
+      </section>
+      <section id="methodology" className="scroll-mt-[calc(var(--app-nav-height,4rem)+var(--app-stats-height,2.75rem)+var(--app-ironwood-height,0px)+1.5rem)] mb-8"><MethodologyAccordion /></section>
+      <nav aria-label="Related wallet analysis" className="grid sm:grid-cols-3 gap-3">{[{href:"/privacy",label:"Privacy participation"},{href:"/pools",label:"Shielded supply"},{href:"/tools/decode",label:"Decode a transaction"}].map(l=><Link key={l.href} href={l.href} className="border border-cipher-border rounded-lg p-4 text-xs font-mono text-secondary hover:bg-glass-3">{l.label} →</Link>)}</nav>
     </div>
   );
 }
@@ -473,212 +298,97 @@ export default function WalletsClient() {
 // SUB-COMPONENTS
 // ============================================================================
 
-const WALLET_COLORS: Record<string, string> = {
-  'ZODL / Vizor (Ironwood sends)': '#56D4C8',
-  'ZODL / Vizor (ZIP-318 migration)': '#6366f1',
-  'SDK wallets (cross-pool)': '#818cf8',
-  'SDK wallets (Orchard pool)': '#22c55e',
-  'SDK wallets (shielding/deshielding)': '#14b8a6',
-  'Cake Wallet (probable)': '#ec4899',
-  'Brave': '#f59e0b',
-  'Nozy': '#a855f7',
-  'Zkool (historical)': '#F4B728',
-  'Unknown / Other': '#64748b',
-};
-const USAGE_COLORS_FALLBACK = ['#22c55e', '#ec4899', '#6366f1', '#14b8a6'];
+const FEE_CATEGORIES = [
+  { key: 'standard', label: 'Standard', rate: '5,000 zat / action', color: 'bg-cipher-green' },
+  { key: 'priority', label: 'Priority · 4×', rate: '20,000 zat / action', color: 'bg-cipher-gold' },
+  { key: 'non_standard', label: 'Non-standard', rate: 'Other fee patterns', color: 'bg-cipher-orange' },
+] as const;
 
-function StatCard({
-  label,
-  value,
-  subtext,
-  accent,
-}: {
-  label: string;
-  value: string;
-  subtext: string;
-  accent: 'cyan' | 'yellow' | 'amber';
-}) {
-  const accentColor = {
-    cyan: '#56D4C8',
-    yellow: '#F4B728',
-    amber: '#f59e0b',
-  }[accent];
+function FeeDistribution({ data, period }: { data: FeeLaneData; period: Period }) {
+  const categories = FEE_CATEGORIES.map(category => {
+    const count = data.buckets[category.key].count;
+    const share = data.totalShieldedTxs > 0 ? count / data.totalShieldedTxs * 100 : 0;
+    const label = data.totalShieldedTxs === 0 ? '—' : count === 0 ? '0%' : share < 0.1 ? '<0.1%' : `${share.toFixed(1)}%`;
+    return { ...category, count, share, shareLabel: label };
+  });
 
   return (
-    <Card variant="compact">
-      <CardBody>
-        <p className="text-xs text-secondary mb-1">{label}</p>
-        <p className="text-3xl font-bold font-mono" style={{ color: accentColor }}>
-          {value}
-        </p>
-        <p className="text-xs text-muted mt-1">{subtext}</p>
-      </CardBody>
-    </Card>
-  );
-}
-
-function BatteryBar({
-  buckets,
-}: {
-  buckets: FeeLaneData['buckets'];
-}) {
-  return (
-    <div className="relative w-full h-8 rounded-lg overflow-hidden flex" role="img" aria-label={`Fee distribution: ${buckets.standard.pct}% standard, ${buckets.priority.pct}% priority, ${buckets.non_standard.pct}% non-standard`}>
-      {buckets.standard.pct > 0 && (
-        <div
-          className="h-full transition-[width] duration-500 flex items-center justify-center text-xs font-medium text-slate-900"
-          style={{ width: `${buckets.standard.pct}%`, background: '#56D4C8' }}
-          title={`Standard: ${buckets.standard.pct}%`}
-        >
-          {buckets.standard.pct > 10 && `${buckets.standard.pct}%`}
+    <div className="rounded-lg border border-cipher-border mb-6 overflow-hidden">
+      <div className="px-4 pt-4 sm:px-5 sm:pt-5">
+        <div className="flex flex-wrap justify-between items-baseline gap-2 mb-4">
+          <h3 className="text-sm font-medium text-primary">Fee distribution</h3>
+          <p className="text-caption text-muted">{formatNumber(data.totalShieldedTxs)} shielded transactions · {period}</p>
         </div>
-      )}
-      {buckets.priority.pct > 0 && (
-        <div
-          className="h-full transition-[width] duration-500 flex items-center justify-center text-xs font-medium text-slate-900"
-          style={{ width: `${Math.max(buckets.priority.pct, 1)}%`, background: '#F4B728' }}
-          title={`Priority: ${buckets.priority.pct}%`}
-        >
-          {buckets.priority.pct > 5 && `${buckets.priority.pct}%`}
+        <div aria-hidden="true" className="flex h-2 overflow-hidden rounded-full bg-glass-6">
+          {categories.map(category => <div key={category.key} className={`h-full shrink-0 ${category.color}`} style={{ width: `${category.share}%` }} />)}
         </div>
-      )}
-      {buckets.non_standard.pct > 0 && (
-        <div
-          className="h-full transition-[width] duration-500 flex items-center justify-center text-xs font-medium text-slate-900"
-          style={{ width: `${buckets.non_standard.pct}%`, background: '#f59e0b' }}
-          title={`Non-Standard: ${buckets.non_standard.pct}%`}
-        >
-          {buckets.non_standard.pct > 5 && `${buckets.non_standard.pct}%`}
-        </div>
-      )}
+      </div>
+      <dl className="grid sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-cipher-border mt-4">
+        {categories.map(category => (
+          <div key={category.key} className="px-4 py-4 sm:px-5 grid grid-cols-[1fr_auto] sm:block gap-x-4">
+            <dt className="text-sm text-secondary flex items-center gap-2">
+              <span aria-hidden="true" className={`w-2 h-2 rounded-sm shrink-0 ${category.color}`} />{category.label}
+            </dt>
+            <dd className="text-2xl font-mono tabular-nums text-primary sm:mt-2 row-span-2 text-right sm:text-left">{category.shareLabel}</dd>
+            <dd className="text-caption text-muted mt-1">{formatNumber(category.count)} transactions</dd>
+            <dd className="text-caption text-muted mt-1 col-span-2">{category.rate}</dd>
+          </div>
+        ))}
+      </dl>
+      <p className="border-t border-cipher-border px-4 py-3 sm:px-5 text-caption text-muted leading-relaxed">
+        Shared fees do not identify a wallet or measure an anonymity set.
+      </p>
     </div>
   );
 }
 
+const SIGNAL_LABELS: Record<keyof WalletFingerprint['signals'], string> = {
+  fee: 'Fee', expiry: 'Expiry', locktime: 'Lock time', actionPadding: 'Padding',
+};
+const CONFIDENCE_LABELS = { high: 'Confirmed', medium: 'Inferred', low: 'Unknown' };
+
 function WalletCard({ wallet }: { wallet: WalletFingerprint }) {
-  const [expanded, setExpanded] = useState(false);
-  const signals = Object.entries(wallet.signals) as [string, WalletSignal][];
-  const signalLabels: Record<string, string> = {
-    fee: 'Fee',
-    expiry: 'Expiry',
-    locktime: 'Lock',
-    actionPadding: 'Padding',
-  };
-
+  const signals = Object.entries(wallet.signals) as [keyof WalletFingerprint['signals'], WalletSignal][];
   return (
-    <Card variant="compact" className="overflow-hidden">
-      <CardBody className="!p-0">
-        <button
-          onClick={() => setExpanded(!expanded)}
-          className="w-full text-left px-4 py-3 flex flex-col sm:flex-row sm:items-center gap-2 hover:bg-cipher-hover transition-colors"
-        >
-          <div className="flex items-center gap-2 sm:min-w-[13rem] flex-shrink-0">
-            <svg
-              className={`w-3 h-3 transition-transform flex-shrink-0 text-muted ${expanded ? 'rotate-90' : ''}`}
-              fill="currentColor"
-              viewBox="0 0 20 20"
-            >
-              <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
-            </svg>
-            <span className="font-medium text-sm">{wallet.name}</span>
-            <NymBadge status={wallet.nym} />
-          </div>
-          <div className="flex flex-wrap gap-1.5 sm:gap-2">
-            {signals.map(([key, signal]) => (
-              <SignalPill key={key} label={signalLabels[key]} signal={signal} />
-            ))}
-          </div>
-        </button>
-
-        {expanded && (
-          <div className="px-4 pb-3 pt-1 border-t border-cipher-border">
-            {wallet.description && (
-              <p className="text-xs text-secondary mb-3">{wallet.description}</p>
-            )}
-            {wallet.familyMembers && wallet.familyMembers.length > 0 && (
-              <div className="flex flex-wrap items-center gap-1.5 mb-3">
-                <span className="text-[10px] uppercase tracking-wider text-muted">Includes:</span>
-                {wallet.familyMembers.map(m => (
-                  <span key={m} className="text-[10px] px-1.5 py-0.5 rounded bg-cipher-teal/10 text-cipher-teal border border-cipher-teal/20">
-                    {m}
-                  </span>
-                ))}
-              </div>
-            )}
-            {wallet.nymNote && (
-              <div className="flex items-start gap-2 mb-3 px-2 py-1.5 rounded bg-purple-500/5 border border-purple-500/20">
-                <span className="text-[10px] uppercase tracking-wider text-purple-400 font-medium whitespace-nowrap mt-px">Nym</span>
-                <span className="text-xs text-purple-300/80">{wallet.nymNote}</span>
-              </div>
-            )}
-            {wallet.note && (
-              <p className="text-xs text-muted italic mb-3">{wallet.note}</p>
-            )}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+    <details className="group">
+      <summary className="list-none cursor-pointer px-4 py-4 sm:px-5 hover:bg-glass-3 transition-colors [&::-webkit-details-marker]:hidden">
+        <div className="flex items-start gap-3">
+          <svg aria-hidden="true" className="w-4 h-4 mt-0.5 shrink-0 text-muted transition-transform group-open:rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="m9 5 7 7-7 7" strokeWidth="1.5" /></svg>
+          <div className="grid min-w-0 flex-1 gap-3 lg:grid-cols-[minmax(12rem,1.1fr)_2fr] lg:gap-6">
+            <div>
+              <span className="text-sm font-medium text-primary">{wallet.name}</span>
+              {wallet.nym && wallet.nym !== 'none' && <span className="block mt-1 text-caption text-muted">{wallet.nym === 'supported' ? 'Nym supported' : 'Nym · partial support'}</span>}
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-3">
               {signals.map(([key, signal]) => (
-                <div key={key} className="rounded-lg bg-cipher-hover p-2.5">
-                  <p className="text-[10px] uppercase tracking-wider text-muted mb-1">
-                    {signalLabels[key]}
-                  </p>
-                  <p className="font-mono text-xs font-medium mb-1">{signal.value}</p>
-                  {signal.matchCount !== undefined && signal.matchCount > 0 && (
-                    <p className="text-[10px] text-cipher-teal font-medium">
-                      {formatNumber(signal.matchCount)} matches
-                    </p>
-                  )}
-                  <p className="text-[10px] text-muted mt-1 leading-tight">
-                    {signal.source}
-                  </p>
+                <div key={key} className="min-w-0">
+                  <span className="block text-caption text-muted mb-1">{SIGNAL_LABELS[key]}</span>
+                  <span className="block text-caption font-mono text-secondary break-words">{signal.value}</span>
                 </div>
               ))}
             </div>
           </div>
-        )}
-      </CardBody>
-    </Card>
-  );
-}
-
-function NymBadge({ status }: { status?: 'supported' | 'partial' | 'none' }) {
-  if (!status || status === 'none') return null;
-
-  const styles = status === 'supported'
-    ? 'bg-purple-500/15 border-purple-500/30 text-purple-300'
-    : 'bg-purple-500/10 border-purple-500/20 text-purple-400/70';
-
-  const label = status === 'supported' ? 'Nym' : 'Nym (partial)';
-
-  return (
-    <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full border text-[9px] font-medium uppercase tracking-wider whitespace-nowrap ${styles}`}>
-      <svg className="w-2.5 h-2.5" viewBox="0 0 16 16" fill="currentColor">
-        <path d="M8 1a7 7 0 100 14A7 7 0 008 1zM4.5 7.5a1 1 0 112 0v3a1 1 0 11-2 0v-3zm5 0a1 1 0 112 0v3a1 1 0 11-2 0v-3zM7 5a1 1 0 112 0 1 1 0 01-2 0z" />
-      </svg>
-      {label}
-    </span>
-  );
-}
-
-function SignalPill({ label, signal }: { label: string; signal: WalletSignal }) {
-  const styles = {
-    high: 'bg-emerald-400/15 border-emerald-400/30 text-emerald-300',
-    medium: 'bg-amber-400/15 border-amber-400/30 text-amber-300',
-    low: 'bg-slate-500/15 border-slate-500/30 text-slate-400',
-  }[signal.confidence];
-
-  const shortValue = signal.value === 'Unknown' || signal.value === 'Unknown (custom builder)'
-    ? '?'
-    : signal.value.length > 12
-      ? signal.value.slice(0, 12) + '...'
-      : signal.value;
-
-  return (
-    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[10px] font-mono ${styles}`}>
-      <span className="text-[9px] opacity-60 uppercase">{label}</span>
-      {shortValue}
-      {signal.matchCount !== undefined && signal.matchCount > 0 && (
-        <span className="text-[9px] opacity-70">({formatNumber(signal.matchCount)})</span>
-      )}
-    </span>
+        </div>
+      </summary>
+      <div className="px-4 sm:px-5 pb-5 border-t border-cipher-border pt-4">
+        {wallet.description && <p className="text-sm text-secondary mb-3 leading-relaxed">{wallet.description}</p>}
+        {!!wallet.familyMembers?.length && <p className="text-caption text-muted mb-3"><span className="text-secondary">Includes:</span> {wallet.familyMembers.join(' · ')}</p>}
+        {wallet.nymNote && <p className="text-caption text-muted mb-3"><span className="text-secondary">Nym:</span> {wallet.nymNote}</p>}
+        {wallet.note && <p className="text-caption text-muted mb-3 leading-relaxed">{wallet.note}</p>}
+        <dl className="divide-y divide-cipher-border">
+          {signals.map(([key, signal]) => (
+            <div key={key} className="grid gap-2 sm:grid-cols-[6rem_7rem_minmax(0,1fr)] py-3">
+              <dt className="text-caption font-medium text-primary">{SIGNAL_LABELS[key]}</dt>
+              <dd className="text-caption text-secondary">{CONFIDENCE_LABELS[signal.confidence]}</dd>
+              <dd className="text-caption text-muted leading-relaxed break-words">
+                {signal.source}
+                {signal.matchCount !== undefined && <span className="block mt-1 font-mono tabular-nums text-secondary">{formatNumber(signal.matchCount)} matches</span>}
+              </dd>
+            </div>
+          ))}
+        </dl>
+      </div>
+    </details>
   );
 }
 
@@ -686,11 +396,11 @@ function MethodologyAccordion() {
   const [open, setOpen] = useState(false);
 
   return (
-    <Card variant="dark">
-      <CardBody>
+    <div className="rounded-lg border border-cipher-border overflow-hidden">
         <button
           onClick={() => setOpen(!open)}
-          className="flex items-center justify-between w-full text-left"
+          aria-expanded={open}
+          className="flex items-center justify-between w-full text-left px-4 py-4 sm:px-5 hover:bg-glass-3 transition-colors"
         >
           <span className="text-sm font-medium">Methodology</span>
           <svg
@@ -703,7 +413,7 @@ function MethodologyAccordion() {
           </svg>
         </button>
         {open && (
-          <div className="mt-4 space-y-3 text-xs text-secondary leading-relaxed">
+          <div className="border-t border-cipher-border px-4 py-4 sm:px-5 space-y-3 text-xs text-secondary leading-relaxed">
             <p>
               <strong>On-chain fingerprint matching:</strong> We count transactions matching each
               wallet&apos;s known signature. Signals used: Orchard action count (padding),
@@ -720,21 +430,10 @@ function MethodologyAccordion() {
               zcashd default expiry delta (+20 blocks) and sets nLockTime to the current chain tip.
               Both signals confirmed from brave-core source (PR #32580, #37407).
             </p>
-            <p>
-              <strong>Off-chain proxies (not shown in chart):</strong> App store reviews suggest
-              relative user base sizes — Brave (~190K iOS reviews, small Zcash fraction), ZODL
-              (~5K reviews, Zcash-only), Edge (~50K reviews, multi-coin). These inform plausibility
-              but are not used for the on-chain count.
-            </p>
-            <p>
-              <strong>Limitations:</strong> The &quot;Unknown / Other&quot; bucket includes SDK-based
-              wallets we cannot distinguish, Sapling-only transactions without Orchard, and any wallet
-              not yet fingerprinted. We prefer transparency over false precision.
-            </p>
+            <p><strong>Limitations:</strong> These matches are implementation clues, not verified wallet identities or user counts. Patterns can overlap and change between releases. Unmatched transactions are not assigned to a fabricated remainder category.</p>
           </div>
         )}
-      </CardBody>
-    </Card>
+    </div>
   );
 }
 
@@ -742,7 +441,6 @@ function buildUsageEstimates(fingerprints: FingerprintData | null) {
   if (!fingerprints) return null;
 
   const walletMap: { name: string; value: number; confidence: 'high' | 'medium' | 'low' }[] = [];
-  let identified = 0;
 
   const find = (name: string) => fingerprints.wallets.find(w => w.name === name);
 
@@ -763,14 +461,9 @@ function buildUsageEstimates(fingerprints: FingerprintData | null) {
     const count = wallet?.signals[entry.signal].matchCount || 0;
     if (count > 0) {
       walletMap.push({ name: entry.name, value: count, confidence: entry.confidence });
-      identified += count;
     }
   }
 
-  const unknown = Math.max(0, fingerprints.totalShielded - identified);
-  if (unknown > 0) {
-    walletMap.push({ name: 'Unknown / Other', value: unknown, confidence: 'low' });
-  }
 
   return walletMap;
 }

@@ -1,7 +1,8 @@
 'use client';
 
+import { readApiCollection } from '@/lib/api-client';
 import { useState, useEffect, useCallback, useRef, type Dispatch, type SetStateAction } from 'react';
-import { fetchLiveJson, startLiveRefresh } from '@/lib/live-refresh';
+import { fetchLiveResponse, startLiveRefresh } from '@/lib/live-refresh';
 import { getApiUrl } from '@/lib/api-config';
 import { useWebSocket } from '@/hooks/useWebSocket';
 
@@ -11,13 +12,13 @@ export interface BasePaginationState {
   total: number;
   hasNext: boolean;
   hasPrev: boolean;
-  nextCursor: number | null;
-  prevCursor: number | null;
+  nextCursor: string | null;
+  prevCursor: string | null;
   [key: string]: unknown;
 }
 
 export interface FetchPageArgs {
-  cursor?: number | null;
+  cursor?: string | null;
   secondaryCursor?: number | null;
   direction?: 'next' | 'prev';
   targetPage?: number;
@@ -37,18 +38,13 @@ export interface UsePaginatedListOptions<
   secondaryCursorFields?: { next: string; prev: string };
   /** Build filter/query params — cursor pagination params are added by the hook */
   buildParams?: () => Record<string, string>;
-  /** Extract the raw item array from a successful API response */
-  getItemsFromResponse: (json: Record<string, unknown>) => T[];
-  /** Build cursor fields and any extra pagination metadata from visible items */
-  buildCursors: (
-    visibleItems: T[],
-    ctx: { allItems: T[]; direction?: 'next' | 'prev'; targetPage: number },
-  ) => Partial<P>;
+  /** Validate and normalize items after decoding the v1 collection envelope. */
+  parseItems?: (items: unknown[]) => T[];
   /** Return a comparable key for the newest item (silent refresh dedup) */
   getLatestKey: (item: T) => string | number;
   /** Build archive navigation href */
   buildArchiveHref: (
-    cursor: number | null,
+    cursor: string | null,
     secondaryCursor: number | null,
     direction: 'next' | 'prev',
     targetPage: number,
@@ -67,7 +63,7 @@ export interface UsePaginatedListOptions<
   initialItems?: T[];
   initialPagination?: Partial<P> | null;
   initialPage?: number;
-  initialCursor?: number | null;
+  initialCursor?: string | null;
   initialSecondaryCursor?: number | null;
   initialDirection?: 'next' | 'prev';
   initialUnavailable?: boolean;
@@ -133,9 +129,8 @@ export function usePaginatedList<
     secondaryCursorParam,
     secondaryCursorFields,
     buildParams,
-    getItemsFromResponse,
-    buildCursors,
     getLatestKey,
+    parseItems,
     buildArchiveHref,
     processExtra,
     shouldWsRefresh = defaultShouldWsRefresh,
@@ -184,55 +179,22 @@ export function usePaginatedList<
     try {
       const base = getApiUrl();
       const params = new URLSearchParams({
-        limit: String(pageSize + 1),
+        limit: String(pageSize),
         ...(buildParams?.() ?? {}),
       });
       if (cursor !== undefined && cursor !== null) {
         params.set('cursor', String(cursor));
-        params.set('direction', direction || 'next');
-        if (secondaryCursorParam) {
-          params.set(secondaryCursorParam, String(secondaryCursor ?? 0));
-        }
       }
 
-      const json = await fetchLiveJson(`${base}${endpoint}?${params}`);
-
-      if (json.success) {
-        const all = getItemsFromResponse(json);
-        const reverseOffset = direction === 'prev' && all.length > pageSize ? 1 : 0;
-        const visibleItems = all.slice(reverseOffset, reverseOffset + pageSize);
-        const total = Number(json.pagination?.total) || 0;
-        const cursorFields = buildCursors(visibleItems, {
-          allItems: all,
-          direction,
-          targetPage,
-        });
-
-        setItems(visibleItems);
-        setPage(targetPage);
-        setPagination({
-          ...json.pagination,
-          ...cursorFields,
-          page: targetPage,
-          total,
-          totalPages: Math.ceil(total / pageSize),
-          hasNext: direction === 'prev'
-            ? cursor !== null && cursor !== undefined && visibleItems.length > 0
-            : all.length > pageSize,
-          hasPrev: targetPage > 1,
-        } as P);
-
-        if (processExtra) {
-          setExtra(processExtra(all, visibleItems, direction));
-        }
-
-        if (visibleItems[0]) {
-          latestKeyRef.current = getLatestKey(visibleItems[0]);
-        }
-        setDataAvailable(true);
-      } else {
-        setDataAvailable(false);
-      }
+      const { items: rawItems, page: apiPage } = await fetchLiveResponse(`${base}${endpoint}?${params}`, readApiCollection<T>);
+      const visibleItems = parseItems ? parseItems(rawItems) : rawItems;
+      const total = apiPage.total ?? 0;
+      setItems(visibleItems);
+      setPage(targetPage);
+      setPagination({ ...apiPage, page: targetPage, total, totalPages: Math.ceil(total / pageSize) } as unknown as P);
+      if (processExtra) setExtra(processExtra(visibleItems, visibleItems, direction));
+      if (visibleItems[0]) latestKeyRef.current = getLatestKey(visibleItems[0]);
+      setDataAvailable(true);
     } catch (err) {
       console.error(`Error fetching ${endpoint}:`, err);
       setDataAvailable(false);
@@ -244,10 +206,9 @@ export function usePaginatedList<
     pageSize,
     buildParams,
     endpoint,
-    getItemsFromResponse,
-    buildCursors,
     getLatestKey,
     processExtra,
+    parseItems,
     secondaryCursorParam,
   ]);
 
@@ -277,45 +238,24 @@ export function usePaginatedList<
     try {
       const base = getApiUrl();
       const params = new URLSearchParams({
-        limit: String(pageSize + 1),
+        limit: String(pageSize),
         ...(buildParams?.() ?? {}),
       });
-      const json = await fetchLiveJson(`${base}${endpoint}?${params}`);
-      const all = getItemsFromResponse(json);
-      if (!json.success) throw new Error('List refresh failed');
+      const { items: rawItems, page: apiPage } = await fetchLiveResponse(`${base}${endpoint}?${params}`, readApiCollection<T>);
+      const visibleItems = parseItems ? parseItems(rawItems) : rawItems;
       setLastCheckedAt(Date.now());
       setRefreshFailed(false);
       setDataAvailable(true);
-      if (all.length === 0) return;
-
-      const topKey = getLatestKey(all[0]);
+      const topKey = visibleItems[0] ? getLatestKey(visibleItems[0]) : '';
       if (topKey === latestKeyRef.current) {
         return;
       }
       latestKeyRef.current = topKey;
-
-      const visibleItems = all.slice(0, pageSize);
-      const total = Number(json.pagination?.total) || 0;
-      const cursorFields = buildCursors(visibleItems, {
-        allItems: all,
-        targetPage: 1,
-      });
-
+      const total = apiPage.total ?? 0;
       setItems(visibleItems);
       setPage(1);
-      setPagination(prev => ({
-        ...prev,
-        ...cursorFields,
-        page: 1,
-        total,
-        totalPages: Math.ceil(total / pageSize),
-        hasNext: all.length > pageSize,
-        hasPrev: false,
-      } as P));
-
-      if (processExtra) {
-        setExtra(processExtra(all, visibleItems));
-      }
+      setPagination({ ...apiPage, page: 1, total, totalPages: Math.ceil(total / pageSize) } as unknown as P);
+      if (processExtra) setExtra(processExtra(visibleItems, visibleItems));
       setDataAvailable(true);
     } catch {
       setRefreshFailed(true);
@@ -330,10 +270,9 @@ export function usePaginatedList<
     pageSize,
     buildParams,
     endpoint,
-    getItemsFromResponse,
-    buildCursors,
     getLatestKey,
     processExtra,
+    parseItems,
   ]);
 
   silentRefreshRef.current = silentRefresh;

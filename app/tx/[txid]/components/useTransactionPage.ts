@@ -1,5 +1,6 @@
 'use client';
 
+import { readApiData } from '@/lib/api-client';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { getApiUrl } from '@/lib/api-config';
@@ -39,14 +40,14 @@ export function useTransactionPage(txid: string) {
       try {
         setLoading(true);
 
-        const apiUrl = `${getApiUrl()}/api/tx/${txid}`;
+        const apiUrl = `${getApiUrl()}/v1/transactions/${txid}`;
 
         const response = await fetch(apiUrl);
 
         if (!response.ok) {
           if (response.status === 404 && /^[a-fA-F0-9]{64}$/.test(txid)) {
             try {
-              const finalizerRes = await fetch(`${getApiUrl()}/api/finalizer/${txid.toLowerCase()}`);
+              const finalizerRes = await fetch(`${getApiUrl()}/v1/crosslink/finalizers/${txid.toLowerCase()}`);
               if (finalizerRes.ok) {
                 router.replace(`/finalizer/${txid.toLowerCase()}`);
                 return;
@@ -61,7 +62,7 @@ export function useTransactionPage(txid: string) {
           );
         }
 
-        const txData = await response.json();
+        const txData = await readApiData(response);
         setLookupState('available');
 
         setData(transformExpressTxData(txData));
@@ -84,8 +85,8 @@ export function useTransactionPage(txid: string) {
   useEffect(() => {
     if (!transactionTimestamp) return;
     const date = new Date(transactionTimestamp * 1000).toISOString().split('T')[0];
-    fetch(`${getApiUrl()}/api/price/at?date=${date}`)
-      .then((res) => res.json())
+    fetch(`${getApiUrl()}/v1/network/price/at?date=${date}`)
+      .then((res) => readApiData(res))
       .then((p) => {
         if (p.price_usd) setPriceUsd(p.price_usd);
       })
@@ -100,7 +101,7 @@ export function useTransactionPage(txid: string) {
 
     const checkBlock = async () => {
       try {
-        const apiUrl = `${getApiUrl()}/api/block/${txid}`;
+        const apiUrl = `${getApiUrl()}/v1/blocks/${txid}`;
         const res = await fetch(apiUrl);
         if (res.ok) {
           router.replace(`/block/${txid}`);
@@ -115,14 +116,14 @@ export function useTransactionPage(txid: string) {
 
   const checkMempool = useCallback(async () => {
     try {
-      const apiUrl = `${getApiUrl()}/api/mempool/tx/${txid}`;
+      const apiUrl = `${getApiUrl()}/v1/mempool/${txid}`;
       const res = await fetch(apiUrl);
       if (!res.ok) {
         setLookupState('unavailable');
         return null;
       }
-      const result = await res.json();
-      if (result.success && result.inMempool) {
+      const result = await readApiData(res);
+      if (result && result.inMempool) {
         setLookupState('available');
         setMempoolTx(result.transaction);
         return true;
@@ -156,7 +157,7 @@ export function useTransactionPage(txid: string) {
 
     const poll = async () => {
       try {
-        const apiUrl = `${getApiUrl()}/api/tx/${txid}`;
+        const apiUrl = `${getApiUrl()}/v1/transactions/${txid}`;
         const res = await fetch(apiUrl);
         if (res.ok) {
           window.location.reload();

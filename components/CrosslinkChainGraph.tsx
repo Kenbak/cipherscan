@@ -1,5 +1,6 @@
 'use client';
 
+import { readApiData } from '@/lib/api-client';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import {
@@ -72,12 +73,13 @@ const BFT_SIZE = 48;
 const BFT_NODE_WIDTH = 260;
 
 // Brand palette
-const COLOR_POW_DIM = 'rgba(86, 212, 200, 0.65)';
+const COLOR_POW_DIM = 'rgba(232, 184, 75, 0.65)';
 const COLOR_BFT = 'rgba(239, 108, 96, 0.95)';
 const COLOR_BFT_EDGE = 'rgba(239, 108, 96, 0.7)';
-const COLOR_VOTING = 'rgba(255, 107, 53, 1)';
-const COLOR_VOTING_EDGE = 'rgba(255, 107, 53, 0.85)';
-const COLOR_FINALIZE = 'rgba(94, 230, 212, 0.95)'; // bright teal — finality frontier
+// Clay, matching the text-cipher-orange labels these nodes carry.
+const COLOR_VOTING = 'rgba(226, 166, 110, 1)';
+const COLOR_VOTING_EDGE = 'rgba(226, 166, 110, 0.85)';
+const COLOR_FINALIZE = 'var(--color-green)'; // Finality status follows the shared success color.
 
 // ---------------------------------------------------------------------------
 // Formatters
@@ -118,9 +120,9 @@ function PowBlockNode({ data }: NodeProps<Node<PowNodeData>>) {
 
   if (isTip) {
     badgeLabel = 'TIP';
-    badgeClass = 'text-cipher-cyan bg-cipher-cyan/10 border-cipher-cyan/40';
-    accentClass = 'bg-cipher-cyan';
-    borderClass = 'border-cipher-cyan/50';
+    badgeClass = 'text-cipher-gold bg-brand-gold/10 border-cipher-gold/40';
+    accentClass = 'bg-brand-gold';
+    borderClass = 'border-cipher-gold/50';
   } else if (state === 'voting') {
     badgeLabel = 'VOTING';
     badgeClass = 'text-cipher-orange bg-cipher-orange/10 border-cipher-orange/40';
@@ -128,13 +130,13 @@ function PowBlockNode({ data }: NodeProps<Node<PowNodeData>>) {
     borderClass = 'border-cipher-orange/50';
   } else if (state === 'finalized') {
     badgeLabel = 'FINAL';
-    badgeClass = 'text-cipher-cyan-muted bg-[rgba(94,187,206,0.08)] border-[rgba(94,187,206,0.3)]';
-    accentClass = 'bg-cipher-cyan-muted';
+    badgeClass = 'text-cipher-gold-muted bg-[rgba(94,187,206,0.08)] border-[rgba(94,187,206,0.3)]';
+    accentClass = 'bg-cipher-gold-muted';
     borderClass = 'border-cipher-border';
   } else {
     badgeLabel = 'PENDING';
     badgeClass = 'border-cipher-border';
-    accentClass = 'bg-cipher-cyan/50';
+    accentClass = 'bg-brand-gold/50';
     borderClass = 'border-cipher-border';
   }
 
@@ -162,27 +164,27 @@ function PowBlockNode({ data }: NodeProps<Node<PowNodeData>>) {
 
       <Link
         href={`/block/${block.height}`}
-        className={`group absolute inset-0 flex items-stretch rounded-lg border ${borderClass} bg-white dark:bg-white/[0.03] overflow-hidden hover:border-cipher-cyan/60 hover:shadow-[0_0_20px_rgba(0,212,255,0.12)] transition`}
+        className={`group absolute inset-0 flex items-stretch rounded-lg border ${borderClass} bg-white dark:bg-white/[0.03] overflow-hidden hover:border-cipher-gold/60 hover:shadow-[0_0_20px_rgba(248,188,33,0.12)] transition`}
       >
         <span className={`block w-1 shrink-0 ${accentClass}`} />
 
         <div className="flex-1 min-w-0 px-3.5 py-2.5 flex flex-col justify-between gap-1">
           <div className="flex items-center justify-between gap-2 min-w-0">
-            <span className="font-mono text-[15px] font-semibold tabular-nums shrink-0 text-black dark:text-white group-hover:text-primary transition-colors">
+            <span className="font-mono text-body font-semibold tabular-nums shrink-0 text-black dark:text-white group-hover:text-primary transition-colors">
               #{block.height.toLocaleString()}
             </span>
             <span
-              className={`shrink-0 inline-flex items-center px-1.5 py-[1px] rounded border text-[9px] font-mono uppercase tracking-wider ${badgeClass}`}
+              className={`shrink-0 inline-flex items-center px-1.5 py-[1px] rounded border text-caption font-mono uppercase tracking-wider ${badgeClass}`}
             >
               {badgeLabel}
             </span>
           </div>
 
-          <code className="font-mono text-[11px] truncate text-neutral-600 dark:text-neutral-300">
+          <code className="font-mono text-caption truncate text-secondary">
             {block.hash.slice(0, 10)}…{block.hash.slice(-10)}
           </code>
 
-          <div className="font-mono text-[11px] flex items-center gap-1.5 text-neutral-500 dark:text-neutral-400">
+          <div className="font-mono text-caption flex items-center gap-1.5 text-muted">
             <span className="tabular-nums text-black dark:text-white">
               {fmtAge(block.timestamp)}
             </span>
@@ -227,7 +229,7 @@ function BftDecisionNode({ data }: NodeProps<Node<BftNodeData>>) {
     : 'border-[rgba(239,108,96,0.7)]';
   const numColor = isVoting ? 'text-cipher-orange' : 'text-cipher-coral';
   const glow = isVoting
-    ? 'shadow-[0_0_22px_rgba(255,107,53,0.45)]'
+    ? 'shadow-[0_0_22px_rgba(226,166,110,0.45)]'
     : 'shadow-[0_0_16px_rgba(239,108,96,0.3)]';
 
   return (
@@ -262,27 +264,27 @@ function BftDecisionNode({ data }: NodeProps<Node<BftNodeData>>) {
           <span className="absolute inset-0 rounded-full bg-cipher-orange/30 animate-ping opacity-60" />
         )}
         <span
-          className={`relative font-mono text-[13px] font-semibold ${numColor}`}
+          className={`relative font-mono text-data font-semibold ${numColor}`}
         >
           {decision.signature_count}
         </span>
       </div>
 
       <div className="min-w-0 leading-tight">
-        <div className="font-mono text-[9px] uppercase tracking-wider text-neutral-500 dark:text-neutral-400">
+        <div className="font-mono text-caption uppercase tracking-wider text-muted">
           {isVoting ? 'voting now' : 'BFT decision'}
         </div>
-        <div className="text-[12px] font-medium text-black dark:text-white">
+        <div className="text-caption font-medium text-black dark:text-white">
           <span className="tabular-nums">{decision.signature_count}</span>
-          <span className="text-neutral-500 dark:text-neutral-400"> of </span>
+          <span className="text-muted"> of </span>
           <span className="tabular-nums">{finalizerCount}</span>
-          <span className="text-neutral-500 dark:text-neutral-400"> signed</span>
-          <span className="text-neutral-500 dark:text-neutral-400"> · </span>
-          <span className="tabular-nums text-neutral-700 dark:text-neutral-300">
+          <span className="text-muted"> signed</span>
+          <span className="text-muted"> · </span>
+          <span className="tabular-nums text-secondary">
             {pct.toFixed(0)}%
           </span>
         </div>
-        <div className="font-mono text-[10px] truncate text-neutral-500 dark:text-neutral-400">
+        <div className="font-mono text-caption truncate text-muted">
           {decision.pow_blocks_in_decision > 1
             ? `confirms ${decision.pow_blocks_in_decision} PoW blocks`
             : `confirms 1 PoW block`}
@@ -295,7 +297,7 @@ function BftDecisionNode({ data }: NodeProps<Node<BftNodeData>>) {
       {decision.signer_keys.length > 0 && (
         <div className="absolute left-[60px] top-[80px] opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-opacity z-50">
           <div className="card p-3 min-w-[280px] max-w-[340px] shadow-xl">
-            <div className="text-[10px] font-mono text-muted uppercase tracking-wider mb-2">
+            <div className="text-caption font-mono text-muted uppercase tracking-wider mb-2">
               Signers · {decision.signer_keys.length}
             </div>
             <div className="space-y-0.5 max-h-56 overflow-y-auto">
@@ -306,10 +308,10 @@ function BftDecisionNode({ data }: NodeProps<Node<BftNodeData>>) {
                   <Link
                     key={k}
                     href={`/finalizer/${pretty}`}
-                    className="flex items-center gap-1.5 text-[10px] font-mono text-secondary hover:text-primary truncate"
+                    className="flex items-center gap-1.5 text-caption font-mono text-secondary hover:text-primary truncate"
                   >
                     {label && (
-                      <span className="shrink-0 inline-flex items-center px-1 py-[1px] rounded border text-[8px] uppercase tracking-wider text-cipher-cyan bg-cipher-cyan/10 border-cipher-cyan/40">
+                      <span className="shrink-0 inline-flex items-center px-1 py-[1px] rounded border text-caption uppercase tracking-wider text-cipher-gold bg-brand-gold/10 border-cipher-gold/40">
                         {label.name}
                       </span>
                     )}
@@ -362,16 +364,16 @@ export function CrosslinkChainGraph({
         const api = getApiUrl();
         const [blocksRes, bftChainRes, crossRes, bftTipRes] = await Promise.all(
           [
-            fetch(`${api}/api/blocks?limit=${effectiveLimit}`),
-            fetch(`${api}/api/crosslink/bft-chain?limit=${effectiveLimit}`),
-            fetch(`${api}/api/crosslink`),
-            fetch(`${api}/api/crosslink/bft-tip`),
+            fetch(`${api}/v1/blocks?limit=${effectiveLimit}`),
+            fetch(`${api}/v1/crosslink/bft-chain?limit=${effectiveLimit}`),
+            fetch(`${api}/v1/crosslink`),
+            fetch(`${api}/v1/crosslink/bft-tip`),
           ],
         );
 
         if (blocksRes.ok) {
-          const d = await blocksRes.json();
-          const parsed: PowBlock[] = (d.blocks || []).map(
+          const d = await readApiData(blocksRes);
+          const parsed: PowBlock[] = (d || []).map(
             (b: Record<string, unknown>) => ({
               height:
                 typeof b.height === 'string'
@@ -390,12 +392,12 @@ export function CrosslinkChainGraph({
           setBlocks(parsed);
         }
         if (bftChainRes.ok) {
-          const d = await bftChainRes.json();
-          if (d.success) setDecisions(d.decisions || []);
+          const d = await readApiData(bftChainRes);
+          if (d) setDecisions(d.decisions || []);
         }
         if (crossRes.ok) {
-          const d = await crossRes.json();
-          if (d.success) {
+          const d = await readApiData(crossRes);
+          if (d) {
             setStats({
               tipHeight: d.tipHeight,
               finalizedHeight: d.finalizedHeight,
@@ -406,8 +408,8 @@ export function CrosslinkChainGraph({
           }
         }
         if (bftTipRes.ok) {
-          const d = await bftTipRes.json();
-          if (d.success) {
+          const d = await readApiData(bftTipRes);
+          if (d) {
             setBftTip({
               votedBlockHash: d.votedBlockHash,
               signatureCount: d.signatureCount,
@@ -572,11 +574,11 @@ export function CrosslinkChainGraph({
           label,
           labelStyle: {
             fill: COLOR_FINALIZE,
-            fontFamily: 'var(--font-geist-mono, JetBrains Mono, monospace)',
-            fontSize: 9,
+            fontFamily: 'var(--font-geist-mono), monospace',
+            fontSize: 12,
             letterSpacing: '0.05em',
           },
-          labelBgStyle: { fill: '#14161F', stroke: 'rgba(94,230,212,0.3)', strokeWidth: 0.5 },
+          labelBgStyle: { fill: 'var(--color-surface)', stroke: 'var(--color-border)', strokeWidth: 0.5 },
           labelBgPadding: [6, 3],
           labelBgBorderRadius: 4,
           zIndex: 10,
@@ -693,7 +695,7 @@ export function CrosslinkChainGraph({
       <div className="card p-3 sm:p-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-x-6 md:gap-y-2 text-xs">
           <div className="flex items-start gap-2.5">
-            <span className="mt-1 inline-block w-5 h-3 rounded-sm bg-cipher-cyan-muted/25 border border-cipher-cyan-muted/50 shrink-0" />
+            <span className="mt-1 inline-block w-5 h-3 rounded-sm bg-cipher-gold-muted/25 border border-cipher-gold-muted/50 shrink-0" />
             <p className="text-secondary leading-snug">
               <span className="text-primary font-semibold">Left — PoW blocks.</span>{' '}
               Produced by miners. Click one to inspect its transactions.
@@ -741,7 +743,7 @@ export function CrosslinkChainGraph({
       >
         {loading && nodes.length === 0 && (
           <div className="absolute inset-0 flex items-center justify-center">
-            <div className="animate-spin rounded-full h-6 w-6 border-2 border-cipher-cyan border-t-transparent" />
+            <div className="animate-spin rounded-full h-6 w-6 border-2 border-cipher-gold border-t-transparent" />
           </div>
         )}
 
@@ -818,7 +820,7 @@ export function CrosslinkChainGraph({
           <button
             onClick={loadOlder}
             disabled={loadingMore || limit >= 200}
-            className="text-xs font-mono px-3 py-1.5 rounded-md border border-cipher-border hover:border-cipher-cyan/50 hover:text-primary disabled:opacity-40 disabled:cursor-not-allowed text-secondary transition-colors"
+            className="text-xs font-mono px-3 py-1.5 rounded-md border border-cipher-border hover:border-cipher-gold/50 hover:text-primary disabled:opacity-40 disabled:cursor-not-allowed text-secondary transition-colors"
           >
             {limit >= 500
               ? 'Maximum history loaded'
@@ -851,19 +853,19 @@ function HeaderStat({
 }) {
   return (
     <div className="flex flex-col items-center justify-center p-4 sm:p-5">
-      <div className="text-[10px] font-mono text-muted uppercase tracking-wider mb-1 flex items-center gap-1">
+      <div className="text-caption font-mono text-muted uppercase tracking-wider mb-1 flex items-center gap-1">
         <span>{label}</span>
         {tooltip && <Tooltip content={tooltip} />}
       </div>
       <div
-        className={`text-lg sm:text-xl font-mono font-bold tabular-nums ${
+        className={`text-lg sm:text-xl font-mono font-semibold tabular-nums ${
           valueClass || 'text-primary'
         }`}
       >
         {value}
       </div>
       {sub && (
-        <div className="text-[10px] font-mono text-muted mt-0.5 tabular-nums">
+        <div className="text-caption font-mono text-muted mt-0.5 tabular-nums">
           {sub}
         </div>
       )}

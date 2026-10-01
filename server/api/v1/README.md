@@ -1,287 +1,362 @@
-# CipherScan API v1 — contract foundation
+# ZecBlock API v1
 
-Status: **mounted, fail-closed preview**. `server/api/server.js` mounts the
-router at `/v1`; `API_V1_ENABLED=false` keeps it indistinguishable from an
-unmounted route until preview rollout is explicitly enabled.
+The frontend now uses `/v1` for explorer HTTP data, with one checked `{data, meta}`
+parser for browser and server consumers. The manifest has 142 entries: 137 adapters,
+4 native name routes, and one superseded legacy blocks alias. No implemented
+capability is represented by a v1 stub. Production activation is a separate release.
 
-## Architecture status: transitional dark-launch bridge — NOT the final design
+## Contract and coverage
 
-**Read this before treating anything below as a permanent architecture.**
-`/v1` is currently implemented as a **loopback reverse proxy** in front of
-the legacy Express API: every adapter forwards the request over an internal
-HTTP call (`lib/internal-client.js`) to the already-running legacy handler,
-then reshapes the JSON response into the v1 contract. This is a deliberate,
-temporary bridge chosen because it lets a stable public contract ship
-*today*, without editing `server/api/server.js` or any legacy route file,
-and without duplicating a single line of business SQL.
+- `inventory/manifest.js` is the route/method/authority registry. Routes with literal
+  names register before parameter routes, so `/uncles/stats` is not a hash lookup.
+- `inventory/query-parameters.json` includes direct query reads and the shared
+  limit/offset and limit/page helpers. Unknown, repeated or structured parameters
+  receive HTTP 400. Source handlers retain their domain-specific value validation.
+- Successful responses use `{data, meta}`. Top-level legacy `success` is removed;
+  nested fields, arrays, zero and null retain their meaning. Errors use RFC 9457
+  `application/problem+json`, preserve HTTP status and are never cached.
+- `meta.generatedAt` is response generation time. Unknown source observation time
+  and source height stay null. A current indexer tip is not a historical snapshot
+  height. Missing age is `freshness.status=unknown`, not an invented fresh reading.
+- Declared authoritative zatoshi fields are decimal strings. Address totals use
+  exact source `*Zat` fields before legacy numeric fields; unsafe numeric amounts
+  fail closed. Existing formatted ZEC/USD/percentage fields remain field-defined.
+  Do not multiply a formatted float to manufacture an authoritative zatoshi value.
+- Blocks, transactions, shielded flows and names expose `meta.page` with opaque
+  cursors. Chain cursors bind the route and filters. Lists probe beyond the source's
+  100-row ceiling and use complete tie-break keys, including transaction hashes
+  when fully shielded transactions share a timestamp. Other domain-specific
+  paginated payloads retain their documented bounded page/offset semantics.
+- Name routes use the configured ZNS JSON-RPC service, normalize keys and expose
+  bounded pagination. Voting-chain RPC and WebSockets remain separate protocols.
+- Fork-monitor writes forward the caller's ownership token. Paid signal routes
+  forward only their existing authorization/payment headers and never receive
+  the adapter's internal service key. Payment challenge/receipt headers survive;
+  HTTP 402 includes the original challenge in `problem.paymentRequired`.
+  Authenticated responses use `private, no-store`. No payment is made by v1 itself.
+- Scans have bounded block windows and rate limits. The wallet UI divides its
+  supported 50,000-block window into 10,000-block requests and honors Retry-After
+  and cancellation. Viewing keys remain in the browser.
 
-It is **not** presented as top-class or final. Concretely, it costs:
+Generate the API reference and OpenAPI from their source registries:
 
-- **An extra network hop + JSON re-serialization per request.** This is
-  measured, not hand-waved: every adapter response carries a
-  `Server-Timing: internal;dur=<ms>` entry for exactly this hop (see
-  `lib/headers.js`), so the cost is visible in production, not buried.
-- **A second place a contract can drift.** If a legacy response shape
-  changes, a v1 adapter's assumptions can silently break. Mitigated (not
-  eliminated) by the contract tests in `server/api/test/v1/`.
-- **No ability to make a slow legacy query fast.** v1 inherits whatever
-  performance and caching the legacy handler already has.
-
-**Intended migration path**, once `/v1` traffic and the contract shape are
-validated in dark launch: migrate individual adapters, one at a time, off
-the loopback proxy and onto a real data-access layer (shared query modules
-callable directly from `/v1`, or a proper internal gateway/service) —
-deleting `lib/internal-client.js`'s role for each migrated route as it
-goes, rather than proxying indefinitely. Do not build new, permanent
-product surface on top of the proxy pattern; treat every route currently
-marked `status: 'adapter'` in the manifest as "correct today, due for a
-native implementation later."
-
-## What this is
-
-A versioned, contract-stable API layer that sits in front of the legacy
-Express routes in `server/api/routes/**`. It does not duplicate any business
-SQL. Every `/v1` route either:
-
-1. **adapts** — proxies to the equivalent legacy endpoint over the internal
-   HTTP bridge described above and reshapes the response into the standard
-   envelope (optionally after v1-layer request validation and/or rate
-   limiting — see "Scan endpoints" below), or
-2. **stubs** — is inventoried as a NON-public endpoint that isn't safe to
-   expose under `/v1` yet, and returns `501` (RFC 9457 problem+json). As of
-   this revision, **every `public`-classified manifest entry is an
-   adapter** — there are no public stubs; see "Scan endpoints" below for
-   why the two scan endpoints, in particular, are adapters-with-guardrails
-   rather than stubs, and `server/api/test/v1/manifest.test.js` for the
-   test that enforces this invariant going forward, or
-3. is simply **excluded** — internal/ops/private/deprecated legacy endpoints
-   that are out of the v1 public-contract scope, or superseded by another
-   entry that IS adapted.
-
-The full classification lives in [`inventory/manifest.js`](./inventory/manifest.js)
-and is the single source of truth for both the mounted routes
-(`routes/index.js` builds the router straight from it) and the generated
-OpenAPI 3.1 spec at [`server/api/openapi/v1.yaml`](../openapi/v1.yaml).
-
-## Directory map
-
-```
-server/api/v1/
-  index.js                  factory: createV1Router(envOverrides?) -> express.Router
-  config.js                 env var parsing (API_V1_ENABLED, preview key, ...)
-  openapi.js                builds the OpenAPI document from the manifest
-  tools/write-openapi.js    regenerates server/api/openapi/v1.yaml
-  inventory/manifest.js     the endpoint inventory + v1 route mapping (source of truth)
-  middleware/
-    feature-gate.js         API_V1_ENABLED / preview-key gate
-    request-context.js      requestId, network, lazy indexedHeight resolution
-  lib/
-    internal-client.js      loopback HTTP dispatcher to the legacy API (no SQL, no imports of route files) — TRANSITIONAL, see above
-    build-route.js          generic adapter/stub handler factory driven by manifest entries
-    envelope.js              {data, meta} success envelope
-    problem.js               RFC 9457 error envelope
-    cursor.js                opaque cursor encode/decode + page meta builder
-    zatoshi.js                decimal-string zatoshi serialization helpers
-    headers.js                relays the allowlisted legacy response headers + adds Server-Timing for the internal hop
-    rate-limit.js             dependency-free per-IP sliding-window limiter (currently: scan endpoints)
-    scan-validation.js        v1-layer cost/range validation for the two scan endpoints
-  routes/index.js            assembles the Express Router from the manifest
-server/api/openapi/v1.yaml   generated OpenAPI 3.1 spec (do not hand-edit)
-server/api/test/v1/          node:test suites (manifest, envelope/zatoshi/cursor, routing, internal-client, OpenAPI drift)
+```sh
+node server/api/v1/tools/query-inventory.js
+node server/api/v1/tools/write-reference.js
+node server/api/v1/tools/write-openapi.js
 ```
 
-## Mounting
+`server/api/openapi/v1.yaml` and `lib/generated/api-reference.json` are checked
+artifacts. Core envelope, errors, queries and units are specified; domain payloads
+retain their established fields. Generic domain schemas are not evidence that
+all possible payload states have been validated.
 
-`server/api/server.js` already mounts the router after the shared
-body-parser/CORS/helmet middleware:
+## Private local testing
 
-```js
-const createV1Router = require('./v1');
-app.use('/v1', createV1Router());
+Run `npm run dev:v1` and `npm run dev` in separate terminals. The preview binds
+only `127.0.0.1:3002`, fetching deployed mainnet data. Keep the ignored `.env.local`:
+
+```dotenv
+NEXT_PUBLIC_NETWORK=mainnet
+NEXT_PUBLIC_API_URL=http://127.0.0.1:3002
+CIPHERSCAN_API_URL=http://127.0.0.1:3002
+NEXT_PUBLIC_WS_URL=wss://api.mainnet.cipherscan.app
 ```
 
-That's the entire integration surface. `createV1Router()`:
+Consumers append `/v1/...`, so base URLs omit that suffix. The preview rejects
+foreign browser origins, non-loopback Host headers and writes. The one POST
+exception is `/v1/ask/chat`, forced to reviewed-guide mode with paid AI disabled.
+No shared preview
+secret enters a browser bundle. Restart the Node preview after backend edits;
+Next.js normally picks up frontend edits automatically.
 
-- reads its own env vars (see `config.js`) — it does not need anything
-  from `app.locals`,
-- brings its own body parser (`express.json()`) scoped to the `/v1`
-  sub-router,
-- proxies to the legacy endpoints via internal HTTP calls to
-  `V1_INTERNAL_API_BASE_URL` (defaults to `http://127.0.0.1:3001`, i.e. the
-  same process/port `server.js` already listens on) — so mounting it
-  in-process on the existing server, exactly as shown above, works with
-  zero additional infrastructure.
+For new source-handler validation against server-held data, the optional
+`dev-mainnet-source.js` runs in a separate temporary checkout on the server.
+It requires `V1_PRIVATE_SOURCE=true`, an explicit `V1_SOURCE_ENV_FILE`, and binds
+only `127.0.0.1:3003`. It mounts the changed transaction-list/address handlers and the new search-interest read,
+with a two-connection PostgreSQL pool enforcing read-only transactions and
+8-second statement deadlines. It starts no indexer, Redis worker or production
+service. Remaining reads use the existing local legacy API. Reach it through an
+SSH local forward, then start `dev:v1` with
+`V1_PREVIEW_UPSTREAM=http://127.0.0.1:<forwarded-port>`.
+Never expose either development entry point publicly. Stop both with Ctrl-C.
+No schema changes are applied by these helpers.
 
-### Required/relevant env vars
+## Deployment and compatibility
 
-| Var | Default | Purpose |
-|---|---|---|
-| `API_V1_ENABLED` | `false` | Master switch. `false` → every `/v1/*` request gets a generic 404 (indistinguishable from an unmounted route). |
-| `API_V1_LAUNCHED` | `false` | Once `true`, the preview-key requirement is dropped (general availability). |
-| `API_V1_PREVIEW_KEY` | *(unset)* | Shared secret preview testers send as `X-API-Preview-Key`. If `API_V1_ENABLED=true` and this is unset, the gate **fails closed** (401 on every request) rather than failing open. |
-| `V1_INTERNAL_API_BASE_URL` | `http://127.0.0.1:3001` | Where adapters proxy to. Only needs to change if `/v1` is later split onto a genuinely separate host/process from the legacy monolith (see "Dedicated API hosts" below). |
-| `V1_INTERNAL_SERVICE_KEY` | *(unset)* | If set, sent as `X-Service-Key` on internal proxy calls so they bypass the legacy rate limiter, matching how Vercel ISR/CipherPay already bypass it (`SERVICE_API_KEYS` in `server.js`). Recommended for production. |
-| `V1_INTERNAL_TIMEOUT_MS` | `8000` | Per-request timeout for the internal proxy hop. |
-| `V1_INTERNAL_MAX_RESPONSE_BYTES` | `52428800` (50MB) | Max buffered size of one internal-dispatch response. Matches the existing upstream Zebra RPC cap (`MAX_RPC_RESPONSE_BYTES` in `server/lib/zebra-rpc.js`) — chosen specifically so v1 does not reject a legacy payload the rest of the stack already treats as valid (e.g. the measured **~10.4MB** `/api/migration/scatter` response, or a large block). A transport safety net against a truly runaway response, not a product-level size limit. |
-| `NEXT_PUBLIC_NETWORK` | `testnet` | Reused as-is; surfaced in every response's `meta.network`. |
-| `V1_SCAN_ORCHARD_MAX_RANGE` | `50000` | Max block-height range per `/v1/scan/orchard` request (legacy allows up to 1,000,000; v1 tightens this — see "Scan endpoints" below). |
-| `V1_SCAN_ORCHARD_RATE_LIMIT_MAX` / `_WINDOW_MS` | `5` / `60000` | Per-IP rate limit for `/v1/scan/orchard`. |
-| `V1_SCAN_LIGHTWALLETD_MAX_RANGE` | `10000` | Max block-height range per `/v1/scan/lightwalletd` request (legacy allows up to 50,000). |
-| `V1_SCAN_LIGHTWALLETD_RATE_LIMIT_MAX` / `_WINDOW_MS` | `3` / `60000` | Per-IP rate limit for `/v1/scan/lightwalletd`. |
+`server/api/server.js` mounts the router under `/v1`, behind the existing CORS,
+security and request limiter. V1 owns its 1 MB JSON parser and problem errors.
+The feature gate defaults closed. `API_V1_ENABLED=true` requires
+`X-API-Preview-Key` until `API_V1_LAUNCHED=true`; an absent preview key fails closed.
+A publicly reachable preview gate can reveal its existence through a 401, so
+use loopback/SSH access when the hostname must remain undiscoverable.
 
-### Recommended rollout sequence
+The intended mainnet base is `https://api.zecblock.com`. This code does not create
+DNS/TLS or change production flags. Configure the host, allowed web origins,
+WebSocket origin, and backend before shipping a frontend that depends on them.
+Testnet and Crosslink retain explicit network configuration and indexation policy.
 
-1. Deploy with `API_V1_ENABLED=false` (no-op; safe to ship immediately).
-2. Set `API_V1_ENABLED=true`, `API_V1_PREVIEW_KEY=<secret>`, and
-   `V1_INTERNAL_SERVICE_KEY=<one of SERVICE_API_KEYS>`. Share the preview
-   key with invited testers only — this stage intentionally reveals that
-   `/v1` exists (401, not 404) to anyone who probes it, which is fine for a
-   named preview but is why step 1's default must stay `false` until you're
-   ready for that.
-3. Once the contract is stable, set `API_V1_LAUNCHED=true` to drop the
-   preview-key requirement for general availability.
+Adapters still call the existing handlers over bounded internal HTTP. They reuse
+business logic but add a hop and JSON serialization; inspect `Server-Timing` and
+measure release latency. Native shared service extraction can remove that hop
+later. **Do not delete the legacy handlers while adapters depend on them.** Keep
+external legacy compatibility until its consumers have migrated; no sunset date
+has been selected. Do not redirect old URLs to incompatible payload shapes.
 
-### "Dedicated API hosts" — what this does and doesn't set up
+Relevant settings are documented in `config.js`: internal origin, timeout
+(default 8 seconds), response limit (50 MiB), network, and scan limits.
+`V1_INTERNAL_SERVICE_KEY` can bypass the legacy read limiter in a trusted deployment;
+it must not bypass ownership or payments. Dedicated deployments need their own
+CORS and global request limiting; the private development server is not a public
+hosting configuration. Writes preserve source behavior and are not automatically
+retried after an ambiguous timeout.
 
-The task called for a router "intended for mounting at `/v1` on dedicated
-API hosts." This implementation supports that without requiring it on day
-one:
+## Ask contextual assistant
 
-- **Today**: mount it in the existing `server.js` process, as shown above.
-  `V1_INTERNAL_API_BASE_URL` defaults to the same loopback address, so this
-  works with zero extra infrastructure.
-- **Later, if desired**: run `createV1Router()` in a *separate* Node
-  process/container (its own tiny `app.use('/v1', createV1Router())` on a
-  new Express app, or behind Caddy on a new subdomain) and point
-  `V1_INTERNAL_API_BASE_URL` at the legacy monolith's internal address. No
-  code changes are required to move from one topology to the other — the
-  adapter layer only ever talks to the legacy API over HTTP, never via
-  direct imports, in-process function calls, or its own DB/Redis
-  connections. This is also why `server/api/server.js` didn't need editing
-  beyond the one `app.use('/v1', ...)` line: the two layers are decoupled
-  by an HTTP boundary, not a module boundary.
+### V1 answer quality and diagnostics — September 29
 
-## Contract conventions
+Exact advertised starters and supported control shortcuts bypass intent classification;
+free-form and multilingual questions still use the classifier. The new yearly busiest-day
+starter uses existing privacy history, requesting 366 rows so today's row does not displace
+a completed day. Server evidence ranks up to five days by exact shielded + transparent
+non-coinbase transaction count. Categories are mutually exclusive. Rankings exclude today
+and future days, omit unknown categories, break ties by earliest date, and count missing
+days against the requested completed UTC window. Missing coverage prevents a definitive
+full-period maximum. This is a fixed API operation, not SQL access. Weekly flow/count
+comparisons also exclude today's unfinished bucket.
 
-- **Success envelope**: `{ "data": ..., "meta": {...} }`. See
-  `lib/envelope.js` / `openapi.js` (`Meta` schema) for the exact fields
-  (`requestId`, `network`, `generatedAt`, `indexedHeight`, `source`, `cache`,
-  `freshness`, `units`, and optional `dataAgeSeconds`/`warnings`/`page`).
-- **Errors**: RFC 9457 `application/problem+json`. See `lib/problem.js`
-  for the registry of `type` slugs (`validation-error`, `not-found`,
-  `not-migrated`, `upstream-error`, etc.).
-- **Cursors**: opaque, base64url-encoded, versioned envelopes
-  (`lib/cursor.js`). Clients must treat `meta.page.nextCursor` /
-  `prevCursor` as opaque — internally they carry exactly the legacy
-  endpoint's own pagination params, re-encoded, so the proxy never needs
-  per-route cursor-field logic beyond the small `cursorMap` declared in the
-  manifest entry.
-- **Zatoshi values**: represented as decimal strings (never floats), via
-  `lib/zatoshi.js`. **Important caveat**: this can only be done losslessly
-  where the legacy handler still returns the raw integer column. Several
-  legacy fields still use formatted ZEC numbers for compatibility. Monetary
-  fields explicitly listed in the manifest are sourced from integer database
-  values and serialized as decimal zatoshi strings. Clients must use those
-  exact fields for accounting and treat legacy ZEC numbers as display-only.
-  `meta.units.authoritativeMonetary` and `authoritativeEncoding` describe
-  those explicitly named authoritative fields; they do not relabel every
-  legacy numeric field in a passthrough payload.
-- **Response headers**: only an explicit allowlist of legacy response
-  headers is relayed onto the v1 response — `Cache-Control`, `ETag`,
-  `Retry-After`, the `RateLimit-*`/`X-RateLimit-*` quota families, and any
-  `X-CipherScan-*` header (see `ALLOWED_RESPONSE_HEADERS` in
-  `lib/internal-client.js`). This is deliberate: caching and rate-limit
-  semantics must survive the proxy hop (so v1 doesn't silently disable
-  CDN/browser caching or quota signaling that already works today), but
-  arbitrary legacy headers — `Set-Cookie`, `Server`, `X-Powered-By`, etc. —
-  must never leak through. v1 also strips its own host framework's
-  `X-Powered-By` and adds its own `Server-Timing: internal;dur=<ms>` entry
-  for the internal-hop cost (kept distinct from any legacy timing so it's
-  unambiguous which hop a given number measures). See
-  `server/api/test/v1/routes.test.js` ("header relay: ...") and
-  `server/api/test/v1/internal-client.test.js` for the allowlist tests.
+Analytical chat replies add optional `dataContext` with `start`, `end`, `retrievedAt`,
+`source` and `label`. Dates can be null for non-calendar rankings. Sources disclose guide
+review dates separately from observation windows and retrieval time; neither retrieval nor
+calendar completeness proves indexer synchronization. Cached answer identity includes
+calculated facts so UTC-day eligibility cannot reuse yesterday's ranking under unchanged rows.
 
-## Scan endpoints: public coverage with v1-only guardrails
+Reviewed knowledge adds shielded/transparent concepts, unified addresses/viewing keys and
+the ZIP process. These use fixed public source URLs and per-document review dates; no live
+crawler, private wiki retrieval or provider change is introduced.
 
-`/v1/scan/orchard` and `/v1/scan/lightwalletd` are `public` in the
-manifest, so per the "complete public coverage" requirement they are
-**adapters**, not stubs. Their legacy handlers already bound worst-case
-cost (max 1,000,000 / 50,000 block ranges respectively — see
-`server/api/routes/scan.js`), but that's a bigger cost knob than is prudent
-to hand out on a newly-discoverable `/v1` surface with no other write
-history. Rather than reclassify them non-public without concrete product
-evidence to justify it, v1 adds two independent layers in front of the
-existing legacy protections (`lib/scan-validation.js`, `lib/rate-limit.js`,
-wired in per-entry via the manifest's `validateKey`/`rateLimitKey`):
+Failures expose fixed `code` values: `ask-verification` (403), `ask-source`, `ask-provider`,
+`ask-answer`, `ask-unavailable` (503), `ask-timeout` (504), `ask-quota` (429). Diagnostics log
+only the fixed event/code, never prompts, histories, raw errors or provider output. Both chat
+surfaces retain failed questions for manual retry; errors are not added as successful turns.
+There is no automatic paid retry. Existing admission, reservations, concurrency and token
+limits remain unchanged. Public activation and live-provider acceptance remain release gates.
 
-1. **Stricter range validation, evaluated before any legacy dispatch:**
-   - `/v1/scan/orchard`: range capped at `V1_SCAN_ORCHARD_MAX_RANGE`
-     (default 50,000 blocks vs. legacy's 1,000,000).
-   - `/v1/scan/lightwalletd`: range capped at `V1_SCAN_LIGHTWALLETD_MAX_RANGE`
-     (default 10,000 — tighter than orchard, because lightwalletd scanning
-     is far more expensive per block: gRPC + parallel streaming + optional
-     disk cache writes). **v1 also requires an explicit `endHeight`** —
-     unlike legacy, which defaults a missing `endHeight` to the current
-     chain tip (an open-ended-until-resolved request shape v1 does not
-     accept from a public, unauthenticated caller).
-2. **Per-IP rate limiting**, independent of the legacy API's own global
-   limiter: 5/minute (orchard) and 3/minute (lightwalletd) by default.
-   In-memory, per-process — see `lib/rate-limit.js`'s docblock for why
-   `express-rate-limit` was deliberately not used, and the same
-   multi-instance caveat the existing WebSocket fallback limiter in
-   `server.js` already carries.
 
-If product data later shows these should be non-public instead (e.g. abuse
-patterns, negligible legitimate public usage), that's a valid outcome too —
-but it needs to be a decision backed by that evidence, not a default taken
-to avoid building the guardrails.
+Mainnet `POST /v1/ask/chat` accepts a validated page ID, question (1,000 characters),
+optional analysis recipe, response locale and at most four previous questions.
+The server selects reviewed public knowledge and/or fetches allowlisted analytics.
+It exposes no SQL, arbitrary URL, shell, wallet or write tools to the model.
+Sources come from `lib/ask-knowledge.js`; update their review dates when reviewing
+official material. The private wiki is not a retrieval source. Dynamic record
+pages currently receive conceptual guides, not analysis of that specific record.
+Answer schemas permit only known numeric fact placeholders and supplied source
+IDs. Citations are separate from prose. Final validation still rejects all Unicode
+numeric literals, unknown placeholders and markup; schemas do not prove semantic
+accuracy. Both answer paths constrain decoding to exact fact placeholders. Explanation caches
+use v3. `lib/ask-insights.js` derives combined pool growth/share, observed lead dates,
+complete rolling-week changes, recent pace, peaks/concentration and coverage with
+integer arithmetic. Stock intervals require both endpoints and consecutive dates;
+flow/count comparisons sum complete daily buckets. Missing observations stay unknown.
+Narration leads with comparative findings; generic limitations are optional. No
+extra narration calls or SQL access are introduced.
 
-## Known caveats / follow-ups (read before relying on this in production)
+Ask also supports individual public shielding/deshielding transaction queries:
+latest, largest or both, 1–10 results, over the trailing 24 hours, with optional
+pool filtering. The classifier selects a strict server-side query; the reader
+uses only `/api/shielded/list`. Results are structured transaction rows rendered
+by the workspace/widget, with a deterministic localized introduction (one model
+call total). No transaction IDs, amounts or links are invented by the model.
+Largest rankings cover the complete time window above successively lower amount
+thresholds (1,000, 100, then zero ZEC). A threshold is sufficient only when the
+complete filtered window contains at least the requested number of records;
+lower amounts then cannot enter the ranking. This relies on the canonical
+`UNIQUE(txid, flow_type)` constraint. Duplicate transactions, incorrect order,
+ignored filters or invalid cursors fail closed. Twenty upstream requests maximum;
+an incomplete scan never produces a largest ranking. Source failures still fail
+the request. The existing operation deadline and admission limits apply.
 
-1. **Query-parameter forwarding is verbatim, not allowlisted.** Adapters
-   forward the client's full query string to the legacy endpoint as-is.
-   Safety currently relies entirely on each legacy handler already
-   validating/clamping its own inputs (true today for every adapted route,
-   per repo convention). A follow-up should add explicit per-route query
-   schemas at the v1 layer itself instead of depending solely on the
-   legacy side.
-2. **Write-route retry semantics are not idempotent at the v1 layer.**
-   `/v1/transactions/broadcast`, `/v1/uncles/reports`, and
-   `/v1/crosslink/fork-monitor/nodes` proxy straight through to legacy
-   handlers that already have their own safeguards (mempool-level
-   idempotency, IP/name rate limiting), but the v1 proxy itself adds no
-   idempotency key. A client retry after an internal-hop timeout could
-   theoretically double-submit; for `/v1/transactions/broadcast` this is
-   low-risk (re-broadcasting an unchanged signed tx is harmless), but it's
-   worth a dedicated idempotency-key design before GA.
-3. **One endpoint is excluded for a reason worth escalating, not just
-   engineering convenience:** `DELETE /api/crosslink/fork-monitor/report/:name`
-   has **no authentication upstream** — anyone who knows/guesses a node
-   name can delete its report today. This was not introduced by this
-   change; it's flagged here because v1 deliberately does *not* extend
-   that unauthenticated destructive mutation onto a new, more discoverable
-   surface. Recommend adding an ownership token or service-key requirement
-   to the legacy endpoint, then revisiting inclusion. (The two scan
-   endpoints are no longer excluded/stubbed — see "Scan endpoints" above.)
-4. **Paid/gated `signals` endpoints are out of scope.** `/api/signals/*`
-   uses an x402/CipherPay payment flow (`Authorization: Bearer`/`Payment`
-   headers). Proxying a payment-gated endpoint correctly needs its own
-   design (header forwarding, replay considerations) and was deliberately
-   left out of this first contract pass — see the manifest entries
-   (`classification: 'private'`) for the exact endpoints.
-5. **`indexedHeight` is best-effort.** Every successful adapter response
-   resolves it from `/api/info`, using a five-second process cache. It is
-   `null` on failure rather than fabricated; `meta.freshness.status` then
-   reports `unavailable`.
-6. **This inventory only covers files under `server/api/routes/**` and
-   `server/signals/api.js`.** `/api/grpc-status`, registered directly in
-   `server/api/server.js` rather than a route file, is out of scope per the
-   task's own boundary ("inventory... from route files") — flagging it
-   explicitly rather than silently omitting it.
-7. **CORS/rate-limiting**: this router does not apply its own CORS or rate
-   limiting. Mounted in-process (per the default instructions above), it
-   inherits `server.js`'s `helmet()`, CORS, and `express-rate-limit`
-   middleware, which run before `app.use('/v1', ...)` in the middleware
-   chain. If `/v1` is later split onto a genuinely separate host, that host
-   needs its own equivalent CORS/rate-limit configuration — nothing here
-   provides it standalone.
+Exact `amountZat` strings are preferred when available. The current legacy source
+returns formatted `amountZec` numbers; those are labelled `legacy-reported-zec`,
+converted to integer display units and never presented as newly verified exact
+zatoshi authority. Times are source block timestamps in UTC; the 24-hour boundary
+is fixed at retrieval start. Results describe indexed canonical records, not a
+snapshot guarantee across a concurrent reorg. No SQL/schema/API deployment was
+needed for this capability. Other transaction windows remain unsupported.
+
+Chart narratives now receive the latest returned observation date instead of a
+hardcoded freshness status. The UI shows “Observations through” for daily series
+and retrieval time for chain rankings, preserving any explicit stale-source flag.
+Neither retrieval time nor a transaction timestamp proves indexer freshness.
+
+The global mainnet widget and full Ask workspace share this endpoint. Opening the
+widget or changing chart controls does not invoke paid inference. With no provider,
+exact page-guide/product prompts and guided chart recipes remain usable in English.
+Multilingual contextual answers require a configured and evaluated model.
+
+Every mainnet header/footer destination now has an explicit Ask page descriptor
+and reviewed guide. Network, Network Nodes and Privacy Score have distinct topics;
+Mining, Mempool, Forks & Reorgs, tools and resource pages no longer fall back to the
+generic explorer description. Suggested page questions use matching reviewed
+answers in guided mode and the same source documents in paid mode.
+
+Individual chart guides use the definitions in `lib/chart-catalog.ts`. Regenerate
+the public descriptor snapshot with
+`node server/api/v1/tools/write-ask-chart-guides.js` when that catalogue changes;
+coverage tests check for drift and unknown chart routes. These guides explain
+controls, units and methodology. They do not receive plotted rows, URL filters,
+form contents, decrypted memos, article text or current node/mining readings.
+They do not add data tools or enable a provider. Existing supported chart analysis,
+block and transaction readers remain the separate source of live evidence.
+
+Ask now has a bounded read-only block tool: latest indexed block, up to 25 recent
+indexed blocks, or a specific height/hash. Exact English lookup prompts and
+“Explain this page” on Blocks/block details also work without a model. Paid mode
+classifies free-form/multilingual requests into the same validated tool and
+narrates only server-supplied facts using the existing numeric placeholder checks.
+
+The widget sends an optional strictly validated `block` height/hash for a selected
+block; follow-ups and handoff to Ask preserve the returned hash. It never sends DOM
+text, arbitrary URLs, table rows or query strings. Blocks-page explanations use an
+explicitly **unfiltered latest indexed sample**, not the browser's filtered table.
+
+The tool makes at most two fixed GET requests: `/api/blocks/list` with bounded
+limits/height filters and, for a hash, `/api/block/:hash?summary=1`. It does not load
+full canonical block transactions, execute SQL, follow model URLs or page through
+history. Validate response fields, ordering/contiguity, requested heights and hash
+identity. A hash reorg between reads fails rather than attributing replacement data
+to the original block. Missing and orphaned results are distinct; orphan details
+remain a link to their retained page. Fees are exact integer zatoshis rendered as
+ZEC; missing fees/intervals remain unavailable, and transaction counts include
+coinbase. Software markers are self-reported. Observation timestamps and retrieval
+time do not prove indexer synchronization. Results carry `blocks` plus existing
+`dataContext` and appear as native linked cards in both Ask surfaces.
+
+Guided reads retain the existing request limiter and a 15-second deadline; paid
+reads retain bot admission, distributed quotas, cost reservation and response
+limits. No automatic provider retries or expanded spending allowance. Provider
+activation is separate from this capability and remains unchanged.
+
+Paid mode requires all of these **backend** settings:
+
+- `ASK_ENABLED=true`, `ASK_PROVIDER=openai|anthropic`, `ASK_MODEL`, `ASK_API_KEY`.
+- `ASK_DAILY_CALL_LIMIT` (1–10,000), `ASK_DAILY_BUDGET_USD`,
+  `ASK_MONTHLY_BUDGET_USD` (each positive, at most 1,000 USD).
+- `ASK_MAX_INPUT_USD_PER_MILLION`, `ASK_MAX_OUTPUT_USD_PER_MILLION`: reviewed
+  upper bounds covering the selected model's applicable regional/cache premiums.
+- `ASK_ABUSE_SECRET` (at least 32 characters), `ASK_TURNSTILE_SECRET`,
+  `ASK_TURNSTILE_SITE_KEY`, `ASK_TURNSTILE_HOSTNAME` (exact frontend hostname).
+- Ready shared `app.locals.redisClient`. Configure durable, non-evicting storage
+  for allowance counters; losing/resetting them invalidates cumulative limits.
+- Optional OpenAI `ASK_REASONING_EFFORT`, supported by the selected model.
+
+Only the public Turnstile site key is returned to browsers. Server verification
+requires the configured hostname and `ask` action. Distributed limits admit five
+requests per UTC minute and twenty per day per daily HMAC of the trusted client IP.
+Verify reverse-proxy attribution before launch. IP quotas are not user identity;
+attackers can rotate IPs or exhaust the shared allowance.
+
+Atomic Redis reservations charge each provider call's conservative maximum against
+both UTC day/month budgets before dispatch, including selection and explanation
+separately. They use UTF-8 request bytes plus wrapper headroom, reviewed price
+bounds and 500 output tokens. This is a conservative reservation ledger, not
+measured invoice reconciliation; uncertain/failed calls receive no refund.
+There are no automatic retries; three concurrent calls, 15-second provider
+deadlines, 35-second operation deadlines and bounded bodies limit work. Missing
+configuration, Redis failures or exhausted allowances fail closed. Also configure
+provider-side controls; deployment-reviewed tokenization/pricing remains necessary.
+
+For OpenAI, configure a project monthly spend limit with **Enforce a hard limit**
+enabled; alerts alone do not stop requests. Enforcement can lag slightly behind
+usage. See [OpenAI spend limits](https://developers.openai.com/api/docs/guides/spend-limits).
+Application quotas do not protect against direct use of a leaked provider key.
+
+For the private loopback AI harness, `AskChallenge` supplies Cloudflare's official
+dummy token only with `NODE_ENV=development`, an exact localhost/loopback hostname,
+and the official always-pass test site key. This avoids development-widget stalls.
+Production builds, remote hosts and real site keys still load the widget. Server
+validation and spending reservations remain required; this does not enable paid
+AI in `dev:v1` or constitute production bot-protection verification.
+
+Only generic public explanations are cached for five minutes by model, locale,
+recipe, reviewed documents and evidence fingerprint. Arbitrary questions/history
+are not cached or logged by Ask. Audit infrastructure/APM logging separately.
+
+Page/chart explanations lead with measured findings and their significance,
+using server-calculated changes, concentration and recent pace. Balance overviews
+include exact totals and concentration across every selected pool; unknown
+endpoints and single snapshots do not produce aggregate change comparisons.
+The public-flow chart's **Explain this chart** action passes its validated pool
+and period recipe into the widget and starts one explanation. The backend fetches
+public observations again; browser HTML, rendered values and arbitrary queries
+are not evidence. Other chart controls are not automatically shared with Ask.
+English AI answers offer relevant follow-up questions; the shared allowlist
+preserves the exact recipe and skips classification for these bounded requests. The same model, provider-call caps and spending controls apply.
+
+The provider processes submitted text; `store:false` is not zero retention or
+end-to-end privacy. Off-topic intent filtering and provenance checks do not prove
+jailbreak resistance or semantic accuracy. Real-model multilingual/adversarial
+evaluation, least-privilege runtime/egress review and live bot/cost tests remain
+launch gates. No paid configuration or production deployment is included here.
+
+A September 25 private GPT-6 Luna probe (`reasoning_effort=none`) passed the final
+15 scripted knowledge/analytics/language/refusal cases and four repeated French
+follow-ups after fixing citation/fact-placeholder confusion. These bounded live
+checks do not establish comprehensive jailbreak resistance, live Turnstile
+verification or production spending enforcement. The key was held only in the
+test process memory; the public feature and loopback preview remain provider-off.
+
+## Verification
+
+```sh
+npm run test:v1 --prefix server/api
+npm run test:frontend
+npm run test:server-regressions
+npm run lint
+npx tsc --noEmit
+npm run build
+npm run test:route-cache-build
+# Optional local PostgreSQL integration; only temporary tables are created:
+npm run test:v1-postgres
+```
+
+The route suite exercises every adapter with controlled source fixtures, payment
+and ownership boundaries, name pagination, cursor traversal and malformed/error
+responses. Browser checks and private mainnet reads complement these tests;
+neither mock tests nor HTTP 200 alone establish production readiness. Database
+migrations, new data feeds, write flows and each deployed network still require
+release acceptance. See the private wiki's ZecBlock launch checklist.
+
+### Ask transaction lookups
+
+Ask also supports specific transaction IDs and the latest 1–10 indexed transactions
+(default five for plural requests). `/txs` has a transaction page descriptor;
+`/tx/:txid` supplies the optional strictly validated `transaction` request field.
+The widget and workspace preserve the chosen ID across follow-ups and handoff.
+The homepage guide now describes per-card Customize controls, stats-bar selection
+and browser-local preferences; Ask does not change those preferences itself.
+
+The strict `transactions` intent uses `transactionQuery={mode:latest|detail,
+txid:null|64-hex,limit:1..10}`. Detail requires an ID and limit one; latest forbids
+an ID. Latest performs one GET to `/api/transactions/list?limit=N`. Detail performs
+one GET to `/api/seo/tx/:txid`, plus one `/api/mempool/tx/:txid` only on 404. A failed
+source is not converted into not-found. No arbitrary URLs, pagination, raw detail
+fanout, SQL, broadcast or other write methods are exposed. Existing deadlines,
+rate limits, AI verification and budget controls are unchanged.
+
+Replies contain `transactions`, linked native records and timestamped source
+context. List ordering is block height then transaction index descending,
+including coinbase; it is not a value ranking or a canonical-status check.
+Individual summaries distinguish confirmed, stale, unknown and mempool pending.
+Mempool `firstSeen` is not treated as an authoritative arrival timestamp. Only
+allowlisted scalar fields enter model evidence. Exact fee zatoshis are converted
+with integer arithmetic, and missing values remain unavailable. No payment
+amount is inferred from fees or shielded component flags.
+
+The existing lightweight transaction summary now adds `feeZat` (decimal string or
+null), nullable `size`, `vinCount`, `voutCount`, and `hasSprout`. It still uses one
+parameterized query and does not load input/output arrays. These additions require
+deploying the legacy API handler; until then a preview pointed at an older API
+can show confirmed status/components while summary fees and sizes remain unavailable.
+Guided English lookups work without inference; paid narration and multilingual
+selection use the existing validated fact/citation pipeline when AI is enabled.

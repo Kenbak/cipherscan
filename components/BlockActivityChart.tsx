@@ -1,5 +1,7 @@
 'use client';
 
+import { readApiData } from '@/lib/api-client';
+import { ChartWatermark } from '@/components/ChartWatermark';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { Card, CardBody } from '@/components/ui/Card';
@@ -20,20 +22,19 @@ const DEFAULT_BLOCKS = 60;
  * Block Activity Chart
  *
  * A mempool.space-style visualization of recent blocks as vertical bars,
- * where each bar's HEIGHT scales with the block's byte size (log-scaled
- * so small coinbase-only blocks are still visible next to full blocks).
+ * where each bar's HEIGHT scales with the block's byte size on a linear scale.
  *
- * Color-coded by finality state: green (finalized), cyan (pending), orange
+ * Color-coded by finality state: green (finalized), gold (pending), orange
  * (being voted on right now). Hover for details, click to open block detail.
  *
- * Works for any Zcash chain because it only needs /api/blocks — we just
+ * Works for any Zcash chain because it only needs /v1/blocks — we just
  * recommend showing it for Crosslink where the classic geo node map is
  * less useful (small peer pool).
  */
 export function BlockActivityChart({
   limit = DEFAULT_BLOCKS,
   title = 'Block Activity',
-  subtitle = 'Bar height scales with block size. Click any bar to open the block.',
+  subtitle = 'Bar height shows block size in bytes on a linear scale. Click any bar to open the block.',
   refreshMs = 15_000,
 }: {
   limit?: number;
@@ -51,22 +52,22 @@ export function BlockActivityChart({
     try {
       const api = getApiUrl();
       const [blocksRes, crossRes, bftRes] = await Promise.all([
-        fetch(`${api}/api/blocks?limit=${limit}`),
-        fetch(`${api}/api/crosslink`).catch(() => null),
-        fetch(`${api}/api/crosslink/bft-tip`).catch(() => null),
+        fetch(`${api}/v1/blocks?limit=${limit}`),
+        fetch(`${api}/v1/crosslink`).catch(() => null),
+        fetch(`${api}/v1/crosslink/bft-tip`).catch(() => null),
       ]);
 
       if (blocksRes.ok) {
-        const data = await blocksRes.json();
-        setBlocks(data.blocks || []);
+        const data = await readApiData(blocksRes);
+        setBlocks(data || []);
       }
       if (crossRes && crossRes.ok) {
-        const j = await crossRes.json();
-        if (j.success) setFinalizedHeight(j.finalizedHeight);
+        const j = await readApiData(crossRes);
+        if (j) setFinalizedHeight(j.finalizedHeight);
       }
       if (bftRes && bftRes.ok) {
-        const j = await bftRes.json();
-        if (j.success) setVotedHash(j.votedBlockHash || null);
+        const j = await readApiData(bftRes);
+        if (j) setVotedHash(j.votedBlockHash || null);
       }
     } catch (err) {
       console.error('BlockActivityChart fetch error:', err);
@@ -98,14 +99,8 @@ export function BlockActivityChart({
     [ordered]
   );
 
-  // Log-scaled bar height: small blocks stay visible (>= 8% of chart).
-  const barHeight = (size: number): number => {
-    if (maxSize <= 0) return 20;
-    const logMax = Math.log10(Math.max(maxSize, 2048));
-    const logS = Math.log10(Math.max(size, 1024));
-    const pct = (logS / logMax) * 100;
-    return Math.max(8, Math.min(100, pct));
-  };
+  // True zero baseline: height represents bytes without minimum-size inflation.
+  const barHeight = (size: number): number => Math.max(0, size) / maxSize * 100;
 
   const hoveredBlock = hovered ? ordered.find((b) => b.hash === hovered) : null;
 
@@ -119,14 +114,14 @@ export function BlockActivityChart({
               <span className="text-xs text-muted font-mono uppercase tracking-widest opacity-50">
                 {'>'}
               </span>
-              <h2 className="text-sm font-bold font-mono text-secondary uppercase tracking-wider">
+              <h2 className="text-sm font-semibold font-mono text-secondary lowercase tracking-tight">
                 {title.toUpperCase().replace(/ /g, '_')}
               </h2>
             </div>
             <p className="text-xs text-muted">{subtitle}</p>
           </div>
           {!loading && ordered.length > 0 && (
-            <div className="flex gap-4 text-[11px] font-mono text-muted">
+            <div className="flex gap-4 text-caption font-mono text-muted">
               <Stat label="blocks" value={ordered.length.toString()} />
               <Stat label="avg size" value={fmtBytes(avgSize)} />
               <Stat label="max" value={fmtBytes(maxSize)} />
@@ -138,7 +133,7 @@ export function BlockActivityChart({
         {/* Chart */}
         {loading && ordered.length === 0 ? (
           <div className="h-48 flex items-center justify-center">
-            <div className="animate-spin rounded-full h-6 w-6 border-2 border-cipher-cyan border-t-transparent" />
+            <div className="animate-spin rounded-full h-6 w-6 border-2 border-cipher-gold border-t-transparent" />
           </div>
         ) : ordered.length === 0 ? (
           <div className="h-48 flex items-center justify-center text-sm text-muted">
@@ -147,9 +142,9 @@ export function BlockActivityChart({
         ) : (
           <div className="relative">
             {/* Y axis scale ticks */}
-            <div className="absolute inset-y-0 left-0 w-12 flex flex-col justify-between text-[9px] font-mono text-muted/60 pointer-events-none pr-2 text-right">
+            <div className="absolute inset-y-0 left-0 w-12 flex flex-col justify-between text-caption font-mono text-muted pointer-events-none pr-2 text-right">
               <span>{fmtBytes(maxSize)}</span>
-              <span>{fmtBytes(maxSize / 4)}</span>
+              <span>{fmtBytes(maxSize / 2)}</span>
               <span>0</span>
             </div>
 
@@ -175,7 +170,7 @@ export function BlockActivityChart({
             </div>
 
             {/* X axis labels — first/middle/last block heights */}
-            <div className="ml-12 flex justify-between text-[10px] font-mono text-muted mt-1 px-0.5">
+            <div className="ml-12 flex justify-between text-caption font-mono text-muted mt-1 px-0.5">
               <span>#{ordered[0]?.height.toLocaleString()}</span>
               {ordered.length > 2 && (
                 <span className="hidden sm:inline">
@@ -190,18 +185,18 @@ export function BlockActivityChart({
               {hoveredBlock ? (
                 <Link
                   href={`/block/${hoveredBlock.height}`}
-                  className="card px-4 py-2.5 flex items-center gap-4 hover:border-cipher-cyan transition-colors"
+                  className="card px-4 py-2.5 flex items-center gap-4 hover:border-cipher-gold transition-colors"
                 >
                   <div>
-                    <div className="text-[10px] text-muted font-mono uppercase tracking-wider">
+                    <div className="text-caption text-muted font-mono uppercase tracking-wider">
                       Block
                     </div>
-                    <div className="font-mono font-bold text-primary text-sm">
+                    <div className="font-mono font-semibold text-primary text-sm">
                       #{hoveredBlock.height.toLocaleString()}
                     </div>
                   </div>
                   <div>
-                    <div className="text-[10px] text-muted font-mono uppercase tracking-wider">
+                    <div className="text-caption text-muted font-mono uppercase tracking-wider">
                       Size
                     </div>
                     <div className="font-mono text-primary text-sm">
@@ -209,7 +204,7 @@ export function BlockActivityChart({
                     </div>
                   </div>
                   <div>
-                    <div className="text-[10px] text-muted font-mono uppercase tracking-wider">
+                    <div className="text-caption text-muted font-mono uppercase tracking-wider">
                       Txs
                     </div>
                     <div className="font-mono text-primary text-sm">
@@ -217,7 +212,7 @@ export function BlockActivityChart({
                     </div>
                   </div>
                   <div>
-                    <div className="text-[10px] text-muted font-mono uppercase tracking-wider">
+                    <div className="text-caption text-muted font-mono uppercase tracking-wider">
                       Age
                     </div>
                     <div className="font-mono text-secondary text-sm">
@@ -225,7 +220,7 @@ export function BlockActivityChart({
                     </div>
                   </div>
                   <div>
-                    <div className="text-[10px] text-muted font-mono uppercase tracking-wider">
+                    <div className="text-caption text-muted font-mono uppercase tracking-wider">
                       Status
                     </div>
                     <div
@@ -234,7 +229,7 @@ export function BlockActivityChart({
                           ? 'text-cipher-orange'
                           : finalizedHeight !== null && hoveredBlock.height <= finalizedHeight
                           ? 'text-cipher-green'
-                          : 'text-cipher-cyan'
+                          : 'text-cipher-gold'
                       }`}
                     >
                       {hoveredBlock.hash === votedHash
@@ -253,14 +248,14 @@ export function BlockActivityChart({
             </div>
 
             {/* Legend */}
-            <div className="mt-3 flex items-center justify-center gap-4 text-[10px] font-mono text-muted">
+            <div className="mt-3 flex items-center justify-center gap-4 text-caption font-mono text-muted">
               <LegendSwatch color="bg-cipher-green/80" label="finalized" />
               <LegendSwatch color="bg-cipher-orange/80" label="voting now" />
-              <LegendSwatch color="bg-cipher-cyan/70" label="pending" />
+              <LegendSwatch color="bg-brand-gold/70" label="pending" />
             </div>
           </div>
         )}
-      </CardBody>
+      <ChartWatermark /></CardBody>
     </Card>
   );
 }
@@ -284,17 +279,19 @@ function BlockBar({
     ? 'bg-cipher-orange/80 hover:bg-cipher-orange border-cipher-orange'
     : isFinalized
     ? 'bg-cipher-green/70 hover:bg-cipher-green/90 border-cipher-green'
-    : 'bg-cipher-cyan/60 hover:bg-cipher-cyan/80 border-cipher-cyan';
+    : 'bg-brand-gold/60 hover:bg-brand-gold/80 border-cipher-gold';
 
   return (
     <Link
       href={`/block/${block.height}`}
       className={`relative shrink-0 w-[6px] sm:w-[8px] rounded-t-sm border-t ${color} transition-[height,transform,box-shadow] ${
-        isHovered ? 'ring-2 ring-white/20 scale-110' : ''
+        isHovered ? 'ring-1 ring-cipher-gold' : ''
       } ${isVoting ? 'animate-pulse' : ''}`}
       style={{ height: `${heightPct}%` }}
       onMouseEnter={() => onHoverChange(true)}
       onMouseLeave={() => onHoverChange(false)}
+      onFocus={() => onHoverChange(true)}
+      onBlur={() => onHoverChange(false)}
       aria-label={`Block ${block.height}, ${block.size} bytes`}
     />
   );
@@ -303,7 +300,7 @@ function BlockBar({
 function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex flex-col">
-      <span className="text-[9px] uppercase tracking-wider opacity-60">{label}</span>
+      <span className="text-caption uppercase tracking-wider opacity-60">{label}</span>
       <span className="text-primary">{value}</span>
     </div>
   );

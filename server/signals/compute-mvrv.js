@@ -1,197 +1,38 @@
+#!/usr/bin/env node
 'use strict';
-
-/**
- * Compute MVRV daily — uses shielded pool realized cap + transparent approximation.
- *
- * Strategy:
- *   1. Compute current transparent realized cap ONCE from UTXO set
- *   2. For historical dates, use shielded realized cap (exact) + transparent
- *      approximation (transparent_balance * shielded_avg_price)
- *   3. For recent dates (post-backfill), use actual transparent realized cap
- *
- * Usage: cd server/api && node ../signals/compute-mvrv.js [--today-only]
- */
-
-const { loadEnv } = require('../lib/job-utils');
-const { getPool, getReadPool } = require('../lib/db-pool');
-
-loadEnv(__dirname);
-
-const pool = getPool();
-const readPool = getReadPool();
-
-async function computeCurrentTransparentRealizedCap() {
-  console.log('Computing current transparent realized cap from UTXO set...');
-  const { rows: [result] } = await readPool.query(`
-    SELECT SUM(o.value::numeric / 1e8 * p.price_usd) as realized_cap,
-           COUNT(*) as utxo_count,
-           SUM(o.value)::numeric / 1e8 as total_zec
-    FROM transaction_outputs o
-    JOIN transactions t ON o.txid = t.txid
-    JOIN zec_price_daily p ON p.date = to_timestamp(t.block_time)::date
-    WHERE o.spent = FALSE AND o.value > 0
-  `);
-  const cap = result?.realized_cap ? parseFloat(result.realized_cap) : 0;
-  const count = parseInt(result?.utxo_count) || 0;
-  const totalZec = parseFloat(result?.total_zec) || 0;
-  const avgPrice = totalZec > 0 ? cap / totalZec : 0;
-  console.log(`  Transparent realized cap: $${(cap/1e6).toFixed(1)}M`);
-  console.log(`  UTXOs: ${count.toLocaleString()}, Total: ${totalZec.toFixed(0)} ZEC, Avg cost: $${avgPrice.toFixed(2)}`);
-  return { cap, count, totalZec, avgPrice };
+// USD cost-basis model. Transparent holdings are reconstructed at each UTC
+// day close; the shielded component remains the existing public-flow model.
+// No current-holdings scaling and no shielded substitute for transparent SOPR.
+const {loadEnv,withAdvisoryLock}=require('../lib/job-utils');
+const {getPool}=require('../lib/db-pool');
+const REBUILD_SQL=`WITH shielded AS (
+ SELECT date,SUM(realized_cap_usd) cap,SUM(balance_zat) balance,COUNT(*) pools
+ FROM pool_realized_cap_daily GROUP BY date
+), model AS (
+ SELECT a.date,a.transparent_realized_cap_usd transparent_cap,a.sopr,
+ s.cap shielded_cap,p.price_usd*(d.chain_supply::numeric/1e8) market_cap,
+ a.transparent_realized_cap_usd+s.cap realized_cap,d.chain_supply::numeric/1e8 supply,
+ p.price_usd/NULLIF(s.cap/NULLIF(s.balance::numeric/1e8,0),0) shielded_ratio
+ FROM analytics_history_daily a JOIN blocks b ON b.height=a.anchor_height AND b.hash=a.anchor_hash
+ JOIN zec_price_daily p ON p.date=a.date JOIN privacy_trends_daily d ON d.date=a.date
+ JOIN shielded s ON s.date=a.date
+ WHERE a.date<CURRENT_DATE AND ($1::int IS NULL OR a.date>=CURRENT_DATE-$1::int)
+ AND s.pools=(SELECT COUNT(DISTINCT pool) FROM pool_realized_cap_daily WHERE date<=a.date)
+ AND ($2::date IS NULL OR a.date >= $2::date) AND ($3::date IS NULL OR a.date <= $3::date)
+ AND d.chain_supply>0 AND p.price_usd>0
+)
+INSERT INTO mvrv_daily(date,market_cap_usd,realized_cap_usd,transparent_realized_cap_usd,shielded_realized_cap_usd,mvrv,realized_price,sopr,shielded_sopr,nupl)
+SELECT date,market_cap,realized_cap,transparent_cap,shielded_cap,market_cap/NULLIF(realized_cap,0),realized_cap/supply,sopr,shielded_ratio,1-realized_cap/NULLIF(market_cap,0) FROM model
+ON CONFLICT(date) DO UPDATE SET market_cap_usd=excluded.market_cap_usd,realized_cap_usd=excluded.realized_cap_usd,
+transparent_realized_cap_usd=excluded.transparent_realized_cap_usd,shielded_realized_cap_usd=excluded.shielded_realized_cap_usd,
+mvrv=excluded.mvrv,realized_price=excluded.realized_price,sopr=excluded.sopr,shielded_sopr=excluded.shielded_sopr,nupl=excluded.nupl`;
+async function run(args=process.argv.slice(2)) {
+ if(args.some(arg=>!['--today-only','--all'].includes(arg)))throw new Error('Use --today-only (last seven complete days) or --all');
+ loadEnv(__dirname);const pool=getPool({max:1});const c=await pool.connect();
+ try {await withAdvisoryLock(c,839303,async()=>{
+  const result=await c.query(REBUILD_SQL,[args.includes('--all')?null:7,null,null]);
+  console.log(JSON.stringify({updated:result.rowCount,transparentMethod:'transparent-utxo-day-close-v1',shieldedMethod:'modeled_pool_flow_basis'}));
+ });}finally{c.release();await pool.end();}
 }
-
-async function main() {
-  const todayOnly = process.argv.includes('--today-only');
-
-  // Step 1: Compute current transparent realized cap once
-  const transparentNow = await computeCurrentTransparentRealizedCap();
-
-  if (todayOnly) {
-    const today = new Date().toISOString().split('T')[0];
-    const result = await computeForDate(today, transparentNow);
-    if (result) {
-      await upsertMvrv(result);
-      printResult(result);
-    }
-    await pool.end();
-    if (readPool !== pool) await readPool.end();
-    return;
-  }
-
-  // Step 2: Backfill all dates using shielded (exact) + transparent (approx)
-  console.log('\nBackfilling MVRV for all available dates...');
-  const { rows: dates } = await readPool.query(`
-    SELECT DISTINCT date FROM pool_realized_cap_daily ORDER BY date
-  `);
-  console.log(`${dates.length} dates to process`);
-
-  let count = 0;
-  const startTime = Date.now();
-  for (const { date } of dates) {
-    const d = date instanceof Date ? date.toISOString().split('T')[0] : String(date);
-    const result = await computeForDate(d, transparentNow);
-    if (result && result.mvrv !== null) {
-      await upsertMvrv(result);
-      count++;
-      if (count % 200 === 0) {
-        const elapsed = (Date.now() - startTime) / 1000;
-        const rate = Math.round(count / elapsed * 60);
-        console.log(`  ${count}/${dates.length} (${(count/dates.length*100).toFixed(1)}%) — ${rate}/min`);
-      }
-    }
-  }
-  console.log(`\nDone! ${count} MVRV rows computed in ${((Date.now()-startTime)/1000).toFixed(0)}s.`);
-
-  // Print latest 5
-  const { rows: latest } = await readPool.query(
-    `SELECT * FROM mvrv_daily ORDER BY date DESC LIMIT 5`
-  );
-  console.log('\nLatest MVRV values:');
-  for (const r of latest) printResult(r);
-
-  await pool.end();
-  if (readPool !== pool) await readPool.end();
-}
-
-async function computeForDate(targetDate, transparentNow) {
-  // Get spot price
-  const { rows: [priceRow] } = await readPool.query(
-    `SELECT price_usd FROM zec_price_daily WHERE date = $1`, [targetDate]
-  );
-  if (!priceRow) return null;
-  const spotPrice = parseFloat(priceRow.price_usd);
-
-  // Get chain supply
-  const { rows: [supplyRow] } = await readPool.query(`
-    SELECT chain_supply, transparent_pool_size
-    FROM privacy_trends_daily WHERE date <= $1 ORDER BY date DESC LIMIT 1
-  `, [targetDate]);
-  if (!supplyRow) return null;
-
-  const chainSupplyZat = parseInt(supplyRow.chain_supply) || 0;
-  const transparentZat = parseInt(supplyRow.transparent_pool_size) || 0;
-  const chainSupplyZec = chainSupplyZat / 1e8;
-  const transparentZec = transparentZat / 1e8;
-  const marketCap = spotPrice * chainSupplyZec;
-
-  // Get shielded pool realized cap (latest available on or before target date)
-  const { rows: poolCaps } = await readPool.query(`
-    SELECT DISTINCT ON (pool) pool, realized_cap_usd, balance_zat
-    FROM pool_realized_cap_daily WHERE date <= $1
-    ORDER BY pool, date DESC
-  `, [targetDate]);
-
-  let shieldedRealizedCap = 0;
-  let shieldedBalanceZat = 0;
-  for (const p of poolCaps) {
-    shieldedRealizedCap += parseFloat(p.realized_cap_usd) || 0;
-    shieldedBalanceZat += parseInt(p.balance_zat) || 0;
-  }
-
-  // Transparent realized cap: use proportional scaling from current snapshot
-  // Historical transparent cap ≈ (historical transparent balance / current transparent balance) * current transparent cap
-  // Adjusted by price ratio to account for different cost basis eras
-  let transparentRealizedCap;
-  if (transparentNow.totalZec > 0 && transparentZec > 0) {
-    // Scale by balance ratio
-    const balanceRatio = transparentZec / transparentNow.totalZec;
-    transparentRealizedCap = transparentNow.cap * balanceRatio;
-  } else {
-    transparentRealizedCap = 0;
-  }
-
-  // Total realized cap
-  const totalRealizedCap = shieldedRealizedCap + transparentRealizedCap;
-  const mvrv = totalRealizedCap > 0 ? marketCap / totalRealizedCap : null;
-  const realizedPrice = chainSupplyZec > 0 ? totalRealizedCap / chainSupplyZec : 0;
-  const nupl = marketCap > 0 ? (marketCap - totalRealizedCap) / marketCap : 0;
-
-  // Shielded SOPR
-  const shieldedZec = shieldedBalanceZat / 1e8;
-  const avgShieldedAcq = shieldedZec > 0 ? shieldedRealizedCap / shieldedZec : spotPrice;
-  const shieldedSopr = avgShieldedAcq > 0 ? spotPrice / avgShieldedAcq : 1;
-
-  return {
-    date: targetDate,
-    market_cap_usd: marketCap,
-    realized_cap_usd: totalRealizedCap,
-    transparent_realized_cap_usd: transparentRealizedCap,
-    shielded_realized_cap_usd: shieldedRealizedCap,
-    mvrv,
-    realized_price: realizedPrice,
-    sopr: null,
-    shielded_sopr: shieldedSopr,
-    nupl,
-  };
-}
-
-async function upsertMvrv(r) {
-  await pool.query(`
-    INSERT INTO mvrv_daily (date, market_cap_usd, realized_cap_usd, transparent_realized_cap_usd,
-                            shielded_realized_cap_usd, mvrv, realized_price, sopr, shielded_sopr, nupl)
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-    ON CONFLICT (date) DO UPDATE SET
-      market_cap_usd = EXCLUDED.market_cap_usd,
-      realized_cap_usd = EXCLUDED.realized_cap_usd,
-      transparent_realized_cap_usd = EXCLUDED.transparent_realized_cap_usd,
-      shielded_realized_cap_usd = EXCLUDED.shielded_realized_cap_usd,
-      mvrv = EXCLUDED.mvrv,
-      realized_price = EXCLUDED.realized_price,
-      sopr = EXCLUDED.sopr,
-      shielded_sopr = EXCLUDED.shielded_sopr,
-      nupl = EXCLUDED.nupl
-  `, [r.date, r.market_cap_usd, r.realized_cap_usd, r.transparent_realized_cap_usd,
-      r.shielded_realized_cap_usd, r.mvrv, r.realized_price, r.sopr, r.shielded_sopr, r.nupl]);
-}
-
-function printResult(r) {
-  const mvrv = r.mvrv ? parseFloat(r.mvrv).toFixed(3) : '?';
-  const rp = r.realized_price ? `$${parseFloat(r.realized_price).toFixed(2)}` : '?';
-  const sopr = r.shielded_sopr ? parseFloat(r.shielded_sopr).toFixed(3) : '?';
-  const nupl = r.nupl ? `${(parseFloat(r.nupl)*100).toFixed(1)}%` : '?';
-  const mc = r.market_cap_usd ? `$${(parseFloat(r.market_cap_usd)/1e6).toFixed(1)}M` : '?';
-  const rc = r.realized_cap_usd ? `$${(parseFloat(r.realized_cap_usd)/1e6).toFixed(1)}M` : '?';
-  console.log(`  ${r.date} | MVRV: ${mvrv} | RP: ${rp} | SOPR: ${sopr} | NUPL: ${nupl} | MC: ${mc} | RC: ${rc}`);
-}
-
-main().catch(err => { console.error('Fatal:', err); process.exit(1); });
+if(require.main===module)run().catch(error=>{console.error(error.message);process.exitCode=1;});
+module.exports={REBUILD_SQL,run};

@@ -40,7 +40,7 @@ type AlternateHashResolution = 'block' | 'finalizer' | 'absent' | 'unavailable';
 
 const resolveAlternateHash = cache(async (hash: string): Promise<AlternateHashResolution> => {
   try {
-    const blockResponse = await fetchWithDeadline(`${getApiUrl()}/api/block/${hash}?summary=1`, {
+    const blockResponse = await fetchWithDeadline(`${getApiUrl()}/v1/blocks/${hash}?summary=1`, {
       next: { revalidate: 300 },
     });
     if (blockResponse.ok) return 'block';
@@ -48,7 +48,7 @@ const resolveAlternateHash = cache(async (hash: string): Promise<AlternateHashRe
 
     if (getNetwork() !== 'crosslink-testnet') return 'absent';
 
-    const finalizerResponse = await fetchWithDeadline(`${getApiUrl()}/api/finalizer/${hash}`, {
+    const finalizerResponse = await fetchWithDeadline(`${getApiUrl()}/v1/crosslink/finalizers/${hash}`, {
       next: { revalidate: 300 },
     });
     if (finalizerResponse.ok) return 'finalizer';
@@ -80,7 +80,7 @@ function getStatusDescription(status: TransactionStatus, meta: TxMeta | null): s
     return `Previously recorded in block #${formatNumber(meta.blockHeight)}, but that block is no longer on the canonical chain.`;
   }
 
-  return 'CipherScan cannot currently verify this transaction state. The transaction may be unindexed, absent, or temporarily unavailable from the data service.';
+  return 'ZecBlock cannot currently verify this transaction state. The transaction may be unindexed, absent, or temporarily unavailable from the data service.';
 }
 
 function getNetworkName(): string {
@@ -97,7 +97,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   if (!/^[a-fA-F0-9]{64}$/.test(txid)) {
     return buildPageMetadata({
-      title: 'Invalid Zcash Transaction | CipherScan',
+      title: 'Invalid Zcash Transaction | ZecBlock',
       description: 'This transaction identifier is not a valid 64-character Zcash transaction hash.',
       path,
       index: false,
@@ -109,8 +109,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   if (resolution.state === 'unavailable') {
     const fallback = buildPageMetadata({
-      title: `Zcash Transaction ${truncateHash(normalizedTxid)} Status Unknown | CipherScan`,
-      description: `CipherScan cannot currently verify the status of Zcash transaction ${truncateHash(normalizedTxid)} because a required data service is temporarily unavailable.`,
+      title: `Zcash Transaction ${truncateHash(normalizedTxid)} Status Unknown | ZecBlock`,
+      description: `ZecBlock cannot currently verify the status of Zcash transaction ${truncateHash(normalizedTxid)} because a required data service is temporarily unavailable.`,
       path,
       index: false,
       canonical: true,
@@ -124,8 +124,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   if (resolution.state === 'absent') {
     return buildPageMetadata({
-      title: `Zcash Transaction ${truncateHash(normalizedTxid)} Not Found | CipherScan`,
-      description: `CipherScan could not find Zcash transaction ${truncateHash(normalizedTxid)} in the confirmed index or mempool.`,
+      title: `Zcash Transaction ${truncateHash(normalizedTxid)} Not Found | ZecBlock`,
+      description: `ZecBlock could not find Zcash transaction ${truncateHash(normalizedTxid)} in the confirmed index or mempool.`,
       path,
       index: false,
       canonical: false,
@@ -139,19 +139,26 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const isPending = status === 'Pending';
   const isConfirmed = status === 'Confirmed';
   const title = isPending
-    ? `Pending Zcash Transaction ${truncateHash(tx.txid)} | CipherScan`
+    ? `Pending Zcash Transaction ${truncateHash(tx.txid)} | ZecBlock`
     : isConfirmed
-      ? `Zcash Transaction ${truncateHash(tx.txid)} | CipherScan`
+      ? `Zcash Transaction ${truncateHash(tx.txid)} | ZecBlock`
       : status === 'Reorganized'
-        ? `Reorganized Zcash Transaction ${truncateHash(tx.txid)} | CipherScan`
-        : `Zcash Transaction ${truncateHash(tx.txid)} Status Unknown | CipherScan`;
+        ? `Reorganized Zcash Transaction ${truncateHash(tx.txid)} | ZecBlock`
+        : `Zcash Transaction ${truncateHash(tx.txid)} Status Unknown | ZecBlock`;
   const description = isPending
     ? `${txType} Zcash transaction currently pending in the mempool with 0 confirmations. This page updates when the transaction is mined.`
     : isConfirmed
-      ? `${txType} Zcash transaction in block #${formatNumber(tx.blockHeight)} with ${formatNumber(tx.confirmations)} confirmation${tx.confirmations !== 1 ? 's' : ''}. ${tx.saplingSpendCount + tx.saplingOutputCount + tx.orchardActions > 0 ? 'Includes shielded components.' : 'Transparent transaction.'}`
+      // No confirmation count: it is stale as soon as the page is cached.
+      ? `${txType} Zcash transaction confirmed in block #${formatNumber(tx.blockHeight)}. ${
+        tx.isCoinbase
+          ? "Pays out this block's reward."
+          : tx.hasShielded || tx.orchardActions > 0
+            ? 'Includes shielded components whose amounts and addresses are not publicly visible.'
+            : 'All inputs and outputs are public.'
+      }`
       : status === 'Reorganized'
-        ? `This Zcash transaction is no longer verified in its recorded block after a chain reorganization. CipherScan will update this page if it returns to the mempool or confirms again.`
-        : `CipherScan has a record for this Zcash transaction but cannot currently verify its canonical-chain status.`;
+        ? `This Zcash transaction is no longer verified in its recorded block after a chain reorganization. ZecBlock will update this page if it returns to the mempool or confirms again.`
+        : `ZecBlock has a record for this Zcash transaction but cannot currently verify its canonical-chain status.`;
 
   return buildPageMetadata({
     title,
@@ -254,7 +261,7 @@ export default async function TxLayout({ params, children }: Props) {
       name: `Zcash transaction ${normalizedTxid}`,
       url: canonicalUrl,
       description: statusDescription,
-      creator: { '@id': 'https://cipherscan.app/#organization' },
+      creator: { '@id': 'https://zecblock.com/#organization' },
       isPartOf: { '@id': `${baseUrl}/#website` },
       identifier: {
         '@type': 'PropertyValue',
@@ -278,10 +285,10 @@ export default async function TxLayout({ params, children }: Props) {
         aria-labelledby="transaction-heading"
       >
         <p className="text-xs font-mono text-muted tracking-wider">&gt; TX_LOOKUP</p>
-        <h1 id="transaction-heading" className="mt-2">
-          <span className="block text-lg sm:text-xl font-semibold tracking-tight text-primary">
+        <h1 id="transaction-heading" className="type-page mt-2">
+          <span className="block type-page text-primary">
             Zcash Transaction
-          </span>
+          </span>{' '}
           <span className="mt-2 flex items-center gap-2 min-w-0">
             <span className="text-sm sm:text-base font-mono font-normal text-primary break-all">
               {normalizedTxid}

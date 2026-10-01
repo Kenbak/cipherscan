@@ -23,11 +23,11 @@ export function DonateFooter({ address }: DonateFooterProps) {
         value={`zcash:${address}`}
         size={72}
         bgColor="transparent"
-        fgColor="#56d4c8"
+        fgColor="#91AC90"
         level="L"
       />
       <div className="nl-donate-text">
-        <span className="nl-donate-label">Support CipherScan</span>
+        <span className="nl-donate-label">Support ZecBlock</span>
         <button className="nl-donate-addr" onClick={handleCopy} title={address}>
           {copied ? 'Copied ✓' : truncated}
         </button>

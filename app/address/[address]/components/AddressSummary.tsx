@@ -36,7 +36,7 @@ export function AddressSummary({ data, totalTxCount }: AddressSummaryProps) {
       return (
         <Link
           href={`/address/${funding.funderAddress}`}
-          className="text-cipher-cyan hover:text-primary transition-colors"
+          className="text-cipher-gold hover:text-primary transition-colors"
         >
           {funding.funderLabel}
         </Link>
@@ -46,7 +46,7 @@ export function AddressSummary({ data, totalTxCount }: AddressSummaryProps) {
       return (
         <Link
           href={`/address/${funding.funderAddress}`}
-          className="text-cipher-cyan hover:text-primary transition-colors"
+          className="text-cipher-gold hover:text-primary transition-colors"
         >
           {shortAddr(funding.funderAddress)}
         </Link>

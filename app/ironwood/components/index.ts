@@ -13,7 +13,6 @@ export type {
   ScatterTx,
   TierTx,
   VelocityBucket,
-  WalletStatus,
 } from './types';
 
 export { MetricsRow } from './MetricsRow';
@@ -40,6 +39,6 @@ export {
   formatTierVolumePct,
   classifyTierLocal,
 } from './MigrationTiers';
-export { WalletReadiness, WalletStatusBadge } from './WalletReadiness';
+export { WalletReadiness } from './WalletReadiness';
 export { Resources } from './Resources';
 export { SegmentedControl, KpiRow, KpiCell, EmptyPanel } from './ui';

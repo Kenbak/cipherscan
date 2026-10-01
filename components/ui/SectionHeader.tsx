@@ -1,4 +1,5 @@
 import { ReactNode } from 'react';
+import Link from 'next/link';
 
 /**
  * PageHeader — the standard page-level header.
@@ -11,14 +12,18 @@ import { ReactNode } from 'react';
  */
 export function PageHeader({
   eyebrow,
+  eyebrowHref,
   title,
   subtitle,
   actions,
   children,
   className = '',
+  titleAsHeading = true,
 }: {
   /** Mono uppercase label, e.g. "MINING" — rendered as "> MINING" */
   eyebrow: string;
+  /** Optional parent link, using the standard eyebrow instead of a separate back row. */
+  eyebrowHref?: string;
   title: ReactNode;
   subtitle?: ReactNode;
   /** Optional right-aligned controls (count, export button, period selector, ...) */
@@ -26,20 +31,32 @@ export function PageHeader({
   /** Optional extra header content rendered below the title row (quote, banner) */
   children?: ReactNode;
   className?: string;
+  /**
+   * Render the title as a plain element instead of the page H1.
+   *
+   * Only for `loading.tsx` skeletons: Next streams the loading fallback and
+   * the resolved page into the *same* initial HTML response, so a skeleton
+   * that emits its own `<h1>` puts two H1s on the page — which breaks the
+   * one-H1-per-document rule in AGENTS.md. The skeleton still shows the real
+   * title (it must, or the shell is a thin duplicate page); it just isn't a
+   * second heading in the outline.
+   */
+  titleAsHeading?: boolean;
 }) {
+  const Title = titleAsHeading ? 'h1' : 'div';
   return (
     <div className={`mb-8 animate-fade-in ${className}`}>
-      <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">
-        <span className="opacity-50">{'>'}</span> {eyebrow}
+      <p className="type-label text-muted uppercase mb-3">
+        <span className="opacity-50" aria-hidden="true">{'>'}</span> {eyebrowHref ? <Link href={eyebrowHref} className="rounded-sm underline decoration-cipher-border underline-offset-4 transition-colors hover:text-primary hover:decoration-current">{eyebrow}</Link> : eyebrow}
       </p>
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div className="min-w-0">
-          <h1 className="text-2xl sm:text-3xl font-bold text-primary font-sans">{title}</h1>
+          <Title className="type-page text-primary font-sans">{title}</Title>
           {subtitle && (
-            <div className="text-sm text-secondary mt-2 max-w-2xl font-sans">{subtitle}</div>
+            <div className="type-prose text-secondary mt-3 max-w-2xl font-sans">{subtitle}</div>
           )}
         </div>
-        {actions && <div className="shrink-0">{actions}</div>}
+        {actions && <div className="min-w-0 max-w-full shrink-0">{actions}</div>}
       </div>
       {children}
     </div>
@@ -48,11 +65,11 @@ export function PageHeader({
 
 const LABEL_SIZE = {
   /** Default — a sub-page's own card/list section label (/mining, /pools, /mempool). */
-  sm: 'text-xs sm:text-sm',
+  sm: 'text-sm',
   /** A page's primary top-level landmarks (e.g. the homepage), which need more
    *  separation from the data-table column headers sitting directly below them
    *  than a sub-page's in-card section label does. */
-  lg: 'text-sm sm:text-base',
+  lg: 'text-base',
 } as const;
 
 /**
@@ -82,7 +99,7 @@ export function SectionHeader({
     <div className={`flex items-start sm:items-center justify-between gap-2 mb-4 flex-wrap ${className}`}>
       <div className="flex items-center gap-2">
         <span className="text-xs text-muted font-mono uppercase tracking-widest opacity-50">{'>'}</span>
-        <h2 className={`${LABEL_SIZE[size]} font-bold font-mono text-secondary uppercase tracking-wider`}>
+        <h2 className={`${LABEL_SIZE[size]} font-medium font-mono text-primary lowercase tracking-tight`}>
           {label}
         </h2>
         {live && (
@@ -92,7 +109,7 @@ export function SectionHeader({
           </span>
         )}
       </div>
-      {actions && <div className="flex items-center gap-2">{actions}</div>}
+      {actions && <div className="flex max-w-full flex-wrap items-center gap-2">{actions}</div>}
     </div>
   );
 }

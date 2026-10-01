@@ -1,0 +1,42 @@
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const { once } = require('node:events');
+const express = require('express');
+const createV1Router = require('../../v1');
+const { createAttestationRouter } = require('../../routes/attestations');
+
+test('v1 preserves attestation observations, unavailable state, no-store and unknown-ID errors', async (t) => {
+  const legacy = express();
+  legacy.get('/api/info', (_req, res) => res.json({ blocks: 42 }));
+  legacy.use(createAttestationRouter({ read: async () => null, network: 'mainnet' }));
+  const source = legacy.listen(0, '127.0.0.1');
+  await once(source, 'listening');
+  const router = createV1Router({ API_V1_ENABLED: 'true', API_V1_LAUNCHED: 'true', NEXT_PUBLIC_NETWORK: 'mainnet', V1_INTERNAL_API_BASE_URL: `http://127.0.0.1:${source.address().port}`, V1_INTERNAL_SERVICE_KEY: '' });
+  const app = express(); app.use('/v1', router);
+  const server = app.listen(0, '127.0.0.1');
+  await once(server, 'listening');
+  t.after(async () => {
+    router.__stopRateLimiters?.();
+    server.closeAllConnections(); source.closeAllConnections();
+    await Promise.all([server, source].map(s => new Promise(resolve => s.close(resolve))));
+  });
+  const base = `http://127.0.0.1:${server.address().port}/v1/network/attestations`;
+  const response = await fetch(base);
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get('cache-control'), 'no-store');
+  const body = await response.json();
+  assert.equal(body.meta.network, 'mainnet');
+  assert.equal(typeof body.meta.requestId, 'string');
+  assert.equal(body.data.available, false);
+  assert.equal(body.data.network, 'mainnet');
+  assert.ok(body.data.endpoints.length > 0);
+  assert.equal(body.data.success, undefined);
+  const endpoint = body.data.endpoints[0];
+  const detail = await fetch(`${base}/${endpoint.id}`);
+  assert.equal(detail.status, 200);
+  assert.equal(detail.headers.get('cache-control'), 'no-store');
+  assert.deepEqual((await detail.json()).data.endpoint, endpoint);
+  const missing = await fetch(`${base}/unknown-registry-id`);
+  assert.equal(missing.status, 404);
+  assert.match(missing.headers.get('content-type'), /application\/problem\+json/);
+});

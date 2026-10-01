@@ -1,5 +1,6 @@
 'use client';
 
+import { readApiData } from '@/lib/api-client';
 import { useSearchParams } from 'next/navigation';
 import { useState, useEffect, useCallback } from 'react';
 import dynamic from 'next/dynamic';
@@ -10,30 +11,18 @@ import { zatToZec } from '@/lib/format-numbers';
 import { AddressHeader } from './AddressHeader';
 import { AddressHeroCard } from './AddressHeroCard';
 import { AddressTabBar } from './AddressTabBar';
-import { AddressLoadingSkeleton } from './AddressLoadingSkeleton';
+import { AddressLoadingSkeleton, AddressGraphSkeleton } from './AddressLoadingSkeleton';
 import { EmptyAddressView, IndexingIssueView } from './AddressStateViews';
 import { ShieldedAddressView } from './ShieldedAddressView';
 import { CrossChainTable } from './CrossChainTable';
 import { TransactionTable } from './TransactionTable';
-import { AddressSummary } from './AddressSummary';
 
-// AddressGraph pulls in d3-delaunay (via AddressBubbleMap) for its bubble
-// layout. It's below-fold behind the "Graph" tab (not the default active
-// tab), so most address-page visits never need it — dynamic-import it into
-// its own chunk instead of paying for it on every address-page load.
+// Load the interactive connections workspace only when it is opened.
 const AddressGraph = dynamic(
   () => import('./AddressGraph').then((mod) => mod.AddressGraph),
   {
     ssr: false,
-    loading: () => (
-      <div
-        className="h-64 rounded-xl border border-cipher-border bg-cipher-surface animate-pulse"
-        role="status"
-        aria-live="polite"
-      >
-        <span className="sr-only">Loading address graph…</span>
-      </div>
-    ),
+    loading: () => <AddressGraphSkeleton />,
   },
 );
 import {
@@ -49,7 +38,6 @@ import type {
   AddressTab,
   CrossChainActivity,
   PriceData,
-  UnifiedAddressTab,
   UnifiedAddressComponents,
 } from './types';
 
@@ -78,8 +66,7 @@ export function AddressDetailClient({ address, initialMeta = null }: AddressDeta
   const [totalPages, setTotalPages] = useState(1);
 
   const [uaComponents, setUaComponents] = useState<UnifiedAddressComponents | null>(null);
-  const [uaLoading, setUaLoading] = useState(false);
-  const [selectedAddressTab, setSelectedAddressTab] = useState<UnifiedAddressTab>('unified');
+  const [uaLoading, setUaLoading] = useState(() => address.startsWith('u1') || address.startsWith('utest'));
 
   const copyToClipboard = async (text: string, label: string) => {
     try {
@@ -92,19 +79,20 @@ export function AddressDetailClient({ address, initialMeta = null }: AddressDeta
   };
 
   const fetchPageData = useCallback(async (signal: AbortSignal) => {
+    if (initialMeta?.isShielded) { setLoading(false); return; }
     try {
       setLoading(true);
       setPageError(null);
 
-      const apiUrl = `${getApiUrl()}/api/address/${address}?page=${currentPage}&limit=${PAGE_SIZE}${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ''}`;
+      const apiUrl = `${getApiUrl()}/v1/addresses/${address}?page=${currentPage}&limit=${PAGE_SIZE}${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ''}`;
 
       const response = await fetch(apiUrl, { signal });
 
       if (!response.ok) {
         const problem = await response.json().catch(() => ({}));
-        throw new Error(problem.error || 'Address history is temporarily unavailable. Please try again.');
+        throw new Error(problem.detail || problem.error || 'Address history is temporarily unavailable. Please try again.');
       }
-      const apiData = await response.json();
+      const apiData = await readApiData(response);
       if (signal.aborted) return;
 
       setTotalPages(apiData.pagination?.totalPages || 1);
@@ -129,7 +117,7 @@ export function AddressDetailClient({ address, initialMeta = null }: AddressDeta
     } finally {
       if (!signal.aborted) setLoading(false);
     }
-  }, [address, currentPage, cursor]);
+  }, [address, currentPage, cursor, initialMeta?.isShielded]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -144,25 +132,28 @@ export function AddressDetailClient({ address, initialMeta = null }: AddressDeta
     const { signal } = controller;
     setCrossChain(null);
     setPriceData(null);
+    if (initialMeta?.isShielded) return () => controller.abort();
 
-    void fetch(`${getApiUrl()}/api/crosschain/address/${encodeURIComponent(address)}`, { signal })
+    void fetch(`${getApiUrl()}/v1/crosschain/addresses/${encodeURIComponent(address)}`, { signal })
       .then(async response => {
         if (!response.ok) return;
-        const ccData = await response.json();
-        if (!signal.aborted && ccData.success && ccData.totalSwaps > 0) setCrossChain(ccData);
+        const ccData = await readApiData(response);
+        if (!signal.aborted && ccData && ccData.totalSwaps > 0) setCrossChain(ccData);
       }).catch(() => { /* optional enrichment */ });
 
-    void fetch(`${getApiUrl()}/api/price`, { signal })
+    void fetch(`${getApiUrl()}/v1/network/price`, { signal })
       .then(async response => {
         if (!response.ok) return;
-        const pData = await response.json();
+        const pData = await readApiData(response);
         if (!signal.aborted) setPriceData({ price: pData.price, change24h: pData.change24h });
       }).catch(() => { /* optional enrichment */ });
 
     return () => controller.abort();
-  }, [address]);
+  }, [address, initialMeta?.isShielded]);
 
   useEffect(() => {
+    let cancelled = false;
+    setUaComponents(null);
     const decodeUA = async () => {
       if (!address.startsWith('u1') && !address.startsWith('utest')) {
         return;
@@ -171,17 +162,20 @@ export function AddressDetailClient({ address, initialMeta = null }: AddressDeta
       try {
         setUaLoading(true);
         const components = await decodeUnifiedAddress(address);
-        setUaComponents(components);
+        if (!cancelled) setUaComponents(components);
       } catch (error) {
         console.error('Failed to decode unified address:', error);
       } finally {
-        setUaLoading(false);
+        if (!cancelled) setUaLoading(false);
       }
     };
     decodeUA();
+    return () => { cancelled = true; };
   }, [address]);
 
-  if (loading && !data) {
+  const privateLookup = initialMeta?.isShielded || isShieldedAddress(data);
+
+  if (loading && !data && !privateLookup) {
     return <AddressLoadingSkeleton initialMeta={initialMeta} address={address} />;
   }
 
@@ -197,7 +191,7 @@ export function AddressDetailClient({ address, initialMeta = null }: AddressDeta
   ) : null;
   if (!data && pageError) return <div className="max-w-7xl mx-auto px-4 py-8">{historyError}</div>;
 
-  const shielded = isShieldedAddress(data);
+  const shielded = privateLookup;
   const noTransactions = hasNoTransactions(data);
   const indexingIssue = hasIndexingIssue(data, shielded, noTransactions);
 
@@ -210,8 +204,6 @@ export function AddressDetailClient({ address, initialMeta = null }: AddressDeta
         isUnified={isUnified}
         uaComponents={uaComponents}
         uaLoading={uaLoading}
-        selectedAddressTab={selectedAddressTab}
-        onSelectTab={setSelectedAddressTab}
         copiedText={copiedText}
         onCopy={copyToClipboard}
       />
@@ -242,20 +234,18 @@ export function AddressDetailClient({ address, initialMeta = null }: AddressDeta
   const totalTxCount = data.transactionCount || data.transactions.length;
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-12 animate-fade-in">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-5 pb-12 animate-fade-in">
       <AddressHeader
         address={address}
         data={data}
         typeInfo={typeInfo}
-        copiedText={copiedText}
-        onCopy={copyToClipboard}
       />
 
       <AddressHeroCard
         data={data}
         priceData={priceData}
         crossChain={crossChain}
-        summary={<AddressSummary data={data} totalTxCount={totalTxCount} />}
+        totalTxCount={totalTxCount}
       />
 
       {historyError}

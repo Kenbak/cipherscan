@@ -58,7 +58,7 @@ const STAT_MENU_LABELS: Record<StatId, string> = {
   mempool: 'Mempool',
   totalTxs: 'Total TXs',
   shieldedPool: 'Shielded Pool',
-  shieldedPct: '% TXs Shielded',
+  shieldedPct: 'Shielded TXs · all time',
   ironwoodPool: 'Ironwood Pool',
   ironwoodPct: '% Migrated',
   privacyScore: 'Privacy Score',
@@ -95,15 +95,15 @@ function formatCompact(num: number): string {
 
 function StatItem({ href, label, title, children }: { href: string; label: string; title?: string; children: React.ReactNode }) {
   return (
-    <Link href={href} title={title} className="flex items-center gap-1.5 text-xs sm:text-[13px] font-mono text-muted hover:text-primary transition-colors whitespace-nowrap">
-      <span className="text-muted/50">{label}</span>
+    <Link href={href} title={title} className="flex items-center gap-1.5 text-xs sm:text-data font-mono text-muted hover:text-primary transition-colors whitespace-nowrap">
+      <span className="text-muted">{label}</span>
       <span className="text-secondary">{children}</span>
     </Link>
   );
 }
 
 function Sep() {
-  return <span className="text-muted/60 mx-0.5 sm:mx-0">|</span>;
+  return <span aria-hidden="true" className="h-3 border-l border-cipher-border mx-0.5 sm:mx-0" />;
 }
 
 const CheckIcon = () => (
@@ -128,8 +128,8 @@ export function StatsBar() {
     ironwoodPct: null,
   });
 
-  const blocksQuery = useApiQuery<{ blocks?: Array<{ height: number | string }> }>(
-    '/api/blocks',
+  const blocksQuery = useApiQuery<Array<{ height: number | string }>>(
+    '/v1/blocks',
     { limit: 1 },
     { refreshInterval: 30_000 },
   );
@@ -137,9 +137,9 @@ export function StatsBar() {
     success?: boolean;
     count?: number;
     transactions?: unknown[];
-  }>('/api/mempool', undefined, { refreshInterval: 30_000 });
+  }>('/v1/mempool', undefined, { refreshInterval: 30_000 });
   const priceQuery = useApiQuery<{ price?: number; change24h?: number }>(
-    '/api/price',
+    '/v1/network/price',
     undefined,
     { refreshInterval: 30_000 },
   );
@@ -147,7 +147,7 @@ export function StatsBar() {
     mining?: { networkHashrate?: string; avgBlockTime?: number; hashrateEstimate?: HashrateSnapshot };
     network?: { height?: number };
     supply?: { ironwood?: number; totalShielded?: number };
-  }>('/api/network/stats', undefined, {
+  }>('/v1/network/stats', undefined, {
     enabled: !isCrosslink,
     refreshInterval: 30_000,
   });
@@ -161,7 +161,7 @@ export function StatsBar() {
     metrics?: { privacyScore?: number; shieldedPercentage?: number };
     shieldedPool?: { currentSize?: number };
     totals?: { totalTx?: number };
-  }>('/api/privacy-stats', undefined, {
+  }>('/v1/privacy/stats', undefined, {
     enabled: !isCrosslink,
     refreshInterval: 30_000,
   });
@@ -272,9 +272,9 @@ export function StatsBar() {
   useEffect(() => {
     setStats((current) => {
       const next = { ...current };
-      const latestBlock = blocksQuery.data?.blocks?.[0];
+      const latestBlock = blocksQuery.data?.[0];
       if (latestBlock) next.blockHeight = Number(latestBlock.height);
-      if (mempoolQuery.data?.success) {
+      if (mempoolQuery.data) {
         next.mempoolCount = mempoolQuery.data.count
           ?? mempoolQuery.data.transactions?.length
           ?? 0;
@@ -291,7 +291,7 @@ export function StatsBar() {
         next.ironwoodPct = (network.supply.ironwood / network.supply.totalShielded) * 100;
       }
 
-      const privacy = privacyQuery.data?.success ? privacyQuery.data.data : privacyQuery.data;
+      const privacy = privacyQuery.data;
       if (privacy?.metrics?.privacyScore != null) next.privacyScore = privacy.metrics.privacyScore;
       if (privacy?.metrics?.shieldedPercentage != null) {
         next.shieldedPct = privacy.metrics.shieldedPercentage;
@@ -350,7 +350,7 @@ export function StatsBar() {
         ) : null;
       case 'shieldedPct':
         return stats.shieldedPct !== null ? (
-          <StatItem href="/privacy" label="% TXs Shielded">{stats.shieldedPct.toFixed(1)}%</StatItem>
+          <StatItem href="/privacy" label="Shielded TXs · all time" title="All-time shielded transactions divided by non-coinbase transactions">{stats.shieldedPct.toFixed(1)}%</StatItem>
         ) : null;
       case 'privacyScore':
         return stats.privacyScore !== null ? (
@@ -392,12 +392,14 @@ export function StatsBar() {
     .filter((item) => item.node !== null);
 
   return (
-    <div ref={barRef} className="stats-bar backdrop-blur-xl sticky top-[var(--app-nav-height,4rem)] z-40 border-b border-cipher-border/30">
+    <div ref={barRef} className="stats-bar backdrop-blur-xl sticky top-[var(--app-nav-height,4rem)] z-40">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex h-10 sm:h-11 items-center gap-2">
+        <div className="flex h-9 sm:h-10 items-center gap-2">
           <div
             ref={scrollRef}
-            className={`${scrollFadeClass} flex-1 min-w-0 flex items-center xl:justify-center overflow-x-auto overscroll-x-contain [-webkit-overflow-scrolling:touch] no-scrollbar`}
+            /* Left-anchored, sharing the edge held by the logo, hero and feeds.
+               Centering it left a visible staircase against that column. */
+            className={`${scrollFadeClass} flex-1 min-w-0 flex items-center overflow-x-auto overscroll-x-contain [-webkit-overflow-scrolling:touch] no-scrollbar`}
           >
             <div className="flex items-center gap-3 sm:gap-4 pr-4">
               {visibleItems.map(({ id, node }, i) => (
@@ -435,7 +437,7 @@ export function StatsBar() {
 
             {menuOpen && (
               <div className="absolute right-0 top-full mt-1.5 w-60 dropdown-menu rounded-lg shadow-xl border p-1 z-30 animate-scale-in origin-top-right">
-                <div className="px-3 py-2 text-[10px] font-mono text-muted uppercase tracking-widest">
+                <div className="px-3 py-2 text-caption font-mono text-muted uppercase tracking-widest">
                   Show up to {MAX_STATS} · {selected.length}/{MAX_STATS} selected
                 </div>
                 {STAT_ORDER.map((id) => {
@@ -446,7 +448,7 @@ export function StatsBar() {
                       key={id}
                       onClick={() => toggleStat(id)}
                       disabled={isDisabled}
-                      className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-md text-[13px] dropdown-item ${
+                      className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-md text-data dropdown-item ${
                         isDisabled ? 'opacity-40 cursor-not-allowed' : ''
                       }`}
                     >

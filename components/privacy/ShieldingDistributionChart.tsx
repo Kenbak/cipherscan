@@ -1,4 +1,5 @@
 'use client';
+import { ChartSkeleton } from '@/components/ui/Skeleton';
 
 import { useState } from 'react';
 import {
@@ -7,13 +8,14 @@ import {
   XAxis,
   YAxis,
   CartesianGrid,
-  Tooltip,
+
   ResponsiveContainer,
 } from 'recharts';
+import { ChartTooltip as Tooltip } from '@/components/charts/ChartTooltip';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getChartColors } from '@/lib/chart-theme';
 import { useApiQuery } from '@/hooks/useApiQuery';
-import { ChartCard } from '@/components/network/ChartCard';
+import { PrivacyFlowCard } from './PrivacyFlowCard';
 import { PeriodSelector, Period } from './PeriodSelector';
 import {
   PRIVACY_BAR_CHART_MARGIN,
@@ -37,9 +39,9 @@ type ViewMode = 'count' | 'volume';
 const CHART_HEIGHT = 340;
 
 function modePillClass(active: boolean) {
-  return `px-1.5 py-0.5 text-[10px] font-mono rounded transition whitespace-nowrap ${
+  return `px-1.5 py-0.5 text-caption font-mono rounded transition whitespace-nowrap ${
     active
-      ? 'bg-cipher-cyan/15 text-cipher-cyan font-bold'
+      ? 'bg-brand-gold/15 text-cipher-gold font-semibold'
       : 'text-muted hover:text-primary'
   }`;
 }
@@ -51,8 +53,8 @@ export function ShieldingDistributionChart() {
   const [mode, setMode] = useState<ViewMode>('count');
   const yLabel = mode === 'count' ? 'Transactions' : 'ZEC volume';
 
-  const { data: res, loading } = useApiQuery<{ buckets: Bucket[] }>(
-    '/api/analytics/shielding-distribution',
+  const { data: res, loading, error } = useApiQuery<{ buckets: Bucket[] }>(
+    '/v1/privacy/shielding-distribution',
     { period },
   );
   const data = res?.buckets ?? [];
@@ -64,12 +66,13 @@ export function ShieldingDistributionChart() {
   }));
 
   const controls = (
-    <div className="flex items-center gap-2">
+    <div className="flex flex-wrap items-center gap-2">
       <div className="inline-flex flex-shrink-0 gap-0 rounded-md bg-glass-3 p-0.5">
         {(['count', 'volume'] as const).map((m) => (
           <button
             key={m}
             type="button"
+            aria-pressed={mode === m}
             onClick={() => setMode(m)}
             className={modePillClass(mode === m)}
           >
@@ -90,40 +93,35 @@ export function ShieldingDistributionChart() {
   };
 
   return (
-    <ChartCard title="Shielding distribution" height={400} controls={controls}>
+    <PrivacyFlowCard title="Flows by amount range" description={<>{mode === 'count'
+              ? `Transaction count by amount range (${period === 'all' ? 'all time' : `last ${period}`}). Each flow belongs to one amount range.`
+              : `ZEC volume by amount range (${period === 'all' ? 'all time' : `last ${period}`}). Shows where value concentrates across shielded flows.`}</>} controls={controls}>
       {loading ? (
-        <div className="flex h-[340px] items-center justify-center">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-cipher-cyan/30 border-t-cipher-cyan" />
-        </div>
-      ) : (
+        <div><ChartSkeleton height={340} /><div className="mt-2 h-5" /></div>
+      ) : error ? <p role="status" className="text-caption text-muted py-8">Public flow observations could not load.</p> : data.length === 0 ? <p className="text-caption text-muted py-8">No public flow observations for this period.</p> : (
         <div>
-          <p className="mb-3 text-xs leading-relaxed text-muted">
-            {mode === 'count'
-              ? `Transaction count by amount range (${period === 'all' ? 'all time' : `last ${period}`}). Larger buckets mean more potential cover traffic.`
-              : `ZEC volume by amount range (${period === 'all' ? 'all time' : `last ${period}`}). Shows where value concentrates across shielded flows.`}
-          </p>
           <ResponsiveContainer initialDimension={{ width: 500, height: 300 }} width="100%" height={CHART_HEIGHT}>
             <BarChart data={chartData} margin={PRIVACY_BAR_CHART_MARGIN}>
-              <CartesianGrid strokeDasharray="2 6" stroke={colors.gridStroke} />
+              <CartesianGrid vertical={false} stroke={colors.gridStroke} />
               <XAxis
                 dataKey="label"
-                tick={{ fill: colors.axis, fontSize: 9 }}
-                angle={-35}
-                textAnchor="end"
-                height={72}
-                interval={0}
+                tick={{ fill: colors.axis, fontSize: 12 }}
+                minTickGap={24}
+                textAnchor="middle"
+                height={56}
+                interval="preserveStartEnd"
                 label={privacyXAxisTitle('Amount range', colors.axis)}
               />
               <YAxis
-                tick={{ fill: colors.axis, fontSize: 11 }}
+                tick={{ fill: colors.axis, fontSize: 12 }}
                 tickFormatter={(v) => (mode === 'count' ? formatCount(v) : formatZec(v))}
                 width={52}
                 label={privacyYAxisLabel(yLabel, colors.axis)}
               />
               <Tooltip
-                cursor={{ fill: colors.barCursorCyan }}
+                cursor={{ fill: colors.barCursorGold }}
                 contentStyle={tooltipStyle}
-                labelStyle={{ color: colors.tooltipText, fontWeight: 'bold', marginBottom: '8px' }}
+                labelStyle={{ color: colors.tooltipText, fontWeight: 600, marginBottom: '8px' }}
                 formatter={(value, name) => [
                   mode === 'count'
                     ? `${Number(value).toLocaleString()} txs`
@@ -131,14 +129,14 @@ export function ShieldingDistributionChart() {
                   String(name) === 'shield' ? 'Shield (in)' : 'Deshield (out)',
                 ]}
               />
-              <Bar dataKey="shield" fill={colors.cyan} name="shield" radius={[3, 3, 0, 0]} />
-              <Bar dataKey="deshield" fill={colors.transparent} name="deshield" radius={[3, 3, 0, 0]} />
+              <Bar isAnimationActive={false} dataKey="shield" fill={colors.shielding} name="shield" radius={[3, 3, 0, 0]} />
+              <Bar isAnimationActive={false} dataKey="deshield" fill={colors.deshielding} name="deshield" radius={[3, 3, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
-          <PrivacyBarLegend shieldColor={colors.cyan} deshieldColor={colors.transparent} />
+          <PrivacyBarLegend shieldColor={colors.shielding} deshieldColor={colors.deshielding} />
         </div>
       )}
-    </ChartCard>
+    </PrivacyFlowCard>
   );
 }
 

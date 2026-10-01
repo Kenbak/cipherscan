@@ -1,9 +1,9 @@
 import type { ReactNode } from 'react';
 
 /** Match the feed's column header, 48px rows and optional footer while loading. */
-export function HomeFeedTableSkeleton({ rows = 5, footer }: { rows?: number; footer?: ReactNode }) {
+export function HomeFeedTableSkeleton({ rows = 5, footer, nested = false }: { rows?: number; footer?: ReactNode; nested?: boolean }) {
   return (
-    <div className="card p-0 overflow-hidden" aria-busy="true">
+    <div className={nested ? '' : 'card p-0 overflow-hidden'} aria-busy="true">
       <span className="sr-only" role="status">Loading activity</span>
       <div aria-hidden="true">
         <div className="px-4 sm:px-5 py-3.5 border-b border-cipher-border">

@@ -22,7 +22,7 @@ export function CopyButton({ text, className = '' }: { text: string; className?:
         setCopied(true);
         setTimeout(() => setCopied(false), 1200);
       }}
-      className={`text-[10px] font-mono text-muted hover:text-primary transition-colors ${className}`}
+      className={`text-caption font-mono text-muted hover:text-primary transition-colors ${className}`}
       title="Copy"
     >
       {copied ? 'Copied' : 'Copy'}
@@ -36,13 +36,13 @@ function MatchState({ match, compact }: { match: boolean | null; compact?: boole
   }
   if (match) {
     return (
-      <span className={`font-mono text-cipher-cyan ${compact ? 'text-[10px]' : 'text-xs'}`}>
+      <span className={`font-mono text-cipher-gold ${compact ? 'text-caption' : 'text-xs'}`}>
         Match
       </span>
     );
   }
   return (
-    <span className={`font-mono text-cipher-orange ${compact ? 'text-[10px]' : 'text-xs'}`}>
+    <span className={`font-mono text-cipher-orange ${compact ? 'text-caption' : 'text-xs'}`}>
       Mismatch
     </span>
   );
@@ -52,9 +52,9 @@ function StatTile({ label, value, sub }: { label: string; value: string; sub?: s
   return (
     <Card variant="compact">
       <CardBody className="py-4 px-4">
-        <div className="text-xl sm:text-2xl font-bold font-mono text-primary leading-none">{value}</div>
-        {sub && <div className="text-[10px] font-mono text-muted mt-1 truncate" title={sub}>{sub}</div>}
-        <div className="text-[10px] uppercase tracking-wider text-muted mt-2">{label}</div>
+        <div className="text-xl sm:text-2xl font-semibold font-mono text-primary leading-none">{value}</div>
+        {sub && <div className="text-caption font-mono text-muted mt-1 truncate" title={sub}>{sub}</div>}
+        <div className="text-caption uppercase tracking-wider text-muted mt-2">{label}</div>
       </CardBody>
     </Card>
   );
@@ -63,7 +63,7 @@ function StatTile({ label, value, sub }: { label: string; value: string; sub?: s
 function MetricRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="flex items-center justify-between gap-3 py-1.5 border-b border-cipher-border last:border-0">
-      <span className="text-[10px] font-mono uppercase tracking-wider text-muted shrink-0">{label}</span>
+      <span className="text-caption font-mono uppercase tracking-wider text-muted shrink-0">{label}</span>
       <div className="text-xs font-mono text-secondary text-right min-w-0">{children}</div>
     </div>
   );
@@ -119,7 +119,7 @@ export function StatusHero({ data }: { data: ForkMonitorData }) {
           <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2 mb-2">
-                <h2 className="text-lg font-bold font-mono text-primary">{meta.label}</h2>
+                <h2 className="text-lg font-semibold font-mono text-primary">{meta.label}</h2>
                 <Badge color={meta.badge}>
                   {data.status === 'aligned'
                     ? 'ALIGNED'
@@ -130,7 +130,7 @@ export function StatusHero({ data }: { data: ForkMonitorData }) {
               </div>
               <p className="text-xs text-secondary max-w-2xl leading-relaxed">{meta.detail}</p>
             </div>
-            <div className="text-[10px] font-mono text-muted shrink-0">
+            <div className="text-caption font-mono text-muted shrink-0">
               Updated {new Date(data.generated_at).toLocaleTimeString()}
               <span className="hidden sm:inline"> · auto-refresh 15s</span>
             </div>
@@ -140,7 +140,7 @@ export function StatusHero({ data }: { data: ForkMonitorData }) {
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
         <StatTile
-          label="CipherScan tip"
+          label="ZecBlock tip"
           value={`h${data.cipherscan.tip.toLocaleString()}`}
           sub={truncHash(data.cipherscan.tip_hash, 10)}
         />
@@ -162,7 +162,7 @@ export function StatusHero({ data }: { data: ForkMonitorData }) {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
-        <ReferenceNodePanel title="CipherScan" node={data.cipherscan} />
+        <ReferenceNodePanel title="ZecBlock" node={data.cipherscan} />
         <ReferenceNodePanel title="cTAZ reference" node={data.ctaz} />
       </div>
     </>
@@ -205,7 +205,7 @@ export function ForkTimeline({ data }: { data: ForkMonitorData }) {
       return 'w-3 h-3 rounded-full border-2 border-cipher-orange bg-cipher-orange/20';
     }
     if (anchor.match === true) {
-      return 'w-3 h-3 rounded-full bg-cipher-cyan/80 ring-2 ring-cipher-cyan/25';
+      return 'w-3 h-3 rounded-full bg-brand-gold/80 ring-2 ring-cipher-gold/25';
     }
     return 'w-3 h-3 rounded-full bg-muted/40 ring-2 ring-cipher-border';
   };
@@ -215,13 +215,13 @@ export function ForkTimeline({ data }: { data: ForkMonitorData }) {
       <CardBody className="p-4 sm:p-5">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5">
           <div>
-            <h2 className="text-sm font-bold font-mono text-primary">Anchor timeline</h2>
+            <h2 className="text-sm font-semibold font-mono text-primary">Anchor timeline</h2>
             <p className="text-xs text-muted mt-1">
               Fixed-height comparisons. Hover for hashes, click to copy.
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <div className="flex rounded-lg border border-cipher-border overflow-hidden text-[10px] font-mono uppercase tracking-wider">
+            <div className="flex rounded-lg border border-cipher-border overflow-hidden text-caption font-mono uppercase tracking-wider">
               {(['even', 'linear'] as const).map((mode) => (
                 <button
                   key={mode}
@@ -254,7 +254,7 @@ export function ForkTimeline({ data }: { data: ForkMonitorData }) {
                 style={{ left: `${positions[i]}%` }}
               >
                 {isDivergence && (
-                  <div className="absolute left-1/2 -translate-x-1/2 -top-10 text-[9px] font-mono uppercase tracking-wider text-cipher-orange whitespace-nowrap">
+                  <div className="absolute left-1/2 -translate-x-1/2 -top-10 text-caption font-mono uppercase tracking-wider text-cipher-orange whitespace-nowrap">
                     First split
                   </div>
                 )}
@@ -265,7 +265,7 @@ export function ForkTimeline({ data }: { data: ForkMonitorData }) {
                   onFocus={() => setHoveredAnchor(anchor.height)}
                   onBlur={() => setHoveredAnchor((h) => (h === anchor.height ? null : h))}
                   onClick={() => copyAnchor(anchor)}
-                  className={`block transition-transform hover:scale-125 focus:outline-none focus-visible:ring-2 focus-visible:ring-cipher-cyan/40 rounded-full ${dotClass(anchor)}`}
+                  className={`block transition-transform hover:scale-125 focus:outline-none focus-visible:ring-2 focus-visible:ring-cipher-gold/40 rounded-full ${dotClass(anchor)}`}
                   aria-label={`Anchor height ${anchor.height}, ${anchor.label}`}
                 />
                 <div
@@ -273,7 +273,7 @@ export function ForkTimeline({ data }: { data: ForkMonitorData }) {
                     above ? 'bottom-5' : 'top-5'
                   }`}
                 >
-                  <div className="text-[10px] font-mono text-secondary">h{anchor.height.toLocaleString()}</div>
+                  <div className="text-caption font-mono text-secondary">h{anchor.height.toLocaleString()}</div>
                 </div>
                 {isHovered && (
                   <div
@@ -281,11 +281,11 @@ export function ForkTimeline({ data }: { data: ForkMonitorData }) {
                       above ? 'bottom-10' : 'top-10'
                     }`}
                   >
-                    <div className="text-[11px] font-mono text-primary font-semibold mb-1">
+                    <div className="text-caption font-mono text-primary font-semibold mb-1">
                       h{anchor.height.toLocaleString()}
                       <span className="text-muted font-normal"> · {anchor.label}</span>
                     </div>
-                    <div className="space-y-1 text-[10px] font-mono mb-2">
+                    <div className="space-y-1 text-caption font-mono mb-2">
                       <div className="flex gap-2">
                         <span className="text-muted w-10 shrink-0">CS</span>
                         <code className="text-secondary break-all">{anchor.cipherscan_hash || '—'}</code>
@@ -295,7 +295,7 @@ export function ForkTimeline({ data }: { data: ForkMonitorData }) {
                         <code className="text-secondary break-all">{anchor.ctaz_hash || '—'}</code>
                       </div>
                     </div>
-                    <div className="flex items-center justify-between gap-2 text-[10px]">
+                    <div className="flex items-center justify-between gap-2 text-caption">
                       <MatchState match={anchor.match} compact />
                       <span className="text-muted font-mono">
                         {copiedAnchor === anchor.height ? 'Copied' : 'Click to copy'}
@@ -308,8 +308,8 @@ export function ForkTimeline({ data }: { data: ForkMonitorData }) {
           })}
         </div>
 
-        <p className="text-[10px] font-mono text-muted">
-          <span className="text-cipher-cyan">●</span> match
+        <p className="text-caption font-mono text-muted">
+          <span className="text-cipher-gold">●</span> match
           <span className="mx-2 text-cipher-border">·</span>
           <span className="text-cipher-orange">○</span> mismatch
           <span className="mx-2 text-cipher-border">·</span>
@@ -341,14 +341,14 @@ export function GuidancePanel({ data }: { data: ForkMonitorData }) {
     actions.push('Known anchors match. If your node differs, restart and reconnect before wiping cache.');
   }
   if (data.cipherscan.peers < 5) {
-    actions.push('CipherScan peer count is low. Peers measure connectivity, not fork correctness.');
+    actions.push('ZecBlock peer count is low. Peers measure connectivity, not fork correctness.');
   }
   actions.push('If your node is mining every block, pause mining until peers and anchor hashes align.');
 
   return (
     <Card className="mb-6">
       <CardBody className="p-4 sm:p-5">
-        <h2 className="text-sm font-bold font-mono text-primary mb-3">What to do</h2>
+        <h2 className="text-sm font-semibold font-mono text-primary mb-3">What to do</h2>
         <ul className="space-y-2">
           {actions.map((action) => (
             <li key={action} className="text-xs text-secondary leading-relaxed pl-3 border-l border-cipher-border">
@@ -369,7 +369,7 @@ const anchorColumns: DataTableColumn<Anchor>[] = [
   {
     id: 'height',
     header: 'Height',
-    cell: (a) => <span className="font-mono text-xs text-cipher-cyan">h{a.height.toLocaleString()}</span>,
+    cell: (a) => <span className="font-mono text-xs text-cipher-gold">h{a.height.toLocaleString()}</span>,
   },
   {
     id: 'label',
@@ -379,7 +379,7 @@ const anchorColumns: DataTableColumn<Anchor>[] = [
   },
   {
     id: 'cipherscan',
-    header: 'CipherScan',
+    header: 'ZecBlock',
     cell: (a) => (
       <span className="inline-flex items-center gap-1.5 font-mono text-xs text-secondary">
         <code>{truncHash(a.cipherscan_hash, 10)}</code>
@@ -450,7 +450,7 @@ export function CheckerPanel({
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-sm font-bold font-mono text-primary mb-1">Live lookup</h3>
+        <h3 className="text-sm font-semibold font-mono text-primary mb-1">Live lookup</h3>
         <p className="text-xs text-muted mb-3">Enter block heights (comma or space separated).</p>
         <div className="flex gap-2">
           <input
@@ -458,14 +458,14 @@ export function CheckerPanel({
             value={checkHeight}
             onChange={(e) => setCheckHeight(e.target.value)}
             placeholder="e.g. 40762, 41800"
-            className="flex-1 px-3 py-2 text-xs font-mono bg-cipher-bg border border-cipher-border rounded-lg text-primary placeholder:text-muted/50 focus:outline-none focus:border-cipher-cyan/40"
+            className="flex-1 px-3 py-2 text-xs font-mono bg-cipher-bg border border-cipher-border rounded-lg text-primary placeholder:text-muted focus:outline-none focus:border-cipher-gold/40"
             onKeyDown={(e) => e.key === 'Enter' && onCheck()}
           />
           <button
             type="button"
             onClick={onCheck}
             disabled={checking}
-            className="btn-sm btn-primary shrink-0 disabled:opacity-50"
+            className="btn btn-sm btn-primary shrink-0 disabled:opacity-50"
           >
             {checking ? '…' : 'Check'}
           </button>
@@ -478,7 +478,7 @@ export function CheckerPanel({
                   <span className="font-mono text-xs text-primary font-semibold">h{r.height.toLocaleString()}</span>
                   <MatchState match={r.match} compact />
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] font-mono">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-caption font-mono">
                   <div>
                     <span className="text-muted">CS </span>
                     <code className="text-secondary break-all">{r.cipherscan_hash || 'not synced'}</code>
@@ -495,7 +495,7 @@ export function CheckerPanel({
       </div>
 
       <div className="pt-4 border-t border-cipher-border">
-        <h3 className="text-sm font-bold font-mono text-primary mb-1">Bulk compare</h3>
+        <h3 className="text-sm font-semibold font-mono text-primary mb-1">Bulk compare</h3>
         <p className="text-xs text-muted mb-3">
           Paste <code className="text-secondary">height hash</code> lines — compared against loaded anchors.
         </p>
@@ -503,11 +503,11 @@ export function CheckerPanel({
           value={bulkInput}
           onChange={(e) => setBulkInput(e.target.value)}
           placeholder={'39573 00228574fad9f6b8d88e8ad1edcee00565eb86cffa…\n39574 006e0a84682c81d539965fd0f3698e0d61bbd3bfc9…'}
-          className="w-full px-3 py-2 text-xs font-mono bg-cipher-bg border border-cipher-border rounded-lg text-primary placeholder:text-muted/30 focus:outline-none focus:border-cipher-cyan/40 resize-y"
+          className="w-full px-3 py-2 text-xs font-mono bg-cipher-bg border border-cipher-border rounded-lg text-primary placeholder:text-muted focus:outline-none focus:border-cipher-gold/40 resize-y"
           rows={3}
           spellCheck={false}
         />
-        <button type="button" onClick={onBulkCompare} className="btn-sm btn-secondary mt-2">
+        <button type="button" onClick={onBulkCompare} className="btn btn-sm btn-secondary mt-2">
           Compare
         </button>
         {bulkResults && (
@@ -517,9 +517,9 @@ export function CheckerPanel({
                 <p className="text-cipher-orange font-semibold mb-1">
                   First mismatch: h{bulkResults.mismatches[0].height.toLocaleString()}
                 </p>
-                <p className="text-muted text-[11px] mb-0.5">reference</p>
+                <p className="text-muted text-caption mb-0.5">reference</p>
                 <code className="text-secondary block break-all mb-2">{bulkResults.mismatches[0].ref}</code>
-                <p className="text-muted text-[11px] mb-0.5">your node</p>
+                <p className="text-muted text-caption mb-0.5">your node</p>
                 <code className="text-secondary block break-all">{bulkResults.mismatches[0].got}</code>
               </>
             ) : bulkResults.matches.length > 0 ? (
@@ -543,8 +543,8 @@ export function CheckerPanel({
 // Node registry
 // ---------------------------------------------------------------------------
 
-function branchBadgeColor(branch: string): 'cyan' | 'green' | 'orange' | 'muted' {
-  if (branch === 'reference') return 'cyan';
+function branchBadgeColor(branch: string): 'gold' | 'green' | 'orange' | 'muted' {
+  if (branch === 'reference') return 'gold';
   if (branch === 'other') return 'orange';
   return 'muted';
 }
@@ -593,7 +593,7 @@ export function NodeRegistryPanel({
   parseSamples,
 }: NodeRegistryProps) {
   const inputClass =
-    'w-full px-3 py-2 text-xs font-mono bg-cipher-bg border border-cipher-border rounded-lg text-primary placeholder:text-muted/50 focus:outline-none focus:border-cipher-cyan/40';
+    'w-full px-3 py-2 text-xs font-mono bg-cipher-bg border border-cipher-border rounded-lg text-primary placeholder:text-muted focus:outline-none focus:border-cipher-gold/40';
 
   return (
     <div>
@@ -602,10 +602,10 @@ export function NodeRegistryPanel({
       </p>
 
       <div className="card-dark rounded-lg p-4 mb-6">
-        <h3 className="text-sm font-bold font-mono text-primary mb-3">Report your node</h3>
+        <h3 className="text-sm font-semibold font-mono text-primary mb-3">Report your node</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
-            <label className="text-[10px] font-mono text-muted uppercase tracking-wider block mb-1">Name *</label>
+            <label className="text-caption font-mono text-muted uppercase tracking-wider block mb-1">Name *</label>
             <input
               type="text"
               value={reportName}
@@ -616,7 +616,7 @@ export function NodeRegistryPanel({
             />
           </div>
           <div>
-            <label className="text-[10px] font-mono text-muted uppercase tracking-wider block mb-1">Tip height *</label>
+            <label className="text-caption font-mono text-muted uppercase tracking-wider block mb-1">Tip height *</label>
             <input
               type="number"
               value={reportTip}
@@ -626,7 +626,7 @@ export function NodeRegistryPanel({
             />
           </div>
           <div>
-            <label className="text-[10px] font-mono text-muted uppercase tracking-wider block mb-1">Tip hash</label>
+            <label className="text-caption font-mono text-muted uppercase tracking-wider block mb-1">Tip hash</label>
             <input
               type="text"
               value={reportHash}
@@ -637,7 +637,7 @@ export function NodeRegistryPanel({
             />
           </div>
           <div>
-            <label className="text-[10px] font-mono text-muted uppercase tracking-wider block mb-1">Peers</label>
+            <label className="text-caption font-mono text-muted uppercase tracking-wider block mb-1">Peers</label>
             <input
               type="number"
               value={reportPeers}
@@ -657,7 +657,7 @@ export function NodeRegistryPanel({
             />
             Mining on
           </label>
-          <div className="flex rounded-lg border border-cipher-border overflow-hidden text-[10px] font-mono">
+          <div className="flex rounded-lg border border-cipher-border overflow-hidden text-caption font-mono">
             {(['1h', '24h'] as const).map((ttl) => (
               <button
                 key={ttl}
@@ -675,14 +675,14 @@ export function NodeRegistryPanel({
             type="button"
             onClick={onReport}
             disabled={!reportName || !reportTip}
-            className="btn-sm btn-primary disabled:opacity-30"
+            className="btn btn-sm btn-primary disabled:opacity-30"
           >
             Report
           </button>
-          {reportStatus && <span className="text-[11px] font-mono text-muted">{reportStatus}</span>}
+          {reportStatus && <span className="text-caption font-mono text-muted">{reportStatus}</span>}
         </div>
         <details className="mt-4 group">
-          <summary className="text-[11px] font-mono text-muted cursor-pointer hover:text-secondary list-none flex items-center gap-1">
+          <summary className="text-caption font-mono text-muted cursor-pointer hover:text-secondary list-none flex items-center gap-1">
             <span className="group-open:rotate-90 transition-transform inline-block">›</span>
             Advanced: anchor samples for branch classification
           </summary>
@@ -695,7 +695,7 @@ export function NodeRegistryPanel({
               rows={2}
               spellCheck={false}
             />
-            <p className="text-[10px] text-muted mt-1 font-mono">
+            <p className="text-caption text-muted mt-1 font-mono">
               Parsed {parseSamples(reportSamples).length}/12 samples.
             </p>
           </div>
@@ -808,23 +808,23 @@ export function ReferenceFooter({
         <Card>
           <CardBody className="p-4 sm:p-5">
             <div className="flex items-center justify-between gap-2 mb-3">
-              <h3 className="text-sm font-bold font-mono text-primary">Community report</h3>
+              <h3 className="text-sm font-semibold font-mono text-primary">Community report</h3>
               <button
                 type="button"
                 onClick={() => navigator.clipboard.writeText(communityReport).catch(() => {})}
-                className="btn-sm btn-ghost"
+                className="btn btn-sm btn-ghost"
               >
                 Copy
               </button>
             </div>
-            <pre className="card-dark rounded-lg p-3 text-[11px] font-mono text-secondary overflow-x-auto whitespace-pre-wrap max-h-48 overflow-y-auto">
+            <pre className="card-dark rounded-lg p-3 text-caption font-mono text-secondary overflow-x-auto whitespace-pre-wrap max-h-48 overflow-y-auto">
               {communityReport}
             </pre>
           </CardBody>
         </Card>
         <Card>
           <CardBody className="p-4 sm:p-5">
-            <h3 className="text-sm font-bold font-mono text-primary mb-3">Diagnostic hints</h3>
+            <h3 className="text-sm font-semibold font-mono text-primary mb-3">Diagnostic hints</h3>
             <ul className="space-y-2">
               {hints.map((hint) => (
                 <li key={hint} className="text-xs text-secondary leading-relaxed pl-3 border-l border-cipher-border">

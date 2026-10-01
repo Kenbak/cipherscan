@@ -31,9 +31,8 @@
  *
  * Why HTTP instead of in-process function calls (for as long as this
  * bridge exists):
- *   - server/api/server.js is explicitly off-limits to modify, and legacy
- *     route handlers are Express (req, res) closures, not exported
- *     functions — there's nothing importable to call directly today.
+ *   - Existing route handlers are Express closures. Reusing their HTTP contract
+ *     preserves one authoritative implementation during this migration.
  *   - It guarantees zero duplicated business SQL: the legacy handler's
  *     query, caching, and validation logic all still run exactly once.
  *
@@ -47,7 +46,8 @@
  *     payloads (e.g. the ~10.4MB /api/migration/scatter response).
  *   - Request header allowlist outbound: cookies, auth headers, and
  *     arbitrary client headers are never forwarded upstream — only an
- *     optional internal service key is attached.
+ *     optional internal service key is attached. Ownership/payment routes instead
+ *     use their explicit credential allowlists and never receive that key.
  *   - Response header allowlist inbound: see ALLOWED_RESPONSE_HEADERS.
  *     Only headers that are safe transport/cache/quota signals are
  *     surfaced back to the caller (build-route.js relays them onto the
@@ -174,7 +174,9 @@ function createInternalClient(config) {
     }
 
     const headers = { Accept: 'application/json' };
-    if (config.internalServiceKey) headers['X-Service-Key'] = config.internalServiceKey;
+    if (config.internalServiceKey && opts.useServiceKey !== false) headers['X-Service-Key'] = config.internalServiceKey;
+    if (opts.nodeToken) headers['X-Node-Token'] = opts.nodeToken;
+    if (opts.paymentAuth) Object.assign(headers, opts.paymentAuth);
     // Marks the request as v1-originated for legacy-side logging only; the
     // legacy API does not currently branch on this header.
     headers['X-CipherScan-Internal'] = 'v1-adapter';
@@ -185,47 +187,48 @@ function createInternalClient(config) {
       init.body = JSON.stringify(opts.body);
     }
 
-    let response;
     try {
-      response = await fetch(url, init);
-    } catch (err) {
-      if (controller.signal.aborted && controller.signal.reason instanceof UpstreamTimeoutError) {
-        throw controller.signal.reason;
+      const response = await fetch(url, init);
+      const relayedHeaders = pickAllowedHeaders(response.headers);
+      if (opts.paymentAuth) for (const name of ['payment-required', 'www-authenticate', 'payment-response', 'payment-receipt', 'x-session-balance', 'x-session-id']) {
+        if (response.headers.has(name)) relayedHeaders[name] = response.headers.get(name);
       }
-      throw new UpstreamError(`internal dispatch to ${legacyPath} failed: ${err.message}`, { status: null, timingMs: elapsed() });
+      if (Number(response.headers.get('content-length') || 0) > maxResponseBytes) {
+        await response.body?.cancel();
+        throw new UpstreamError('Internal response exceeds the configured size limit.', { status: response.status, timingMs: elapsed() });
+      }
+      const reader = response.body?.getReader();
+      const chunks = [];
+      let bytes = 0;
+      if (reader) {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          bytes += value.byteLength;
+          if (bytes > maxResponseBytes) {
+            await reader.cancel();
+            throw new UpstreamError('Internal response exceeds the configured size limit.', { status: response.status, timingMs: elapsed() });
+          }
+          chunks.push(Buffer.from(value));
+        }
+      }
+      const text = Buffer.concat(chunks).toString('utf8');
+      let body = null;
+      if (text.length) {
+        try { body = JSON.parse(text); } catch {
+          throw new UpstreamError('Internal response is not valid JSON.', { status: response.status, timingMs: elapsed() });
+        }
+      }
+      return { status: response.status, ok: response.ok, body, headers: relayedHeaders, timingMs: elapsed() };
+    } catch (err) {
+      if (controller.signal.aborted && controller.signal.reason instanceof UpstreamTimeoutError) throw controller.signal.reason;
+      if (err instanceof UpstreamError) throw err;
+      throw new UpstreamError('Internal request failed.', { timingMs: elapsed() });
     } finally {
       clearTimeout(timer);
       if (opts.parentSignal) opts.parentSignal.removeEventListener('abort', onParentAbort);
     }
 
-    const relayedHeaders = pickAllowedHeaders(response.headers);
-
-    const contentLength = Number(response.headers.get('content-length') || 0);
-    if (contentLength > maxResponseBytes) {
-      throw new UpstreamError(
-        `internal dispatch to ${legacyPath} returned oversized body (${contentLength} bytes > ${maxResponseBytes} byte cap)`,
-        { status: response.status, timingMs: elapsed() }
-      );
-    }
-
-    const text = await response.text();
-    if (text.length > maxResponseBytes) {
-      throw new UpstreamError(
-        `internal dispatch to ${legacyPath} returned oversized body (${text.length} bytes > ${maxResponseBytes} byte cap)`,
-        { status: response.status, timingMs: elapsed() }
-      );
-    }
-
-    let body = null;
-    if (text.length) {
-      try {
-        body = JSON.parse(text);
-      } catch {
-        throw new UpstreamError(`internal dispatch to ${legacyPath} returned non-JSON body`, { status: response.status, body: null, timingMs: elapsed() });
-      }
-    }
-
-    return { status: response.status, ok: response.ok, body, headers: relayedHeaders, timingMs: elapsed() };
   }
 
   return { dispatch, maxResponseBytes };

@@ -2,7 +2,7 @@ import { buildPageMetadata, getBaseUrl, getNetwork } from '@/lib/seo';
 import NodesClient from './NodesClient';
 
 export const metadata = buildPageMetadata({
-  title: 'Zcash Network Nodes | CipherScan',
+  title: 'Zcash Network Nodes | ZecBlock',
   description: 'Explore the Zcash peer-to-peer network: observed active nodes, client implementations, version adoption, and geographic distribution.',
   keywords: ['zcash nodes', 'zcash network nodes', 'zcash peer network', 'zebra nodes', 'zakura nodes', 'zcash node map', 'zcash network topology'],
   path: '/network/nodes',
@@ -11,11 +11,13 @@ export const metadata = buildPageMetadata({
 
 export default function NodesPage() {
   const pageUrl = `${getBaseUrl()}/network/nodes`;
-  const schema = { '@context': 'https://schema.org', '@type': 'WebPage',
-    '@id': `${pageUrl}#webpage`, url: pageUrl, name: 'Zcash Network Nodes',
+  const schema = {
+    '@context': 'https://schema.org', '@type': 'WebPage', '@id': `${pageUrl}#webpage`,
+    url: pageUrl, name: 'Zcash Nodes',
     description: 'Active Zcash nodes observed through live peer connections and recent crawler handshakes.',
-    isPartOf: { '@id': `${getBaseUrl()}/#website` }, publisher: { '@id': 'https://cipherscan.app/#organization' } };
-
+    isPartOf: { '@id': `${getBaseUrl()}/#website` },
+    publisher: { '@id': 'https://zecblock.com/#organization' },
+  };
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schema).replace(/</g, '\\u003c') }} />
@@ -23,7 +25,7 @@ export default function NodesPage() {
 
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
         <div className="border-t border-cipher-border pt-8 max-w-3xl">
-          <h2 className="text-sm font-bold font-mono text-secondary mb-3 uppercase tracking-wider">
+          <h2 className="text-sm font-semibold font-mono text-secondary mb-3 lowercase tracking-tight">
             About Network Nodes
           </h2>
           <div className="space-y-3 text-sm text-muted leading-relaxed">
@@ -46,7 +48,7 @@ export default function NodesPage() {
               No IP addresses or exact coordinates are exposed. Tor hidden service nodes
               appear without geographic placement. This product includes GeoLite2 data
               created by MaxMind, available from{' '}
-              <a href="https://www.maxmind.com" className="text-accent hover:underline" rel="noopener noreferrer" target="_blank">
+              <a href="https://www.maxmind.com" className="text-primary hover:underline" rel="noopener noreferrer" target="_blank">
                 maxmind.com
               </a>.
             </p>

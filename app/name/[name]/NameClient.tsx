@@ -1,13 +1,15 @@
 'use client';
 
 import Link from 'next/link';
+import { getApiUrl } from '@/lib/api-config';
+import { readApiData } from '@/lib/api-client';
 import { useState, useEffect } from 'react';
 import { Card, CardHeader, CardBody } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { HashLink } from '@/components/ui/HashLink';
 import { CopyButton } from '@/components/CopyButton';
 import type { NameSnapshot, NameRegistration as Registration, NameEvent as Event, NamePricing as Pricing } from '@/lib/name-types';
-import { fetchLiveJson, startLiveRefresh } from '@/lib/live-refresh';
+import { fetchLiveResponse, startLiveRefresh } from '@/lib/live-refresh';
 type EventAction = Event['action'];
 
 const ZCASHNAMES_URL = 'https://www.zcashnames.com';
@@ -16,11 +18,11 @@ const ZATS_PER_ZEC = 100_000_000;
 const formatZec = (zats: number): string =>
   `${(zats / ZATS_PER_ZEC).toLocaleString('en-US', { maximumFractionDigits: 8 })} ZEC`;
 
-const ACTION_COLOR: Record<EventAction, 'green' | 'cyan' | 'purple' | 'orange' | 'muted'> = {
+const ACTION_COLOR: Record<EventAction, 'green' | 'gold' | 'purple' | 'orange' | 'muted'> = {
   CLAIM: 'green',
   LIST: 'orange',
   SETPRICE: 'orange',
-  BUY: 'cyan',
+  BUY: 'gold',
   UPDATE: 'purple',
   DELIST: 'orange',
   RELEASE: 'muted',
@@ -34,18 +36,18 @@ export default function NameClient({ name, initialData }: { name: string; initia
     let active = true;
     const stop = startLiveRefresh(async () => {
       const [details, history] = await Promise.allSettled([
-        fetchLiveJson(`/api/name/${encodeURIComponent(name)}`),
-        fetchLiveJson(`/api/name/${encodeURIComponent(name)}/events`),
+        fetchLiveResponse(`${getApiUrl()}/v1/names/${encodeURIComponent(name)}`, readApiData<Registration | { pricing: Pricing | null }>),
+        fetchLiveResponse(`${getApiUrl()}/v1/names/${encodeURIComponent(name)}/events`, readApiData<any>),
       ]);
       if (!active) return;
       if (details.status === 'fulfilled') {
         const data = details.value;
-        if (data && typeof data.address === 'string') {
+        if (data && 'address' in data && typeof data.address === 'string') {
           setSnapshot({ state: 'registered', registration: data,
             events: history.status === 'fulfilled' && Array.isArray(history.value?.events)
               ? history.value.events : null });
           setRefreshFailed(false);
-        } else if (data && Object.prototype.hasOwnProperty.call(data, 'pricing')) {
+        } else if (data && 'pricing' in data) {
           setSnapshot({ state: 'available', pricing: data.pricing });
           setRefreshFailed(false);
         } else setRefreshFailed(true);
@@ -153,7 +155,7 @@ function RegisteredView({
               href={ZCASHNAMES_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-block mt-3 px-4 py-2 rounded bg-cipher-cyan/20 border border-cipher-cyan/40 text-cipher-cyan hover:bg-cipher-cyan/30 transition-colors"
+              className="inline-block mt-3 px-4 py-2 rounded bg-brand-gold/20 border border-cipher-gold/40 text-cipher-gold hover:bg-brand-gold/30 transition-colors"
             >
               Buy on zcashnames.com →
             </a>
@@ -243,7 +245,7 @@ function AvailableView({
             href={ZCASHNAMES_URL}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-block mt-3 px-4 py-2 rounded bg-cipher-cyan/20 border border-cipher-cyan/40 text-cipher-cyan hover:bg-cipher-cyan/30 transition-colors"
+            className="inline-block mt-3 px-4 py-2 rounded bg-brand-gold/20 border border-cipher-gold/40 text-cipher-gold hover:bg-brand-gold/30 transition-colors"
           >
             Claim on zcashnames.com →
           </a>
@@ -271,7 +273,7 @@ function AvailableView({
                     return (
                       <tr
                         key={i}
-                        className={`border-b border-white/5 ${i + 1 === name.length || (isLast && name.length > i + 1) ? 'text-cipher-cyan' : ''}`}
+                        className={`border-b border-white/5 ${i + 1 === name.length || (isLast && name.length > i + 1) ? 'text-cipher-gold' : ''}`}
                       >
                         <td className="py-2 pr-4 font-mono">{label} chars</td>
                         <td className="py-2 font-mono">{formatZec(zats)}</td>

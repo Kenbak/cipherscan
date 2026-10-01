@@ -1,5 +1,6 @@
 'use client';
 
+import { readApiData } from '@/lib/api-client';
 import { useState, useEffect, useRef, memo, useCallback, type ReactNode } from 'react';
 import Link from 'next/link';
 import { formatRelativeTime } from '@/lib/utils';
@@ -22,7 +23,7 @@ function toUnixSeconds(iso: string): number {
 /**
  * Homepage-sized "recent forks/reorgs" widget — same card/table/footer shape
  * as RecentBlocks/RecentShieldedTxs/RecentTransactions, just a different
- * feed. Reuses /api/uncles/forks (the same endpoint /reorgs itself uses),
+ * feed. Reuses /v1/uncles/forks (the same endpoint /reorgs itself uses),
  * limited to 5 rows here instead of that page's full history.
  */
 export const RecentReorgs = memo(function RecentReorgs({ footer }: { footer?: ReactNode } = {}) {
@@ -34,11 +35,11 @@ export const RecentReorgs = memo(function RecentReorgs({ footer }: { footer?: Re
 
   const fetchLatest = useCallback(async () => {
     try {
-      const apiUrl = `${getApiUrl()}/api/uncles/forks?limit=5`;
+      const apiUrl = `${getApiUrl()}/v1/uncles/forks?limit=5`;
 
       const response = await fetch(apiUrl);
-      const data = await response.json();
-      if (data.success && Array.isArray(data.forks)) {
+      const data = await readApiData(response);
+      if (data && Array.isArray(data.forks)) {
         const newTop = data.forks[0]?.id ?? null;
         if (newTop !== latestKey.current) {
           latestKey.current = newTop;
@@ -73,8 +74,9 @@ export const RecentReorgs = memo(function RecentReorgs({ footer }: { footer?: Re
 
   if (loading) {
     return (
-      <div className="card p-4">
-        <SkeletonTable rows={5} rowHeight="h-12" />
+      <div className="card p-0 overflow-hidden">
+        <SkeletonTable rows={5} rowHeight="h-12" headers={["Height", "Depth", "Orphaned", "Age"]} />
+        {footer && <div className="px-4 py-3 border-t border-cipher-border text-center">{footer}</div>}
       </div>
     );
   }
@@ -98,10 +100,10 @@ export const RecentReorgs = memo(function RecentReorgs({ footer }: { footer?: Re
         <table className="w-full min-w-[420px]">
           <thead>
             <tr>
-              <th className="px-4 sm:px-5 py-3.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">Height</th>
-              <th className="px-4 sm:px-5 py-3.5 text-right text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">Depth</th>
-              <th className="px-4 sm:px-5 py-3.5 text-right text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">Orphaned</th>
-              <th className="px-4 sm:px-5 py-3.5 text-right text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">Age</th>
+              <th className="px-4 sm:px-5 py-3.5 text-left text-caption font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">Height</th>
+              <th className="px-4 sm:px-5 py-3.5 text-right text-caption font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">Depth</th>
+              <th className="px-4 sm:px-5 py-3.5 text-right text-caption font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">Orphaned</th>
+              <th className="px-4 sm:px-5 py-3.5 text-right text-caption font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">Age</th>
             </tr>
           </thead>
           <tbody>

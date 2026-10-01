@@ -27,7 +27,9 @@ export const CORE_PATHS = [
   '/txs',
   '/txs?type=shielded',
   '/mempool',
+  '/mempool/live',
   '/network',
+  '/network/nodes',
   '/network/attestations',
   '/privacy',
   '/privacy-risks',
@@ -35,6 +37,42 @@ export const CORE_PATHS = [
   '/pools',
   '/mining',
   '/charts',
+  // Stable chart pages only. Range and series variants canonicalize here.
+  '/charts/pool-balances',
+  '/charts/supply',
+  '/charts/shielded-supply',
+  '/charts/turnstile',
+  '/charts/pool-share',
+  '/charts/search-interest',
+  '/charts/daily-activity',
+  '/charts/privacy-adoption',
+  '/charts/privacy-score',
+  '/charts/flow-volume',
+  '/charts/net-flow',
+  '/charts/flow-thresholds',
+  '/charts/flow-buckets',
+  '/charts/network-hashrate',
+  '/charts/mining-distribution',
+  '/charts/miner-rewards',
+  '/charts/block-time',
+  '/charts/difficulty',
+  '/charts/block-fees',
+  '/charts/tx-per-block',
+  '/charts/fees',
+  '/charts/node-storage',
+  '/charts/price-vs-realized',
+  '/charts/mvrv',
+  '/charts/nupl',
+  '/charts/sopr',
+  '/charts/realized-cap',
+  '/charts/dormancy',
+  '/charts/coin-days',
+  '/charts/hodl-waves',
+  '/charts/swap-volume',
+  '/charts/swap-count',
+  '/charts/protocol-commitments',
+  '/charts/protocol-nullifiers',
+  '/ask',
   '/rich-list',
   '/reorgs',
   '/crosschain',
@@ -210,11 +248,14 @@ export function getStaticSitemapEntries(
   newsletters: NewsletterIssue[],
 ): SitemapUrlEntry[] | null {
   if (slug === 'core') {
-    return CORE_PATHS.map((path) => ({ url: absoluteUrl(baseUrl, path), ...(path.startsWith('/governance') ? { lastModified: path === '/governance/nu7' ? '2026-09-15' : '2026-09-18', changeFrequency: 'daily' as const, priority: 0.6 } : {}), ...(path === '/network/attestations' ? { lastModified: '2026-09-09', changeFrequency: 'hourly' as const, priority: 0.6 } : {}) }));
+    return CORE_PATHS.map((path) => ({ url: absoluteUrl(baseUrl, path), ...(path.startsWith('/governance') ? { lastModified: path === '/governance/nu7' ? '2026-09-15' : '2026-09-18', changeFrequency: 'daily' as const, priority: 0.6 } : {}), ...(path === '/ironwood' ? { lastModified: '2026-09-17' } : {}), ...(path === '/ask' ? { lastModified: '2026-09-10', changeFrequency: 'weekly' as const, priority: 0.7 } : {}), ...(path === '/network/attestations' ? { lastModified: '2026-09-09', changeFrequency: 'hourly' as const, priority: 0.6 } : {}) }));
   }
 
   if (slug === 'tools') {
-    return TOOL_PATHS.map((path) => ({ url: absoluteUrl(baseUrl, path) }));
+    return TOOL_PATHS.map((path) => ({
+      url: absoluteUrl(baseUrl, path),
+      ...(path === '/tools' ? { lastModified: '2026-09-17' } : {}),
+    }));
   }
 
   if (slug === 'content') {
@@ -223,6 +264,8 @@ export function getStaticSitemapEntries(
       : undefined;
     const staticEntries = CONTENT_PATHS.map((path) => ({
       url: absoluteUrl(baseUrl, path),
+      ...(path === '/learn' ? { lastModified: '2026-09-08' } : {}),
+      ...(path === '/about' ? { lastModified: '2026-09-17' } : {}),
       ...(path === '/newsletter' && latestNewsletterDate
         ? { lastModified: latestNewsletterDate }
         : {}),

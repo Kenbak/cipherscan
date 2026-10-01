@@ -4,26 +4,25 @@ import { useMemo } from 'react';
 import {
   LineChart,
   Line,
-  AreaChart,
-  Area,
   BarChart,
   Bar,
   XAxis,
   YAxis,
   CartesianGrid,
-  Tooltip as RechartsTooltip,
+
   ResponsiveContainer,
   Legend,
 } from 'recharts';
+import { ChartTooltip as RechartsTooltip } from '@/components/charts/ChartTooltip';
 import { ShareableCard } from '@/components/ShareableCard';
 import { PeriodSelector, type Period } from '@/components/privacy/PeriodSelector';
 import { getChartColors } from '@/lib/chart-theme';
 import { formatTrendDate, normalizeTrendDateKey, parseTrendDate } from '@/lib/privacy-trend-dates';
 
 const CHART_VIEWS = [
-  { id: 'adoption', label: 'TX ADOPTION' },
-  { id: 'activity', label: 'DAILY ACTIVITY' },
   { id: 'score', label: 'SCORE HISTORY' },
+  { id: 'adoption', label: 'SHIELDED SHARE' },
+  { id: 'activity', label: 'DAILY ACTIVITY' },
 ] as const;
 
 export type TrendChartView = (typeof CHART_VIEWS)[number]['id'];
@@ -56,16 +55,16 @@ function filterTrendsByPeriod(daily: TrendDay[], period: Period): TrendDay[] {
 }
 
 function segmentedClass(active: boolean) {
-  return `px-1.5 py-0.5 text-[10px] font-mono rounded transition whitespace-nowrap ${
+  return `px-3 py-2 text-caption font-mono border-b-2 transition whitespace-nowrap ${
     active
-      ? 'bg-cipher-cyan/15 text-cipher-cyan font-bold'
-      : 'text-muted hover:text-primary'
+      ? 'border-cipher-gold text-primary'
+      : 'border-transparent text-muted hover:text-primary'
   }`;
 }
 
 function chartDescription(view: TrendChartView) {
   if (view === 'adoption') {
-    return 'Daily share of non-coinbase transactions that use shielded pools — transaction count, not ZEC volume.';
+    return 'Daily shielded share of shielded plus non-coinbase transparent transactions. This daily measure differs from the score’s 30-day input.';
   }
   if (view === 'activity') {
     return 'Daily shielded vs transparent transaction counts (coinbase excluded from transparent).';
@@ -80,20 +79,20 @@ function buildShareText(
   chartData: TrendDay[],
 ) {
   const periodLabel = period === 'all' ? 'all time' : period.toUpperCase();
-  const url = 'https://cipherscan.app/privacy';
+  const url = 'https://zecblock.com/privacy';
   const latest = chartData[chartData.length - 1];
 
   if (view === 'score') {
     const score = latest?.privacyScore ?? privacyScore;
-    return `Zcash Privacy Score: ${score}/100 (${periodLabel}) on CipherScan\n\n${url}`;
+    return `Zcash Privacy Score: ${score}/100 (${periodLabel}) on ZecBlock\n\n${url}`;
   }
   if (view === 'adoption' && latest) {
-    return `Zcash shielded tx share: ${latest.shieldedPercentage.toFixed(1)}% (${periodLabel}) on CipherScan\n\n${url}`;
+    return `Zcash shielded tx share: ${latest.shieldedPercentage.toFixed(1)}% (${periodLabel}) on ZecBlock\n\n${url}`;
   }
   if (view === 'activity' && latest) {
-    return `Zcash shielded activity: ${latest.shielded.toLocaleString()} shielded txs (${periodLabel}) on CipherScan\n\n${url}`;
+    return `Zcash shielded activity: ${latest.shielded.toLocaleString()} shielded txs (${periodLabel}) on ZecBlock\n\n${url}`;
   }
-  return `Zcash privacy metrics on CipherScan (${periodLabel})\n\n${url}`;
+  return `Zcash privacy metrics on ZecBlock (${periodLabel})\n\n${url}`;
 }
 
 export function PrivacyTrendsSection({
@@ -133,9 +132,11 @@ export function PrivacyTrendsSection({
     border: `1px solid ${colors.tooltipBorder}`,
     borderRadius: '8px',
     color: colors.tooltipText,
+    padding: '12px 16px',
+    fontSize: 12,
   };
 
-  const axisLabel = { fill: colors.axis, fontSize: 10 };
+  const axisLabel = { fill: colors.axis, fontSize: 12 };
   const xLabel = { value: 'Date', position: 'insideBottom' as const, offset: -2, ...axisLabel };
   const yAdoptionLabel = {
     value: 'Shielded tx %',
@@ -159,20 +160,22 @@ export function PrivacyTrendsSection({
   return (
     <ShareableCard
       title="Historical trends"
+      isLive={false}
       sourceHeight={lastBlockScanned}
       shareText={shareText}
-      fileName="cipherscan-privacy-trends.png"
+      fileName="zecblock-privacy-trends.png"
       className=""
     >
       <div
         className="mb-4 flex flex-wrap items-center justify-between gap-3"
         data-html2canvas-ignore="true"
       >
-        <div className="inline-flex gap-0 rounded-md bg-glass-3 p-0.5">
+        <div className="inline-flex flex-wrap gap-1">
           {CHART_VIEWS.map(({ id, label }) => (
             <button
               key={id}
               type="button"
+              aria-pressed={view === id}
               onClick={() => onViewChange(id)}
               className={segmentedClass(view === id)}
             >
@@ -183,7 +186,8 @@ export function PrivacyTrendsSection({
         <PeriodSelector value={period} onChange={onPeriodChange} />
       </div>
 
-      <p className="mb-4 text-xs leading-relaxed text-muted">{chartDescription(view)}</p>
+      <p className="mb-2 text-caption leading-relaxed text-muted">{chartDescription(view)}</p>
+      {chartData.length > 0 && <p className="mb-5 text-caption font-mono text-muted">Latest recorded day · {formatTrendDate(chartData[chartData.length - 1].date)}</p>}
 
       {chartData.length === 0 ? (
         <div className="flex h-[320px] items-center justify-center text-xs font-mono text-muted">
@@ -194,31 +198,37 @@ export function PrivacyTrendsSection({
           {view === 'adoption' && (
             <ResponsiveContainer initialDimension={{ width: 500, height: 300 }} width="100%" height="100%">
               <LineChart data={chartData} margin={{ top: 8, right: 12, left: 4, bottom: 20 }}>
-                <CartesianGrid strokeDasharray="2 6" stroke={colors.gridStroke} />
+                <CartesianGrid vertical={false} stroke={colors.gridStroke} />
                 <XAxis
                   dataKey="date"
-                  tick={{ fill: colors.axis, fontSize: 10 }}
+                  tick={{ fill: colors.axis, fontSize: 12 }}
+                  tickLine={false}
+                  axisLine={false}
                   tickFormatter={(value) => formatTrendDate(value)}
-                  angle={-35}
-                  textAnchor="end"
+                  minTickGap={24}
+                  textAnchor="middle"
                   height={52}
                   label={xLabel}
                 />
                 <YAxis
-                  tick={{ fill: colors.axis, fontSize: 10 }}
+                  tick={{ fill: colors.axis, fontSize: 12 }}
+                  tickLine={false}
+                  axisLine={false}
+                  tickCount={5}
                   domain={[0, 100]}
                   width={52}
                   label={yAdoptionLabel}
                 />
                 <RechartsTooltip
+                  cursor={{ stroke: colors.referenceLine, strokeDasharray: '3 4' }}
                   contentStyle={tooltipStyle}
                   labelFormatter={(label) => typeof label === 'string' || typeof label === 'number' ? formatTrendDate(label) : ''}
                   formatter={(v) => [`${Number(v).toFixed(1)}%`, 'Shielded tx share']}
                 />
-                <Line
+                <Line isAnimationActive={false}
                   type="monotone"
                   dataKey="shieldedPercentage"
-                  stroke={colors.cyan}
+                  stroke={colors.shielded}
                   strokeWidth={2}
                   dot={false}
                   activeDot={{ r: 4 }}
@@ -228,29 +238,37 @@ export function PrivacyTrendsSection({
           )}
           {view === 'activity' && (
             <ResponsiveContainer initialDimension={{ width: 500, height: 300 }} width="100%" height="100%">
-              <BarChart data={chartData} margin={{ top: 8, right: 12, left: 4, bottom: 20 }}>
-                <CartesianGrid strokeDasharray="2 6" stroke={colors.gridStroke} />
+              <BarChart barGap={3} maxBarSize={18} data={chartData} margin={{ top: 8, right: 12, left: 4, bottom: 20 }}>
+                <CartesianGrid vertical={false} stroke={colors.gridStroke} />
                 <XAxis
                   dataKey="date"
-                  tick={{ fill: colors.axis, fontSize: 10 }}
+                  tick={{ fill: colors.axis, fontSize: 12 }}
+                  tickLine={false}
+                  axisLine={false}
                   tickFormatter={(value) => formatTrendDate(value)}
-                  angle={-35}
-                  textAnchor="end"
+                  minTickGap={24}
+                  textAnchor="middle"
                   height={52}
                   label={xLabel}
                 />
                 <YAxis
-                  tick={{ fill: colors.axis, fontSize: 10 }}
+                  tick={{ fill: colors.axis, fontSize: 12 }}
+                  tickLine={false}
+                  axisLine={false}
+                  tickCount={5}
+                  tickFormatter={value => Intl.NumberFormat('en', { notation: 'compact', maximumFractionDigits: 1 }).format(Number(value))}
                   width={56}
                   label={yActivityLabel}
                 />
                 <RechartsTooltip
+                  cursor={{ fill: theme === 'dark' ? 'rgba(156,164,176,0.07)' : 'rgba(89,97,109,0.06)' }}
                   contentStyle={tooltipStyle}
                   labelFormatter={(label) => typeof label === 'string' || typeof label === 'number' ? formatTrendDate(label) : ''}
+                  formatter={(value, name) => [Number(value).toLocaleString(), name]}
                 />
-                <Legend wrapperStyle={{ fontSize: 11, color: colors.axis }} />
-                <Bar dataKey="shielded" name="Shielded" fill={colors.cyan} radius={[3, 3, 0, 0]} />
-                <Bar
+                <Legend wrapperStyle={{ fontSize: 12, color: colors.axis }} />
+                <Bar isAnimationActive={false} dataKey="shielded" name="Shielded" fill={colors.shielded} radius={[2, 2, 0, 0]} />
+                <Bar isAnimationActive={false}
                   dataKey="transparent"
                   name="Transparent"
                   fill={colors.transparent}
@@ -261,42 +279,43 @@ export function PrivacyTrendsSection({
           )}
           {view === 'score' && (
             <ResponsiveContainer initialDimension={{ width: 500, height: 300 }} width="100%" height="100%">
-              <AreaChart data={chartData} margin={{ top: 8, right: 12, left: 4, bottom: 20 }}>
-                <defs>
-                  <linearGradient id="privacyScoreFill" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor={colors.cyan} stopOpacity={0.35} />
-                    <stop offset="95%" stopColor={colors.cyan} stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="2 6" stroke={colors.gridStroke} />
+              <LineChart data={chartData} margin={{ top: 8, right: 12, left: 4, bottom: 20 }}>
+                <CartesianGrid vertical={false} stroke={colors.gridStroke} />
                 <XAxis
                   dataKey="date"
-                  tick={{ fill: colors.axis, fontSize: 10 }}
+                  tick={{ fill: colors.axis, fontSize: 12 }}
+                  tickLine={false}
+                  axisLine={false}
                   tickFormatter={(value) => formatTrendDate(value)}
-                  angle={-35}
-                  textAnchor="end"
+                  minTickGap={24}
+                  textAnchor="middle"
                   height={52}
                   label={xLabel}
                 />
                 <YAxis
-                  tick={{ fill: colors.axis, fontSize: 10 }}
+                  tick={{ fill: colors.axis, fontSize: 12 }}
+                  tickLine={false}
+                  axisLine={false}
+                  tickCount={5}
                   domain={[0, 100]}
                   width={52}
                   label={yScoreLabel}
                 />
                 <RechartsTooltip
+                  cursor={{ stroke: colors.referenceLine, strokeDasharray: '3 4' }}
                   contentStyle={tooltipStyle}
                   labelFormatter={(label) => typeof label === 'string' || typeof label === 'number' ? formatTrendDate(label) : ''}
                   formatter={(v) => [`${Number(v).toFixed(0)} / 100`, 'Privacy Score']}
                 />
-                <Area
-                  type="monotone"
+                <Line isAnimationActive={false}
+                  type="linear"
                   dataKey="privacyScore"
-                  stroke={colors.cyan}
+                  stroke={colors.gold}
                   strokeWidth={2}
-                  fill="url(#privacyScoreFill)"
+                  dot={false}
+                  activeDot={{ r: 4 }}
                 />
-              </AreaChart>
+              </LineChart>
             </ResponsiveContainer>
           )}
         </div>

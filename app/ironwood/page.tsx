@@ -1,3 +1,5 @@
+import { normalizeMigrationData } from './components/api-data';
+import { readApiData } from '@/lib/api-client';
 import { MigrationClient } from './MigrationClient';
 import { getApiUrl, getBaseUrl, getNetwork } from '@/lib/seo';
 import { fetchWithDeadline } from '@/lib/server-fetch';
@@ -5,7 +7,7 @@ import { notFound } from 'next/navigation';
 
 const PAGE_NAME = 'Zcash Ironwood Upgrade & Migration Tracker';
 const PAGE_DESCRIPTION =
-  'Track the Zcash Ironwood (NU6.3) activation, Orchard migration, Ironwood shielded supply, and observable turnstile activity on CipherScan.';
+  'Track the Zcash Ironwood (NU6.3) activation, Orchard migration, Ironwood shielded supply, and observable turnstile activity on ZecBlock.';
 
 async function fetchJson(
   apiBase: string,
@@ -16,8 +18,8 @@ async function fetchJson(
   try {
     const res = await fetchWithDeadline(`${apiBase}${path}`, { next: { revalidate } });
     if (!res.ok) return null;
-    const data = await res.json();
-    return data?.success === true && data.network === expectedNetwork ? data : null;
+    const data = normalizeMigrationData(await readApiData(res));
+    return !!(data) && data.network === expectedNetwork ? data : null;
   } catch {
     return null;
   }
@@ -37,10 +39,10 @@ export default async function MigrationPage() {
       : 0;
 
   const [overview, cohorts, activityHourly, activityDaily] = await Promise.all([
-    fetchJson(apiBase, '/api/migration/overview', network),
-    fetchJson(apiBase, '/api/migration/cohorts', network),
-    fetchJson(apiBase, '/api/migration/activity?granularity=hour', network, 30),
-    fetchJson(apiBase, '/api/migration/activity?granularity=day', network, 60),
+    fetchJson(apiBase, '/v1/migration/overview', network),
+    fetchJson(apiBase, '/v1/migration/cohorts', network),
+    fetchJson(apiBase, '/v1/migration/activity?granularity=hour', network, 30),
+    fetchJson(apiBase, '/v1/migration/activity?granularity=day', network, 60),
   ]);
 
   const dataset = {
@@ -50,7 +52,7 @@ export default async function MigrationPage() {
     name: 'Zcash Ironwood Upgrade and Migration Data',
     description:
       'Live Zcash Ironwood activation and Orchard-to-Ironwood migration data, including pool balances, supply verification, migration velocity, cohort anonymity, and privacy analysis.',
-    creator: { '@id': 'https://cipherscan.app/#organization' },
+    creator: { '@id': 'https://zecblock.com/#organization' },
     isPartOf: { '@id': `${baseUrl}/#website` },
     mainEntityOfPage: { '@id': `${pageUrl}#webpage` },
   };

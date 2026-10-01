@@ -40,9 +40,12 @@
   --color-cipher-border-alpha: rgb(var(--color-border-rgb));
 
   /* Brand (theme-aware via RGB channel vars) */
-  --color-cipher-cyan: rgb(var(--color-cyan-rgb));
+  --color-cipher-gold: rgb(var(--color-gold-rgb));
+  --color-brand-gold: var(--color-gold-accent);
   --color-cipher-green: rgb(var(--color-green-rgb));
   --color-cipher-purple: rgb(var(--color-purple-rgb));
+  --color-cipher-shielded: rgb(var(--color-shielded-rgb));
+  --color-cipher-ironwood: rgb(var(--color-ironwood-rgb));
   --color-cipher-yellow: rgb(var(--color-yellow-rgb));
   --color-cipher-orange: rgb(var(--color-orange-rgb));
 
@@ -55,7 +58,7 @@
   --color-danger: var(--danger);
   --color-warning: var(--warning);
   --color-success: var(--color-green);
-  --color-info: var(--color-cyan);
+  --color-info: var(--color-gold);
 
   /* Glass overlays (theme-aware) */
   --color-glass-2: var(--glass-2);
@@ -75,24 +78,24 @@
 /* Static tokens — identical in both themes. */
 @theme {
   /* Static brand accents (intentionally not theme-aware; matches v3 config) */
-  --color-cipher-blue: #5B9CF6;
-  --color-cipher-teal: #56D4C8;
+  --color-cipher-blue: #A1A9AD;
+  --color-cipher-teal: #91AC90;
   --color-cipher-coral: #F0826F;
-  --color-cipher-cyan-bright: #00D4FF;
-  --color-cipher-cyan-glow: #00E5FF;
-  --color-cipher-cyan-muted: #5EBBCE;
-  --color-cipher-green-bright: #34D399;
-  --color-cipher-purple-bright: #A78BFA;
-  --color-cipher-purple-glow: #C4B5FD;
-  --color-cipher-yellow-bright: #F4B728;
-  --color-cipher-yellow-glow: #FFD060;
+  --color-cipher-gold-bright: var(--color-gold);
+  --color-cipher-gold-glow: var(--color-gold);
+  --color-cipher-gold-muted: #B59959;
+  --color-cipher-green-bright: var(--color-green);
+  --color-cipher-purple-bright: var(--color-purple);
+  --color-cipher-purple-glow: var(--color-purple);
+  --color-cipher-yellow-bright: var(--color-yellow);
+  --color-cipher-yellow-glow: var(--color-yellow);
   --color-cipher-yellow-muted: #C9A035;
-  --color-cipher-orange-bright: #FF6B35;
+  --color-cipher-orange-bright: var(--color-orange);
 
   /* Forced-theme colors (deliberately static) */
-  --color-cipher-bg-dark: #08090F;
-  --color-cipher-surface-dark: #14161F;
-  --color-cipher-bg-light: #FAFBFC;
+  --color-cipher-bg-dark: #0B0C0E;
+  --color-cipher-surface-dark: #111316;
+  --color-cipher-bg-light: #F6F7F9;
   --color-cipher-surface-light: #FFFFFF;
   --color-cipher-border-light: #E2E8F0;
 
@@ -116,6 +119,22 @@
   --text-5xl: 3.75rem;
   --text-5xl--line-height: 1.05;
 
+  /* Information typography. Rem sizes follow user font preferences. */
+  --text-caption: 0.75rem;
+  --text-caption--line-height: 1.5;
+  --text-data: 0.8125rem;
+  --text-data--line-height: 1.5;
+  --text-body: 0.9375rem;
+  --text-body--line-height: 1.6;
+  --text-page: 2rem;
+  --text-page--line-height: 1.2;
+  --text-section: 1rem;
+  --text-section--line-height: 1.4;
+  --text-metric: 1.75rem;
+  --text-metric--line-height: 1.2;
+  --text-display: 2.5rem;
+  --text-display--line-height: 1.15;
+
   /* Letter spacing */
   --tracking-tighter: -0.02em;
   --tracking-tight: -0.01em;
@@ -124,12 +143,12 @@
   --tracking-wider: 0.05em;
 
   /* Border radius hierarchy (bare `rounded` = 8px) */
-  --radius: 8px;
-  --radius-sm: 6px;
-  --radius-md: 10px;
-  --radius-lg: 16px;
-  --radius-xl: 20px;
-  --radius-2xl: 24px;
+  --radius: 4px;
+  --radius-sm: 3px;
+  --radius-md: 4px;
+  --radius-lg: 8px;
+  --radius-xl: 8px;
+  --radius-2xl: 12px;
 
   /* Shadow elevation levels (v3 overrides preserved) */
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04), 0 2px 4px rgba(0, 0, 0, 0.04);
@@ -160,33 +179,9 @@
   }
 }
 
-/**
- * CIPHERSCAN Design System v2.0
- *
- * Design Philosophy:
- * - Apple-inspired refinement with cypherpunk identity
- * - Layered depth system for visual hierarchy
- * - Consistent spacing on 4px grid
- * - Purposeful micro-interactions
- *
- * Color Usage:
- * CYAN (#00D4FF) - Brand identity, titles, links
- * GREEN (#00E676) - Success, confirmations, positive
- * PURPLE (#A78BFA) - Shielded, privacy, encryption
- * ORANGE (#FF6B35) - Warnings, fees only
- *
- * Emoji System:
- * 🔐 - Logo / Brand
- * 📦 - Blocks
- * 📝 - Transactions
- * 👤 - Addresses
- * 💰 - Amounts
- * 🛡️ - Shielded / Privacy
- * 💡 - Help / Information
- * ✅ - Success / Confirmed
- * ⚠️ - Warning
- * 📭 - Empty state
- */
+/** ZecBlock / Assay. Specification: docs/brand/zecblock-design-system.md.
+ * Gold = identity/action/shielded; honey = Ironwood; iris = Orchard; sage = success; clay = warning.
+ * Flat surfaces, precise rules, monospace data. No ambient decoration. */
 
 /* ===== CSS CUSTOM PROPERTIES ===== */
 :root {
@@ -196,54 +191,68 @@
   --app-ironwood-height: 0px;
 
   /* Colors - Dark Theme (default) */
-  --color-bg: #08090F;
-  --color-elevated: #0A0B12;
-  --color-surface: rgba(14, 16, 24, 0.45);
-  --color-surface-solid: #0E1018;
-  --color-hover: #13151E;
-  --color-active: #1A1D28;
-  --color-border: rgba(30, 41, 59, 0.6);
-  --color-border-subtle: rgba(255, 255, 255, 0.04);
-  --color-border-rgb: 30 41 59;
+  --color-bg: #0B0C0E;
+  --color-elevated: #191B1F;
+  --color-surface: #111316;
+  --color-surface-solid: #111316;
+  /* Kept close to the surface: with translucent panels an opaque, lighter
+     hover reads heavier than the panel it sits in. Stays hex — the contrast
+     matrix parses these tokens as #rrggbb. */
+  --color-hover: #15171B;
+  --color-active: #1E2127;
+  /* Hairlines are the edge of a surface, not an outline drawn around it.
+     They stay just visible against both canvas and surface; separation is
+     carried by luminance + --card-shadow, so rules can be this quiet. */
+  --color-border: #24272D;
+  --color-border-subtle: #1A1D22;
+  --color-border-rgb: 36 39 45;
 
   /* Brand — RGB channels for Tailwind opacity support */
-  --color-cyan-rgb: 0 212 255;
-  --color-green-rgb: 52 211 153;
-  --color-yellow-rgb: 244 183 40;
-  --color-purple-rgb: 167 139 250;
-  --color-orange-rgb: 255 107 53;
+  --color-gold-rgb: 248 188 33;
+  --color-shielded-rgb: 248 188 33;
+  --color-shielded-ink: #F8BC21;
+  --color-ironwood-rgb: 232 207 120;
+  --color-ironwood-ink: #E8CF78;
+  --color-green-rgb: 101 199 154;
+  --color-yellow-rgb: 248 188 33;
+  --color-purple-rgb: 182 160 224;
+  /* Transaction composition: neutral public/mixed, gold fully shielded. */
+  --tx-transparent-rgb: 161 169 173;
+  --tx-mixed-rgb: 100 110 125;
+  --tx-shielded-rgb: var(--color-shielded-rgb);
+  --color-orange-rgb: 226 166 110;
 
   /* Brand — hex shortcuts for use in custom CSS */
-  --color-cyan: #00D4FF;
-  --color-cyan-glow: #00E5FF;
-  --color-cyan-muted: #5EBBCE;
-  --color-green: #34D399;
-  --color-yellow: #F4B728;
-  --color-purple: #A78BFA;
-  --color-purple-glow: #C4B5FD;
-  --color-orange: #FF6B35;
+  --color-gold-accent: #F8BC21;
+  --color-gold: #F8BC21;
+  --color-gold-glow: #F8BC21;
+  --color-gold-muted: #B59959;
+  --color-green: #65C79A;
+  --color-yellow: #F8BC21;
+  --color-purple: #B6A0E0;
+  --color-purple-glow: #C1B5D8;
+  --color-orange: #E2A66E;
 
   /* Semantic flow colors — shield/deshield (matches ShieldFlowBadge) */
   --color-shielding: var(--color-green);
   --color-deshielding: var(--color-orange);
-  --color-shielded-state: var(--color-purple);
+  --color-shielded-state: rgb(var(--color-shielded-rgb));
 
   /* Semantic status colors — use text-danger/text-warning etc. in markup,
      never physical palette colors (text-red-400) for themeable UI */
-  --danger: #F87171;
-  --warning: #FB923C;
+  --danger: #D58D86;
+  --danger-rgb: 213 141 134;
+  --warning: #E2A66E;
 
   /* Ambient page-background gradients (none in light mode) */
-  --body-ambient:
-    radial-gradient(circle at 20% 50%, rgba(0, 212, 255, 0.04) 0%, transparent 50%),
-    radial-gradient(circle at 80% 80%, rgba(167, 139, 250, 0.04) 0%, transparent 50%);
+  --body-ambient: none;
 
   /* Text — three distinct steps (primary brightest, muted dimmest).
      secondary and muted previously collapsed to the same #9CA3AF, flattening
      the hierarchy to two effective tiers instead of three. */
-  --color-text-primary: #E5E7EB;
-  --color-text-secondary: #C4CAD4;
-  --color-text-muted: #9CA3AF;
+  --color-text-primary: #F1F3F5;
+  --color-text-secondary: #C2C7CF;
+  --color-text-muted: #9CA4B0;
 
   /* Node map */
   --color-map-dot: rgba(55, 65, 81, 0.45);
@@ -257,11 +266,11 @@
   --glass-12: rgba(255, 255, 255, 0.12);
   --glass-18: rgba(255, 255, 255, 0.18);
 
-  /* Shadows */
-  --shadow-card: 0 2px 4px rgba(0, 0, 0, 0.08), 0 8px 16px rgba(0, 0, 0, 0.12);
-  --shadow-card-hover: 0 4px 8px rgba(0, 0, 0, 0.1), 0 16px 32px rgba(0, 0, 0, 0.16);
-  --shadow-glow: 0 0 20px rgba(0, 212, 255, 0.15);
-  --shadow-glow-lg: 0 0 40px rgba(0, 212, 255, 0.2);
+  /* Shadows — ambient occlusion only. No colored glow anywhere. */
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.28), 0 12px 28px -16px rgba(0, 0, 0, 0.7);
+  --shadow-card-hover: 0 1px 2px rgba(0, 0, 0, 0.32), 0 16px 36px -16px rgba(0, 0, 0, 0.8);
+  --shadow-glow: none;
+  --shadow-glow-lg: none;
 
   /* Spacing */
   --space-1: 4px;
@@ -278,11 +287,11 @@
   --space-24: 96px;
 
   /* Border Radius */
-  --radius-sm: 6px;
-  --radius-md: 10px;
-  --radius-lg: 16px;
-  --radius-xl: 20px;
-  --radius-2xl: 24px;
+  --radius-sm: 3px;
+  --radius-md: 4px;
+  --radius-lg: 8px;
+  --radius-xl: 8px;
+  --radius-2xl: 12px;
 
   /* Transitions */
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
@@ -298,51 +307,60 @@
      Component rules reference these — never hardcode a per-theme value
      in a component rule and never add `.light .component` override blocks. */
 
-  /* Cards */
-  --card-border: rgba(255, 255, 255, 0.06);
-  --card-border-hover: rgba(255, 255, 255, 0.08);
-  --card-blur: blur(12px);
-  --card-shadow: 0 0 0 1px rgba(0, 0, 0, 0.03), 0 2px 4px rgba(0, 0, 0, 0.04), 0 12px 24px rgba(0, 0, 0, 0.08);
-  --card-shadow-hover: 0 0 0 1px rgba(0, 212, 255, 0.05), 0 4px 8px rgba(0, 0, 0, 0.05), 0 16px 32px rgba(0, 0, 0, 0.1);
-  --card-glass-bg: rgba(14, 16, 24, 0.6);
-  --card-glass-blur: blur(24px);
-  --card-glass-border: rgba(255, 255, 255, 0.06);
+  /* Cards — a surface is milled from the canvas, not drawn on it: one quiet
+     hairline, one lit top edge, one ambient shadow. --card-highlight is the
+     lit edge and is always composited after the shadow. */
+  /* Translucent so a panel settles into the canvas instead of sitting on it
+     as a solid block. No backdrop-filter: a page can hold dozens of cards
+     and blurring each one is expensive for an effect nothing shows through. */
+  --card-surface: rgb(17 19 22 / 0.35);
+  --card-border: var(--color-border);
+  --card-border-hover: rgba(255, 255, 255, 0.11);
+  --card-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  --card-blur: none;
+  --card-shadow: var(--shadow-card);
+  --card-shadow-hover: var(--shadow-card-hover);
+  --card-glass-bg: var(--card-surface);
+  --card-glass-blur: none;
+  --card-glass-border: var(--color-border);
   --card-dark-bg: var(--color-bg);
   --card-dark-border: rgba(255, 255, 255, 0.04);
-  --card-featured-border: rgba(0, 212, 255, 0.12);
-  --card-interactive-shadow: 0 0 0 1px rgba(0, 212, 255, 0.06), 0 4px 8px rgba(0, 0, 0, 0.06), 0 20px 40px rgba(0, 0, 0, 0.12);
-  --card-interactive-border-hover: var(--card-border);
+  --card-featured-border: rgb(var(--color-gold-rgb) / 0.12);
+  --card-interactive-shadow: var(--shadow-card);
+  --card-interactive-border-hover: var(--card-border-hover);
   --divider: rgba(255, 255, 255, 0.06);
 
-  /* Badges */
-  --badge-cyan-bg: rgba(0, 212, 255, 0.12);
-  --badge-purple-bg: rgba(167, 139, 250, 0.12);
-  --badge-green-bg: rgba(0, 230, 118, 0.12);
-  --badge-orange-bg: rgba(255, 107, 53, 0.12);
-  --badge-amber-bg: rgba(245, 158, 11, 0.15);
-  --badge-danger-bg: rgba(248, 113, 113, 0.14);
-  --badge-amber-text: #F59E0B;
+  /* Badges — every tint is derived from the brand channel it labels, so a
+     badge fill can never drift into a different hue family than its own
+     text and icon (these were still CipherScan's pre-rebrand neon palette). */
+  --badge-gold-bg: rgb(var(--color-gold-rgb) / 0.12);
+  --badge-purple-bg: rgb(var(--color-purple-rgb) / 0.14);
+  --badge-green-bg: rgb(var(--color-green-rgb) / 0.14);
+  --badge-orange-bg: rgb(var(--color-orange-rgb) / 0.14);
+  --badge-amber-bg: rgb(var(--color-gold-rgb) / 0.14);
+  --badge-danger-bg: rgb(var(--danger-rgb) / 0.14);
+  --badge-amber-text: var(--color-gold);
 
   /* Buttons */
-  --btn-primary-bg: linear-gradient(180deg, var(--color-cyan) 0%, #00B8E0 100%);
-  --btn-primary-bg-hover: linear-gradient(180deg, #00E0FF 0%, var(--color-cyan) 100%);
-  --btn-primary-text: var(--color-bg);
-  --btn-primary-shadow-hover: 0 4px 12px rgba(0, 212, 255, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  --btn-primary-bg: #F8BC21;
+  --btn-primary-bg-hover: #F8BC21;
+  --btn-primary-text: #20221D;
+  --btn-primary-shadow-hover: none;
 
   /* Accent interaction states (ghost buttons, suggestion rows, focus) */
-  --accent-soft: rgba(0, 212, 255, 0.08);
-  --accent-soft-active: rgba(0, 212, 255, 0.12);
-  --focus-ring: 0 0 0 3px rgba(0, 212, 255, 0.1);
+  --accent-soft: rgb(var(--color-gold-rgb) / 0.08);
+  --accent-soft-active: rgb(var(--color-gold-rgb) / 0.12);
+  --focus-ring: 0 0 0 3px rgb(var(--color-gold-rgb) / 0.1);
 
   /* Filter groups */
-  --filter-danger-bg: rgba(248, 113, 113, 0.08);
-  --filter-warning-bg: rgba(251, 191, 36, 0.08);
-  --amber-strong: #FBBF24;
+  --filter-danger-bg: rgb(var(--danger-rgb) / 0.08);
+  --filter-warning-bg: rgb(var(--color-orange-rgb) / 0.08);
+  --amber-strong: var(--color-gold);
 
   /* App chrome (navbar, drawer, footer) — matches page bg for a seamless edge */
-  --navbar-bg: rgba(8, 9, 15, 0.8);
+  --navbar-bg: var(--color-bg);
   --chrome-bg: var(--color-bg);
-  --nav-accent-hover: #00D4FF;
+  --nav-accent-hover: var(--color-gold);
 
   /* Search bar accessories */
   --kbd-bg: var(--color-hover);
@@ -354,85 +372,101 @@
   --tag-bg-hover: var(--color-hover);
 
   /* Popovers, dropdowns, modals */
-  --popover-bg: #0C0D14;
+  --popover-bg: var(--color-surface-solid);
   --popover-border: rgba(255, 255, 255, 0.08);
   --suggestions-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(0, 0, 0, 0.1);
   --dropdown-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 20px 25px -5px rgba(0, 0, 0, 0.3);
   --modal-backdrop: rgba(0, 0, 0, 0.8);
   --modal-shadow: 0 0 0 1px rgba(0, 0, 0, 0.3), 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 25px 50px -12px rgba(0, 0, 0, 0.6);
 
-  /* Misc surfaces */
-  --gradient-purple-start: rgba(167, 139, 250, 0.08);
-  --progress-track: rgba(107, 114, 128, 0.3);
+  /* Misc surfaces. The recessed tints track the real canvas/elevated
+     values; they were still mixing the pre-rebrand #08090F and #14161F. */
+  --gradient-purple-start: rgb(var(--color-purple-rgb) / 0.08);
+  --progress-track: rgba(255, 255, 255, 0.1);
   --tooltip-bg: var(--color-bg);
   --inset-bg: var(--color-bg);           /* recessed panels: hashes, code blocks */
-  --inset-bg-30: rgba(8, 9, 15, 0.3);    /* tx summary box */
-  --inset-bg-50: rgba(8, 9, 15, 0.5);    /* block tx rows */
-  --inset-panel: rgba(20, 22, 31, 0.5);  /* scan progress */
+  --inset-bg-30: rgba(11, 12, 14, 0.3);  /* tx summary box */
+  --inset-bg-50: rgba(11, 12, 14, 0.5);  /* block tx rows */
+  --inset-panel: rgba(25, 27, 31, 0.5);  /* scan progress */
   --raised-bg: var(--color-elevated);    /* docs sidebar, card-bg */
   --decrypt-bg: var(--color-bg);
-  --sticky-header-bg: rgba(8, 9, 15, 0.95);
-  --warning-box-text: #FBBF24;
-  --warning-box-border: rgba(251, 191, 36, 0.25);
+  --sticky-header-bg: var(--color-bg);
+  --warning-box-text: var(--warning);
+  --warning-box-bg: rgb(var(--color-orange-rgb) / 0.08);
+  --warning-box-border: rgb(var(--color-orange-rgb) / 0.25);
 
   /* Decrypt inbox — glass surface matching .card-glass, not a standalone slate palette */
   --inbox-container-bg: var(--card-glass-bg);
   --inbox-panel: var(--card-glass-bg);
   --inbox-chrome: var(--raised-bg);
   --inbox-message-bg: var(--glass-4);
-  --inbox-message-header-bg: linear-gradient(90deg, var(--glass-4) 0%, var(--glass-2) 100%);
+  --inbox-message-header-bg: var(--glass-3);
   --inbox-message-body-bg: var(--glass-2);
 
   /* Privacy visuals */
-  --risk-connector-color: rgba(167, 139, 250, 0.25);
+  --risk-connector-color: rgb(var(--color-purple-rgb) / 0.25);
   --reactflow-bg-opacity: 1;
+
 }
 
 /* Light Theme Overrides */
 .light {
-  --color-bg: #FAFBFE;
-  --color-elevated: #F5F6FA;
-  --color-surface: #F7F8FC;
-  --color-surface-solid: #F5F6FA;
-  --color-hover: #F0F1F5;
-  --color-active: #E8EAF0;
-  --color-border: rgba(0, 0, 0, 0.08);
-  --color-border-subtle: rgba(0, 0, 0, 0.04);
-  --color-border-rgb: 216 222 230;
+  --color-bg: #F6F7F9;
+  --color-elevated: #EFF1F4;
+  --color-surface: #FFFFFF;
+  --color-surface-solid: #FFFFFF;
+  /* Same intent as dark: a quieter step away from the canvas. */
+  --color-hover: #F0F2F6;
+  --color-active: #E7EAEF;
+  /* Quieter than the previous #CED3DB, which outlined every container and
+     made light mode read as a grey wireframe. Elevation now comes from
+     --card-shadow plus the white top edge. */
+  --color-border: #DFE3E9;
+  --color-border-subtle: #EDEFF3;
+  --color-border-rgb: 223 227 233;
 
   /* Brand — RGB channels for Tailwind opacity support */
-  --color-cyan-rgb: 0 151 178;
-  --color-green-rgb: 5 150 105;
-  --color-yellow-rgb: 212 155 0;
-  --color-purple-rgb: 124 58 237;
-  --color-orange-rgb: 194 65 12;
+  --color-gold-rgb: 219 158 0;
+  --color-shielded-rgb: 219 158 0;
+  --color-shielded-ink: #876000;
+  --color-ironwood-rgb: 186 138 26;
+  --color-ironwood-ink: #805D10;
+  --color-green-rgb: 20 115 75;
+  --color-yellow-rgb: 219 158 0;
+  --color-purple-rgb: 112 64 181;
+  --tx-transparent-rgb: 104 117 135;
+  --tx-mixed-rgb: 52 65 84;
+  --color-orange-rgb: 163 74 22;
 
   /* Brand — hex shortcuts for use in custom CSS */
-  --color-cyan: #0097B2;
-  --color-cyan-glow: #0891B2;
-  --color-cyan-muted: #0891B2;
-  --color-green: #059669;
-  --color-yellow: #D49B00;
-  --color-purple: #7C3AED;
-  --color-purple-glow: #8B5CF6;
-  --color-orange: #C2410C;
+  --color-gold-accent: #DB9E00;
+  /* Owner-requested brand gold, including text. Lower contrast than body text on white. */
+  --color-gold: #DB9E00;
+  --color-gold-glow: #DB9E00;
+  --color-gold-muted: #DB9E00;
+  --color-green: #14734B;
+  --color-yellow: #DB9E00;
+  --color-purple: #7040B5;
+  --color-purple-glow: #7040B5;
+  --color-orange: #A34A16;
 
   /* Semantic flow colors — shield/deshield (matches ShieldFlowBadge) */
   --color-shielding: var(--color-green);
   --color-deshielding: var(--color-orange);
-  --color-shielded-state: var(--color-purple);
+  --color-shielded-state: rgb(var(--color-shielded-rgb));
 
   /* Semantic status colors — darker for light-surface contrast */
-  --danger: #DC2626;
-  --warning: #C2410C;
+  --danger: #B13D38;
+  --danger-rgb: 177 61 56;
+  --warning: #A34A16;
 
   /* Light mode — clean, no ambient gradients */
   --body-ambient: none;
 
   /* Text - high contrast for readability */
-  --color-text-primary: #0F172A;
-  --color-text-secondary: #475569;
-  --color-text-muted: #64748B;
+  --color-text-primary: #171A20;
+  --color-text-secondary: #444B55;
+  --color-text-muted: #59616D;
 
   /* Node map */
   --color-map-dot: rgba(148, 163, 184, 0.5);
@@ -446,71 +480,77 @@
   --glass-12: rgba(0, 0, 0, 0.12);
   --glass-18: rgba(0, 0, 0, 0.18);
 
-  /* Shadows - minimal, borders do the work */
-  --shadow-card: none;
-  --shadow-card-hover: 0 1px 3px rgba(0, 0, 0, 0.06);
+  /* Shadows — soft, neutral-cool ambient occlusion. No colored glow. */
+  --shadow-card: 0 1px 1px rgba(17, 22, 30, 0.04), 0 10px 24px -18px rgba(17, 22, 30, 0.2);
+  --shadow-card-hover: 0 1px 2px rgba(17, 22, 30, 0.06), 0 14px 30px -18px rgba(17, 22, 30, 0.26);
   --shadow-glow: none;
   --shadow-glow-lg: none;
 
   /* ===== COMPONENT TOKENS (light theme) ===== */
 
-  /* Cards — subtle borders, minimal elevation */
-  --card-border: rgba(0, 0, 0, 0.06);
-  --card-border-hover: rgba(0, 0, 0, 0.1);
+  /* Cards — white surface lifted off the canvas by shadow, with a white
+     top edge so the hairline reads as a rounded edge rather than an outline. */
+  /* Same intent as dark: let a little of the canvas through the panel. */
+  --card-surface: rgb(255 255 255 / 0.5);
+  --card-border: var(--color-border);
+  --card-border-hover: #CBD2DC;
+  --card-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.8);
   --card-blur: none;
-  --card-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
-  --card-shadow-hover: 0 2px 4px rgba(0, 0, 0, 0.05);
-  --card-glass-bg: rgba(255, 255, 255, 0.6);
-  --card-glass-blur: blur(20px);
-  --card-glass-border: rgba(0, 0, 0, 0.06);
+  --card-shadow: var(--shadow-card);
+  --card-shadow-hover: var(--shadow-card-hover);
+  --card-glass-bg: var(--card-surface);
+  --card-glass-blur: none;
+  --card-glass-border: var(--color-border);
   --card-dark-bg: var(--color-bg);
   --card-dark-border: rgba(0, 0, 0, 0.06);
-  --card-featured-border: rgba(14, 116, 144, 0.2);
-  --card-interactive-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
-  --card-interactive-border-hover: var(--color-cyan);
+  --card-featured-border: rgb(var(--color-gold-rgb) / 0.2);
+  --card-interactive-shadow: var(--shadow-card);
+  --card-interactive-border-hover: var(--card-border-hover);
   --divider: rgba(0, 0, 0, 0.06);
 
-  /* Badges — deeper tints for light-surface contrast */
-  --badge-cyan-bg: rgba(14, 116, 144, 0.12);
-  --badge-purple-bg: rgba(124, 58, 237, 0.12);
-  --badge-green-bg: rgba(4, 120, 87, 0.14);
-  --badge-orange-bg: rgba(194, 65, 12, 0.12);
-  --badge-amber-bg: rgba(217, 119, 6, 0.12);
-  --badge-danger-bg: rgba(220, 38, 38, 0.12);
-  --badge-amber-text: #D97706;
+  /* Badges — derived from the same brand channels as their text and icons. */
+  --badge-gold-bg: rgb(var(--color-gold-rgb) / 0.12);
+  --badge-purple-bg: rgb(var(--color-purple-rgb) / 0.12);
+  --badge-green-bg: rgb(var(--color-green-rgb) / 0.12);
+  --badge-orange-bg: rgb(var(--color-orange-rgb) / 0.12);
+  --badge-amber-bg: rgb(var(--color-gold-rgb) / 0.12);
+  --badge-danger-bg: rgb(var(--danger-rgb) / 0.12);
+  --badge-amber-text: var(--color-gold);
 
   /* Buttons */
-  --btn-primary-bg: linear-gradient(180deg, #0C7792 0%, #155E75 100%);
-  --btn-primary-bg-hover: linear-gradient(180deg, #155E75 0%, #164E63 100%);
-  --btn-primary-text: #FFFFFF;
-  --btn-primary-shadow-hover: 0 2px 8px rgba(14, 116, 144, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  --btn-primary-bg: #DB9E00;
+  --btn-primary-bg-hover: #DB9E00;
+  --btn-primary-text: #171A20;
+  --btn-primary-shadow-hover: none;
 
-  /* Accent interaction states */
-  --accent-soft: rgba(14, 116, 144, 0.08);
-  --accent-soft-active: rgba(14, 116, 144, 0.1);
-  --focus-ring: 0 0 0 3px rgba(14, 116, 144, 0.1);
+  /* Accent interaction states — derived from the brand gold so the focus
+     ring matches the border it sits behind (was the retired #866008). */
+  --accent-soft: rgb(var(--color-gold-rgb) / 0.1);
+  --accent-soft-active: rgb(var(--color-gold-rgb) / 0.14);
+  --focus-ring: 0 0 0 3px rgb(var(--color-gold-rgb) / 0.18);
 
   /* Filter groups */
-  --filter-danger-bg: rgba(220, 38, 38, 0.06);
-  --filter-warning-bg: rgba(245, 158, 11, 0.06);
-  --amber-strong: #D97706;
+  --filter-danger-bg: rgb(var(--danger-rgb) / 0.06);
+  --filter-warning-bg: rgb(var(--color-orange-rgb) / 0.06);
+  --amber-strong: var(--color-gold);
 
   /* App chrome — matches page bg for a seamless edge */
-  --navbar-bg: rgba(250, 251, 254, 0.85);
+  --navbar-bg: var(--color-bg);
   --chrome-bg: var(--color-bg);
-  --nav-accent-hover: #0C7792;
+  --nav-accent-hover: var(--color-gold);
 
-  /* Search bar accessories */
-  --kbd-bg: #F3F4F6;
-  --kbd-border: #E5E7EB;
-  --kbd-text: #6B7280;
-  --tag-bg: #F9FAFB;
-  --tag-border: #E5E7EB;
-  --tag-text: #4B5563;
-  --tag-bg-hover: #F3F4F6;
+  /* Search bar accessories — the old raw Tailwind greys ran cooler than the
+     light neutrals, so keys and example tags read as a foreign palette. */
+  --kbd-bg: var(--color-hover);
+  --kbd-border: var(--color-border);
+  --kbd-text: var(--color-text-muted);
+  --tag-bg: var(--color-bg);
+  --tag-border: var(--color-border);
+  --tag-text: var(--color-text-secondary);
+  --tag-bg-hover: var(--color-hover);
 
   /* Popovers, dropdowns, modals */
-  --popover-bg: rgba(255, 255, 255, 0.95);
+  --popover-bg: var(--color-surface-solid);
   --popover-border: rgba(0, 0, 0, 0.08);
   --suggestions-shadow: 0 4px 16px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(0, 0, 0, 0.04);
   --dropdown-shadow: 0 4px 16px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(0, 0, 0, 0.04);
@@ -518,7 +558,7 @@
   --modal-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
 
   /* Misc surfaces */
-  --gradient-purple-start: rgba(124, 58, 237, 0.06);
+  --gradient-purple-start: rgb(var(--color-purple-rgb) / 0.06);
   --progress-track: rgba(0, 0, 0, 0.1);
   --tooltip-bg: var(--color-surface);
   --inset-bg: var(--color-elevated);
@@ -527,21 +567,23 @@
   --inset-panel: var(--color-elevated);
   --raised-bg: var(--color-elevated);
   --decrypt-bg: var(--color-surface);
-  --sticky-header-bg: rgba(255, 255, 255, 0.95);
-  --warning-box-text: #B45309;
-  --warning-box-border: rgba(180, 83, 9, 0.25);
+  --sticky-header-bg: var(--color-bg);
+  --warning-box-text: var(--warning);
+  --warning-box-bg: rgb(var(--color-orange-rgb) / 0.06);
+  --warning-box-border: rgb(var(--color-orange-rgb) / 0.25);
 
   /* Decrypt inbox — same glass tokens as dark theme, values flip automatically */
   --inbox-container-bg: var(--card-glass-bg);
   --inbox-panel: var(--card-glass-bg);
   --inbox-chrome: var(--raised-bg);
   --inbox-message-bg: var(--glass-4);
-  --inbox-message-header-bg: linear-gradient(90deg, var(--glass-4) 0%, var(--glass-2) 100%);
+  --inbox-message-header-bg: var(--glass-3);
   --inbox-message-body-bg: var(--glass-2);
 
   /* Privacy visuals */
-  --risk-connector-color: rgba(124, 58, 237, 0.4);
+  --risk-connector-color: rgb(var(--color-purple-rgb) / 0.4);
   --reactflow-bg-opacity: 0.5;
+
 }
 
 @layer base {
@@ -567,6 +609,14 @@
     z-index: 9999;
   } */
 
+  table, .font-mono {
+    font-variant-numeric: tabular-nums lining-nums;
+  }
+
+  /* Browser defaults shrink small/sup/sub below the 12px caption minimum. */
+  small { font-size: max(0.8em, var(--text-caption)); }
+  sup, sub { font-size: max(0.75em, var(--text-caption)); }
+
   code {
     @apply font-mono;
   }
@@ -578,31 +628,32 @@
 
   /* Better focus outlines */
   :focus-visible {
-    outline: 2px solid var(--color-cyan);
+    outline: 2px solid var(--color-gold);
     outline-offset: 2px;
   }
 }
 
 @layer components {
   /* ===== UNIFIED CARD SYSTEM ===== */
-  /* Card System - Apple-inspired with shadow-based elevation */
+  /* Card System — shadow-based elevation plus a lit top edge. The highlight
+     is listed last so it composites over the ambient shadow. */
   .card {
-    background: var(--color-surface);
+    background: var(--card-surface);
     backdrop-filter: var(--card-blur);
     -webkit-backdrop-filter: var(--card-blur);
     border: 1px solid var(--card-border);
-    border-radius: 16px;
+    border-radius: var(--radius-lg);
     padding: var(--space-6);
     overflow: visible;
     min-width: 0;
-    box-shadow: var(--card-shadow);
+    box-shadow: var(--card-shadow), var(--card-highlight);
     transition: border-color 250ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 250ms cubic-bezier(0.16, 1, 0.3, 1), transform 250ms cubic-bezier(0.16, 1, 0.3, 1), background-color 250ms cubic-bezier(0.16, 1, 0.3, 1);
   }
 
   /* Subtle shadow enhancement on hover - no transform (that's for .card-interactive) */
   .card:hover:not(.card-static) {
     border-color: var(--card-border-hover);
-    box-shadow: var(--card-shadow-hover);
+    box-shadow: var(--card-shadow-hover), var(--card-highlight);
   }
 
   /* Card variants - used by legacy code and Card component */
@@ -611,21 +662,19 @@
     backdrop-filter: var(--card-glass-blur);
     -webkit-backdrop-filter: var(--card-glass-blur);
     border: 1px solid var(--card-glass-border);
-    border-radius: 20px;
+    border-radius: var(--radius-xl);
     padding: var(--space-6);
+    box-shadow: var(--card-shadow), var(--card-highlight);
     transition: border-color 250ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 250ms cubic-bezier(0.16, 1, 0.3, 1), transform 250ms cubic-bezier(0.16, 1, 0.3, 1), background-color 250ms cubic-bezier(0.16, 1, 0.3, 1);
   }
 
+  /* Dark inset panels are containers; child controls own hover feedback. */
   .card-dark {
     background: var(--card-dark-bg);
     border: 1px solid var(--card-dark-border);
-    border-radius: 16px;
+    border-radius: var(--radius-lg);
     padding: var(--space-6);
     transition: border-color 250ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 250ms cubic-bezier(0.16, 1, 0.3, 1), transform 250ms cubic-bezier(0.16, 1, 0.3, 1), background-color 250ms cubic-bezier(0.16, 1, 0.3, 1);
-  }
-
-  .card-dark:hover {
-    border-color: rgba(0, 212, 255, 0.2);
   }
 
   /* ===== BADGES ===== */
@@ -635,7 +684,7 @@
     align-items: center;
     gap: var(--space-1);
     padding: var(--space-1) var(--space-2);
-    font-size: 11px;
+    font-size: 0.75rem;
     font-weight: 500;
     letter-spacing: 0.02em;
     border-radius: var(--radius-sm);
@@ -656,10 +705,13 @@
     text-align: center;
   }
 
-  .badge-cyan {
-    background: var(--badge-cyan-bg);
-    color: var(--color-cyan);
+  .badge-gold {
+    background: var(--badge-gold-bg);
+    color: var(--color-gold);
   }
+
+  .badge-shielded { background: rgb(var(--color-shielded-rgb) / 0.12); color: var(--color-shielded-ink); }
+  .badge-ironwood { background: rgb(var(--color-ironwood-rgb) / 0.12); color: var(--color-ironwood-ink); }
 
   .badge-purple {
     background: var(--badge-purple-bg);
@@ -721,9 +773,12 @@
     color: var(--color-text-primary);
   }
 
-  .badge-subtle.badge-cyan .badge-icon {
-    color: var(--color-cyan);
+  .badge-subtle.badge-gold .badge-icon {
+    color: var(--color-gold);
   }
+
+  .badge-subtle.badge-shielded .badge-icon { color: var(--color-shielded-ink); }
+  .badge-subtle.badge-ironwood .badge-icon { color: var(--color-ironwood-ink); }
 
   .badge-subtle.badge-purple .badge-icon {
     color: var(--color-purple);
@@ -796,7 +851,7 @@
 
   .btn-primary:hover:not(:disabled) {
     background: var(--btn-primary-bg-hover);
-    transform: translateY(-1px);
+    transform: none;
     box-shadow: var(--btn-primary-shadow-hover);
   }
 
@@ -812,8 +867,8 @@
 
   .btn-secondary:hover:not(:disabled) {
     background: var(--color-hover);
-    border-color: var(--color-cyan);
-    color: var(--color-cyan);
+    border-color: var(--color-gold);
+    color: var(--color-gold);
   }
 
   .btn-ghost {
@@ -822,19 +877,19 @@
   }
 
   .btn-ghost:hover:not(:disabled) {
-    color: var(--color-cyan);
+    color: var(--color-gold);
     background: var(--accent-soft);
   }
 
   .btn-danger {
-    background: rgba(239, 68, 68, 0.1);
-    color: #EF4444;
-    border: 1px solid rgba(239, 68, 68, 0.25);
+    background: rgb(var(--danger-rgb) / 0.1);
+    color: var(--danger);
+    border: 1px solid rgb(var(--danger-rgb) / 0.25);
   }
 
   .btn-danger:hover:not(:disabled) {
-    background: rgba(239, 68, 68, 0.15);
-    border-color: rgba(239, 68, 68, 0.4);
+    background: rgb(var(--danger-rgb) / 0.15);
+    border-color: rgb(var(--danger-rgb) / 0.4);
   }
 
   .btn-icon-only {
@@ -870,7 +925,7 @@
   /* ===== FILTER GROUPS — Terminal Aesthetic ===== */
   /* Segmented pill control — the one tab/filter pattern app-wide.
      Matches the period selectors on /mining and the LIVE/PAUSED toggle
-     on /mempool. Active option = cyan tint pill. */
+     on /mempool. Active option = gold tint pill. */
   .filter-group {
     display: inline-flex;
     gap: 0;
@@ -881,8 +936,8 @@
 
   .filter-btn {
     padding: 4px 10px;
-    font-size: 11px;
-    font-family: var(--font-mono), monospace;
+    font-size: 0.75rem;
+    font-family: var(--font-geist-mono), monospace;
     font-weight: 500;
     letter-spacing: 0.03em;
     text-transform: uppercase;
@@ -902,7 +957,7 @@
   .filter-btn-active {
     background: var(--color-cipher-bg);
     color: var(--color-text-primary);
-    font-weight: 700;
+    font-weight: 600;
     box-shadow: 0 1px 2px rgb(0 0 0 / 0.15);
     outline: 1px solid var(--glass-12);
   }
@@ -910,13 +965,13 @@
   .filter-btn-danger {
     background: var(--filter-danger-bg);
     color: var(--danger);
-    font-weight: 700;
+    font-weight: 600;
   }
 
   .filter-btn-warning {
     background: var(--filter-warning-bg);
     color: var(--amber-strong);
-    font-weight: 700;
+    font-weight: 600;
   }
 
   @media (min-width: 640px) {
@@ -960,6 +1015,21 @@
     background-color: var(--navbar-bg);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
+  }
+
+  /* ===== ONE CHROME BAND =====
+     The navbar, stats strip and notice all paint --navbar-bg, so the
+     hairlines between them only chopped a single surface into three
+     look-alike strips. They now read as one band with one closing edge,
+     owned by whichever element is last — the notice is dismissible, so
+     the stats strip takes the edge back when no notice follows it. */
+  .stats-bar,
+  .ironwood-banner {
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .stats-bar:has(~ .ironwood-banner) {
+    border-bottom-color: transparent;
   }
 
   /* Block page fact-row sizing (BlockFactsCard) — only meaningful once those
@@ -1008,18 +1078,6 @@
       flex: 1 1 auto;
       min-width: 220px;
     }
-  }
-
-  .page-section-nav {
-    /* Same chrome treatment as .stats-bar/.ironwood-banner directly above it —
-       it previously used --color-border-subtle (rgba(255,255,255,0.04), almost
-       invisible) instead of --color-border, so even though it was already
-       full-width in the DOM, it had no visible edge and read as a floating
-       pill rather than a continuous bar. */
-    background-color: var(--navbar-bg);
-    border-color: var(--color-border);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
   }
 
   /* ===== NAVBAR ===== */
@@ -1076,6 +1134,91 @@
     border-color: var(--color-border-subtle);
   }
 
+  /* Transaction composition is separate from flow direction and pool identity.
+     Both maps consume these roles; orange is reserved for unshielding. */
+  [data-type='transparent'] {
+    --tx-category-rgb: var(--tx-transparent-rgb);
+  }
+  [data-type='mixed'] {
+    --tx-category-rgb: var(--tx-mixed-rgb);
+  }
+  [data-type='shielded'] {
+    --tx-category-rgb: var(--tx-shielded-rgb);
+  }
+
+  .tx-category-label { color: var(--color-text-muted); }
+  .tx-category-label[data-type='shielded'] { color: var(--color-shielded-ink); }
+
+  .tx-category-swatch {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    flex-shrink: 0;
+    background: rgb(var(--tx-category-rgb));
+  }
+
+  /* Ambient/fullscreen views deliberately retain their dark canvas. */
+  .mempool-visualization[data-immersive='true'] {
+    --color-gold-rgb: 248 188 33;
+    --color-gold-accent: #F8BC21;
+    --color-shielded-rgb: 248 188 33;
+    --color-shielded-ink: #F8BC21;
+    --color-ironwood-rgb: 232 207 120;
+    --color-ironwood-ink: #E8CF78;
+    --tx-transparent-rgb: 161 169 173;
+    --tx-mixed-rgb: 100 110 125;
+    --color-purple-rgb: 182 160 224;
+    --tx-shielded-rgb: var(--color-shielded-rgb);
+    --color-text-primary: #F1F3F5;
+    --color-text-secondary: #C2C7CF;
+    --color-text-muted: #9CA4B0;
+    --color-surface-solid: #111316;
+    --popover-bg: #111316;
+    --inset-bg: #0B0C0E;
+    --color-border: #24272D;
+  }
+
+  /* ===== MEMPOOL TREEMAP ===== */
+  .treemap-surface {
+    background: var(--inset-bg);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+  }
+
+  .treemap-cell {
+    fill: rgb(var(--tx-category-rgb));
+    opacity: 0.88;
+    transition: opacity var(--duration-fast) var(--ease-out-expo);
+  }
+
+  .treemap-cell:hover { opacity: 1; }
+
+  .chart-tooltip-surface {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    padding: 12px 16px;
+    color: var(--color-text-primary);
+    font-family: var(--font-geist-mono), monospace;
+    font-size: 12px;
+    line-height: 1.5;
+    box-shadow: none;
+  }
+
+  .treemap-tooltip {
+    position: absolute;
+    transform: translate(-50%, calc(-100% - 10px));
+    pointer-events: none;
+    z-index: 10;
+    padding: 12px 16px;
+    white-space: nowrap;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    box-shadow: none;
+  }
+
+
   /* ===== THEME TOGGLE ===== */
   .theme-toggle-btn {
     background-color: transparent;
@@ -1124,7 +1267,7 @@
 
   .search-input:focus {
     outline: none;
-    border-color: var(--color-cyan);
+    border-color: var(--color-gold);
     box-shadow: var(--focus-ring);
   }
 
@@ -1136,8 +1279,8 @@
   /* Keyboard shortcut hints */
   .kbd-hint {
     padding: 2px 6px;
-    font-size: 10px;
-    font-family: var(--font-mono), monospace;
+    font-size: 0.75rem;
+    font-family: var(--font-geist-mono), monospace;
     border-radius: 4px;
     background-color: var(--kbd-bg);
     border: 1px solid var(--kbd-border);
@@ -1147,8 +1290,8 @@
   /* Example tags under search */
   .example-tag {
     padding: 3px 10px;
-    font-size: 10px;
-    font-family: var(--font-mono), monospace;
+    font-size: 0.75rem;
+    font-family: var(--font-geist-mono), monospace;
     border-radius: 5px;
     transition: color 150ms ease, background-color 150ms ease, border-color 150ms ease, transform 150ms ease;
     display: inline-flex;
@@ -1188,7 +1331,7 @@
 
   .suggestion-item-active {
     background-color: var(--accent-soft-active);
-    color: var(--color-cyan);
+    color: var(--color-gold);
   }
 
   .suggestion-label {
@@ -1216,7 +1359,7 @@
 
   /* ===== GRADIENT CARDS ===== */
   .gradient-card-purple {
-    background: linear-gradient(135deg, var(--gradient-purple-start) 0%, var(--color-surface) 100%);
+    background: var(--color-surface);
     border-color: rgb(var(--color-purple-rgb) / 0.2);
   }
 
@@ -1293,7 +1436,7 @@
   /* ===== WARNINGS ===== */
   .warning-box {
     color: var(--warning-box-text);
-    background-color: rgba(251, 191, 36, 0.08);
+    background-color: var(--warning-box-bg);
     border: 1px solid var(--warning-box-border);
   }
 
@@ -1382,7 +1525,7 @@
 
   .card-featured {
     padding: 32px;
-    border-radius: 20px;
+    border-radius: var(--radius-xl);
     border: 1px solid var(--card-featured-border);
   }
 
@@ -1391,7 +1534,7 @@
   }
 
   .card-interactive:hover {
-    transform: translateY(-2px);
+    transform: none;
     border-color: var(--card-interactive-border-hover);
     box-shadow: var(--card-interactive-shadow);
   }
@@ -1453,7 +1596,7 @@
     width: 100%;
     padding: var(--space-3) var(--space-4);
     font-size: 14px;
-    font-family: var(--font-mono), monospace;
+    font-family: var(--font-geist-mono), monospace;
     color: var(--color-text-primary);
     background-color: var(--color-bg);
     border: 1px solid var(--color-border);
@@ -1467,16 +1610,16 @@
 
   .input-field:focus {
     outline: none;
-    border-color: var(--color-cyan);
+    border-color: var(--color-gold);
     box-shadow: var(--focus-ring);
   }
 
   .input-field.input-error {
-    border-color: #EF4444;
+    border-color: var(--danger);
   }
 
   .input-field.input-error:focus {
-    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+    box-shadow: 0 0 0 3px rgb(var(--danger-rgb) / 0.1);
   }
 
   .input-with-icon-left {
@@ -1511,7 +1654,7 @@
 
   .input-error-message {
     font-size: 12px;
-    color: #EF4444;
+    color: var(--danger);
   }
 
   .textarea-field {
@@ -1519,7 +1662,7 @@
     min-height: 120px;
     padding: var(--space-3) var(--space-4);
     font-size: 14px;
-    font-family: var(--font-mono), monospace;
+    font-family: var(--font-geist-mono), monospace;
     color: var(--color-text-primary);
     background-color: var(--color-bg);
     border: 1px solid var(--color-border);
@@ -1534,7 +1677,7 @@
 
   .textarea-field:focus {
     outline: none;
-    border-color: var(--color-cyan);
+    border-color: var(--color-gold);
     box-shadow: var(--focus-ring);
   }
 
@@ -1559,7 +1702,7 @@
     padding: var(--space-3) var(--space-4);
     padding-left: 44px;
     font-size: 14px;
-    font-family: var(--font-mono), monospace;
+    font-family: var(--font-geist-mono), monospace;
     color: var(--color-text-primary);
     background-color: var(--color-surface);
     border: 1px solid var(--color-border);
@@ -1573,8 +1716,8 @@
 
   .search-input-field:focus {
     outline: none;
-    border-color: var(--color-cyan);
-    box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.1);
+    border-color: var(--color-gold);
+    box-shadow: var(--focus-ring);
   }
 
   .search-input-clear {
@@ -1620,32 +1763,34 @@
   }
 
   .alert-info {
-    background: rgba(0, 212, 255, 0.08);
-    border: 1px solid rgba(0, 212, 255, 0.2);
-    color: var(--color-cyan);
+    background: rgb(var(--color-gold-rgb) / 0.08);
+    border: 1px solid rgb(var(--color-gold-rgb) / 0.2);
+    color: var(--color-gold);
   }
 
   .alert-success {
-    background: rgba(0, 230, 118, 0.08);
-    border: 1px solid rgba(0, 230, 118, 0.2);
+    background: rgb(var(--color-green-rgb) / 0.08);
+    border: 1px solid rgb(var(--color-green-rgb) / 0.2);
     color: var(--color-green);
   }
 
   .alert-warning {
-    background: rgba(255, 107, 53, 0.08);
-    border: 1px solid rgba(255, 107, 53, 0.2);
+    background: rgb(var(--color-orange-rgb) / 0.08);
+    border: 1px solid rgb(var(--color-orange-rgb) / 0.2);
     color: var(--color-orange);
   }
 
   .alert-error {
-    background: rgba(239, 68, 68, 0.08);
-    border: 1px solid rgba(239, 68, 68, 0.2);
-    color: #EF4444;
+    background: rgb(var(--danger-rgb) / 0.08);
+    border: 1px solid rgb(var(--danger-rgb) / 0.2);
+    color: var(--danger);
   }
 
 }
 
 @layer utilities {
+  .text-cipher-shielded { color: var(--color-shielded-ink); }
+  .text-cipher-ironwood { color: var(--color-ironwood-ink); }
   /* Cypherpunk scan line animation */
   @keyframes scan {
     0% {
@@ -1729,3 +1874,251 @@
     }
   }
 }
+
+/* Assay identity and shared information surfaces. */
+:root {
+  --color-brand-mark: #F8BC21;
+  /* Which logotype variant shows. Dark is the default theme. */
+  --brand-on-dark: 1;
+  --brand-on-light: 0;
+}
+
+  /* Logotype. This artwork carries symmetric transparent padding, so its
+     glyphs occupy 57% of the image height where the previous one filled
+     96% — 124px matched the old optical size exactly, and 114px is the
+     slightly smaller setting the owner preferred. Height follows the
+     422x98 aspect ratio. */
+  .brand-logo { position: relative; display: inline-block; width: 114px; line-height: 0; flex-shrink: 0; }
+  .brand-logo img { width: 100%; height: auto; display: block; }
+  .brand-logo.brand-logo-compact { width: 98px; }
+  /* Two pixel-aligned variants stacked; the theme picks one. Swapped by CSS
+     variable rather than in JS so SSR emits the right one and there is no
+     flash or hydration mismatch. */
+  .brand-logo .brand-logo-on-dark { opacity: var(--brand-on-dark, 1); }
+  .brand-logo .brand-logo-on-light { position: absolute; inset: 0; opacity: var(--brand-on-light, 0); }
+  .light .brand-logo { --brand-on-dark: 0; --brand-on-light: 1; }
+  .brand-logo[data-tone="dark"] { --brand-on-dark: 1; --brand-on-light: 0; }
+  .brand-logo[data-tone="light"] { --brand-on-dark: 0; --brand-on-light: 1; }
+  /* Hero band — spans the document so its substrate reads as a zone rather
+     than a decoration sitting inside the content column. */
+  .home-hero-band { position: relative; padding: 40px 0 36px; }
+
+  /* Brand blocks stay beside the content, never behind text or search. */
+  .hero-block-grid {
+    --hero-cell-size: 28px;
+    --hero-cell-gap: 10px;
+    display: none;
+    position: absolute;
+    right: 32px;
+    top: 50%;
+    transform: translateY(-50%);
+  }
+  .hero-block-cells {
+    display: grid;
+    grid-template-columns: repeat(8, var(--hero-cell-size));
+    gap: var(--hero-cell-gap);
+    pointer-events: none;
+    mask-image:
+      linear-gradient(to right, transparent, #000 28%, #000 72%, transparent),
+      linear-gradient(to bottom, rgb(0 0 0 / 0.3), #000 35%, #000 65%, rgb(0 0 0 / 0.3));
+    mask-composite: intersect;
+  }
+  .hero-block-link {
+    position: absolute;
+    width: var(--hero-cell-size);
+    height: var(--hero-cell-size);
+  }
+  .hero-block-link:focus-visible { outline: 2px solid var(--color-gold); outline-offset: 4px; }
+  .hero-block-tooltip {
+    position: absolute;
+    transform: translate(-50%, -100%);
+    z-index: 1;
+    padding-bottom: 10px;
+    white-space: nowrap;
+    font: 12px/1.6 var(--font-geist-mono);
+  }
+  .hero-block-readout {
+    position: relative;
+    padding: 8px 12px;
+    border: 1px solid var(--color-border);
+    border-radius: 4px;
+    background: var(--color-surface);
+    box-shadow: 0 4px 12px var(--glass-8);
+  }
+  .hero-block-readout::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    bottom: -4px;
+    width: 6px;
+    height: 6px;
+    transform: translateX(-50%) rotate(45deg);
+    background: var(--color-surface);
+    border-right: 1px solid var(--color-border);
+    border-bottom: 1px solid var(--color-border);
+  }
+  .hero-block-cell {
+    position: relative;
+    width: var(--hero-cell-size);
+    height: var(--hero-cell-size);
+    border: 1px solid color-mix(in srgb, var(--color-border) 70%, var(--color-text-muted));
+  }
+  .hero-block-cell::after {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    background: var(--color-gold);
+    opacity: 0;
+  }
+  .hero-block-cell[data-active]::after { opacity: 0.72; }
+  .hero-block-cell[data-pulse]::after { animation: hero-block-pulse 4.2s ease-in-out both; }
+  @keyframes hero-block-pulse {
+    0%, 100% { opacity: 0.72; }
+    40%, 60% { opacity: 1; }
+  }
+  @media (min-width: 1024px) {
+    .hero-block-grid { display: block; }
+    .home-command { max-width: calc(100% - 334px); }
+    .home-introduction { max-width: calc(100% - 334px); }
+  }
+  @media (min-width: 1280px) {
+    .hero-block-grid { --hero-cell-size: 36px; --hero-cell-gap: 12px; }
+    .home-command { max-width: calc(100% - 412px); }
+    .home-introduction { max-width: calc(100% - 412px); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .hero-block-cell[data-pulse]::after { animation: none; }
+  }
+
+  /* Left-aligned on the container edge, matching the feeds below. */
+  .home-hero { text-align: left; }
+  /* A step above type-section's 16px/500 so it carries as the page
+     heading, while staying far below a display title. */
+  .home-hero h1 { font-size: 20px; font-weight: 600; letter-spacing: -0.02em; }
+  .home-introduction, .home-command { min-width: 0; }
+  .home-hero-intro { max-width: 62ch; margin: 8px 0 0; font-size: 14px; line-height: 1.6; }
+  .home-command { width: min(100%, 720px); margin-top: 18px; text-align: left; }
+  .home-hero form { width: 100%; max-width: none; margin: 0; padding: 0; }
+  /* 50px, not 60px: the command field should be the clearly dominant
+     control in the band without becoming the largest object on the page. */
+  /* Keep search an opaque, clearly defined control. */
+  .home-hero .search-input-hero { min-height: 50px; background: var(--color-surface); font-size: 14px; }
+  /* The hero band owns the space above; the body wrapper adds the rest. */
+  .home-body { padding-top: 32px; }
+  .home-feeds { margin-top: 0; }
+  .home-feeds > div { min-width: 0; }
+  .home-page .home-table-section h2 { text-transform: lowercase; letter-spacing: -0.02em; font-size: 0.875rem; font-weight: 500; color: var(--color-text-primary); }
+  .home-page table th { font-family: var(--font-geist-mono); font-weight: 500; font-size: 0.75rem; letter-spacing: 0.04em; }
+  .home-page table td { border-color: var(--color-border-subtle); }
+  .home-page table tbody tr:last-child td { border-bottom: 0; }
+  .home-table-section .card th:first-child, .home-table-section .card td:first-child { padding-left: 20px; }
+  .home-table-section .card th:last-child, .home-table-section .card td:last-child { padding-right: 20px; }
+  .redacted-blocks { display: inline-flex; gap: 2px; font-size: 0.75rem; line-height: 1; }
+  .redacted-blocks > span { display: inline-block; width: 0.65em; text-align: center; }
+  .recharts-text { font-family: var(--font-geist-mono); font-variant-numeric: tabular-nums; }
+  .recharts-default-tooltip { box-shadow: none; font-family: var(--font-geist-mono); }
+  .chart-signature { text-align: right; font: 0.75rem/1.5 var(--font-geist-mono); color: var(--color-text-muted); padding-top: 8px; }
+  @media (max-width: 640px) {
+    .home-hero-band { padding: 26px 0 24px; }
+    .home-hero h1 { font-size: 18px; }
+    .home-hero-intro { font-size: 13px; }
+    .home-command { margin-top: 18px; }
+    .home-body { padding-top: 24px; }
+    .home-hero .search-input-hero { font-size: 12px; }
+    .home-hero .search-input-hero { min-height: 46px; }
+  }
+
+/* Explicit roles override page-specific utility combinations. Layout stays local. */
+.type-page { font-size: var(--text-page); line-height: var(--text-page--line-height); font-weight: 500; letter-spacing: -0.035em; text-wrap: balance; }
+.type-section { font-size: var(--text-section); line-height: var(--text-section--line-height); font-weight: 500; letter-spacing: -0.015em; }
+.type-label { font: 500 var(--text-caption)/1.5 var(--font-geist-mono); letter-spacing: 0.035em; }
+.type-metric { font: 500 var(--text-metric)/1.2 var(--font-geist-mono); font-variant-numeric: tabular-nums lining-nums; letter-spacing: -0.035em; }
+.type-metric-compact { font-size: 1.5rem; }
+.type-data { font: 400 var(--text-data)/1.5 var(--font-geist-mono); font-variant-numeric: tabular-nums lining-nums; }
+.type-prose { font-size: var(--text-body); line-height: 1.65; }
+main table th { font: 500 var(--text-caption)/1.5 var(--font-geist-mono); letter-spacing: 0.035em; }
+main table td { font-variant-numeric: tabular-nums lining-nums; }
+@media (max-width: 639px) {
+  .type-page { font-size: 1.75rem; }
+  .type-metric { font-size: 1.5rem; }
+  .type-metric-compact { font-size: 1.25rem; }
+  /* Prevent automatic iOS zoom when entering a command or identifier. */
+  input:not([type=checkbox]):not([type=radio]):not([type=range]), select, textarea { font-size: 1rem; }
+}
+
+/* Preserve comfortable shared controls on touch devices. */
+@media (pointer: coarse) {
+  .btn, .btn-icon-only { min-height: 44px; }
+  .btn-icon-only { min-width: 44px; }
+}
+
+/* Network landmarks clear the fixed explorer chrome on direct fragment links. */
+.network-section {
+  scroll-margin-top: calc(var(--app-nav-height, 4rem) + var(--app-stats-height, 2.75rem) + var(--app-ironwood-height, 0px) + 1.5rem);
+}
+.cadence-link:hover rect,
+.cadence-link:focus-visible rect {
+  stroke: var(--color-text-primary);
+  stroke-width: 2px;
+}
+
+/* Network overview: one shared frame and column grid for reference and live data. */
+.network-summary-panel { padding: 0; overflow: hidden; }
+.network-summary-grid { display: grid; grid-template-columns: minmax(0, 1fr); }
+.network-summary-grid > div { min-width: 0; padding: 1.25rem; }
+.network-summary-grid > div + div { border-top: 1px solid var(--color-border); }
+.network-protocol-facts > div { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 0.5rem; padding-block: 0.875rem; }
+@media (min-width: 380px) {
+  .network-summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .network-summary-grid > div:nth-child(2) { border-top: 0; }
+  .network-summary-grid > div:nth-child(even) { border-left: 1px solid var(--color-border); }
+  .network-protocol-facts > div { display: block; }
+  .network-protocol-facts dd { margin-top: 0.375rem; }
+}
+@media (min-width: 1024px) {
+  .network-summary-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .network-summary-grid > div { padding-inline: 1.5rem; }
+  .network-summary-grid > div:nth-child(n) { border-top: 0; }
+  .network-summary-grid > div + div { border-left: 1px solid var(--color-border); }
+  .network-live-facts > div { padding-block: 1.5rem; }
+}
+
+/* Protocol references remain compact; the target lives with observed cadence. */
+@media (min-width: 380px) and (max-width: 639px) {
+  .network-protocol-facts { grid-template-columns: minmax(0, 1fr); }
+  .network-protocol-facts > div { display: flex; }
+  .network-protocol-facts > div:nth-child(n) { border-left: 0; }
+  .network-protocol-facts > div + div { border-top: 1px solid var(--color-border); }
+  .network-protocol-facts dd { margin-top: 0; }
+}
+@media (min-width: 640px) {
+  .network-protocol-facts { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .network-protocol-facts > div:nth-child(n) { border-top: 0; }
+  .network-protocol-facts > div + div { border-left: 1px solid var(--color-border); }
+}
+
+/* Technical disclosure and onward navigation are distinct page regions. */
+.network-detail-panel { padding: 0; overflow: hidden; }
+.network-detail-toggle { display: flex; align-items: center; justify-content: space-between; gap: 1.5rem; padding: 1.25rem; cursor: pointer; list-style: none; }
+.network-detail-toggle::-webkit-details-marker { display: none; }
+.network-detail-toggle:hover, .network-related-link:hover { background: var(--color-hover); }
+.network-detail-toggle:focus-visible, .network-related-link:focus-visible { outline: 2px solid var(--color-cipher-gold); outline-offset: -3px; }
+.network-detail-disclosure[open] .network-detail-chevron { transform: rotate(90deg); }
+.network-related-links { display: grid; gap: 1rem; }
+.network-related-link { display: block; min-width: 0; padding: 1rem; border-top: 1px solid var(--color-border); }
+@media (min-width: 768px) {
+  .network-detail-toggle { padding: 1.25rem 1.5rem; }
+  .network-related-links { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.5rem; }
+  .network-related-links--four { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (min-width: 1024px) {
+  .network-related-links--four { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+
+/* Attribution stays out of charts and legends on screen; image exports temporarily reveal it. */
+.chart-signature,
+.chart-export-attribution { display: none; }
+
+/* Legal references use the same quiet link treatment as secondary navigation. */
+.legal-link { color: var(--color-text-primary); text-decoration: underline; text-decoration-color: var(--color-cipher-border); text-underline-offset: 4px; }
+.legal-link:hover { text-decoration-color: currentColor; }

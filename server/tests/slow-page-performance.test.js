@@ -23,6 +23,7 @@ function loadTypeScriptModule(relativePath, imports = {}) {
   const module = { exports: {} };
   const localRequire = (specifier) => {
     if (Object.prototype.hasOwnProperty.call(imports, specifier)) return imports[specifier];
+    if (specifier === '@/lib/api-client') return loadTypeScriptModule('lib/api-client.ts');
     return require(specifier);
   };
   const evaluate = new Function('exports', 'require', 'module', '__filename', '__dirname', output);
@@ -179,13 +180,13 @@ test('all list SSR fetches use chain-tip tagged ISR with deadline', async () => 
   const requests = [];
   const fetchWithDeadline = async (url, init) => {
     requests.push({ url: String(url), init });
-    return new Response(JSON.stringify({
+    return new Response(JSON.stringify(v1Fixture({
       success: true,
       blocks: [],
       transactions: [],
       flows: [],
       pagination: {},
-    }), {
+    })), {
       headers: { 'Content-Type': 'application/json' },
     });
   };
@@ -212,7 +213,7 @@ test('all list SSR fetches use chain-tip tagged ISR with deadline', async () => 
     '@/lib/transaction-list': loadTypeScriptModule('lib/transaction-list.ts'),
   });
   const pages = [
-    loadTypeScriptModule('app/blocks/page.tsx', {
+    loadTypeScriptModule('app/blocks/BlocksPage.tsx', {
       ...commonImports,
       './BlocksClient': { __esModule: true, default: () => null },
     }),
@@ -231,9 +232,9 @@ test('all list SSR fetches use chain-tip tagged ISR with deadline', async () => 
   await pages[1].default({ searchParams: Promise.resolve({ type: 'shielded' }) });
 
   assert.equal(requests.length, 3);
-  assert.ok(requests.some(({ url }) => url.includes('/api/blocks/list?')));
-  assert.ok(requests.some(({ url }) => url.includes('/api/transactions/list?')));
-  assert.ok(requests.some(({ url }) => url.includes('/api/shielded/list?')));
+  assert.ok(requests.some(({ url }) => url.includes('/v1/blocks?')));
+  assert.ok(requests.some(({ url }) => url.includes('/v1/transactions?')));
+  assert.ok(requests.some(({ url }) => url.includes('/v1/transactions/shielded?')));
   assert.ok(requests.every(({ init }) => init.next.revalidate === 30));
   assert.ok(requests.every(({ init }) => init.next.tags?.includes('chain-tip')));
   assert.ok(requests.every(({ init }) => init.cache !== 'no-store'));
@@ -247,15 +248,15 @@ test('latest list ISR throws on unavailable data while dynamic handlers keep she
   };
   const failures = [
     async () => new Response('unavailable', { status: 503 }),
-    async () => new Response(JSON.stringify({ success: true }), {
+    async () => new Response(JSON.stringify(v1Fixture({ success: true })), {
       headers: { 'content-type': 'application/json' },
     }),
     async () => { throw new Error('network unavailable'); },
   ];
 
-  // blocks/page.tsx accepts unavailablePolicy as a prop
+  // Shared blocks renderer accepts the internal outage policy; route entry props stay Next-compatible.
   for (const failure of failures) {
-    const page = loadTypeScriptModule('app/blocks/page.tsx', {
+    const page = loadTypeScriptModule('app/blocks/BlocksPage.tsx', {
       'react/jsx-runtime': jsxRuntime,
       './BlocksClient': { __esModule: true, default: () => null },
       '@/lib/api-config': { getApiUrl: () => 'https://api.invalid' },
@@ -313,20 +314,20 @@ test('server metadata uses lightweight endpoints with deadlines', async () => {
     const requestUrl = String(url);
     requests.push({ url: requestUrl, init });
 
-    if (requestUrl.endsWith('/api/info')) {
-      return new Response(JSON.stringify({ height: 3000 }));
+    if (requestUrl.endsWith('/v1/network/info')) {
+      return new Response(JSON.stringify(v1Fixture({ height: 3000 })));
     }
-    if (requestUrl.includes('/api/block/')) {
-      return new Response(JSON.stringify({
+    if (requestUrl.includes('/v1/blocks/')) {
+      return new Response(JSON.stringify(v1Fixture({
         height: 123,
         hash: 'b'.repeat(64),
         timestamp: 1_700_000_000,
         transactionCount: 2,
         size: 1024,
-      }));
+      })));
     }
-    if (requestUrl.includes('/api/seo/tx/')) {
-      return new Response(JSON.stringify({
+    if (requestUrl.includes('/v1/transactions/') && requestUrl.endsWith('/summary')) {
+      return new Response(JSON.stringify(v1Fixture({
         txid: transactionId,
         blockHeight: 123,
         blockTime: 1_700_000_000,
@@ -334,14 +335,14 @@ test('server metadata uses lightweight endpoints with deadlines', async () => {
         isCanonical: true,
         status: 'confirmed',
         hasOrchard: true,
-      }));
+      })));
     }
-    return new Response(JSON.stringify({
+    return new Response(JSON.stringify(v1Fixture({
       address: 't1example',
       balance: 100_000_000,
       type: 'transparent',
       txCount: 1,
-    }));
+    })));
   };
   const seo = loadTypeScriptModule('lib/seo.ts', {
     react: { cache: (callback) => callback },
@@ -363,10 +364,10 @@ test('server metadata uses lightweight endpoints with deadlines', async () => {
   assert.equal(transaction.state, 'found');
   assert.equal(transaction.meta.hasShielded, true);
   assert.equal(address.state, 'found');
-  assert.match(requests[0].url, /\/api\/info$/);
-  assert.match(requests[1].url, /\/api\/block\/123\?summary=1$/);
-  assert.match(requests[2].url, /\/api\/seo\/tx\/[a-f0-9]{64}$/);
-  assert.match(requests[3].url, /\/api\/address\/t1example\?limit=1$/);
+  assert.match(requests[0].url, /\/v1\/network\/info$/);
+  assert.match(requests[1].url, /\/v1\/blocks\/123\?summary=1$/);
+  assert.match(requests[2].url, /\/v1\/transactions\/[a-f0-9]{64}\/summary$/);
+  assert.match(requests[3].url, /\/v1\/addresses\/t1example\?limit=1$/);
   assert.deepEqual(requests.map(({ init }) => init.next.revalidate), [3600, 3600, 300, 60]);
 });
 
@@ -416,7 +417,7 @@ test('future-block ISR propagates chain-tip outages instead of caching a not-fou
       expected: /Chain tip returned HTTP 503/,
     },
     {
-      fetchWithDeadline: async () => new Response(JSON.stringify({ height: null }), {
+      fetchWithDeadline: async () => new Response(JSON.stringify(v1Fixture({ height: null })), {
         headers: { 'content-type': 'application/json' },
       }),
       expected: /Chain tip payload is malformed/,
@@ -530,7 +531,11 @@ test('transaction SEO summary performs one bounded database query', async () => 
         orchard_actions: '2',
         sapling_spend_count: '0',
         sapling_output_count: '0',
-        fee: '10000',
+        fee: '10001',
+        size: 1234,
+        vin_count: 2,
+        vout_count: 1,
+        has_sprout: false,
         is_canonical: true,
         confirmations: '10',
       }] };
@@ -553,8 +558,19 @@ test('transaction SEO summary performs one bounded database query', async () => 
   );
   assert.equal(res.body.hasShielded, true);
   assert.equal(res.body.confirmations, 10);
+  assert.equal(res.body.feeZat, '10001');
+  assert.equal(res.body.size, 1234);
+  assert.equal(res.body.vinCount, 2);
+  assert.equal(res.body.voutCount, 1);
+  assert.equal(res.body.hasSprout, false);
   assert.equal(
     res.headers.get('cache-control'),
     'public, s-maxage=30, stale-while-revalidate=300',
   );
 });
+
+function v1Fixture(body) {
+ const { success, ...rest } = body;
+ const collection = rest.pagination && (rest.blocks || rest.transactions || rest.flows);
+ return { data: collection || rest, meta: { requestId: '00000000-0000-4000-8000-000000000000', network: 'mainnet', generatedAt: '2026-09-07T00:00:00.000Z', indexedHeight: 123, source: { indexedHeight: null, observedAt: null }, freshness: { status: 'unknown', ageSeconds: null }, ...(collection ? { page: { limit: 25, hasNext: false, hasPrev: false, nextCursor: null, prevCursor: null, total: rest.pagination.total ?? 0 } } : {}) } };
+}

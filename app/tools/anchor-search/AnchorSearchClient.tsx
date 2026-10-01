@@ -1,5 +1,6 @@
 'use client';
 
+import { readApiData } from '@/lib/api-client';
 import { useState } from 'react';
 import Link from 'next/link';
 import { getApiUrl } from '@/lib/api-config';
@@ -44,9 +45,9 @@ export default function AnchorSearchClient() {
     setResult(null);
 
     try {
-      const res = await fetch(`${getApiUrl()}/api/search/anchor/${trimmed}`);
+      const res = await fetch(`${getApiUrl()}/v1/search/anchors/${trimmed}`);
       if (!res.ok) throw new Error(`API error: ${res.status}`);
-      const data = await res.json();
+      const data = await readApiData(res);
       setResult(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Search failed');
@@ -62,7 +63,7 @@ export default function AnchorSearchClient() {
   return (
     <div>
       <div className="mb-8">
-        <h1 className="text-2xl sm:text-3xl font-bold text-primary mb-2">Anchor Root Search</h1>
+        <h1 className="type-page text-primary mb-2">Anchor Root Search</h1>
         <p className="text-secondary text-sm sm:text-base max-w-2xl">
           Search for Sapling or Orchard commitment tree roots across canonical and orphaned (reorg'd) blocks.
           Useful for debugging wallet sync issues — if a wallet references a root that only exists on an orphaned fork,
@@ -73,11 +74,14 @@ export default function AnchorSearchClient() {
       <form onSubmit={handleSearch} className="mb-8">
         <div className="flex flex-col sm:flex-row gap-3">
           <input
+            aria-label="Anchor root"
+            autoComplete="off"
+            spellCheck={false}
             type="text"
             value={root}
             onChange={(e) => setRoot(e.target.value)}
             placeholder="Enter 64-char hex anchor root (Sapling or Orchard)..."
-            className="flex-1 px-4 py-3 bg-cipher-surface border border-cipher-border rounded-lg text-primary font-mono text-sm placeholder:text-muted focus:outline-none focus:border-cipher-cyan/50"
+            className="flex-1 px-4 py-3 bg-cipher-surface border border-cipher-border rounded-lg text-primary font-mono text-sm placeholder:text-muted focus:outline-none focus:border-cipher-gold/50"
           />
           <button
             type="submit"
@@ -95,9 +99,9 @@ export default function AnchorSearchClient() {
           {/* Diagnosis */}
           <div className={`p-4 rounded-lg border ${
             result.orphaned.length > 0 && result.canonical.length === 0
-              ? 'bg-red-500/5 border-red-500/30'
+              ? 'bg-danger/5 border-danger/30'
               : result.found
-                ? 'bg-cipher-cyan/5 border-cipher-cyan/30'
+                ? 'bg-brand-gold/5 border-cipher-gold/30'
                 : 'bg-cipher-surface border-cipher-border'
           }`}>
             <div className="flex items-start gap-3">
@@ -125,7 +129,7 @@ export default function AnchorSearchClient() {
               <div className="space-y-2">
                 {result.canonical.map((block) => (
                   <div key={block.hash} className="p-3 bg-cipher-surface border border-cipher-border rounded-lg flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-                    <Link href={`/block/${block.height}`} className="text-cipher-cyan hover:underline font-mono text-sm">
+                    <Link href={`/block/${block.height}`} className="text-cipher-gold hover:underline font-mono text-sm">
                       #{block.height.toLocaleString()}
                     </Link>
                     <span className={`text-xs px-2 py-0.5 rounded font-mono ${
@@ -147,12 +151,12 @@ export default function AnchorSearchClient() {
           {result.orphaned.length > 0 && (
             <div>
               <h3 className="text-sm font-semibold text-primary mb-3 flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-red-400" />
+                <span className="w-2 h-2 rounded-full bg-danger" />
                 Orphaned / Reorg'd Blocks ({result.orphaned.length})
               </h3>
               <div className="space-y-2">
                 {result.orphaned.map((block) => (
-                  <div key={block.hash} className="p-3 bg-red-500/5 border border-red-500/20 rounded-lg flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                  <div key={block.hash} className="p-3 bg-danger/5 border border-danger/20 rounded-lg flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
                     <span className="text-danger font-mono text-sm">
                       #{block.height.toLocaleString()}
                     </span>

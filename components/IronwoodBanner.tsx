@@ -11,7 +11,7 @@ const ACTIVATION_HEIGHT = isMainnet ? 3428143 : 4134000;
 // components sharing this exact (path, params, refreshInterval) tuple is
 // what lets useApiQuery's shared-poll registry collapse them into a single
 // request/timer — see hooks/useApiQuery.ts — instead of two independent
-// 30s pollers hitting /api/migration/overview when both are on screen.
+// 30s pollers hitting /v1/migration/overview when both are on screen.
 const OVERVIEW_REFRESH_MS = 30000;
 
 interface BannerState {
@@ -35,13 +35,13 @@ export function IronwoodBanner() {
   // Only fetch at all once we know the banner isn't dismissed for this
   // session — preserves the original "don't even poll if dismissed" behavior.
   const { data } = useApiQuery<MigrationOverviewResponse>(
-    '/api/migration/overview',
+    '/v1/migration/overview',
     undefined,
     { enabled: !isCrosslink && !dismissed, refreshInterval: OVERVIEW_REFRESH_MS },
   );
 
   const state: BannerState | null = useMemo(() => {
-    if (!data?.success) return null;
+    if (!data) return null;
     const tip = data.tipHeight || 0;
     const activated = tip >= ACTIVATION_HEIGHT;
     return {
@@ -94,12 +94,12 @@ export function IronwoodBanner() {
 
   const activatedCopy = (
     <span className="text-xs font-mono text-muted group-hover:text-secondary transition-colors">
-      <span className="text-cipher-yellow font-medium">Ironwood is live</span>
-      <span className="text-muted/60 mx-1.5">·</span>
+      <span className="text-cipher-ironwood font-medium">Ironwood is live</span>
+      <span className="text-muted mx-1.5">·</span>
       <span className="hidden sm:inline">
         {state.ironwoodZec.toLocaleString(undefined, { maximumFractionDigits: 0 })} ZEC migrated
       </span>
-      <span className="text-muted/60 mx-1.5 hidden sm:inline">·</span>
+      <span className="text-muted mx-1.5 hidden sm:inline">·</span>
       {state.verifiedPct != null && (
         <span>{state.verifiedPct.toFixed(1)}% turnstile-verified</span>
       )}
@@ -108,8 +108,8 @@ export function IronwoodBanner() {
 
   const preActivationCopy = (
     <span className="text-xs font-mono text-muted group-hover:text-secondary transition-colors">
-      <span className="text-cipher-yellow font-medium">Ironwood</span>
-      <span className="text-muted/60 mx-1.5">·</span>
+      <span className="text-cipher-ironwood font-medium">Ironwood</span>
+      <span className="text-muted mx-1.5">·</span>
       {state.blocksRemaining.toLocaleString()} blocks remaining
     </span>
   );
@@ -150,7 +150,7 @@ export function IronwoodBanner() {
                 <span className="relative inline-flex h-2 w-2 rounded-full bg-cipher-yellow" />
               </span>
               {activatedCopy}
-              <span className="text-[11px] text-muted/40 group-hover:text-cipher-yellow/60 transition-colors ml-1">
+              <span className="text-caption text-muted group-hover:text-cipher-ironwood/60 transition-colors ml-1">
                 {actionLabel}
               </span>
             </>
@@ -158,7 +158,7 @@ export function IronwoodBanner() {
             <>
               <span className="h-2 w-2 rounded-full bg-cipher-yellow/50 animate-pulse" />
               {preActivationCopy}
-              <span className="text-[11px] text-muted/40 group-hover:text-cipher-yellow/60 transition-colors ml-1">
+              <span className="text-caption text-muted group-hover:text-cipher-ironwood/60 transition-colors ml-1">
                 {actionLabel}
               </span>
             </>
@@ -167,7 +167,7 @@ export function IronwoodBanner() {
 
         <button
           onClick={handleDismiss}
-          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted/30 transition-colors hover:text-muted sm:right-6 lg:right-8"
+          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted transition-colors hover:text-muted sm:right-6 lg:right-8"
           aria-label="Dismiss"
         >
           <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

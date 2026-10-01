@@ -1,5 +1,4 @@
-import Link from 'next/link';
-import { RelativeTimeProvider } from '@/components/RelativeTime';
+import { readApiData } from '@/lib/api-client';
 import NetworkClient, { type NetworkPageInitialData } from './NetworkClient';
 import { getApiUrl, getNetwork, getBaseUrl } from '@/lib/seo';
 import { fetchWithDeadline } from '@/lib/server-fetch';
@@ -19,7 +18,7 @@ async function fetchJson<T>(
       next: { revalidate: 300 },
     });
     if (!response.ok) return null;
-    const data = await response.json();
+    const data = await readApiData(response);
     if (typeof data?.network === 'string' && data.network !== expectedNetwork) return null;
     return data as T;
   } catch {
@@ -31,138 +30,34 @@ export default async function NetworkPage() {
   const apiBase = getApiUrl();
   const network = getNetwork();
   const fetchedAt = Date.now();
-
-  const [
-    stats,
-    health,
-    price,
-    breakdown,
-    halving,
-    emission,
-    nodeLocations,
-    nodeStats,
-    recentBlocks,
-    poolHistory,
-    chainSizeHistory,
-    feeDistribution,
-    protocolStats,
-  ] = await Promise.all([
-    fetchJson<NetworkPageInitialData['stats']>(apiBase, '/api/network/stats', network),
-    fetchJson<NetworkPageInitialData['health']>(apiBase, '/api/network/health', network),
-    fetchJson<NetworkPageInitialData['price']>(apiBase, '/api/price', network),
-    fetchJson<NetworkPageInitialData['breakdown']>(
-      apiBase,
-      '/api/supply/transparent-breakdown',
-      network,
-    ),
-    fetchJson<NetworkPageInitialData['halving']>(apiBase, '/api/network/halving', network),
-    fetchJson<NetworkPageInitialData['emission']>(
-      apiBase,
-      '/api/network/emission?period=1y',
-      network,
-    ),
-    fetchJson<NetworkPageInitialData['nodeLocations']>(
-      apiBase,
-      '/api/network/nodes',
-      network,
-    ),
-    fetchJson<NetworkPageInitialData['nodeStats']>(
-      apiBase,
-      '/api/network/nodes/stats',
-      network,
-    ),
-    fetchJson<NetworkPageInitialData['recentBlocks']>(
-      apiBase,
-      '/api/network/blocks/recent?limit=15',
-      network,
-    ),
-    fetchJson<NetworkPageInitialData['poolHistory']>(
-      apiBase,
-      '/api/network/pool-history?period=all',
-      network,
-    ),
-    fetchJson<NetworkPageInitialData['chainSizeHistory']>(
-      apiBase,
-      '/api/network/chain-size-history?period=1y',
-      network,
-    ),
-    fetchJson<NetworkPageInitialData['feeDistribution']>(
-      apiBase,
-      '/api/network/fee-distribution?period=30d',
-      network,
-    ),
-    fetchJson<NetworkPageInitialData['protocolStats']>(
-      apiBase,
-      '/api/network/protocol-stats',
-      network,
-    ),
+  const [stats, health, nodeLocations, nodeStats, recentBlocks, feeDistribution] = await Promise.all([
+    fetchJson<NetworkPageInitialData['stats']>(apiBase, '/v1/network/stats', network),
+    fetchJson<NetworkPageInitialData['health']>(apiBase, '/v1/network/health', network),
+    fetchJson<NetworkPageInitialData['nodeLocations']>(apiBase, '/v1/network/nodes', network),
+    fetchJson<NetworkPageInitialData['nodeStats']>(apiBase, '/v1/network/nodes/stats', network),
+    fetchJson<NetworkPageInitialData['recentBlocks']>(apiBase, '/v1/network/blocks/recent-summary?limit=30', network),
+    fetchJson<NetworkPageInitialData['feeDistribution']>(apiBase, '/v1/network/fee-distribution?period=30d', network),
   ]);
-
   if (!stats) {
     retainLastGoodOrBuildFallback(null, new Error('Network statistics unavailable'), 'network snapshot');
   }
-
-  const initialData: NetworkPageInitialData = {
-    fetchedAt,
-    stats,
-    health,
-    price,
-    breakdown,
-    halving,
-    emission,
-    nodeLocations,
-    nodeStats,
-    recentBlocks,
-    poolHistory,
-    chainSizeHistory,
-    feeDistribution,
-    protocolStats,
-  };
-
   const pageUrl = `${getBaseUrl()}/network`;
   const pageSchema = {
     '@context': 'https://schema.org', '@type': 'WebPage', '@id': `${pageUrl}#webpage`,
-    url: pageUrl, name: 'Zcash Network Overview',
-    description: 'Zcash network statistics, supply, mining and observed nodes.',
+    url: pageUrl, name: 'Zcash Network',
+    description: 'Zcash protocol, issuance, block production and observed nodes.',
     isPartOf: { '@id': `${getBaseUrl()}/#website` },
-    publisher: { '@id': 'https://cipherscan.app/#organization' },
+    publisher: { '@id': 'https://zecblock.com/#organization' },
   };
-
-  return (
-    <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(pageSchema).replace(/</g, '\\u003c') }} />
-      {network !== 'crosslink-testnet' ? <nav aria-label="Network monitoring" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
-        <Link href="/network/attestations" className="text-sm text-cipher-cyan hover:underline">Zero Indexer attestation monitor →</Link>
-      </nav> : null}
-      <RelativeTimeProvider initialNow={fetchedAt}>
-        <NetworkClient initialData={initialData} />
-      </RelativeTimeProvider>
-
-      {/* Static page description — server-rendered for indexing */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
-        <div className="border-t border-cipher-border pt-8 max-w-3xl">
-          <h2 className="text-sm font-bold font-mono text-secondary mb-3 uppercase tracking-wider">
-            About the Zcash Network
-          </h2>
-          <div className="space-y-3 text-sm text-muted leading-relaxed">
-            <p>
-              Zcash is a proof-of-work blockchain secured by Equihash mining, with a block
-              target determined by the active network upgrade and a maximum supply of 21 million ZEC. This page tracks
-              the network&apos;s vital signs: chain height, hashrate, difficulty, connected
-              peers, observed node-software diversity, and the split of circulating supply
-              between the transparent, Sapling, Orchard, and Ironwood pools.
-            </p>
-            <p>
-              Supply numbers distinguish transparent ZEC (publicly auditable, like Bitcoin)
-              from shielded ZEC (held in zero-knowledge pools where balances are private but
-              the pool totals remain verifiable). Mining pool distribution is derived from
-              coinbase markers and shows how concentrated block production currently is.
-              Peer software percentages are a sample from CipherScan&apos;s live connections,
-              not a complete census of every Zcash node.
-            </p>
-          </div>
-        </div>
-      </section>
-    </>
-  );
+  return <>
+    <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(pageSchema).replace(/</g, '\\u003c') }} />
+    <NetworkClient initialData={{ fetchedAt, stats, health, nodeLocations, nodeStats, recentBlocks, feeDistribution }} />
+    <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
+      <div className="border-t border-cipher-border pt-6 max-w-3xl text-sm text-muted space-y-2">
+        <h2 className="font-mono font-medium text-secondary">About these observations</h2>
+        <p>Chain statistics, recent blocks and node discovery are separate observations and can update at different times. Block cadence uses timestamps recorded in blocks; these are not measurements of when this explorer received them.</p>
+        <p>The map shows observed reachable nodes, not a census of every Zcash node. Peer connections and disk usage in Technical details describe this explorer’s node. Observed transaction fees describe past transactions and are not fee recommendations.</p>
+      </div>
+    </section>
+  </>;
 }

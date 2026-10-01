@@ -1,7 +1,10 @@
 'use client';
+import { readApiData } from '@/lib/api-client';
+import { PageLoadingBody } from '@/components/ui/PageLoading';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
+import { summarizeMempool } from '@/lib/mempool-summary';
 import { formatRelativeTime } from '@/lib/utils';
 import { getApiUrl } from '@/lib/api-config';
 import { useWebSocket } from '@/hooks/useWebSocket';
@@ -12,6 +15,7 @@ import { PageHeader, SectionHeader } from '@/components/ui/SectionHeader';
 import { MetricCard } from '@/components/ui/MetricCard';
 import { HashLink } from '@/components/ui/HashLink';
 import { MempoolBubbles, type MempoolBubblesHandle } from '@/components/MempoolBubbles';
+import { MempoolTreemap, type MempoolTreemapHandle } from '@/components/MempoolTreemap';
 
 interface MempoolTransaction {
   txid: string;
@@ -52,18 +56,21 @@ export default function MempoolClient() {
   const [error, setError] = useState<string | null>(null);
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [showTable, setShowTable] = useState(true);
+  // Prototype: treemap alongside the bubbles so both can be judged on live data.
+  const [view, setView] = useState<'bubbles' | 'treemap'>('bubbles');
   const [blockPulse, setBlockPulse] = useState(0);
   const bubblesRef = useRef<MempoolBubblesHandle>(null);
+  const treemapRef = useRef<MempoolTreemapHandle>(null);
 
   const fetchMempool = async () => {
     try {
-      const apiUrl = `${getApiUrl()}/api/mempool`;
+      const apiUrl = `${getApiUrl()}/v1/mempool`;
 
       const response = await fetch(apiUrl);
       if (!response.ok) throw new Error('Failed to fetch mempool');
 
-      const result = await response.json();
-      if (result.success) {
+      const result = await readApiData(response);
+      if (result) {
         setData(result);
         setError(null);
       } else {
@@ -98,13 +105,13 @@ export default function MempoolClient() {
           totalOutput: msg.data.totalOutput,
         };
         const txs = [newTx, ...prev.transactions.filter(t => t.txid !== msg.data.txid)];
-        return { ...prev, transactions: txs, count: prev.count + 1, showing: txs.length };
+        return { ...prev, transactions: txs, count: Math.max(txs.length, prev.count + (prev.transactions.some(t => t.txid === newTx.txid) ? 0 : 1)), showing: txs.length };
       });
     } else if (msg.type === 'mempool_removed' && msg.data?.txid) {
       setData(prev => {
         if (!prev) return prev;
         const txs = prev.transactions.filter(t => t.txid !== msg.data.txid);
-        return { ...prev, transactions: txs, count: Math.max(0, prev.count - 1), showing: txs.length };
+        return { ...prev, transactions: txs, count: Math.max(txs.length, prev.count - 1), showing: txs.length };
       });
     } else if (msg.type === 'new_block') {
       // Trigger the shockwave animation on the bubble canvas
@@ -146,10 +153,7 @@ export default function MempoolClient() {
           title="Zcash Mempool — Pending Transactions"
           subtitle="Transactions waiting to be mined into the next Zcash block, streamed in real time. Shielded, transparent, and mixed transactions are labeled as they enter the queue."
         />
-        <div className="flex items-center justify-center py-20">
-          <div className="animate-spin rounded-full h-10 w-10 border-2 border-cipher-cyan border-t-transparent" />
-          <p className="text-secondary ml-4 font-mono">Loading mempool...</p>
-        </div>
+        <PageLoadingBody layout="mempool" />
       </div>
     );
   }
@@ -170,6 +174,8 @@ export default function MempoolClient() {
     );
   }
 
+  const summary = summarizeMempool(data?.transactions ?? []);
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
       <PageHeader
@@ -180,10 +186,10 @@ export default function MempoolClient() {
 
       {/* Stats Row */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-8 animate-fade-in-up stagger-2">
-        <MetricCard label="Total TXs" value={data?.count || 0} />
-        <MetricCard label="Shielded" value={data?.stats.shielded || 0} accent="purple" />
-        <MetricCard label="Transparent" value={data?.stats.transparent || 0} />
-        <MetricCard label="Privacy Score" value={`${data?.stats.shieldedPercentage.toFixed(0) || 0}%`} accent="cyan" />
+        <MetricCard label="Total TXs" value={data?.count ?? 0} hint="Pending in the node’s mempool" />
+        <MetricCard label="Fully shielded" value={summary.shielded} accent="shielded" hint="Excludes mixed transactions" />
+        <MetricCard label="Transparent" value={summary.transparent} hint="Public inputs and outputs" />
+        <MetricCard label="Shielded + partial share" value={summary.shieldedShare === null ? '—' : `${summary.shieldedShare}%`} accent="shielded" hint="Shown TXs · includes mixed" />
       </div>
 
       {/* Bubble Visualization - always mounted to avoid layout shift */}
@@ -195,6 +201,18 @@ export default function MempoolClient() {
           className="px-1"
           actions={
             <>
+            {/* Visualization picker — same segmented control as the state pill */}
+            <div className="filter-group flex-shrink-0">
+              {(['bubbles', 'treemap'] as const).map(v => (
+                <button
+                  key={v}
+                  onClick={() => setView(v)}
+                  className={`filter-btn ${view === v ? 'filter-btn-active' : ''}`}
+                >
+                  {v === 'bubbles' ? 'BUBBLES' : 'TREEMAP'}
+                </button>
+              ))}
+            </div>
             {/* LIVE / PAUSED segmented pill — canonical filter-group pattern */}
             <div className="filter-group flex-shrink-0">
               {([true, false] as const).map(on => (
@@ -209,8 +227,8 @@ export default function MempoolClient() {
             </div>
             {/* Fullscreen */}
             <button
-              onClick={() => bubblesRef.current?.toggleFullscreen()}
-              className="p-1.5 rounded-md bg-glass-3 text-muted hover:text-primary transition-colors"
+              onClick={() => (view === 'treemap' ? treemapRef.current : bubblesRef.current)?.toggleFullscreen()}
+              className="inline-flex min-h-11 min-w-11 items-center justify-center sm:min-h-0 sm:min-w-0 p-1.5 rounded-md bg-glass-3 text-muted hover:text-primary transition-colors"
               title="Fullscreen (ESC to exit)"
             >
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -219,8 +237,8 @@ export default function MempoolClient() {
             </button>
             {/* Screensaver mode */}
             <Link
-              href="/mempool/live"
-              className="hidden sm:inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-glass-3 text-[10px] font-mono text-muted hover:text-primary transition-colors"
+              href={view === 'treemap' ? "/mempool/live?view=treemap" : "/mempool/live"}
+              className="hidden sm:inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-glass-3 text-caption font-mono text-muted hover:text-primary transition-colors"
               title="Ambient screensaver mode — great on a second monitor"
             >
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -233,14 +251,22 @@ export default function MempoolClient() {
           }
         />
         <Card className="overflow-hidden">
-          <CardBody className="!p-0">
-            <MempoolBubbles
-              ref={bubblesRef}
-              transactions={data?.transactions ?? []}
-              className="h-[350px] sm:h-[420px]"
-              stats={data?.stats ? { total: data.count, shieldedPct: Math.round(data.stats.shieldedPercentage) } : null}
-              blockPulse={blockPulse}
-            />
+          <CardBody className={view === 'treemap' ? '' : '!p-0'}>
+            {view === 'bubbles' ? (
+              <MempoolBubbles
+                ref={bubblesRef}
+                transactions={data?.transactions ?? []}
+                className="h-[350px] sm:h-[420px]"
+                stats={data && summary.shieldedShare !== null ? { total: data.count, shieldedPct: summary.shieldedShare } : null}
+                blockPulse={blockPulse}
+              />
+            ) : (
+              <MempoolTreemap
+                ref={treemapRef}
+                transactions={data?.transactions ?? []}
+                className="h-[350px] sm:h-[420px]"
+              />
+            )}
           </CardBody>
         </Card>
       </div>
@@ -251,9 +277,15 @@ export default function MempoolClient() {
           <circle cx="12" cy="12" r="10" />
           <path strokeLinecap="round" d="M12 16v-4M12 8h.01" />
         </svg>
-        <p className="leading-relaxed">
-          Each bubble is a pending transaction. <span className="text-secondary">Size</span> reflects byte size; <span className="text-secondary">color &amp; letter</span> mark the privacy type — <span className="text-cipher-cyan font-mono">T</span> transparent, <span className="text-cipher-orange font-mono">M</span> mixed, <span className="text-cipher-purple font-mono">S</span> shielded. Hover to inspect, click to open, drag to fling. When a block is mined, a shockwave clears the confirmed transactions.
-        </p>
+        {view === 'bubbles' ? (
+          <p className="leading-relaxed">
+            Showing {summary.shown} of {data?.count ?? 0} pending transactions. Each bubble represents one transaction. <span className="text-secondary">Radius</span> uses a compressed byte-size scale; <span className="text-secondary">color &amp; letter</span> mark the privacy type — <span className="tx-category-label font-mono" data-type="transparent">T</span> transparent, <span className="tx-category-label font-mono" data-type="mixed">M</span> mixed, <span className="text-cipher-shielded font-mono">S</span> shielded. Hover to inspect, click to open, drag to fling. When a block is mined, a shockwave clears the confirmed transactions.
+          </p>
+        ) : (
+          <p className="leading-relaxed">
+            Showing {summary.shown} of {data?.count ?? 0} pending transactions. Each tile represents one transaction; its area tracks its share of <span className="text-secondary">shown bytes</span>, not ZEC value. Byte share and transaction share measure different things. Hover to inspect, click to open.
+          </p>
+        )}
       </div>
 
       {/* Transaction Table */}
@@ -265,7 +297,7 @@ export default function MempoolClient() {
             className="px-1"
             actions={
               <>
-              <Badge color="cyan">{data.showing} of {data.count}</Badge>
+              <Badge color="gold">{data.showing} of {data.count}</Badge>
             <button
               onClick={() => setShowTable(!showTable)}
               className="flex items-center gap-1.5 text-xs text-muted hover:text-primary transition-colors font-mono"
@@ -292,13 +324,13 @@ export default function MempoolClient() {
                 <table className="w-full">
                   <thead>
                     <tr>
-                      <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">TxID</th>
-                      <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">Type</th>
-                      <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">Value</th>
-                      <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border hidden md:table-cell">Inputs</th>
-                      <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border hidden md:table-cell">Outputs</th>
-                      <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border hidden sm:table-cell">Size</th>
-                      <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">Seen</th>
+                      <th className="px-4 py-3 text-left text-caption font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">TxID</th>
+                      <th className="px-4 py-3 text-left text-caption font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">Type</th>
+                      <th className="px-4 py-3 text-right text-caption font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">Value</th>
+                      <th className="px-4 py-3 text-right text-caption font-semibold uppercase tracking-wider text-muted border-b border-cipher-border hidden md:table-cell">Inputs</th>
+                      <th className="px-4 py-3 text-right text-caption font-semibold uppercase tracking-wider text-muted border-b border-cipher-border hidden md:table-cell">Outputs</th>
+                      <th className="px-4 py-3 text-right text-caption font-semibold uppercase tracking-wider text-muted border-b border-cipher-border hidden sm:table-cell">Size</th>
+                      <th className="px-4 py-3 text-right text-caption font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">Seen</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -331,22 +363,22 @@ export default function MempoolClient() {
                           </td>
                           <td className="px-4 h-[44px] border-b border-cipher-border text-right hidden md:table-cell">
                             {tx.ironwoodActions && tx.ironwoodActions > 0 ? (
-                              <span className="font-mono text-xs text-cipher-yellow">{tx.ironwoodActions}<span className="text-muted ml-1">ironwood</span></span>
+                              <span className="font-mono text-xs text-cipher-ironwood">{tx.ironwoodActions}<span className="text-muted ml-1">ironwood</span></span>
                             ) : tx.orchardActions && tx.orchardActions > 0 ? (
                               <span className="font-mono text-xs text-cipher-purple">{tx.orchardActions}<span className="text-muted ml-1">orchard</span></span>
                             ) : tx.vShieldedSpend > 0 ? (
-                              <span className="font-mono text-xs text-cipher-cyan">{tx.vShieldedSpend}<span className="text-muted ml-1">sapling</span></span>
+                              <span className="font-mono text-xs text-cipher-green">{tx.vShieldedSpend}<span className="text-muted ml-1">sapling</span></span>
                             ) : (
                               <span className="font-mono text-xs text-muted">{tx.vin}</span>
                             )}
                           </td>
                           <td className="px-4 h-[44px] border-b border-cipher-border text-right hidden md:table-cell">
                             {tx.ironwoodActions && tx.ironwoodActions > 0 ? (
-                              <span className="font-mono text-xs text-cipher-yellow">{tx.ironwoodActions}<span className="text-muted ml-1">ironwood</span></span>
+                              <span className="font-mono text-xs text-cipher-ironwood">{tx.ironwoodActions}<span className="text-muted ml-1">ironwood</span></span>
                             ) : tx.orchardActions && tx.orchardActions > 0 ? (
                               <span className="font-mono text-xs text-cipher-purple">{tx.orchardActions}<span className="text-muted ml-1">orchard</span></span>
                             ) : tx.vShieldedOutput > 0 ? (
-                              <span className="font-mono text-xs text-cipher-cyan">{tx.vShieldedOutput}<span className="text-muted ml-1">sapling</span></span>
+                              <span className="font-mono text-xs text-cipher-green">{tx.vShieldedOutput}<span className="text-muted ml-1">sapling</span></span>
                             ) : (
                               <span className="font-mono text-xs text-muted">{tx.vout}</span>
                             )}
@@ -378,16 +410,16 @@ export default function MempoolClient() {
               <p className="text-secondary">Memory Pool of unconfirmed transactions waiting to be included in the next block.</p>
             </div>
             <div className="space-y-1">
-              <p className="font-medium text-cipher-purple">Shielded Transactions</p>
+              <p className="font-medium text-cipher-shielded">Shielded Transactions</p>
               <p className="text-secondary">Use zero-knowledge proofs to hide sender, receiver, and amount.</p>
             </div>
             <div className="space-y-1">
-              <p className="font-medium text-cipher-cyan">Mixed Transactions</p>
-              <p className="text-secondary">Shielding (transparent → shielded) or deshielding (shielded → transparent).</p>
+              <p className="font-medium text-primary">Mixed Transactions</p>
+              <p className="text-secondary">Contain both transparent inputs or outputs and shielded activity; the category alone does not specify a flow direction.</p>
             </div>
             <div className="space-y-1">
-              <p className="font-medium text-cipher-green">Privacy Score</p>
-              <p className="text-secondary">Percentage of transactions using shielded pools (higher = better privacy).</p>
+              <p className="font-medium text-cipher-shielded">Shielded Share</p>
+              <p className="text-secondary">Percentage of shown transactions using shielded pools, including mixed. Measures pool participation, not privacy quality.</p>
             </div>
           </div>
         </CardBody>

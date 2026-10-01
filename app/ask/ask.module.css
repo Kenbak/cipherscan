@@ -1,0 +1,50 @@
+.page { display: flex; flex-direction: column; min-height: calc(100dvh - var(--app-nav-height) - var(--app-stats-height) - var(--app-ironwood-height)); }
+:global(#main-content):has(.page) { min-height: 0; }
+:global(#main-content):has(.page) + :global(footer) { margin-top: 0; }
+.workspace { flex: 1; display: grid; grid-template-columns: 184px minmax(0, 1fr); min-height: 680px; scroll-margin-top: calc(var(--app-nav-height) + var(--app-stats-height) + var(--app-ironwood-height) + 16px); }
+.sidebar { display: flex; flex-direction: column; padding: 24px 22px 0 0; border-right: 1px solid var(--color-border); }
+.newButton { display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 12px; border: 1px solid var(--color-border); border-radius: 6px; color: var(--color-text-primary); font-size: 13px; text-align: left; }
+.newButton:hover, .session:hover { background: var(--color-hover); }
+.session { display: block; width: 100%; text-align: left; padding: 9px 10px; border-radius: 4px; font-size: 12px; color: var(--color-text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.selectedSession { background: var(--color-hover); color: var(--color-text-primary); border-left: 2px solid var(--color-gold); }
+.sourceLink { display: flex; align-items: center; justify-content: space-between; padding: 9px 0; color: var(--color-text-secondary); font-size: 12px; }
+.sourceLink:hover { color: var(--color-gold); }
+.sessionNote { margin-top: auto; padding-top: 36px; padding-bottom: 20px; color: var(--color-text-muted); font-size: 12px; line-height: 1.6; }
+.mobileSessions { display: none; min-width: 0; flex: 1; }
+.mobileSessions select { width: 100%; min-width: 0; border: 1px solid var(--color-border); border-radius: 5px; padding: 8px; background: var(--color-surface); color: var(--color-text-secondary); font-size: 12px; }
+.main { min-width: 0; padding: 28px 32px 24px; }
+.welcome { max-width: 660px; margin: 0 auto; text-align: center; }
+.composer { border: 1px solid var(--color-border); background: var(--color-surface); border-radius: 12px; text-align: left; transition: border-color 150ms; }
+.composer:focus-within { border-color: var(--color-gold); }
+.composer textarea { display: block; width: 100%; background: transparent; border: none; outline: none; resize: vertical; min-height: 80px; max-height: 180px; padding: 18px 18px 10px; font-size: 14px; line-height: 1.6; color: var(--color-text-primary); }
+.composer textarea::placeholder { color: var(--color-text-muted); }
+.submit { width: 32px; height: 32px; border-radius: 6px; background: var(--color-gold-accent); color: #171A20; font-size: 21px; font-weight: 500; }
+.submit:disabled { opacity: 0.35; cursor: default; }
+.starters { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 24px; text-align: left; }
+.starter { text-align: left; border: 1px solid var(--color-border); border-radius: 6px; padding: 16px; transition: background 150ms, border-color 150ms; }
+.starter:hover { background: var(--color-surface); border-color: var(--color-gold-muted); }
+.active { display: grid; grid-template-columns: minmax(250px, 0.85fr) minmax(0, 1.55fr); gap: 24px; padding: 24px 0 24px 24px; align-items: start; }
+.conversation { min-width: 0; display: flex; flex-direction: column; min-height: 640px; }
+.transcript { max-height: 510px; overflow-y: auto; overscroll-behavior: contain; padding-right: 5px; }
+.conversationFooter { margin-top: auto; padding-top: 20px; }
+.followup { font-size: 12px; border: 1px solid var(--color-border); border-radius: 5px; color: var(--color-text-secondary); padding: 6px 9px; text-align: left; }
+.followup:hover { color: var(--color-text-primary); background: var(--color-hover); }
+.selectedCategory { color: var(--color-text-primary); background: var(--color-hover); border-color: var(--color-gold-muted); }
+.controls.twoControls { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.analysis { border: 1px solid var(--color-border); border-radius: 8px; min-width: 0; overflow: hidden; }
+.controls { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 24px 0 18px; }
+.controls label, .dateRange label { display: flex; flex-direction: column; gap: 7px; min-width: 0; font-size: 12px; color: var(--color-text-muted); }
+.controls select, .dateRange input { width: 100%; min-width: 0; border: 1px solid var(--color-border); border-radius: 5px; padding: 8px; background: var(--color-surface); color: var(--color-text-secondary); font-size: 12px; }
+.dateRange { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 24px; }
+.metrics { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px 10px; margin-bottom: 24px; padding: 20px 0; border-top: 1px solid var(--color-border); border-bottom: 1px solid var(--color-border); }
+.table { width: 100%; border-collapse: collapse; font-size: 12px; white-space: nowrap; font-family: var(--font-geist-mono), monospace; }
+.table th, .table td { padding: 10px 8px; border-bottom: 1px solid var(--color-border); text-align: right; font-weight: 400; }
+.table th:first-child { text-align: left; }
+.table thead { color: var(--color-text-muted); }
+.table tbody { color: var(--color-text-secondary); }
+.workspace button { cursor: pointer; }
+.workspace button:disabled { cursor: default; }
+.workspace button:focus-visible, .workspace a:focus-visible, .workspace select:focus-visible, .workspace input:focus-visible { outline: 2px solid var(--color-gold); outline-offset: 3px; }
+@media (max-width: 1100px) { .workspace { grid-template-columns: 150px minmax(0, 1fr); } .sidebar { padding-right: 15px; } .active { grid-template-columns: 1fr; } .conversation { min-height: auto; } .transcript { max-height: 280px; } .analysis { margin-top: 6px; } }
+@media (max-width: 640px) { .workspace { display: block; min-height: 0; } .sidebar { border-right: none; padding: 16px 0 0; flex-direction: row; align-items: center; gap: 12px; } .sidebarContent, .sessionNote { display: none; } .mobileSessions { display: block; } .newButton { width: auto; padding: 8px 12px; flex-shrink: 0; } .main { padding: 24px 0 0; } .welcome { padding-top: 10px; } .starters { gap: 10px; } .starter { padding: 13px; } .active { gap: 20px; } .transcript { max-height: 320px; } .controls { gap: 7px; } }
+@media (prefers-reduced-motion: reduce) { .composer, .starter { transition: none; } }

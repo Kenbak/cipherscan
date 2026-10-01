@@ -14,7 +14,8 @@ function load(file, dependencies = {}) {
 }
 const moduleUnderTest = load('lib/nu7-vote-results.ts');
 const { parseVoteResults, ZEC_PER_VOTE_UNIT, NU7_ROUND_ID } = moduleUnderTest;
-const { VoteResults } = load('app/governance/nu7/VoteResults.tsx', { '@/lib/nu7-vote-results': moduleUnderTest });
+const copyable = load('app/governance/CopyableValue.tsx', { '@/components/CopyButton': load('components/CopyButton.tsx') });
+const { VoteResults } = load('app/governance/nu7/VoteResults.tsx', { '@/lib/nu7-vote-results': moduleUnderTest, '../CopyableValue': copyable });
 const fixture = () => [structuredClone(require('./fixtures/nu7/summary.json')), structuredClone(require('./fixtures/nu7/tally.json'))];
 
 test('published NU7 API data produces 19 results with exact quantized ZEC units', () => {
@@ -94,6 +95,7 @@ test('NU7 page remains unavailable on testnet and Crosslink before any upstream 
     const { default: Page } = load('app/governance/nu7/page.tsx', {
       './NU7VoteClient': {}, './VoteResults': {}, '../GovernanceRefresh': {},
       '@/lib/seo': { getNetwork: () => network },
+      '@/lib/api-client': { readApiData: () => { throw new Error('Unexpected API decode'); } },
       '@/lib/nu7-vote-config': {}, '@/lib/nu7-vote-results': moduleUnderTest,
       '@/lib/server-fetch': { fetchWithDeadline: () => { throw new Error('Unexpected fetch'); } },
       'next/navigation': { notFound: () => { throw new Error('NOT_FOUND'); } },

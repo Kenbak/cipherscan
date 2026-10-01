@@ -19,9 +19,9 @@ export function ProposalList({ proposals, published, zecPerUnit }: { proposals: 
           <div className="space-y-3">{p.options.map(o => {
             const share = total > 0 ? o.total_value / total * 100 : 0;
             return <div key={o.index} className="rounded-lg border border-cipher-border-subtle px-3 py-3">
-              <div className="flex items-start justify-between gap-3"><span className="text-sm font-medium text-primary">{o.label}</span>{published && <span className="shrink-0 font-mono text-sm text-cipher-yellow">{share.toFixed(2)}%</span>}</div>
+              <div className="flex items-start justify-between gap-3"><span className="text-sm font-medium text-primary">{o.label}</span>{published && <span className="shrink-0 font-mono text-sm text-brand-gold">{share.toFixed(2)}%</span>}</div>
               {o.description && <p className="mt-1 text-xs leading-relaxed text-secondary">{o.description}</p>}
-              {published && <><div className="mt-3 h-1 overflow-hidden rounded-full bg-cipher-border"><div className="h-full bg-cipher-yellow/70" style={{ width: `${share}%` }} /></div><p className="mt-1.5 font-mono text-[11px] text-muted">{(o.total_value * (zecPerUnit ?? 1)).toLocaleString('en-US', { maximumFractionDigits: 3 })} {zecPerUnit === null ? 'vote-weight units' : 'ZEC'}</p></>}
+              {published && <><div className="mt-3 h-1 overflow-hidden rounded-full bg-cipher-border"><div className="h-full bg-brand-gold/70" style={{ width: `${share}%` }} /></div><p className="mt-1.5 font-mono text-caption text-muted">{(o.total_value * (zecPerUnit ?? 1)).toLocaleString('en-US', { maximumFractionDigits: 3 })} {zecPerUnit === null ? 'vote-weight units' : 'ZEC'}</p></>}
             </div>;
           })}</div>
         </div>

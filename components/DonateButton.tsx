@@ -1,6 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { containDialogFocus } from '@/lib/dialog-focus';
+import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
 import { createPortal } from 'react-dom';
 import { QRCodeSVG } from 'qrcode.react';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -16,6 +18,7 @@ interface DonateButtonProps {
 }
 
 export function DonateButton({ compact = false, variant = 'default' }: DonateButtonProps) {
+  const modalRef = useRef<HTMLDialogElement>(null);
   const [showModal, setShowModal] = useState(false);
   const [copied, setCopied] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -26,13 +29,13 @@ export function DonateButton({ compact = false, variant = 'default' }: DonateBut
     setMounted(true);
   }, []);
 
+  useBodyScrollLock(showModal);
+
   useEffect(() => {
-    if (showModal) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = '';
-    }
-    return () => { document.body.style.overflow = ''; };
+    const dialog = modalRef.current;
+    if (!showModal || !dialog) return;
+    dialog.showModal();
+    return () => dialog.close();
   }, [showModal]);
 
   const copyAddress = async () => {
@@ -59,36 +62,42 @@ export function DonateButton({ compact = false, variant = 'default' }: DonateBut
   const clearZone = Math.round(qrSize * 0.25);
 
   const modalContent = showModal ? (
-    <div
-      className="fixed inset-0 modal-backdrop backdrop-blur-sm flex items-center justify-center z-[9999] p-4"
+    <dialog
+      ref={modalRef}
+      aria-label="Support ZecBlock"
+      onKeyDown={containDialogFocus}
+      onCancel={event => { event.stopPropagation(); setShowModal(false); }}
+      className="fixed inset-0 m-0 w-full max-w-none h-dvh max-h-none border-0 modal-backdrop backdrop-blur-sm flex items-center justify-center p-4"
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) setShowModal(false);
       }}
     >
       <div
-        className="modal-content max-w-sm w-full animate-scale-in relative overflow-hidden"
+        className="modal-content max-w-sm w-full max-h-full overflow-y-auto animate-scale-in relative"
         onMouseDown={(e) => e.stopPropagation()}
       >
         {/* Scan line effect */}
         <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-2xl">
-          <div className="absolute inset-x-0 h-px bg-gradient-to-r from-transparent via-cipher-cyan/20 to-transparent animate-scan" />
         </div>
 
         <div className="p-6 sm:p-8">
           {/* Header + close */}
           <div className="flex justify-between items-start mb-5">
             <div>
-              <p className="text-[10px] font-mono text-muted tracking-widest uppercase mb-1">
-                {'>'} SUPPORT_CIPHERSCAN
+              <p className="text-caption font-mono text-muted tracking-widest uppercase mb-1">
+                {'>'} SUPPORT_ZECBLOCK
               </p>
               <h2 className="text-lg font-semibold tracking-tight text-primary">
-                Support CipherScan
+                Support ZecBlock
               </h2>
               <p className="text-sm text-secondary mt-1">
                 Help keep this explorer free, open-source &amp; ad-free
               </p>
             </div>
             <button
+              type="button"
+              autoFocus
+              aria-label="Close support dialog"
               onClick={() => setShowModal(false)}
               className="w-7 h-7 rounded flex items-center justify-center text-muted hover:text-primary transition-colors flex-shrink-0"
             >
@@ -108,8 +117,8 @@ export function DonateButton({ compact = false, variant = 'default' }: DonateBut
                     size={qrSize}
                     level="H"
                     marginSize={1}
-                    bgColor={isDark ? '#08090F' : '#F5F7FA'}
-                    fgColor={isDark ? '#FFFFFF' : '#0F172A'}
+                    bgColor={isDark ? '#0B0C0E' : '#F6F7F9'}
+                    fgColor={isDark ? '#F1F3F5' : '#171A20'}
                     imageSettings={{
                       src: 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7',
                       height: clearZone,
@@ -119,7 +128,7 @@ export function DonateButton({ compact = false, variant = 'default' }: DonateBut
                   />
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
-                    src="/logo.png"
+                    src="/brand/zecblock-mark.svg"
                     alt=""
                     width={logoSize}
                     height={logoSize}
@@ -140,11 +149,11 @@ export function DonateButton({ compact = false, variant = 'default' }: DonateBut
           {/* Address + copy */}
           <button
             onClick={copyAddress}
-            className="modal-inner-card rounded-lg px-4 py-3 mb-4 w-full text-left cursor-pointer hover:ring-1 hover:ring-cipher-cyan/30 transition"
+            className="modal-inner-card rounded-lg px-4 py-3 mb-4 w-full text-left cursor-pointer hover:ring-1 hover:ring-cipher-gold/30 transition"
           >
-            <p className="text-[10px] font-mono text-muted tracking-wider uppercase mb-1.5 flex items-center justify-between">
+            <p className="text-caption font-mono text-muted tracking-wider uppercase mb-1.5 flex items-center justify-between">
               <span>Shielded · Unified Address</span>
-              <span className="flex items-center gap-1 text-cipher-cyan">
+              <span className="flex items-center gap-1 text-cipher-gold">
                 {copied ? (
                   <>
                     <svg className="w-3 h-3 text-cipher-green" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -163,18 +172,18 @@ export function DonateButton({ compact = false, variant = 'default' }: DonateBut
                 )}
               </span>
             </p>
-            <code className="text-[10px] font-mono text-secondary break-all leading-relaxed">
+            <code className="text-caption font-mono text-secondary break-all leading-relaxed">
               {DONATION_ADDRESS}
             </code>
           </button>
 
           {/* Footer note */}
-          <p className="text-[11px] text-muted text-center font-mono">
+          <p className="text-caption text-muted text-center font-mono">
             Private &amp; encrypted · Open-source explorer
           </p>
         </div>
       </div>
-    </div>
+    </dialog>
   ) : null;
 
   return (
@@ -190,8 +199,8 @@ export function DonateButton({ compact = false, variant = 'default' }: DonateBut
         <button
           onClick={() => setShowModal(true)}
           className={`donate-btn inline-flex items-center justify-center ${compact ? 'p-1.5' : 'space-x-2 px-3 sm:px-4 py-2'} transition rounded-lg ${compact ? '' : 'font-mono text-xs sm:text-sm'}`}
-          title={compact ? 'Support CipherScan' : undefined}
-          aria-label={compact ? 'Support CipherScan' : undefined}
+          title={compact ? 'Support ZecBlock' : undefined}
+          aria-label={compact ? 'Support ZecBlock' : undefined}
         >
           <svg
             className={compact ? 'w-4 h-4' : 'w-4 h-4 flex-shrink-0'}

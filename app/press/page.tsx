@@ -1,39 +1,39 @@
 import type { ReactNode } from 'react';
 import Link from 'next/link';
-import { buildPageMetadata } from '@/lib/seo';
+import { BrandLogo } from '@/components/BrandLogo';
+import { buildPageMetadata, getBaseUrl } from '@/lib/seo';
 
 export const metadata = buildPageMetadata({
-  title: 'Press & Brand | CipherScan',
+  title: 'Press Kit & Brand Assets | ZecBlock',
   description:
-    'Download CipherScan logos, brand colors, and media copy. Press resources for journalists and brand assets for partners.',
+    'Download ZecBlock logos, brand colors, and media copy. Press resources for journalists and brand assets for partners.',
   path: '/press',
   networks: ['mainnet'],
 });
 
 const BOILERPLATE =
-  'CipherScan is a privacy-first Zcash blockchain explorer built by Atmosphere Labs. It makes shielded pool activity, supply verification, and network health visible without compromising user privacy — no viewing keys stored, no address tracking. Live at cipherscan.app.';
+  'ZecBlock is a privacy-first Zcash blockchain explorer built by Atmosphere Labs. It makes public pool flows, supply verification and network observations easier to inspect. Shielded transfer details remain private; optional viewing-key decryption runs in the browser. Live at zecblock.com.';
 
-/** Core CipherScan brand colors — logo + wordmark */
+/** Core ZecBlock brand colors — logo + wordmark */
 const COLORS = [
-  { name: 'Cipher Cyan', hex: '#00D4FF', role: 'Wordmark, links, primary accent' },
-  { name: 'Cipher Yellow', hex: '#F4B728', role: 'Logo square, ZEC emphasis' },
+  { name: 'ZecBlock Gold', hex: '#F8BC21', role: 'Logo / square brand mark' },
+  { name: 'Graphite', hex: '#0B0C0E', role: 'Dark canvas' },
+  { name: 'Shielded gold', hex: '#F8BC21', role: 'Aggregate shielded privacy' },
+  { name: 'Ironwood honey', hex: '#E8CF78', role: 'Ironwood pool identity' },
+  { name: 'Iris', hex: '#B6A0E0', role: 'Orchard pool identity' },
 ] as const;
 
 const DOWNLOADS = [
-  { label: 'Wordmark (SVG)', href: '/brand/cipherscan-wordmark.svg', note: 'Mark + CIPHERSCAN — transparent background' },
-  { label: 'Wordmark on dark (SVG)', href: '/brand/cipherscan-wordmark-dark-bg.svg', note: 'Mark + CIPHERSCAN on #08090F' },
-  { label: 'Logo mark only (PNG)', href: '/logo.png', note: 'Icon without text' },
-  { label: 'App icon 512×512', href: '/icon-512.png', note: 'Square icon for app stores & social' },
-  { label: 'App icon 192×192', href: '/icon-192.png', note: 'PWA / smaller contexts' },
-  { label: 'Apple touch icon', href: '/apple-touch-icon.png', note: '180×180 home-screen icon' },
-  { label: 'Favicon', href: '/favicon.ico', note: 'Browser tab icon' },
+  { label: 'ZecBlock logotype — dark backgrounds (PNG)', href: '/brand/zecblock-logotype.png', note: 'Supplied artwork, unmodified: gold block and "Zec", white "Block"' },
+  { label: 'ZecBlock logotype — light backgrounds (PNG)', href: '/brand/zecblock-logotype-light.png', note: 'Supplied artwork, unmodified: gold block and "Zec", black "Block"' },
+  { label: 'Square icon (SVG)', href: '/brand/zecblock-mark.svg', note: 'Small-format icon for favicons' },
 ] as const;
 
 const CONTACTS = [
   {
     label: 'Website',
-    value: 'cipherscan.app',
-    href: 'https://cipherscan.app',
+    value: 'zecblock.com',
+    href: 'https://zecblock.com',
     external: true,
     icon: (
       <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
@@ -44,8 +44,8 @@ const CONTACTS = [
   },
   {
     label: 'X / Twitter',
-    value: '@cipherscan_app',
-    href: 'https://twitter.com/cipherscan_app',
+    value: '@zecblock',
+    href: 'https://x.com/zecblock',
     external: true,
     icon: (
       <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
@@ -55,7 +55,7 @@ const CONTACTS = [
   },
   {
     label: 'GitHub',
-    value: 'Kenbak/cipherscan',
+    value: 'Source repository',
     href: 'https://github.com/Kenbak/cipherscan',
     external: true,
     icon: (
@@ -90,17 +90,17 @@ function DownloadRow({ label, href, note }: { label: string; href: string; note:
         <a
           href={href}
           download
-          className="text-sm font-mono font-semibold text-cipher-cyan hover:text-primary transition-colors"
+          className="text-sm font-mono font-semibold text-cipher-gold hover:text-primary transition-colors"
         >
           {label}
         </a>
-        <p className="mt-0.5 text-[11px] text-muted">{note}</p>
+        <p className="mt-0.5 text-caption text-muted">{note}</p>
       </div>
       <a
         href={href}
         target="_blank"
         rel="noopener noreferrer"
-        className="shrink-0 text-[10px] font-mono uppercase tracking-wider text-muted hover:text-primary transition-colors"
+        className="shrink-0 text-caption font-mono uppercase tracking-wider text-muted hover:text-primary transition-colors"
       >
         Preview ↗
       </a>
@@ -116,9 +116,7 @@ function WordmarkPreview({ variant }: { variant: 'dark' | 'light' }) {
         isDark ? 'border-cipher-border/30 bg-cipher-bg-dark' : 'border-cipher-border/20 bg-white'
       }`}
     >
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src="/logo.png" alt="" className="h-8 w-8 shrink-0 object-contain" width={32} height={32} />
-      <span className="text-lg font-bold font-mono tracking-wider text-cipher-cyan-bright">CIPHERSCAN</span>
+      <BrandLogo tone={variant} />
     </div>
   );
 }
@@ -133,8 +131,8 @@ function LogoPreview({ variant }: { variant: 'dark' | 'light' }) {
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        src="/logo.png"
-        alt={isDark ? 'CipherScan logo on dark background' : 'CipherScan logo on light background'}
+        src="/brand/zecblock-mark.svg"
+        alt={isDark ? 'ZecBlock logo on dark background' : 'ZecBlock logo on light background'}
         className="max-h-full max-w-full object-contain"
         width={72}
         height={72}
@@ -169,11 +167,11 @@ function ContactCard({
 }) {
   const inner = (
     <>
-      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-cipher-cyan/10 text-cipher-cyan">
+      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand-gold/10 text-cipher-gold">
         {icon}
       </span>
       <div className="min-w-0">
-        <div className="text-[10px] font-mono uppercase tracking-wider text-muted">{label}</div>
+        <div className="text-caption font-mono uppercase tracking-wider text-muted">{label}</div>
         <div className="mt-0.5 truncate text-sm font-mono font-medium text-primary group-hover:text-primary transition-colors">
           {value}
         </div>
@@ -182,7 +180,7 @@ function ContactCard({
   );
 
   const className =
-    'group flex items-center gap-3 rounded-xl border border-cipher-border/25 bg-glass-3/20 px-4 py-3 transition-colors hover:border-cipher-cyan/25 hover:bg-glass-4/40';
+    'group flex items-center gap-3 rounded-xl border border-cipher-border/25 bg-glass-3/20 px-4 py-3 transition-colors hover:border-cipher-gold/25 hover:bg-glass-4/40';
 
   if (external) {
     return (
@@ -202,24 +200,30 @@ function ContactCard({
 export default function PressPage() {
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
+        '@context': 'https://schema.org', '@type': 'WebPage',
+        '@id': `${getBaseUrl()}/press#webpage`, url: `${getBaseUrl()}/press`,
+        name: 'Media kit', isPartOf: { '@id': `${getBaseUrl()}/#website` },
+        publisher: { '@id': 'https://zecblock.com/#organization' },
+      }) }} />
       <header className="mb-10">
-        <p className="text-[10px] font-mono uppercase tracking-widest text-muted mb-2">Press &amp; brand</p>
-        <h1 className="text-2xl sm:text-3xl font-bold font-sans text-primary">Media kit</h1>
+        <p className="text-caption font-mono uppercase tracking-widest text-muted mb-2">Press &amp; brand</p>
+        <h1 className="type-page font-sans text-primary">Media kit</h1>
         <p className="mt-3 text-sm leading-relaxed text-secondary">
           Official logos, colors, and boilerplate for articles, listings, and partner pages.
         </p>
       </header>
 
       <section className="mb-10 rounded-2xl border border-cipher-border bg-cipher-surface p-5 sm:p-6">
-        <h2 className="text-sm font-bold text-primary mb-4">Logo</h2>
+        <h2 className="text-sm font-semibold text-primary mb-4">Logo</h2>
 
-        <p className="mb-2 text-[10px] font-mono uppercase tracking-wider text-muted">Wordmark</p>
+        <p className="mb-2 text-caption font-mono uppercase tracking-wider text-muted">Wordmark</p>
         <div className="mb-6 flex flex-col gap-3 sm:flex-row">
           <WordmarkPreview variant="dark" />
           <WordmarkPreview variant="light" />
         </div>
 
-        <p className="mb-2 text-[10px] font-mono uppercase tracking-wider text-muted">Mark only</p>
+        <p className="mb-2 text-caption font-mono uppercase tracking-wider text-muted">Mark only</p>
         <div className="mb-5 flex flex-wrap items-center gap-4">
           <LogoPreview variant="dark" />
           <LogoPreview variant="light" />
@@ -233,17 +237,17 @@ export default function PressPage() {
       </section>
 
       <section className="mb-10 rounded-2xl border border-cipher-border bg-cipher-surface p-5 sm:p-6">
-        <h2 className="text-sm font-bold text-primary mb-4">Colors</h2>
+        <h2 className="text-sm font-semibold text-primary mb-4">Colors</h2>
         <div className="space-y-3">
           {COLORS.map((c) => (
-            <div key={c.hex} className="flex items-center gap-3">
+            <div key={c.name} className="flex items-center gap-3">
               <ColorSwatch hex={c.hex} name={c.name} />
               <div>
                 <div className="flex flex-wrap items-baseline gap-2">
                   <span className="text-sm font-mono font-semibold text-primary">{c.name}</span>
                   <span className="text-xs font-mono text-muted">{c.hex}</span>
                 </div>
-                <p className="text-[11px] text-muted">{c.role}</p>
+                <p className="text-caption text-muted">{c.role}</p>
               </div>
             </div>
           ))}
@@ -251,32 +255,32 @@ export default function PressPage() {
       </section>
 
       <section className="mb-10 rounded-2xl border border-cipher-border bg-cipher-surface p-5 sm:p-6">
-        <h2 className="text-sm font-bold text-primary mb-4">Typography</h2>
+        <h2 className="text-sm font-semibold text-primary mb-4">Typography</h2>
         <dl className="space-y-3 text-sm">
           <div>
-            <dt className="font-mono text-[10px] uppercase tracking-wider text-muted">UI</dt>
-            <dd className="mt-1 text-primary font-sans">Inter — headings, body, navigation</dd>
+            <dt className="font-mono text-caption uppercase tracking-wider text-muted">UI</dt>
+            <dd className="mt-1 text-primary font-sans">Geist Sans — headings and body text</dd>
           </div>
           <div>
-            <dt className="font-mono text-[10px] uppercase tracking-wider text-muted">Data &amp; labels</dt>
-            <dd className="mt-1 font-mono text-primary">JetBrains Mono — hashes, stats, chart axes</dd>
+            <dt className="font-mono text-caption uppercase tracking-wider text-muted">Data &amp; labels</dt>
+            <dd className="mt-1 font-mono text-primary">Geist Mono — navigation, labels, hashes, stats and chart axes</dd>
           </div>
         </dl>
       </section>
 
       <section className="mb-10 rounded-2xl border border-cipher-border bg-cipher-surface p-5 sm:p-6">
-        <h2 className="text-sm font-bold text-primary mb-2">About CipherScan</h2>
+        <h2 className="text-sm font-semibold text-primary mb-2">About ZecBlock</h2>
         <p className="text-xs font-mono text-muted mb-3">Copy-paste for articles, listings, and partner pages.</p>
         <blockquote className="rounded-lg border border-cipher-border/25 bg-glass-3/30 px-4 py-3 text-sm leading-relaxed text-secondary">
           {BOILERPLATE}
         </blockquote>
-        <p className="mt-3 text-[11px] text-muted">
+        <p className="mt-3 text-caption text-muted">
           Short tagline: <span className="text-secondary">Making Zcash accessible. For everyone.</span>
         </p>
       </section>
 
       <section className="rounded-2xl border border-cipher-border bg-cipher-surface p-5 sm:p-6">
-        <h2 className="text-sm font-bold text-primary mb-4">Contact</h2>
+        <h2 className="text-sm font-semibold text-primary mb-4">Contact</h2>
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
           {CONTACTS.map((c) => (
             <ContactCard key={c.label} {...c} />

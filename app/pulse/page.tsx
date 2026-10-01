@@ -1,5 +1,6 @@
 'use client';
 
+import { pulseEventDescription } from '@/lib/pulse-copy';
 import { useMemo, useState } from 'react';
 import { useApiQuery } from '@/hooks/useApiQuery';
 import { PageHeader, SectionHeader } from '@/components/ui';
@@ -30,9 +31,9 @@ type Severity = 'all' | 'extreme' | 'strong' | 'mild';
 // ─── Config ───────────────────────────────────────────────────────────────────
 
 const SEVERITY_CONFIG: Record<string, { dot: string; text: string; bar: string; label: string }> = {
-  extreme: { dot: 'bg-cipher-cyan', text: 'text-cipher-cyan', bar: 'bg-cipher-cyan', label: 'Extreme' },
-  strong: { dot: 'bg-cipher-cyan/70', text: 'text-cipher-cyan/70', bar: 'bg-cipher-cyan/70', label: 'Strong' },
-  mild: { dot: 'bg-cipher-cyan/40', text: 'text-cipher-cyan/40', bar: 'bg-cipher-cyan/40', label: 'Mild' },
+  extreme: { dot: 'bg-brand-gold', text: 'text-cipher-gold', bar: 'bg-brand-gold', label: 'Extreme' },
+  strong: { dot: 'bg-brand-gold/70', text: 'text-cipher-gold/70', bar: 'bg-brand-gold/70', label: 'Strong' },
+  mild: { dot: 'bg-brand-gold/40', text: 'text-cipher-gold/40', bar: 'bg-brand-gold/40', label: 'Mild' },
 };
 
 const METRIC_LABELS: Record<string, string> = {
@@ -47,7 +48,7 @@ const METRIC_LABELS: Record<string, string> = {
   exchange_deposit_zat: 'Exchange Deposits',
   mvrv: 'MVRV Ratio',
   migration_volume_zat: 'Ironwood Migration',
-  miner_exchange_ratio: 'Miner Sell Pressure',
+  miner_exchange_ratio: 'Miner Exchange Transfers',
 };
 
 // Splits "59.8% (z=2.53, μ=35.6%, σ=9.6%)" into value + stats parts.
@@ -72,7 +73,7 @@ function FilterPill<T extends string>({
   active,
   onClick,
   children,
-  activeClass = 'bg-cipher-cyan/15 text-cipher-cyan border-cipher-cyan/30',
+  activeClass = 'bg-brand-gold/15 text-cipher-gold border-cipher-gold/30',
 }: {
   active: boolean;
   onClick: () => void;
@@ -82,7 +83,7 @@ function FilterPill<T extends string>({
   return (
     <button
       onClick={onClick}
-      className={`rounded-full border px-3 py-1 text-[11px] font-mono transition-colors ${
+      className={`rounded-full border px-3 py-1 text-caption font-mono transition-colors ${
         active
           ? activeClass
           : 'border-cipher-border/50 text-muted hover:border-cipher-border hover:text-primary'
@@ -102,7 +103,7 @@ function ZScoreBar({ zscore, severity }: { zscore: number; severity: string }) {
       <div className="h-1 flex-1 rounded-full bg-glass-6 overflow-hidden">
         <div className={`h-full rounded-full ${cfg.bar}`} style={{ width: `${pct}%` }} />
       </div>
-      <span className={`font-mono text-[10px] font-bold tabular-nums ${cfg.text}`}>
+      <span className={`font-mono text-caption font-semibold tabular-nums ${cfg.text}`}>
         {absZ.toFixed(1)}σ
       </span>
     </div>
@@ -124,7 +125,7 @@ function EventRow({
       {/* Severity dot + direction */}
       <div className="flex shrink-0 items-center gap-1.5 w-8">
         <span className={`h-2 w-2 rounded-full ${cfg.dot}`} />
-        <span className={`font-mono text-[10px] ${cfg.text}`}>
+        <span className={`font-mono text-caption ${cfg.text}`}>
           {event.direction === 'up' ? '▲' : '▼'}
         </span>
       </div>
@@ -132,18 +133,18 @@ function EventRow({
       {/* Description + stats */}
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-baseline gap-x-2">
-          <span className="text-sm font-medium text-primary">{event.description}</span>
-          <span className="font-mono text-xs font-bold tabular-nums text-secondary">{value}</span>
+          <span className="text-sm font-medium text-primary">{pulseEventDescription(event.metric, event.direction, event.description)}</span>
+          <span className="font-mono text-xs font-semibold tabular-nums text-secondary">{value}</span>
         </div>
         {stats ? (
-          <div className="mt-0.5 truncate font-mono text-[10px] text-muted/60">{stats}</div>
+          <div className="mt-0.5 truncate font-mono text-caption text-muted">{stats}</div>
         ) : null}
       </div>
 
       {/* Metric chip */}
       <button
         onClick={() => onMetricClick(event.metric)}
-        className="hidden shrink-0 rounded-full border border-cipher-border/40 bg-glass-3 px-2.5 py-0.5 font-mono text-[10px] text-muted transition-colors hover:border-cipher-cyan/40 hover:text-primary sm:block"
+        className="hidden shrink-0 rounded-full border border-cipher-border/40 bg-glass-3 px-2.5 py-0.5 font-mono text-caption text-muted transition-colors hover:border-cipher-gold/40 hover:text-primary sm:block"
       >
         {METRIC_LABELS[event.metric] || event.metric}
       </button>
@@ -152,7 +153,7 @@ function EventRow({
       <div className="hidden sm:block">
         <ZScoreBar zscore={event.zscore} severity={event.severity} />
       </div>
-      <span className={`font-mono text-[10px] font-bold tabular-nums sm:hidden ${cfg.text}`}>
+      <span className={`font-mono text-caption font-semibold tabular-nums sm:hidden ${cfg.text}`}>
         {Math.abs(event.zscore).toFixed(1)}σ
       </span>
     </div>
@@ -169,7 +170,7 @@ export default function PulsePage() {
   const pageSize = 30;
 
   const { data: pulseData, loading } = useApiQuery<PulseResponse>(
-    '/api/pulse',
+    '/v1/pulse',
     { days, limit: pageSize, offset: page * pageSize, metric: metricFilter ?? undefined },
   );
   const events = pulseData?.events ?? [];
@@ -207,18 +208,18 @@ export default function PulsePage() {
       {/* ─── KPI strip ──────────────────────────────────────── */}
       <div className="mt-4 overflow-hidden rounded-2xl border border-cipher-border bg-cipher-surface">
         <div className="flex items-center gap-2 border-b border-cipher-border-subtle px-4 py-2.5 sm:px-5">
-          <span className="h-2 w-2 rounded-full bg-cipher-cyan animate-pulse" />
-          <span className="font-mono text-[10px] uppercase tracking-wider text-secondary">
+          <span className="h-2 w-2 rounded-full bg-brand-gold animate-pulse" />
+          <span className="font-mono text-caption uppercase tracking-wider text-secondary">
             Pulse · last {days} days
           </span>
         </div>
         <div className="grid grid-cols-2 divide-x divide-y divide-cipher-border-subtle sm:grid-cols-5 sm:divide-y-0">
           <div className="min-w-0 px-3 py-3 sm:px-4 sm:py-3.5">
-            <div className="text-base font-bold font-mono tabular-nums text-primary lg:text-lg">
+            <div className="text-base font-semibold font-mono tabular-nums text-primary lg:text-lg">
               {loading ? '—' : total.toLocaleString()}
             </div>
-            <div className="mt-0.5 truncate font-mono text-[10px] uppercase tracking-wider text-muted">Anomalies</div>
-            <div className="mt-0.5 truncate font-mono text-[10px] text-muted/60">Detected in period</div>
+            <div className="mt-0.5 truncate font-mono text-caption uppercase tracking-wider text-muted">Anomalies</div>
+            <div className="mt-0.5 truncate font-mono text-caption text-muted">Detected in period</div>
           </div>
           {(['extreme', 'strong', 'mild'] as const).map(sev => {
             const cfg = SEVERITY_CONFIG[sev];
@@ -230,25 +231,25 @@ export default function PulsePage() {
                   severity === sev ? 'bg-cipher-hover' : ''
                 }`}
               >
-                <div className={`text-base font-bold font-mono tabular-nums lg:text-lg ${cfg.text}`}>
+                <div className={`text-base font-semibold font-mono tabular-nums lg:text-lg ${cfg.text}`}>
                   {loading ? '—' : counts[sev].toLocaleString()}
                 </div>
                 <div className="mt-0.5 flex items-center gap-1.5">
                   <span className={`h-1.5 w-1.5 rounded-full ${cfg.dot}`} />
-                  <span className="truncate font-mono text-[10px] uppercase tracking-wider text-muted">{cfg.label}</span>
+                  <span className="truncate font-mono text-caption uppercase tracking-wider text-muted">{cfg.label}</span>
                 </div>
-                <div className="mt-0.5 truncate font-mono text-[10px] text-muted/60">
+                <div className="mt-0.5 truncate font-mono text-caption text-muted">
                   {sev === 'extreme' ? '|z| ≥ 4.0' : sev === 'strong' ? '|z| ≥ 3.0' : '|z| ≥ 2.5'}
                 </div>
               </button>
             );
           })}
           <div className="min-w-0 px-3 py-3 sm:px-4 sm:py-3.5">
-            <div className="truncate text-base font-bold font-mono text-primary lg:text-lg">
+            <div className="truncate text-base font-semibold font-mono text-primary lg:text-lg">
               {loading || !topMetric ? '—' : METRIC_LABELS[topMetric.metric] || topMetric.metric}
             </div>
-            <div className="mt-0.5 truncate font-mono text-[10px] uppercase tracking-wider text-muted">Top signal</div>
-            <div className="mt-0.5 truncate font-mono text-[10px] text-muted/60">
+            <div className="mt-0.5 truncate font-mono text-caption uppercase tracking-wider text-muted">Top signal</div>
+            <div className="mt-0.5 truncate font-mono text-caption text-muted">
               {topMetric ? `${topMetric.count} event${topMetric.count === 1 ? '' : 's'}` : 'No events'}
             </div>
           </div>
@@ -257,7 +258,7 @@ export default function PulsePage() {
 
       {/* ─── Filters ────────────────────────────────────────── */}
       <div className="mt-6 flex flex-wrap items-center gap-2">
-        <span className="mr-1 font-mono text-[10px] uppercase tracking-wider text-muted">Period</span>
+        <span className="mr-1 font-mono text-caption uppercase tracking-wider text-muted">Period</span>
         {[7, 14, 30, 90].map(d => (
           <FilterPill key={d} active={days === d} onClick={() => { setDays(d); setPage(0); }}>
             {d}D
@@ -280,15 +281,15 @@ export default function PulsePage() {
           <div className="divide-y divide-cipher-border-subtle">
             {[...Array(6)].map((_, i) => (
               <div key={i} className="flex items-center gap-4 px-5 py-4">
-                <div className="h-2 w-2 rounded-full bg-glass-6 animate-pulse" />
-                <div className="h-3 flex-1 max-w-sm rounded bg-glass-6 animate-pulse" />
-                <div className="h-1 w-24 rounded bg-glass-6 animate-pulse" />
+                <div className="h-2 w-2 rounded-full skeleton-bg motion-safe:animate-pulse" />
+                <div className="h-3 flex-1 max-w-sm rounded skeleton-bg motion-safe:animate-pulse" />
+                <div className="h-1 w-24 rounded skeleton-bg motion-safe:animate-pulse" />
               </div>
             ))}
           </div>
         ) : grouped.length === 0 ? (
           <div className="flex flex-col items-center gap-2 px-6 py-16 text-center">
-            <span className="h-2.5 w-2.5 rounded-full bg-emerald-400" />
+            <span className="h-2.5 w-2.5 rounded-full bg-cipher-green" />
             <p className="text-sm text-secondary">No anomalies in this period.</p>
             <p className="font-mono text-xs text-muted">The network is within normal parameters.</p>
           </div>
@@ -296,10 +297,10 @@ export default function PulsePage() {
           grouped.map(group => (
             <div key={group.day}>
               <div className="flex items-center gap-2 border-y border-cipher-border-subtle bg-glass-3 px-4 py-2 first:border-t-0 sm:px-5">
-                <span className="font-mono text-[10px] uppercase tracking-wider text-muted">
+                <span className="font-mono text-caption uppercase tracking-wider text-muted">
                   {formatDay(group.day)}
                 </span>
-                <span className="font-mono text-[10px] text-muted/50">
+                <span className="font-mono text-caption text-muted">
                   {group.events.length} event{group.events.length === 1 ? '' : 's'}
                 </span>
               </div>
@@ -346,14 +347,14 @@ export default function PulsePage() {
         <div className="mt-6 overflow-hidden rounded-2xl border border-cipher-border bg-cipher-surface">
           <div className="grid divide-y divide-cipher-border-subtle sm:grid-cols-3 sm:divide-x sm:divide-y-0">
             <div className="px-5 py-4">
-              <div className="font-mono text-[10px] uppercase tracking-wider text-muted">Detection</div>
+              <div className="font-mono text-caption uppercase tracking-wider text-muted">Detection</div>
               <p className="mt-1.5 text-sm text-secondary leading-relaxed">
                 Each metric is computed daily and compared against its 90-day rolling mean
                 and standard deviation. Events fire at |z| ≥ 2.5.
               </p>
             </div>
             <div className="px-5 py-4">
-              <div className="font-mono text-[10px] uppercase tracking-wider text-muted">Signal Intensity</div>
+              <div className="font-mono text-caption uppercase tracking-wider text-muted">Signal Intensity</div>
               <div className="mt-1.5 space-y-1">
                 {(['extreme', 'strong', 'mild'] as const).map(sev => {
                   const cfg = SEVERITY_CONFIG[sev];
@@ -370,11 +371,11 @@ export default function PulsePage() {
               </div>
             </div>
             <div className="px-5 py-4">
-              <div className="font-mono text-[10px] uppercase tracking-wider text-muted">Coverage</div>
+              <div className="font-mono text-caption uppercase tracking-wider text-muted">Coverage</div>
               <p className="mt-1.5 text-sm text-secondary leading-relaxed">
                 12 metrics: transaction counts, shielded adoption, shield/deshield volume,
                 cross-chain flows, fees, exchange deposits, MVRV, Ironwood migration, and
-                miner sell pressure. Updated daily after 21:00 UTC.
+                miner-to-exchange transfer share. Updated daily after 21:00 UTC.
               </p>
             </div>
           </div>

@@ -1,6 +1,6 @@
 export const PRIVACY_BAR_CHART_MARGIN = { top: 12, right: 16, left: 8, bottom: 32 };
 
-export function privacyAxisLabel(fill: string, fontSize = 10) {
+export function privacyAxisLabel(fill: string, fontSize = 12) {
   return { fill, fontSize };
 }
 

@@ -1,3 +1,4 @@
+import { Skeleton } from './Skeleton';
 import { ReactNode } from 'react';
 
 /**
@@ -34,40 +35,17 @@ export function EmptyState({
   );
 }
 
-/**
- * SkeletonTable — the standard table loading state.
- *
- * Renders `rows` pulsing placeholder bars. Matches the row height of the
- * standard data table (44px) so content does not jump when data arrives.
- *
- * The pulsing bars themselves stay `aria-hidden` (decorative, no useful
- * structure for assistive tech), but a paired `sr-only` `role="status"`
- * region announces the loading state — every existing call site gets this
- * for free without needing to add its own wrapper.
- */
-export function SkeletonTable({
-  rows = 10,
-  rowHeight = 'h-[44px]',
-  className = '',
-  label = 'Loading…',
-}: {
-  rows?: number;
-  rowHeight?: string;
-  className?: string;
-  /** Screen-reader status text. Pass `null` to suppress the live region
-   * (e.g. when a parent component already announces loading state itself). */
-  label?: string | null;
+/** Column-aware loading table; the caller owns card chrome and pagination. */
+export function SkeletonTable({ rows = 10, rowHeight = 'h-[44px]', className = '', label = 'Loading…', columns = 4, headers, columnClasses = [], footer = false }: {
+  rows?: number; rowHeight?: string; className?: string; label?: string | null;
+  columns?: number; headers?: string[]; columnClasses?: string[]; footer?: boolean;
 }) {
-  return (
-    <div className={className}>
-      {label !== null && (
-        <span role="status" aria-live="polite" className="sr-only">{label}</span>
-      )}
-      <div className="space-y-1.5" aria-hidden="true">
-        {Array.from({ length: rows }).map((_, i) => (
-          <div key={i} className={`${rowHeight} skeleton-bg rounded animate-pulse`} />
-        ))}
-      </div>
-    </div>
-  );
+  const count = headers?.length ?? columns;
+  return <div className={`overflow-x-auto ${className}`} aria-busy="true">
+    {label !== null && <span role="status" className="sr-only">{label}</span>}
+    <table className="w-full" aria-hidden="true"><thead><tr>{Array.from({ length: count }, (_, i) => <th key={i} className={`px-4 py-3.5 border-b border-cipher-border text-caption font-semibold uppercase text-muted ${i === 0 ? 'text-left' : 'text-right'} ${columnClasses[i] ?? ''}`}>
+      {headers?.[i] ?? <Skeleton className={`h-4 w-16 ${i ? 'ml-auto' : ''}`} />}
+    </th>)}</tr></thead><tbody>{Array.from({ length: rows }, (_, row) => <tr key={row}>{Array.from({ length: count }, (_, col) => <td key={col} className={`px-4 ${rowHeight} border-b border-cipher-border ${columnClasses[col] ?? ''}`}><Skeleton className={`h-4 ${col === 0 ? 'w-28' : 'w-16 ml-auto'}`} /></td>)}</tr>)}</tbody></table>
+    {footer && <div className="h-[52px] flex items-center justify-center" aria-hidden="true"><Skeleton className="h-4 w-20" /></div>}
+  </div>;
 }

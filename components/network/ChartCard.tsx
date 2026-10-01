@@ -2,7 +2,7 @@
 
 import { ReactNode } from 'react';
 import { Card, CardBody } from '@/components/ui/Card';
-import { ChartWatermark, WatermarkSize } from '@/components/ChartWatermark';
+import { ChartWatermark, type WatermarkSize } from '@/components/ChartWatermark';
 
 interface ChartCardProps {
   title: string;
@@ -22,7 +22,6 @@ export function ChartCard({
   className = '',
   height = 320,
   fill = false,
-  watermarkSize = 'md',
 }: ChartCardProps) {
   return (
     <Card className={`${fill ? 'h-full' : ''} ${className}`}>
@@ -30,16 +29,14 @@ export function ChartCard({
         <div className="flex items-start sm:items-center justify-between gap-2 sm:gap-3 mb-4 flex-wrap">
           <div className="flex items-center gap-2 min-w-0">
             <span className="text-xs text-muted font-mono uppercase tracking-widest opacity-50">{'>'}</span>
-            <h2 className="text-xs sm:text-sm font-bold font-mono text-secondary uppercase tracking-wider truncate">{title}</h2>
+            <h2 className="text-sm font-medium font-mono text-secondary lowercase tracking-tight truncate">{title}</h2>
           </div>
           {controls}
         </div>
         <div className={`relative rounded-lg ${fill ? 'flex-1 min-h-0' : ''}`} style={fill ? undefined : { minHeight: height }}>
-          <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-lg">
-            <ChartWatermark size={watermarkSize} />
-          </div>
           <div className={`relative z-[1] px-0.5 pb-1 ${fill ? 'h-full' : ''}`}>{children}</div>
         </div>
+        <ChartWatermark />
       </CardBody>
     </Card>
   );

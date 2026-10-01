@@ -43,7 +43,7 @@ export function GovernanceBanner() {
   if (!visible || !announcement) return null;
   return <div ref={ref} role="region" aria-label="Governance announcement" className="ironwood-banner sticky top-[calc(var(--app-nav-height,4rem)+var(--app-stats-height,2.75rem))] z-40 border-b border-cipher-border/50 backdrop-blur-xl">
     <div className="relative mx-auto flex h-10 max-w-7xl items-center justify-center px-4 pr-12 sm:px-12">
-      <Link href={announcement.href} className="truncate font-mono text-xs text-cipher-cyan hover:underline">{announcement.text} →</Link>
+      <Link href={announcement.href} className="truncate font-mono text-xs text-brand-gold hover:underline">{announcement.text} →</Link>
       <button aria-label="Dismiss governance announcement" className="absolute right-3 flex h-8 w-8 items-center justify-center text-muted hover:text-primary" onClick={() => { dismissedKeys.current.add(announcement.key); try { sessionStorage.setItem(`governance:${announcement.key}`, '1'); } catch { /* In-memory fallback. */ } setDismissed(true); }}>×</button>
     </div>
   </div>;

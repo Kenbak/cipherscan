@@ -1,14 +1,16 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useId } from 'react';
 import { createPortal } from 'react-dom';
 
 interface TooltipProps {
   content: string;
+  label?: string;
   children?: React.ReactNode;
 }
 
-export function Tooltip({ content, children }: TooltipProps) {
+export function Tooltip({ content, children, label = 'More information' }: TooltipProps) {
+  const tooltipId = useId();
   const [show, setShow] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [coords, setCoords] = useState<{ top: number; left: number; align: 'center' | 'left' | 'right' } | null>(null);
@@ -113,8 +115,10 @@ export function Tooltip({ content, children }: TooltipProps) {
         // text labels. Full opacity (+ text-primary) only on hover/focus, so
         // it's there when you go looking for it but doesn't compete with
         // the label it's attached to at rest.
-        className="inline-flex text-muted/50 hover:text-primary transition-colors cursor-help"
-        aria-label="More information"
+        className="inline-flex text-muted hover:text-primary transition-colors cursor-help"
+        aria-label={label}
+        aria-describedby={show ? tooltipId : undefined}
+        onKeyDown={(event) => { if (event.key === 'Escape') setShow(false); }}
       >
         {children || (
           <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
@@ -124,6 +128,8 @@ export function Tooltip({ content, children }: TooltipProps) {
       </button>
       {show && coords && typeof document !== 'undefined' && createPortal(
         <div
+          id={tooltipId}
+          role="tooltip"
           ref={popoverRef}
           className="fixed z-[9999] px-3 py-2 text-xs leading-relaxed tooltip-content w-56 max-w-xs normal-case tracking-normal pointer-events-auto"
           style={{

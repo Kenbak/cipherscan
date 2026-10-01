@@ -1,3 +1,4 @@
+import { readApiData } from '@/lib/api-client';
 import { isGrantsRound } from '@/lib/governance';
 import { getGovernanceCatalog } from '@/lib/governance-data';
 import { unstable_cache } from 'next/cache';
@@ -82,7 +83,7 @@ async function fetchJson(url: string, revalidate: number): Promise<unknown> {
   if (!response.ok) {
     throw new Error(`Sitemap data source returned ${response.status}`);
   }
-  return response.json();
+  return readApiData(response);
 }
 
 async function refreshRegisteredNamePages(baseUrl: string): Promise<SitemapUrlEntry[]> {
@@ -91,15 +92,17 @@ async function refreshRegisteredNamePages(baseUrl: string): Promise<SitemapUrlEn
   const total = Math.min(Math.max(Number(status.registered) || 0, 0), ZNS_SITEMAP_LIMIT);
   const entries: SitemapUrlEntry[] = [];
 
+  let cursor: string | null = null;
   for (let offset = 0; offset < total; offset += ZNS_PAGE_SIZE) {
-    const registrations = await listZnsRegistrations(ZNS_PAGE_SIZE, offset, signal);
+    const { items: registrations, page } = await listZnsRegistrations(ZNS_PAGE_SIZE, cursor, signal);
+    cursor = page.nextCursor;
     for (const registration of registrations) {
       if (typeof registration.name !== 'string' || !isValidName(registration.name)) continue;
       entries.push({
         url: `${baseUrl}/name/${encodeURIComponent(registration.name.toLowerCase())}`,
       });
     }
-    if (registrations.length < ZNS_PAGE_SIZE) break;
+    if (!cursor) break;
   }
 
   if (total > 0 && entries.length === 0) {
@@ -132,11 +135,11 @@ async function getDynamicSitemap(slug: string, baseUrl: string): Promise<Dynamic
   }
 
   if (slug === 'addresses') {
-    const data = await fetchJson(`${apiUrl}/api/rich-list?limit=100&offset=0`, 3_600) as {
+    const data = await fetchJson(`${apiUrl}/v1/addresses/rich-list?limit=100&offset=0`, 3_600) as {
       success?: boolean;
       addresses?: Array<{ address?: unknown; lastSeen?: unknown }>;
     };
-    if (data.success !== true || !Array.isArray(data.addresses)) {
+    if (!(data) || !Array.isArray(data.addresses)) {
       throw new Error('Address sitemap data source returned an invalid payload');
     }
     const entries = data.addresses.map((entry) => {
@@ -155,11 +158,11 @@ async function getDynamicSitemap(slug: string, baseUrl: string): Promise<Dynamic
   }
 
   if (slug === 'orphan-blocks') {
-    const data = await fetchJson(`${apiUrl}/api/uncles?limit=100&offset=0`, 300) as {
+    const data = await fetchJson(`${apiUrl}/v1/uncles?limit=100&offset=0`, 300) as {
       success?: boolean;
       orphanedBlocks?: Array<{ hash?: unknown; detectedAt?: unknown; timestamp?: unknown }>;
     };
-    if (data.success !== true || !Array.isArray(data.orphanedBlocks)) {
+    if (!(data) || !Array.isArray(data.orphanedBlocks)) {
       throw new Error('Orphan-block sitemap data source returned an invalid payload');
     }
     const entries = data.orphanedBlocks.map((block) => {
@@ -178,11 +181,11 @@ async function getDynamicSitemap(slug: string, baseUrl: string): Promise<Dynamic
   }
 
   if (slug === 'transactions-recent') {
-    const data = await fetchJson(`${apiUrl}/api/sitemaps/transactions/recent`, 300) as {
+    const data = await fetchJson(`${apiUrl}/v1/sitemaps/transactions/recent`, 300) as {
       success?: boolean;
       transactions?: Array<{ txid?: unknown; blockTime?: unknown }>;
     };
-    if (data.success !== true || !Array.isArray(data.transactions)) {
+    if (!(data) || !Array.isArray(data.transactions)) {
       throw new Error('Transaction sitemap data source returned an invalid payload');
     }
     if (data.transactions.length !== 100) {
@@ -208,14 +211,14 @@ async function getDynamicSitemap(slug: string, baseUrl: string): Promise<Dynamic
   if (!range) throw new Error('Unknown block sitemap range');
 
   const data = await fetchJson(
-    `${apiUrl}/api/sitemaps/blocks?start=${range.start}&end=${range.end}`,
+    `${apiUrl}/v1/sitemaps/blocks?start=${range.start}&end=${range.end}`,
     300,
   ) as {
     success?: boolean;
     complete?: boolean;
     blocks?: Array<{ height?: unknown; timestamp?: unknown }>;
   };
-  if (data.success !== true || !Array.isArray(data.blocks)) {
+  if (!(data) || !Array.isArray(data.blocks)) {
     throw new Error('Block sitemap data source returned an invalid payload');
   }
 

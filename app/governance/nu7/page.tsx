@@ -1,3 +1,4 @@
+import { readApiData } from '@/lib/api-client';
 import { GovernanceRefresh } from '../GovernanceRefresh';
 import { VoteResults } from './VoteResults';
 import { NU7VoteClient } from './NU7VoteClient';
@@ -7,11 +8,11 @@ import { fetchWithDeadline } from '@/lib/server-fetch';
 import { NU7_ROUND_ID, NU7_SUMMARY_URL, NU7_TALLY_URL, parseVoteResults } from '@/lib/nu7-vote-results';
 import { notFound } from 'next/navigation';
 
-async function fetchJson(url: string) {
+async function fetchJson(url: string, versioned = false) {
   try {
     const res = await fetchWithDeadline(url, { next: { revalidate: 300 } }, 8_000);
     if (!res.ok) return null;
-    return await res.json();
+    return versioned ? await readApiData(res) : await res.json();
   } catch {
     return null;
   }
@@ -26,7 +27,7 @@ export default async function NU7VotePage() {
   const pageUrl = new URL('/governance/nu7', `${baseUrl}/`).toString();
 
   const [networkStats, summary, tally] = await Promise.all([
-    fetchJson(`${apiBase}/api/network/stats`),
+    fetchJson(`${apiBase}/v1/network/stats`, true),
     fetchJson(NU7_SUMMARY_URL),
     fetchJson(NU7_TALLY_URL),
   ]);

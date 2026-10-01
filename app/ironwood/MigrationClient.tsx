@@ -1,11 +1,13 @@
 'use client';
 
+import { normalizeMigrationData, completedDayActivity } from './components/api-data';
+import { readApiData } from '@/lib/api-client';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { getApiUrl } from '@/lib/api-config';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getChartColors } from '@/lib/chart-theme';
-import { NETWORK_LABEL, NETWORK_COLOR } from '@/lib/config';
-import { useCurrencyToggle, fmtValue } from '@/hooks/useCurrencyToggle';
+import { NETWORK_LABEL } from '@/lib/config';
+import { useCurrencyToggle } from '@/hooks/useCurrencyToggle';
 import { zatToZec } from '@/lib/format-numbers';
 import { useInViewport } from '@/hooks/useInViewport';
 import { TurnstileHero } from './TurnstileHero';
@@ -44,13 +46,13 @@ function fmtZec(zat: number): string {
 }
 
 /**
- * Compact initial-activity payload from `/api/migration/activity` — small,
+ * Compact initial-activity payload from `/v1/migration/activity` — small,
  * pre-aggregated hourly/daily buckets (exact zatoshi integers, never a lossy
  * ZEC float) rather than the full per-tx `/scatter` payload. Feature-detected
  * (network/parse failure → simply not shown) so this stays resilient if the
  * endpoint is ever rolled back or rate-limited independently of the frontend.
  */
-// How close to the viewport the scatter section (the ~10MB /api/migration/scatter
+// How close to the viewport the scatter section (the ~10MB /v1/migration/scatter
 // payload) needs to be before we fetch it. Generous lookahead so the chart is
 // already loaded by the time a scrolling user actually reaches it.
 const SCATTER_VIEWPORT_MARGIN = '800px';
@@ -86,10 +88,10 @@ export function MigrationClient({
   const [loaded, setLoaded] = useState(!!initialOverview);
   const { theme } = useTheme();
   const colors = getChartColors(theme);
-  const { mode: currencyMode, toggle: toggleCurrency, price: zecPrice } = useCurrencyToggle();
+  const { mode: currencyMode, setMode: setCurrencyMode, price: zecPrice } = useCurrencyToggle();
 
   // Sentinel placed just above the scatter-consuming sections (Migration
-  // Activity + Amount Privacy) — the ~10MB /api/migration/scatter payload is
+  // Activity + Amount Privacy) — the ~10MB /v1/migration/scatter payload is
   // only fetched once this nears the viewport, instead of unconditionally
   // on mount. Every point is still preserved once it does load (no sampling).
   const [scatterSectionRef, scatterNearViewport] = useInViewport<HTMLDivElement>({
@@ -101,13 +103,14 @@ export function MigrationClient({
     const base = getApiUrl();
     const fetchJson = (path: string) =>
       fetch(`${base}${path}`, { cache: 'no-store' })
-        .then((r) => (r.ok ? r.json() : null))
+        .then((r) => (r.ok ? readApiData(r) : null))
+        .then(normalizeMigrationData)
         .catch(() => null);
 
     const loadOverview = () => {
-      fetchJson('/api/migration/overview').then((result) => {
+      fetchJson('/v1/migration/overview').then((result) => {
         if (cancelled) return;
-        if (result?.success && result.network === deploymentNetwork) setOverview(result);
+        if (result && result.network === deploymentNetwork) setOverview(result);
         setLoaded(true);
       });
     };
@@ -119,14 +122,14 @@ export function MigrationClient({
     // failure just means "no summary available" rather than an error state.
     const loadActivity = () => {
       Promise.all([
-        fetchJson('/api/migration/activity?granularity=hour'),
-        fetchJson('/api/migration/activity?granularity=day'),
+        fetchJson('/v1/migration/activity?granularity=hour'),
+        fetchJson('/v1/migration/activity?granularity=day'),
       ]).then(([hourly, daily]: [MigrationActivityData | null, MigrationActivityData | null]) => {
         if (cancelled) return;
-        if (hourly?.success && (!hourly.network || hourly.network === deploymentNetwork)) {
+        if (hourly && (!hourly.network || hourly.network === deploymentNetwork)) {
           setActivityHourly(hourly);
         }
-        if (daily?.success && (!daily.network || daily.network === deploymentNetwork)) {
+        if (daily && (!daily.network || daily.network === deploymentNetwork)) {
           setActivityDaily(daily);
         }
         setActivityAttempted(true);
@@ -134,9 +137,9 @@ export function MigrationClient({
     };
 
     const loadCohorts = () => {
-      fetchJson('/api/migration/cohorts').then((c) => {
+      fetchJson('/v1/migration/cohorts').then((c) => {
         if (cancelled) return;
-        if (c?.success && c.network === deploymentNetwork) setCohorts(c);
+        if (c && c.network === deploymentNetwork) setCohorts(c);
       });
     };
 
@@ -180,12 +183,12 @@ export function MigrationClient({
           scatterCursor.current = loaded.cursor;
         } else {
           const response = await fetch(
-            `${base}/api/migration/scatter/compact?range=${scatterRequestRange}`,
+            `${base}/v1/migration/scatter/compact?range=${scatterRequestRange}`,
             { signal: controller.signal },
           );
           if (!response.ok) throw new Error(`Scatter request failed with HTTP ${response.status}`);
-          const body = await response.json() as CompactScatterResponse;
-          if (!body.success || body.network !== deploymentNetwork) {
+          const body = await readApiData(response) as CompactScatterResponse;
+          if (!body || body.network !== deploymentNetwork) {
             throw new Error('Scatter response network mismatch');
           }
           if (cancelled) return;
@@ -204,13 +207,13 @@ export function MigrationClient({
       if (!cursor || !cursor.hash || document.visibilityState === 'hidden') return;
       try {
         const response = await fetch(
-          `${base}/api/migration/scatter/compact?afterHeight=${cursor.height}`
+          `${base}/v1/migration/scatter/compact?afterHeight=${cursor.height}`
             + `&afterHash=${encodeURIComponent(cursor.hash)}`,
           { signal: controller.signal },
         );
         if (!response.ok) throw new Error(`Scatter tail failed with HTTP ${response.status}`);
-        const body = await response.json() as CompactScatterResponse;
-        if (!body.success || body.network !== deploymentNetwork) return;
+        const body = await readApiData(response) as CompactScatterResponse;
+        if (!body || body.network !== deploymentNetwork) return;
         if (body.resetRequired) {
           await loadInitial();
           return;
@@ -251,12 +254,7 @@ export function MigrationClient({
     ? (orchardToIronwoodZat / originalOrchard) * 100
     : 0;
   const activitySummary = useMemo(() => {
-    const recentBuckets = activityHourly?.buckets.slice(-24) ?? [];
-    if (recentBuckets.length === 0) return null;
-    return {
-      txCount24h: recentBuckets.reduce((sum, bucket) => sum + bucket.txCount, 0),
-      volumeZat24h: recentBuckets.reduce((sum, bucket) => sum + bucket.volumeZat, 0),
-    };
+    return completedDayActivity(activityHourly, Date.now() / 1000);
   }, [activityHourly]);
 
   return (
@@ -264,22 +262,28 @@ export function MigrationClient({
       {/* Header */}
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-primary">
-            Zcash <span className="text-cipher-yellow-bright">Ironwood</span> Migration Tracker
+          {/* No accent on "Ironwood" here: gold is this page's Ironwood-pool
+              category color in the charts, badges and balance rows, so tinting
+              the word in the title reads as a data label (or a link) instead
+              of a heading. Color belongs to identity labels, not prose. */}
+          <h1 className="type-page text-primary">
+            Zcash Ironwood Migration Tracker
           </h1>
           <p className="text-sm text-secondary mt-2 max-w-3xl leading-relaxed">
             Live tracking of the NU6.3 Orchard-to-Ironwood migration — pool balances, supply verification, cohort privacy, and migration velocity.
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <button
-            onClick={toggleCurrency}
-            className="flex items-center rounded-full border border-cipher-border bg-glass-3 text-[11px] font-mono overflow-hidden"
-          >
-            <span className={`px-2.5 py-1 transition-colors ${currencyMode === 'zec' ? 'bg-cipher-yellow-bright/15 text-cipher-yellow-bright' : 'text-muted'}`}>ZEC</span>
-            <span className={`px-2.5 py-1 transition-colors ${currencyMode === 'usd' ? 'bg-cipher-yellow-bright/15 text-cipher-yellow-bright' : 'text-muted'}`}>USD</span>
-          </button>
-          <span className={`text-[10px] font-mono ${NETWORK_COLOR} border border-current/20 rounded-full px-3 py-1`}>
+          <div role="group" aria-label="Display currency" className="inline-flex gap-1 p-1 rounded-lg bg-glass-3">
+            {(['zec', 'usd'] as const).map(unit => (
+              <button key={unit} type="button" aria-pressed={currencyMode === unit}
+                onClick={() => setCurrencyMode(unit)}
+                className={`min-h-9 px-3 rounded-md text-xs font-mono uppercase transition-colors ${currencyMode === unit ? 'bg-cipher-bg text-primary shadow-sm ring-1 ring-glass-12' : 'text-muted hover:text-primary'}`}>
+                {unit.toUpperCase()}
+              </button>
+            ))}
+          </div>
+          <span className="text-caption font-mono text-muted px-2" aria-label={`Network: ${NETWORK_LABEL}`}>
             {NETWORK_LABEL}
           </span>
         </div>
@@ -294,9 +298,9 @@ export function MigrationClient({
         </div>
       ) : noData ? (
         <div className="mt-8 rounded-xl border border-cipher-border bg-cipher-surface p-6 text-center">
-          <h2 className="text-sm font-bold text-primary">Migration data unavailable</h2>
+          <h2 className="text-sm font-semibold text-primary">Migration data unavailable</h2>
           <p className="text-xs text-muted mt-2">
-            CipherScan could not load Ironwood data for this network. Try again shortly.
+            ZecBlock could not load Ironwood data for this network. Try again shortly.
           </p>
         </div>
       ) : (
@@ -359,7 +363,7 @@ export function MigrationClient({
               <div ref={scatterSectionRef} aria-hidden="true" />
               {!scatter && activitySummary && (
                 <p className="mt-6 text-xs font-mono text-muted" role="status" aria-live="polite">
-                  {activitySummary.txCount24h.toLocaleString()} migrations in the last 24h ({fmtZec(activitySummary.volumeZat24h)} ZEC) — transaction-level privacy detail loads as you scroll.
+                  {activitySummary.txCount24h.toLocaleString()} migrations in the last 24 complete UTC hours ({fmtZec(activitySummary.volumeZat24h)} ZEC) — transaction-level privacy detail loads as you scroll.
                 </p>
               )}
               <MigrationActivity
@@ -378,7 +382,7 @@ export function MigrationClient({
               />
               <PrivacyScore
                 scatter={scatter}
-                scatterLoading={hasMigrations && scatterNearViewport && !scatterAttempted}
+                scatterLoading={hasMigrations && !scatterAttempted}
                 scatterUnavailable={hasMigrations && scatterAttempted && !scatter}
                 activated={activated}
                 colors={colors}

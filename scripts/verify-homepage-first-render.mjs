@@ -24,8 +24,8 @@ try {
   assert.equal(response.status, 200);
   const html = await response.text();
   assert.equal((html.match(/<h1(?:\s|>)/g) || []).length, 1);
-  assert.match(html, /CipherScan: Zcash/);
-  assert.doesNotMatch(html, /zecblocks?\.com/i);
+  assert.match(html, /ZecBlock/);
+  assert.match(html, /zecblock\.com/i);
   assert.match(html, /<time[^>]*>[^<]*(?:ago|Just now)<\/time>/);
   const noJS = await browser.newContext({ javaScriptEnabled: false });
   const staticPage = await noJS.newPage();
@@ -35,7 +35,7 @@ try {
   // Isolate the server-rendered homepage from Next's existing outer streaming
   // boundary, whose reveal script cannot execute with JavaScript disabled.
   // This checks the feed's noscript fallback, not app-wide no-JS support.
-  await staticPage.evaluate(() => document.body.replaceChildren(document.querySelector('.home-page')));
+  await staticPage.evaluate(() => document.body.replaceChildren(document.querySelector('.home-feed').closest('.home-page')));
   assert.equal(await staticPage.locator('.home-feed-content').first().isVisible(), true);
   assert.equal(await staticPage.locator('.home-feed-placeholder').first().isVisible(), false);
   assert.ok(await staticPage.locator('.home-feed a[href^="/block/"]').count() > 0);
@@ -71,8 +71,9 @@ try {
     watch(page);
     await page.clock.install();
     const fixtureTime = Math.floor(Date.now() / 1000) - 120;
-    await page.route('**/api/blocks?limit=5', route => route.fulfill({ json: {
-      blocks: blockFixture.blocks.map(block => ({ ...block, timestamp: String(fixtureTime) })),
+    await page.route('**/v1/blocks?limit=5', route => route.fulfill({ json: {
+      meta: { requestId: 'browser-blocks', network: 'mainnet' },
+      data: blockFixture.blocks.map(block => ({ ...block, timestamp: String(fixtureTime) })),
     } }));
     await page.route(url + '/', route => route.fulfill({ contentType: 'text/html', body: html }));
     let releaseScripts;
@@ -83,9 +84,9 @@ try {
     });
     let releaseTransactions;
     const transactionsReady = new Promise(resolve => { releaseTransactions = resolve; });
-    await page.route('**/api/transactions/list*', async route => {
+    await page.route('**/v1/transactions?*', async route => {
       await transactionsReady;
-      await route.fulfill({ json: { ...transactionFixture, transactions: transactionFixture.transactions.map(tx => ({
+      await route.fulfill({ json: { meta: { requestId: 'browser-transactions', network: 'mainnet' }, data: transactionFixture.transactions.map(tx => ({
         ...tx, block_time: String(fixtureTime),
       })) } });
     });

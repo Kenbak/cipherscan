@@ -1,9 +1,11 @@
 'use client';
+import { ChartSkeleton } from '@/components/ui/Skeleton';
 
 import { useState, useMemo } from 'react';
 import {
-  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, Brush,
+  AreaChart, Area, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Legend, Brush,
 } from 'recharts';
+import { ChartTooltip as Tooltip } from '@/components/charts/ChartTooltip';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getChartColors } from '@/lib/chart-theme';
 import { useApiQuery } from '@/hooks/useApiQuery';
@@ -41,10 +43,10 @@ export function ProtocolStatsChart({ initialData, initialFetchedAt }: { initialF
   const { theme } = useTheme();
   const colors = getChartColors(theme);
   const [view, setView] = useState<'commitments' | 'nullifiers'>('commitments');
-  const [period, setPeriod] = useState<Period>('4y');
+  const [period, setPeriod] = useState<Period>('all');
 
   const { data: apiData, loading } = useApiQuery<ProtocolStatsResponse>(
-    '/api/network/protocol-stats',
+    '/v1/network/protocol-stats',
     undefined,
     { refreshInterval: 300_000, initialFetchedAt, initialData: initialData ?? undefined },
   );
@@ -79,8 +81,8 @@ export function ProtocolStatsChart({ initialData, initialFetchedAt }: { initialF
         <button
           key={v}
           onClick={() => setView(v)}
-          className={`px-2 py-0.5 text-[10px] font-mono rounded transition-colors ${
-            view === v ? 'bg-cipher-cyan/20 text-cipher-cyan' : 'text-muted hover:text-secondary'
+          className={`px-2 py-0.5 text-caption font-mono rounded transition-colors ${
+            view === v ? 'bg-brand-gold/20 text-cipher-gold' : 'text-muted hover:text-secondary'
           }`}
         >
           {v === 'commitments' ? 'Trees' : 'Nullifiers'}
@@ -91,8 +93,8 @@ export function ProtocolStatsChart({ initialData, initialFetchedAt }: { initialF
         <button
           key={p}
           onClick={() => setPeriod(p)}
-          className={`px-2 py-0.5 text-[10px] font-mono rounded transition-colors ${
-            period === p ? 'bg-cipher-cyan/20 text-cipher-cyan' : 'text-muted hover:text-secondary'
+          className={`px-2 py-0.5 text-caption font-mono rounded transition-colors ${
+            period === p ? 'bg-brand-gold/20 text-cipher-gold' : 'text-muted hover:text-secondary'
           }`}
         >
           {p === 'all' ? 'All' : p.toUpperCase()}
@@ -104,9 +106,7 @@ export function ProtocolStatsChart({ initialData, initialFetchedAt }: { initialF
   if (loading) {
     return (
       <ChartCard title="PROTOCOL_GROWTH" height={280} watermarkSize="sm" controls={controls}>
-        <div className="flex items-center justify-center h-[280px] text-xs text-muted">
-          Loading protocol stats...
-        </div>
+        <ChartSkeleton height={280} />
       </ChartCard>
     );
   }
@@ -128,43 +128,43 @@ export function ProtocolStatsChart({ initialData, initialFetchedAt }: { initialF
           <div className="flex gap-4 flex-wrap">
             {view === 'commitments' ? (
               <>
-                <div className="text-[10px] font-mono">
+                <div className="text-caption font-mono">
                   <span className="text-muted">Sapling tree: </span>
-                  <span className="text-blue-400 font-semibold">{formatMillions(current.saplingCommitments)}</span>
+                  <span className="text-cipher-green font-semibold">{formatMillions(current.saplingCommitments)}</span>
                 </div>
-                <div className="text-[10px] font-mono">
+                <div className="text-caption font-mono">
                   <span className="text-muted">Orchard tree: </span>
-                  <span className="text-emerald-400 font-semibold">{formatMillions(current.orchardCommitments)}</span>
+                  <span className="text-cipher-purple font-semibold">{formatMillions(current.orchardCommitments)}</span>
                 </div>
                 {(current.ironwoodCommitments || 0) > 0 && (
-                  <div className="text-[10px] font-mono">
+                  <div className="text-caption font-mono">
                     <span className="text-muted">Ironwood tree: </span>
-                    <span className="text-amber-400 font-semibold">{formatMillions(current.ironwoodCommitments)}</span>
+                    <span className="text-cipher-ironwood font-semibold">{formatMillions(current.ironwoodCommitments)}</span>
                   </div>
                 )}
               </>
             ) : (
               <>
-                <div className="text-[10px] font-mono">
+                <div className="text-caption font-mono">
                   <span className="text-muted">Sapling nullifiers: </span>
-                  <span className="text-blue-400 font-semibold">{formatMillions(current.saplingNullifiers)}</span>
+                  <span className="text-cipher-green font-semibold">{formatMillions(current.saplingNullifiers)}</span>
                 </div>
-                <div className="text-[10px] font-mono">
+                <div className="text-caption font-mono">
                   <span className="text-muted">Orchard nullifiers: </span>
-                  <span className="text-emerald-400 font-semibold">{formatMillions(current.orchardNullifiers)}</span>
+                  <span className="text-cipher-purple font-semibold">{formatMillions(current.orchardNullifiers)}</span>
                 </div>
                 {(current.ironwoodNullifiers || 0) > 0 && (
-                  <div className="text-[10px] font-mono">
+                  <div className="text-caption font-mono">
                     <span className="text-muted">Ironwood nullifiers: </span>
-                    <span className="text-amber-400 font-semibold">{formatMillions(current.ironwoodNullifiers)}</span>
+                    <span className="text-cipher-ironwood font-semibold">{formatMillions(current.ironwoodNullifiers)}</span>
                   </div>
                 )}
               </>
             )}
           </div>
-          <p className="text-[9px] font-mono text-muted/60 mt-1.5">
+          <p className="text-caption font-mono text-muted mt-1.5">
             {view === 'commitments'
-              ? 'Note commitments added to each pool\u2019s Merkle tree. Each shielded output creates one commitment. Larger tree = more private transactions processed.'
+              ? 'Cumulative note commitments in each pool’s Merkle tree. These are protocol records, not transaction counts or a privacy score.'
               : 'Nullifiers revealed when notes are spent. Sapling counts real spends only. Orchard includes padding (each Action = 1 spend + 1 output for uniform privacy).'}
           </p>
         </div>
@@ -175,52 +175,52 @@ export function ProtocolStatsChart({ initialData, initialFetchedAt }: { initialF
           <XAxis
             dataKey="label"
             stroke={colors.axis}
-            tick={{ fill: colors.axis, fontSize: 9 }}
+            tick={{ fill: colors.axis, fontSize: 12 }}
             interval="preserveStartEnd"
           />
           <YAxis
             stroke={colors.axis}
-            tick={{ fill: colors.axis, fontSize: 9 }}
+            tick={{ fill: colors.axis, fontSize: 12 }}
             tickFormatter={formatMillions}
-            width={42}
+            width={56}
             domain={period === 'all' || period === '4y' ? [0, 'auto'] : ['dataMin', 'auto']}
           />
           <Tooltip
-            contentStyle={{ backgroundColor: 'var(--color-surface-solid)', border: '1px solid var(--color-border-subtle)', borderRadius: 8, fontSize: 11 }}
-            labelStyle={{ color: 'var(--color-text-muted)', fontFamily: 'var(--font-mono)', fontSize: 10 }}
+            contentStyle={{ backgroundColor: 'var(--color-surface-solid)', border: '1px solid var(--color-border-subtle)', borderRadius: 8, fontSize: 12 }}
+            labelStyle={{ color: 'var(--color-text-muted)', fontFamily: 'var(--font-geist-mono)', fontSize: 12 }}
             formatter={(value) => formatMillions(Number(value))}
           />
           <Legend
-            wrapperStyle={{ fontSize: 10, fontFamily: 'var(--font-mono)' }}
+            wrapperStyle={{ fontSize: 12, fontFamily: 'var(--font-geist-mono)' }}
           />
           {view === 'commitments' ? (
             <>
               <Area
-                type="monotone"
+                type="linear"
                 dataKey="saplingCommitments"
                 name="Sapling notes"
-                stroke="#60a5fa"
-                fill="#60a5fa"
+                stroke={colors.sapling}
+                fill={colors.sapling}
                 fillOpacity={0.15}
                 strokeWidth={1.5}
                 dot={false}
               />
               <Area
-                type="monotone"
+                type="linear"
                 dataKey="orchardCommitments"
                 name="Orchard notes"
-                stroke="#34d399"
-                fill="#34d399"
+                stroke={colors.orchard}
+                fill={colors.orchard}
                 fillOpacity={0.15}
                 strokeWidth={1.5}
                 dot={false}
               />
               <Area
-                type="monotone"
+                type="linear"
                 dataKey="ironwoodCommitments"
                 name="Ironwood notes"
-                stroke="#f59e0b"
-                fill="#f59e0b"
+                stroke={colors.ironwood}
+                fill={colors.ironwood}
                 fillOpacity={0.15}
                 strokeWidth={1.5}
                 dot={false}
@@ -229,31 +229,31 @@ export function ProtocolStatsChart({ initialData, initialFetchedAt }: { initialF
           ) : (
             <>
               <Area
-                type="monotone"
+                type="linear"
                 dataKey="saplingNullifiers"
                 name="Sapling nullifiers"
-                stroke="#60a5fa"
-                fill="#60a5fa"
+                stroke={colors.sapling}
+                fill={colors.sapling}
                 fillOpacity={0.15}
                 strokeWidth={1.5}
                 dot={false}
               />
               <Area
-                type="monotone"
+                type="linear"
                 dataKey="orchardNullifiers"
                 name="Orchard nullifiers"
-                stroke="#34d399"
-                fill="#34d399"
+                stroke={colors.orchard}
+                fill={colors.orchard}
                 fillOpacity={0.15}
                 strokeWidth={1.5}
                 dot={false}
               />
               <Area
-                type="monotone"
+                type="linear"
                 dataKey="ironwoodNullifiers"
                 name="Ironwood nullifiers"
-                stroke="#f59e0b"
-                fill="#f59e0b"
+                stroke={colors.ironwood}
+                fill={colors.ironwood}
                 fillOpacity={0.15}
                 strokeWidth={1.5}
                 dot={false}

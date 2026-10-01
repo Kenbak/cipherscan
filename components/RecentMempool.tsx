@@ -1,5 +1,6 @@
 'use client';
 
+import { readApiData } from '@/lib/api-client';
 import { useState, useEffect, useCallback, memo, type ReactNode } from 'react';
 import { formatRelativeTime } from '@/lib/utils';
 import { formatZecPrecise, formatBytesCompact } from '@/lib/format-numbers';
@@ -53,7 +54,7 @@ function classifyTxType(tx: any): 'shielded' | 'mixed' | 'transparent' {
 }
 
 /**
- * Amount CipherScan is allowed to show for a pending mempool row — same rule
+ * Amount ZecBlock is allowed to show for a pending mempool row — same rule
  * as the confirmed shielded-activity table (see RecentShieldedTxs.tsx):
  * transparent value is always public, a shield/deshield's transparent-side
  * value balance is public, a fully-shielded tx's amount is not.
@@ -91,7 +92,7 @@ export const RecentMempool = memo(function RecentMempool({ footer }: { footer?: 
         valueBalanceOrchard: msg.data.valueBalanceOrchard || 0,
         valueBalanceIronwood: msg.data.valueBalanceIronwood || 0,
       };
-      setTxs(prev => [tx, ...prev].slice(0, 5));
+      setTxs(prev => [tx, ...prev.filter(existing => existing.txid !== tx.txid)].slice(0, 5));
       setLoading(false);
     } else if (msg.type === 'mempool_removed' && msg.data?.txid) {
       setTxs(prev => prev.filter(t => t.txid !== msg.data.txid));
@@ -102,13 +103,13 @@ export const RecentMempool = memo(function RecentMempool({ footer }: { footer?: 
 
   const fetchMempool = async () => {
     try {
-      const apiUrl = `${getApiUrl()}/api/mempool`;
+      const apiUrl = `${getApiUrl()}/v1/mempool`;
 
       const response = await fetch(apiUrl);
       if (!response.ok) return;
 
-      const result = await response.json();
-      if (result.success) {
+      const result = await readApiData(response);
+      if (result) {
         // REST rows carry per-pool activity as counts — normalize to the same
         // boolean flags the WebSocket path uses.
         const allTxs = (result.transactions || []).map((tx: any) => ({
@@ -145,8 +146,9 @@ export const RecentMempool = memo(function RecentMempool({ footer }: { footer?: 
 
   if (loading) {
     return (
-      <div className="card p-4">
-        <SkeletonTable rows={5} rowHeight="h-12" />
+      <div className="card p-0 overflow-hidden">
+        <SkeletonTable rows={5} rowHeight="h-12" headers={["Type", "TXID", "Amount", "Size", "Waiting"]} columnClasses={["", "", "", "hidden sm:table-cell", ""]} />
+        {footer && <div className="px-4 py-3 border-t border-cipher-border text-center">{footer}</div>}
       </div>
     );
   }
@@ -173,7 +175,7 @@ export const RecentMempool = memo(function RecentMempool({ footer }: { footer?: 
   return (
     <div className="card p-0 overflow-hidden">
       {summary && (
-        <div className="px-4 sm:px-5 py-2.5 text-[11px] font-mono text-muted/70 border-b border-cipher-border">
+        <div className="px-4 sm:px-5 py-2.5 text-caption font-mono text-muted border-b border-cipher-border">
           {summary}
         </div>
       )}
@@ -183,11 +185,11 @@ export const RecentMempool = memo(function RecentMempool({ footer }: { footer?: 
         <table className="w-full min-w-[480px]">
           <thead>
             <tr>
-              <th className="px-4 sm:px-5 py-3.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">Type</th>
-              <th className="px-4 sm:px-5 py-3.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">TxID</th>
-              <th className="px-4 sm:px-5 py-3.5 text-right text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">Amount</th>
-              <th className="px-4 sm:px-5 py-3.5 text-right text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border hidden sm:table-cell">Size</th>
-              <th className="px-4 sm:px-5 py-3.5 text-right text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border" title="Not yet in a block — time spent waiting to be confirmed">Waiting</th>
+              <th className="px-4 sm:px-5 py-3.5 text-left text-caption font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">Type</th>
+              <th className="px-4 sm:px-5 py-3.5 text-left text-caption font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">TxID</th>
+              <th className="px-4 sm:px-5 py-3.5 text-right text-caption font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">Amount</th>
+              <th className="px-4 sm:px-5 py-3.5 text-right text-caption font-semibold uppercase tracking-wider text-muted border-b border-cipher-border hidden sm:table-cell">Size</th>
+              <th className="px-4 sm:px-5 py-3.5 text-right text-caption font-semibold uppercase tracking-wider text-muted border-b border-cipher-border" title="Not yet in a block — time spent waiting to be confirmed">Waiting</th>
             </tr>
           </thead>
           <tbody>
@@ -207,7 +209,7 @@ export const RecentMempool = memo(function RecentMempool({ footer }: { footer?: 
                 </td>
                 <td className="px-4 sm:px-5 h-12 border-b border-cipher-border text-right">
                   {knownAmount !== null ? (
-                    <span className="font-mono text-sm text-secondary whitespace-nowrap tabular-nums">{formatZecPrecise(knownAmount)} <span className="text-muted/50">ZEC</span></span>
+                    <span className="font-mono text-sm text-secondary whitespace-nowrap tabular-nums">{formatZecPrecise(knownAmount)} <span className="text-muted">ZEC</span></span>
                   ) : (
                     <RedactedAmount />
                   )}

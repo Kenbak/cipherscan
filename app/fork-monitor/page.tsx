@@ -1,5 +1,6 @@
 'use client';
 
+import { readApiData } from '@/lib/api-client';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Card, CardBody } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -46,9 +47,9 @@ export default function ForkMonitorPage() {
 
   const fetchData = useCallback(async () => {
     try {
-      const resp = await fetch(`${getApiUrl()}/api/crosslink/fork-monitor`);
+      const resp = await fetch(`${getApiUrl()}/v1/crosslink/fork-monitor`);
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-      const json = await resp.json();
+      const json = await readApiData(resp);
       setData(json);
       setError(null);
     } catch (e: unknown) {
@@ -72,13 +73,13 @@ export default function ForkMonitorPage() {
     if (heights.length === 0) return;
     setChecking(true);
     try {
-      const resp = await fetch(`${getApiUrl()}/api/crosslink/fork-monitor/check`, {
+      const resp = await fetch(`${getApiUrl()}/v1/crosslink/fork-monitor/checks`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ heights }),
       });
-      const json = await resp.json();
-      if (json.success) setCheckResults(json.results);
+      const json = await readApiData(resp);
+      if (json) setCheckResults(json.results);
     } catch {
       /* ignore */
     } finally {
@@ -129,7 +130,7 @@ export default function ForkMonitorPage() {
       if (sample_hashes.length > 0) body.sample_hashes = sample_hashes;
       const tokenKey = `fork-monitor-owner:${reportName.trim()}`;
       const existingToken = localStorage.getItem(tokenKey);
-      const resp = await fetch(`${getApiUrl()}/api/crosslink/fork-monitor/report`, {
+      const resp = await fetch(`${getApiUrl()}/v1/crosslink/fork-monitor/nodes`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -137,8 +138,8 @@ export default function ForkMonitorPage() {
         },
         body: JSON.stringify(body),
       });
-      const json = await resp.json();
-      if (json.success) {
+      const json = await readApiData(resp);
+      if (json) {
         if (typeof json.ownershipToken === 'string') {
           localStorage.setItem(tokenKey, json.ownershipToken);
         }
@@ -170,7 +171,7 @@ export default function ForkMonitorPage() {
     if (!confirm(`Remove "${name}" from the registry?`)) return;
     try {
       const resp = await fetch(
-        `${getApiUrl()}/api/crosslink/fork-monitor/report/${encodeURIComponent(name)}`,
+        `${getApiUrl()}/v1/crosslink/fork-monitor/nodes/${encodeURIComponent(name)}`,
         { method: 'DELETE', headers: { 'X-Node-Token': ownershipToken } },
       );
       if (resp.ok) {
@@ -195,10 +196,10 @@ export default function ForkMonitorPage() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 animate-fade-in">
       <div className="mb-8">
-        <span className="text-[10px] font-mono text-muted tracking-wider">&gt; FORK_MONITOR</span>
-        <h1 className="text-2xl sm:text-3xl font-bold font-mono text-primary mt-1">Crosslink Fork Monitor</h1>
+        <span className="text-caption font-mono text-muted tracking-wider">&gt; FORK_MONITOR</span>
+        <h1 className="type-page font-sans text-primary mt-1">Crosslink Fork Monitor</h1>
         <p className="text-xs text-muted mt-2 max-w-2xl leading-relaxed">
-          Compare CipherScan and cTAZ at fixed anchor heights during chain incidents. Verify your node,
+          Compare ZecBlock and cTAZ at fixed anchor heights during chain incidents. Verify your node,
           report your tip, and see which branch other operators follow.
         </p>
       </div>
@@ -217,7 +218,7 @@ export default function ForkMonitorPage() {
             <EmptyState
               title={error}
               action={
-                <button type="button" onClick={fetchData} className="btn-sm btn-ghost">
+                <button type="button" onClick={fetchData} className="btn btn-sm btn-ghost">
                   Retry
                 </button>
               }
@@ -240,7 +241,7 @@ export default function ForkMonitorPage() {
                 onClick={() => setActiveTab(tab.id)}
                 className={`px-4 py-2 text-xs font-mono whitespace-nowrap transition-colors border-b-2 -mb-px ${
                   activeTab === tab.id
-                    ? 'border-cipher-cyan text-cipher-cyan'
+                    ? 'border-cipher-gold text-cipher-gold'
                     : 'border-transparent text-muted hover:text-secondary'
                 }`}
               >

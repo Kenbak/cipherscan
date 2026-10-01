@@ -33,11 +33,11 @@ export function getNetworkLabel(): string {
 }
 
 /**
- * Public API helpers append their own `/api/...` paths. Accept the legacy
+ * Public API helpers append their own `/v1/...` paths. Accept the legacy
  * Crosslink setting that ended in `/api`, but normalize every configured base
- * to an origin-style URL so callers cannot accidentally request `/api/api/...`.
+ * to an origin-style URL so callers cannot accidentally request `/v1/v1/...`.
  */
 export function normalizeApiBaseUrl(value: string): string {
   const withoutTrailingSlashes = value.trim().replace(/\/+$/, '');
-  return withoutTrailingSlashes.replace(/\/api$/i, '');
+  return withoutTrailingSlashes.replace(/\/(?:api|v1)$/i, '');
 }

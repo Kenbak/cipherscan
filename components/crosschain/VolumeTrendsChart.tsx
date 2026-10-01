@@ -2,17 +2,18 @@
 
 import { useMemo, useState } from 'react';
 import {
-  ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
+  ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Legend,
   ResponsiveContainer, ReferenceLine,
 } from 'recharts';
+import { ChartTooltip as Tooltip } from '@/components/charts/ChartTooltip';
 import { useTheme } from '@/contexts/ThemeContext';
-import { getChartColors } from '@/lib/chart-theme';
+import { getChartColors, getChartTooltipStyle } from '@/lib/chart-theme';
 import { useApiQuery } from '@/hooks/useApiQuery';
 import { ChartCard } from '@/components/network/ChartCard';
 import { PeriodPillTags } from '@/components/ui/PeriodPillTags';
 import { formatUSD, formatValue, type DisplayUnit } from '@/components/crosschain/format';
 
-type Period = '7d' | '30d';
+type Period = '7d' | '30d' | '90d' | '1y' | 'all';
 
 interface TrendPoint {
   date: string;
@@ -29,6 +30,7 @@ interface TrendsResponse {
 }
 
 const PERIOD_OPTIONS: { key: Period; label: string }[] = [
+  {key:'all',label:'ALL'}, {key:'1y',label:'1Y'}, {key:'90d',label:'90D'},
   { key: '7d', label: '7D' },
   { key: '30d', label: '30D' },
 ];
@@ -49,9 +51,9 @@ function TrendTooltip({ active, payload, colors, unit, zecPrice }: {
   return (
     <div
       className="rounded-lg border px-3 py-2 text-xs font-mono shadow-lg"
-      style={{ backgroundColor: colors.tooltipBg, borderColor: colors.tooltipBorder, color: colors.tooltipText }}
+      style={getChartTooltipStyle(colors)}
     >
-      <p className="mb-2 text-[10px] uppercase tracking-wider text-muted">{new Date(row.date).toLocaleDateString()}</p>
+      <p className="mb-2 text-caption uppercase tracking-wider text-muted">{new Date(row.date).toLocaleDateString()}</p>
       <p className="tabular-nums text-secondary"><span className="text-cipher-green">Inflows</span>: {fv(row.inflowVolume)}</p>
       <p className="tabular-nums text-secondary"><span className="text-cipher-orange">Outflows</span>: {fv(row.outflowVolume)}</p>
     </div>
@@ -61,10 +63,10 @@ function TrendTooltip({ active, payload, colors, unit, zecPrice }: {
 export function VolumeTrendsChart({ unit = 'usd', zecPrice = null }: { unit?: DisplayUnit; zecPrice?: number | null }) {
   const { theme } = useTheme();
   const colors = getChartColors(theme);
-  const [period, setPeriod] = useState<Period>('30d');
+  const [period, setPeriod] = useState<Period>('all');
   const [hiddenSeries, setHiddenSeries] = useState<Set<string>>(new Set());
 
-  const { data, loading } = useApiQuery<TrendsResponse>('/api/crosschain/trends', { period, granularity: 'daily' });
+  const { data, loading } = useApiQuery<TrendsResponse>('/v1/crosschain/trends', { period, granularity: 'daily' });
 
   const points = useMemo(
     () => (data?.data ?? []).map((p) => {
@@ -88,7 +90,7 @@ export function VolumeTrendsChart({ unit = 'usd', zecPrice = null }: { unit?: Di
       {volumeChange !== 0 && (
         <p className="text-xs font-mono text-muted mb-3">
           Period change:{' '}
-          <span className={volumeChange > 0 ? 'text-cipher-green font-bold' : 'text-cipher-orange font-bold'}>
+          <span className={volumeChange > 0 ? 'text-cipher-green font-semibold' : 'text-cipher-orange font-semibold'}>
             {volumeChange > 0 ? '+' : ''}{volumeChange.toFixed(1)}%
           </span>
         </p>
@@ -106,13 +108,13 @@ export function VolumeTrendsChart({ unit = 'usd', zecPrice = null }: { unit?: Di
             <XAxis
               dataKey="date"
               stroke={colors.axis}
-              tick={{ fill: colors.axis, fontSize: 10 }}
+              tick={{ fill: colors.axis, fontSize: 12 }}
               tickFormatter={(v: string) => { const d = new Date(v); return `${d.getMonth() + 1}/${d.getDate()}`; }}
             />
-            <YAxis stroke={colors.axis} tick={{ fill: colors.axis, fontSize: 10 }} tickFormatter={(v: number) => fv(v)} width={54} />
+            <YAxis stroke={colors.axis} tick={{ fill: colors.axis, fontSize: 12 }} tickFormatter={(v: number) => fv(v)} width={54} />
             <Tooltip content={<TrendTooltip colors={colors} unit={unit} zecPrice={zecPrice} />} />
             <Legend
-              wrapperStyle={{ fontSize: 11, paddingTop: 8, cursor: 'pointer' }}
+              wrapperStyle={{ fontSize: 12, paddingTop: 8, cursor: 'pointer' }}
               onClick={(d) => {
                 const key = String(d.dataKey ?? '');
                 if (!key) return;

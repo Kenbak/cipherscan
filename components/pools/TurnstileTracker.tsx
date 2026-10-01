@@ -1,9 +1,14 @@
 'use client';
+import { formatDateLabelUTC } from '@/lib/utils';
+import { CHART_DATE_AXIS } from '@/lib/chart-theme';
 
+import { ApiError, readApiData } from '@/lib/api-client';
+import { ChartWatermark } from '@/components/ChartWatermark';
 import { useEffect, useState } from 'react';
 import {
-  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
+  AreaChart, Area, XAxis, YAxis, CartesianGrid, Legend, ResponsiveContainer,
 } from 'recharts';
+import { ChartTooltip as Tooltip } from '@/components/charts/ChartTooltip';
 import { getApiUrl } from '@/lib/api-config';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getChartColors } from '@/lib/chart-theme';
@@ -22,7 +27,7 @@ const PERIOD_SINCE: Record<TurnstilePeriod, string> = {
   '30d': '',
   '90d': '',
   '1y': '',
-  'all': '2018-10-28',
+  'all': '2016-10-28',
 };
 
 function getSinceDate(p: TurnstilePeriod): string {
@@ -37,14 +42,13 @@ function getSinceDate(p: TurnstilePeriod): string {
 /** Flows API only supports fixed lookbacks — pick one that covers the turnstile window. */
 function getFlowsApiPeriod(p: TurnstilePeriod): string {
   switch (p) {
-    case 'nu6.2':
+    case 'nu6.2': return 'all';
     case '30d':
       return '30d';
     case '90d':
       return '90d';
-    case '1y':
-    case 'all':
-      return '1y';
+    case '1y': return '1y';
+    case 'all': return 'all';
   }
 }
 
@@ -109,7 +113,7 @@ export function TurnstileTracker({ showCardHeader = false }: TurnstileTrackerPro
   const { theme } = useTheme();
   const colors = getChartColors(theme);
   const flowColors = getFlowColors(theme);
-  const [period, setPeriod] = useState<TurnstilePeriod>('nu6.2');
+  const [period, setPeriod] = useState<TurnstilePeriod>('all');
   const [summary, setSummary] = useState<TurnstileSummary | null>(null);
   const [totalShielded, setTotalShielded] = useState<number | null>(null);
   const [timeseries, setTimeseries] = useState<TurnstilePoint[]>([]);
@@ -132,11 +136,11 @@ export function TurnstileTracker({ showCardHeader = false }: TurnstileTrackerPro
     const flowsPeriod = getFlowsApiPeriod(period);
 
     Promise.all([
-      fetch(`${getApiUrl()}/api/pools/turnstile?since=${since}`).then(r => {
-        if (r.status === 503) return r.json().then(d => { setViewBuilding(d?.status === 'building'); return null; });
-        return r.ok ? r.json() : null;
+      fetch(`${getApiUrl()}/v1/shielded-pools/turnstile?since=${since}`).then(r => {
+        if (r.status === 503) return readApiData(r).catch(error => { setViewBuilding(error instanceof ApiError && error.code === 'building'); return null; });
+        return r.ok ? readApiData(r) : null;
       }),
-      fetch(`${getApiUrl()}/api/pools/flows?period=${flowsPeriod}&pool=all`).then(r => r.ok ? r.json() : null),
+      fetch(`${getApiUrl()}/v1/shielded-pools/flows?period=${flowsPeriod}&pool=all`).then(r => r.ok ? readApiData(r) : null),
     ])
       .then(([turnstileData, flowsData]) => {
         if (!turnstileData) setUnavailable(true);
@@ -146,7 +150,7 @@ export function TurnstileTracker({ showCardHeader = false }: TurnstileTrackerPro
           setTimeseries(turnstileData.timeseries.map((p: TurnstilePoint) => ({
             ...p,
             bridge: p.bridge ?? 0,
-            dateLabel: new Date(p.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+            dateLabel: formatDateLabelUTC(p.date),
           })));
         }
         if (flowsData?.points) {
@@ -163,11 +167,11 @@ export function TurnstileTracker({ showCardHeader = false }: TurnstileTrackerPro
         <Card variant="glass">
           <CardBody>
             <div className="flex flex-col items-center justify-center py-12 gap-3">
-              <div className="w-5 h-5 border-2 border-cipher-cyan border-t-transparent rounded-full animate-spin" />
+              <div className="w-5 h-5 border-2 border-cipher-gold border-t-transparent rounded-full animate-spin" />
               <p className="text-sm text-muted font-mono">Turnstile view is rebuilding — data will appear shortly</p>
-              <p className="text-[10px] text-muted/60 font-mono">Auto-retries in 60s</p>
+              <p className="text-caption text-muted font-mono">Auto-retries in 60s</p>
             </div>
-          </CardBody>
+          <ChartWatermark /></CardBody>
         </Card>
       </div>
     );
@@ -189,11 +193,11 @@ export function TurnstileTracker({ showCardHeader = false }: TurnstileTrackerPro
 
           {loading ? (
             <div className="space-y-6">
-              <div className="h-10 w-48 skeleton-bg rounded animate-pulse" />
-              <div className="h-3 skeleton-bg rounded-full animate-pulse" />
+              <div className="h-10 w-48 skeleton-bg rounded motion-safe:animate-pulse" />
+              <div className="h-3 skeleton-bg rounded-full motion-safe:animate-pulse" />
               <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
                 {[1, 2, 3, 4, 5].map(i => (
-                  <div key={i} className="h-24 skeleton-bg rounded-xl animate-pulse" />
+                  <div key={i} className="h-24 skeleton-bg rounded-xl motion-safe:animate-pulse" />
                 ))}
               </div>
             </div>
@@ -231,7 +235,7 @@ export function TurnstileTracker({ showCardHeader = false }: TurnstileTrackerPro
                           >
                             <path d="M8 4v8M8 12l3-3M8 12L5 9" />
                           </svg>
-                          <span className="text-[10px] font-mono uppercase tracking-wider text-muted">
+                          <span className="text-caption font-mono uppercase tracking-wider text-muted">
                             Out of privacy
                           </span>
                         </div>
@@ -240,7 +244,7 @@ export function TurnstileTracker({ showCardHeader = false }: TurnstileTrackerPro
                           tooltip="ZEC that left a shielded pool to a transparent address in this period"
                         >
                           <div className="flex items-baseline gap-2 flex-wrap">
-                            <span className="text-2xl sm:text-3xl font-bold font-mono tabular-nums text-primary">
+                            <span className="text-2xl sm:text-3xl font-semibold font-mono tabular-nums text-primary">
                               {formatZecCompact(summary.totalDeshielded)}
                             </span>
                             <span className="text-sm font-mono text-muted">ZEC</span>
@@ -266,7 +270,7 @@ export function TurnstileTracker({ showCardHeader = false }: TurnstileTrackerPro
                             >
                               <path d="M8 12V4M8 4L5 7M8 4l3 3" />
                             </svg>
-                            <span className="text-[10px] font-mono uppercase tracking-wider text-muted">
+                            <span className="text-caption font-mono uppercase tracking-wider text-muted">
                               Into privacy
                             </span>
                           </div>
@@ -275,7 +279,7 @@ export function TurnstileTracker({ showCardHeader = false }: TurnstileTrackerPro
                             tooltip="Total ZEC moved into shielded pools during this period — from transparent addresses, exchanges, bridges, and other sources. Not limited to deshielded outputs below."
                           >
                             <div className="flex items-baseline gap-2 flex-wrap">
-                              <span className="text-2xl sm:text-3xl font-bold font-mono tabular-nums text-primary">
+                              <span className="text-2xl sm:text-3xl font-semibold font-mono tabular-nums text-primary">
                                 {formatZecCompact(totalShielded)}
                               </span>
                               <span className="text-sm font-mono text-muted">ZEC</span>
@@ -378,7 +382,7 @@ export function TurnstileTracker({ showCardHeader = false }: TurnstileTrackerPro
 
                 return (
                   <>
-                    <p className="text-[10px] font-mono uppercase tracking-wider text-muted mb-3">
+                    <p className="text-caption font-mono uppercase tracking-wider text-muted mb-3">
                       Where deshielded ZEC went
                     </p>
                     <InteractiveCompositionBar
@@ -402,9 +406,9 @@ export function TurnstileTracker({ showCardHeader = false }: TurnstileTrackerPro
                           type="checkbox"
                           checked={showDetail}
                           onChange={e => setShowDetail(e.target.checked)}
-                          className="w-3.5 h-3.5 rounded border-glass-12 bg-glass-4 accent-cipher-cyan"
+                          className="w-3.5 h-3.5 rounded border-glass-12 bg-glass-4 accent-cipher-gold"
                         />
-                        <span className="text-[10px] font-mono text-muted uppercase tracking-wider">
+                        <span className="text-caption font-mono text-muted uppercase tracking-wider">
                           Show full breakdown
                         </span>
                       </label>
@@ -427,7 +431,7 @@ export function TurnstileTracker({ showCardHeader = false }: TurnstileTrackerPro
                           >
                             <MetricWithTooltip label={categoryLabels[key]} tooltip={tooltips[key]}>
                               <p
-                                className="text-xl font-bold font-mono tabular-nums"
+                                className="text-xl font-semibold font-mono tabular-nums"
                                 style={{ color: categoryColors[key] }}
                               >
                                 {formatZecCompact(value)}
@@ -448,11 +452,11 @@ export function TurnstileTracker({ showCardHeader = false }: TurnstileTrackerPro
 
           <p className="text-xs text-secondary font-sans mt-6 leading-relaxed">
             Tracks what happens after ZEC leaves a shielded pool — held, reshielded, transferred, bridged cross-chain, or sent to exchanges.
-            {lastUpdated && ` Updated ${new Date(lastUpdated).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} at ${new Date(lastUpdated).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}.`}
+            {lastUpdated && ` Updated ${new Date(lastUpdated).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' })} at ${new Date(lastUpdated).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}.`}
             {!lastUpdated && ' Updated daily.'}
           </p>
           {(period === 'all' || period === '1y') && (
-            <p className="text-[10px] text-muted/60 font-mono mt-2 leading-relaxed italic">
+            <p className="text-caption text-muted font-mono mt-2 leading-relaxed italic">
               Note: cumulative volume — the same ZEC can be deshielded and reshielded multiple times, so totals may exceed circulating supply.
             </p>
           )}
@@ -473,12 +477,12 @@ export function TurnstileTracker({ showCardHeader = false }: TurnstileTrackerPro
                 <XAxis
                   dataKey="dateLabel"
                   stroke={colors.axis}
-                  tick={{ fill: colors.axis, fontSize: 10 }}
-                  interval="preserveStartEnd"
+                  tick={{ fill: colors.axis, fontSize: 12 }}
+                  {...CHART_DATE_AXIS}
                 />
                 <YAxis
                   stroke={colors.axis}
-                  tick={{ fill: colors.axis, fontSize: 10 }}
+                  tick={{ fill: colors.axis, fontSize: 12 }}
                   tickFormatter={v => formatZecCompact(v)}
                   width={48}
                 />
@@ -501,7 +505,7 @@ export function TurnstileTracker({ showCardHeader = false }: TurnstileTrackerPro
                     return [`${Number(value).toFixed(2)} ZEC`, labels[String(name)] || String(name)];
                   }}
                 />
-                <Legend wrapperStyle={{ fontSize: 11, paddingTop: 8 }} />
+                <Legend wrapperStyle={{ fontSize: 12, paddingTop: 8 }} />
                 <Area type="monotone" dataKey="held" stackId="1" stroke={flowColors.held} fill={flowColors.held} fillOpacity={0.35} name="Still Held" />
                 <Area type="monotone" dataKey="reshielded" stackId="1" stroke={flowColors.reshielded} fill={flowColors.reshielded} fillOpacity={0.3} name="Reshielded" />
                 <Area type="monotone" dataKey="moved" stackId="1" stroke={flowColors.moved} fill={flowColors.moved} fillOpacity={0.25} name="Moved" hide={showDetail} />

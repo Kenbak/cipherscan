@@ -1,18 +1,21 @@
 <p align="center">
-  <img src="public/logo.png" alt="CipherScan Logo" width="120" />
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="public/brand/zecblock-logotype.png" />
+    <img src="public/brand/zecblock-logotype-light.png" alt="ZecBlock" width="280" />
+  </picture>
 </p>
 
-<h1 align="center">CipherScan</h1>
+<h1 align="center">ZecBlock</h1>
 
 <p align="center">
-  <strong>⚡ The Privacy-First Zcash Blockchain Explorer</strong>
+  <strong>A clearer view of Zcash.</strong>
 </p>
 
 <p align="center">
-  <a href="https://cipherscan.app">Mainnet</a> •
+  <a href="https://zecblock.com">Mainnet</a> •
   <a href="https://testnet.cipherscan.app">Testnet</a> •
-  <a href="https://cipherscan.app/docs">API Docs</a> •
-  <a href="https://cipherscan.app/learn">Learn Zcash</a>
+  <a href="https://zecblock.com/docs">API Docs</a> •
+  <a href="https://zecblock.com/learn">Learn Zcash</a>
 </p>
 
 <p align="center">
@@ -28,7 +31,7 @@
 
 - [About](#-about)
 - [Features](#-features)
-- [Live Demo](#-live-demo)
+- [Explorer Links](#-explorer-links)
 - [Quick Start](#-quick-start)
 - [Tech Stack](#️-tech-stack)
 - [Public Infrastructure](#-public-infrastructure)
@@ -42,7 +45,11 @@
 
 ## 🎯 About
 
-CipherScan is a blockchain explorer for Zcash that makes privacy technology accessible to everyone. No jargon, no confusion — just clear, simple explanations of what's happening on-chain.
+ZecBlock, formerly **CipherScan**, is a Zcash blockchain explorer built by Atmosphere Labs. Explore public transactions, blocks, shielded pool balances, network observations and tools for understanding Zcash.
+
+The same explorer project continues under a new name and design. The source repository remains `Kenbak/cipherscan`; existing API and lightwalletd hostnames are retained for compatibility. The October 1 release is being prepared on the rebrand branch; this README does not confirm a production cutover.
+
+Shielded transfer details are not publicly visible. Aggregate pool flows and transaction patterns do not identify users or prove that coins were sold.
 
 **Mission:** Make the Zcash blockchain accessible to everyone, not just developers.
 
@@ -53,9 +60,9 @@ CipherScan is a blockchain explorer for Zcash that makes privacy technology acce
 ### 🔍 Core Explorer
 | Feature | Description |
 |---------|-------------|
-| **Search** | Find addresses, transactions, and blocks instantly |
-| **Balances** | View transaction history and balances |
-| **Block Explorer** | Navigate blocks with full transaction details |
+| **Search** | Find addresses, transactions and blocks |
+| **Balances** | View public address activity and transparent balances |
+| **Block Explorer** | Navigate blocks and publicly visible transaction details |
 | **Mempool Viewer** | Real-time pending transactions |
 | **Live Updates** | WebSocket for real-time block notifications |
 | **CSV/JSON Export** | Export address, block, and transaction data from the UI |
@@ -64,18 +71,18 @@ CipherScan is a blockchain explorer for Zcash that makes privacy technology acce
 ### 🛡️ Privacy Tools
 | Feature | Description |
 |---------|-------------|
-| **Privacy Dashboard** | Real-time shielded adoption metrics |
+| **Privacy Dashboard** | Observed shielded participation and transaction patterns |
 | **Pool Analytics** | Per-pool supply, shield/deshield flows, and deltas |
-| **Turnstile Tracker** | Where deshielded ZEC goes (held, exchange, bridge) |
+| **Turnstile Tracker** | Follow observable outputs after deshielding, with coverage and attribution limits |
 | **Decrypt Memos** | Client-side Orchard memo decryption (WASM) |
-| **Privacy Risks** | Round-trip transaction linkability detection |
-| **100% Private** | Viewing keys never leave your browser |
+| **Privacy Risks** | Heuristic checks for observable transaction patterns |
+| **Browser-local decryption** | Memo/inbox tools process viewing keys in the browser; blockchain requests still reach data services |
 
 ### 🔗 Cross-Chain
 | Feature | Description |
 |---------|-------------|
 | **ZEC Flows** | Real-time cross-chain swaps via NEAR Intents |
-| **Inflows/Outflows** | Track ZEC moving to/from BTC, ETH, SOL + 15 chains |
+| **Inflows/Outflows** | Explore supported cross-chain swaps involving ZEC |
 
 ### 📚 Education & UX
 | Feature | Description |
@@ -83,22 +90,22 @@ CipherScan is a blockchain explorer for Zcash that makes privacy technology acce
 | **Learn Zcash** | Comprehensive guide to addresses, viewing keys, wallets |
 | **Address Labels** | Tag addresses with custom labels (localStorage) |
 | **Light/Dark Mode** | Theme toggle with system preference support |
-| **Mobile Responsive** | Full mobile support |
+| **Mobile Responsive** | Responsive layouts for smaller screens |
 
 ### 🔧 Developer Tools
 | Feature | Description |
 |---------|-------------|
-| **API Documentation** | 43 endpoints — interactive REST docs at [`/docs`](https://cipherscan.app/docs) |
-| **Public Infrastructure** | Free Lightwalletd gRPC + REST API |
+| **API Documentation** | Versioned endpoint reference, parameters and examples at [`/docs`](https://zecblock.com/docs) |
+| **Public Infrastructure** | lightwalletd gRPC and explorer REST endpoints |
 | **Deployment Guide** | Operational docs in [`DEPLOYMENT.md`](DEPLOYMENT.md) |
 
 ---
 
-## 🌐 Live Demo
+## 🌐 Explorer Links
 
 | Network | URL |
 |---------|-----|
-| **Mainnet** | [cipherscan.app](https://cipherscan.app) |
+| **Mainnet** | [zecblock.com](https://zecblock.com) |
 | **Testnet** | [testnet.cipherscan.app](https://testnet.cipherscan.app) |
 
 ---
@@ -113,26 +120,42 @@ CipherScan is a blockchain explorer for Zcash that makes privacy technology acce
 
 ### Installation
 
+For this staged rebrand, use the loopback v1 adapter until public v1 access and browser origins have passed launch checks. This preview reads public mainnet data; it is not a production API service.
+
+
 ```bash
 # Clone the repository
 git clone https://github.com/Kenbak/cipherscan.git
 cd cipherscan
 
+# Before the rebrand merges to main, use the prepared release branch
+git switch codex/zecblock-assay-rebrand
+
 # Install dependencies
 npm ci
 
-# Run development server
-npm run dev
+# Install the API adapter dependencies
+npm ci --prefix server/api
 
-# Open http://localhost:3000
+# Terminal 1: local mainnet v1 adapter on 127.0.0.1:3002
+npm run dev:v1
+
+# Terminal 2: mainnet frontend on http://localhost:3000
+NEXT_PUBLIC_NETWORK=mainnet \
+NEXT_PUBLIC_API_URL=http://127.0.0.1:3002 \
+CIPHERSCAN_API_URL=http://127.0.0.1:3002 \
+npm run dev
 ```
 
 ### Production Build
 
 ```bash
+# Set the intended network and verified API origins before building.
 npm run build
 npm start
 ```
+
+Copy the relevant settings from [`.env.example`](.env.example). `NEXT_PUBLIC_*` values are embedded at build time. Do not promote a build configured with loopback URLs to production. Testnet uses separate data and API origins; the local adapter above is mainnet-only.
 
 ### Verify Before Push
 
@@ -159,13 +182,13 @@ npm run visual:audit             # run while the app is serving on port 3000
 | **Database** | PostgreSQL |
 | **API Server** | Express.js + WebSocket |
 | **Cryptography** | Rust + WebAssembly |
-| **Zcash Node** | Zebra |
+| **Zcash Node** | Zakura / Zebra-compatible node integration |
 
 ---
 
 ## 🔌 Public Infrastructure
 
-CipherScan provides **free public infrastructure** for Zcash developers:
+Existing service addresses are retained during the rebrand. Website redirects do not replace API or gRPC endpoints. Check service availability before integrating; this list does not certify current uptime.
 
 ### Mainnet
 
@@ -185,9 +208,11 @@ CipherScan provides **free public infrastructure** for Zcash developers:
 
 ## 📖 API Documentation
 
-Full interactive documentation available at [cipherscan.app/docs](https://cipherscan.app/docs)
+The redesigned reference is at [zecblock.com/docs](https://zecblock.com/docs), with the contract in [`public/openapi-v1.json`](public/openapi-v1.json).
 
-### Quick Examples
+Public v1 access at `https://api.zecblock.com/v1` is a separate launch gate: verify authentication, CORS and WebSocket access before switching clients. Keep existing consumers on their working endpoints until then.
+
+### Existing API examples
 
 ```javascript
 // Fetch block data
@@ -215,7 +240,7 @@ HTTP 429 responses.
 
 ## ⚙️ Configuration
 
-The frontend works out of the box with CipherScan's public API. Running
+The redesigned frontend consumes `/v1` endpoints. Use the local adapter above for the staged preview, or configure a verified v1 deployment. Running
 against a custom node requires the Express API and indexer; configure those
 services using [DEPLOYMENT.md](DEPLOYMENT.md) rather than placing node RPC
 credentials in the browser-facing frontend environment.
@@ -226,7 +251,7 @@ credentials in the browser-facing frontend environment.
 
 See [GitHub Issues](https://github.com/Kenbak/cipherscan/issues) for upcoming features and improvements.
 
-**In progress:** Sapling memo decryption, Tor hidden service (.onion), batch transaction scanning.
+Release scope and availability are tracked in issues and release notes; this README does not promise dates for unreleased features.
 
 ---
 
@@ -251,7 +276,7 @@ Contributions are welcome! Here's how you can help:
 
 ## ☕ Support the Project
 
-CipherScan is free, source-available, and community-driven. If you find it useful, consider supporting development:
+ZecBlock is free, source-available, and community-driven. If you find it useful, consider supporting development:
 
 ### Zcash Donation Address (Shielded)
 
@@ -259,7 +284,7 @@ CipherScan is free, source-available, and community-driven. If you find it usefu
 u1fh3kwyl9hq9q907rx9j8mdy2r7gz4xh0y4yt63dxykk2856gr0238vxsegemyfu8s5a77ycq72tcnzkxa75ykjtcn6wp2w9rtuu3ssdzpe2fyghl8wlk3vh6f67304xe4lrxtvywtudy5t434zc07u6mh27ekufx7ssr55l8875z7f4k76c3tk23s3jzf8rxdlkequlta8lwsv09gxm
 ```
 
-> 🛡️ This is a **Unified Address** — your donation is private and encrypted.
+> This is a **Unified Address**. Use a wallet that supports shielded transfers and check the selected receiver before sending.
 
 Your support helps us:
 - Keep the infrastructure running 24/7
@@ -270,15 +295,14 @@ Your support helps us:
 
 ## 🔐 Privacy Principles
 
-CipherScan is built with **privacy-first** principles:
+The redesigned application limits analytics to selected public landing pages, strips query strings and fragments, and honors Do Not Track and Global Privacy Control. Individual address, transaction and block pages, Ask and sensitive tools are excluded from that analytics integration.
 
-| Principle | Implementation |
-|-----------|----------------|
-| **No Tracking** | No Google Analytics or third-party trackers |
-| **No IP Logging** | Aligned with Zcash privacy values |
-| **No Cookies** | No unnecessary data collection |
-| **Client-Side Decryption** | Viewing keys never leave your browser |
-| **Source Available** | Verify our privacy claims yourself |
+- Viewing-key processing in memo/inbox tools runs in the browser. Requests for blockchain data still reach the services supplying it.
+- Preferences and custom address labels use browser storage. They do not automatically move between domains.
+- Hosting, API and security providers process connection information and may retain operational logs. We do not promise zero logging or zero retention.
+- When AI is enabled, Ask sends questions and relevant context to the configured provider. Never enter private keys, recovery phrases or viewing keys into Ask, search or support messages.
+
+See the [privacy policy](https://zecblock.com/privacy-policy) and [terms](https://zecblock.com/terms) for details. These describe the rebrand release; deployment status must be verified separately.
 
 ---
 
@@ -308,6 +332,7 @@ This project is licensed under the **GNU Affero General Public License v3.0 (AGP
 
 <p align="center">
   <a href="https://github.com/Kenbak/cipherscan">GitHub</a> •
+  <a href="https://x.com/zecblock">@zecblock on X</a> •
   <a href="https://discord.gg/zcash">Discord</a> •
   <a href="https://forum.zcashcommunity.com/">Forum</a>
 </p>

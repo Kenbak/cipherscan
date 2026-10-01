@@ -13,16 +13,14 @@ try {
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
   let wireRows;
-  await page.route('**/api/transactions/list?limit=5', async route => {
-    // Local preview origins are rejected by production CORS. Keep the API URL
-    // and body real, but use its allowed mainnet origin for local verification.
-    const local = new URL(url).hostname === '127.0.0.1' || new URL(url).hostname === 'localhost';
-    const response = await route.fetch(local ? { headers: { ...route.request().headers(), origin: 'https://cipherscan.app' } } : {});
+  await page.route('**/v1/transactions?limit=5', async route => {
+    const response = await route.fetch();
     assert.equal(response.status(), 200, `API ${route.request().url()}: ${await response.text()}`);
-    wireRows = (await response.json()).transactions;
-    // The local preview isn't an allowed API browser origin. Forward the real
-    // response body unchanged, with CORS permission only for this test context.
-    await route.fulfill({ response, headers: { ...response.headers(), 'access-control-allow-origin': '*' } });
+    const envelope = await response.json();
+    assert.equal(envelope.meta?.network, 'mainnet');
+    assert.ok(envelope.meta?.requestId, 'Missing v1 request ID');
+    wireRows = envelope.data;
+    await route.fulfill({ response });
   });
   await page.goto(url, { waitUntil: 'domcontentloaded' });
   const card = page.locator('.home-feed').last();

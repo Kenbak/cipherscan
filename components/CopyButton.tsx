@@ -22,6 +22,7 @@ export function CopyButton({
   onCopy?: (text: string, label: string) => void;
 }) {
   const [copied, setCopied] = useState(false);
+  const [failed, setFailed] = useState(false);
   const copyLabel = label || 'value';
   const isCopied = onCopy ? copiedText === copyLabel : copied;
 
@@ -31,21 +32,28 @@ export function CopyButton({
   return (
     <button
       type="button"
-      onClick={(e) => {
+      onClick={async (e) => {
         e.preventDefault();
         e.stopPropagation();
         if (onCopy) {
           onCopy(text, copyLabel);
         } else {
-          navigator.clipboard.writeText(text).catch(() => {});
-          setCopied(true);
-          window.setTimeout(() => setCopied(false), 1500);
+          setCopied(false);
+          setFailed(false);
+          try {
+            await navigator.clipboard.writeText(text);
+            setCopied(true);
+          } catch {
+            setFailed(true);
+          }
+          window.setTimeout(() => { setCopied(false); setFailed(false); }, 1500);
         }
       }}
       className={`${onCopy ? 'ml-2 ' : ''}${px} text-muted hover:text-primary transition-colors shrink-0 rounded ${className}`}
-      title={isCopied ? 'Copied!' : `Copy ${copyLabel}`}
+      title={failed ? 'Copy failed — select and copy the value manually.' : isCopied ? 'Copied!' : `Copy ${copyLabel}`}
       aria-label={`Copy ${copyLabel} to clipboard`}
     >
+      <span className="sr-only" role="status">{failed ? "Could not copy. Select and copy the value manually." : isCopied ? "Copied to clipboard." : ""}</span>
       {isCopied ? (
         <svg
           className={`${iconCls} text-cipher-green`}

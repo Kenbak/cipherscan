@@ -6,6 +6,7 @@
  * All methods gracefully return null when no crosslink RPC is configured.
  */
 
+import { parseSafeZatoshi, sumZatoshis, zatToZec } from './format-numbers';
 import { API_CONFIG } from './api-config';
 import { STAKING_DAY_PERIOD, STAKING_DAY_WINDOW } from './config';
 
@@ -137,8 +138,8 @@ export async function getRoster(): Promise<RosterMember[]> {
 
   return result.map((member: any) => ({
     identity: member.identity || member.pub_key || member.public_key || '',
-    stake_zats: member.stake_zats || member.stake || 0,
-    stake_zec: (member.stake_zats || member.stake || 0) / 1e8,
+    stake_zats: parseSafeZatoshi(member.stake_zats ?? member.stake ?? 0),
+    stake_zec: zatToZec(parseSafeZatoshi(member.stake_zats ?? member.stake ?? 0)),
   }));
 }
 
@@ -195,7 +196,7 @@ export async function getCrosslinkStats(): Promise<CrosslinkNetworkStats | null>
 
   if (tipHeight === null) return null;
 
-  const totalStakeZats = roster.reduce((sum, m) => sum + m.stake_zats, 0);
+  const totalStakeZats = sumZatoshis(roster.map(member => member.stake_zats));
   const finalizedHeight = finalityInfo?.finalizedHeight ?? 0;
 
   return {
@@ -204,7 +205,7 @@ export async function getCrosslinkStats(): Promise<CrosslinkNetworkStats | null>
     finalityGap: tipHeight - finalizedHeight,
     finalizerCount: roster.length,
     totalStakeZats,
-    totalStakeZec: totalStakeZats / 1e8,
+    totalStakeZec: zatToZec(totalStakeZats),
     stakingDay: computeStakingDay(tipHeight),
     roster: roster.sort((a, b) => b.stake_zats - a.stake_zats),
   };

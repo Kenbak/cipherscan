@@ -1,11 +1,14 @@
 'use client';
 
+import { readApiData } from '@/lib/api-client';
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { summarizeMempool } from '@/lib/mempool-summary';
 import { getApiUrl } from '@/lib/api-config';
 import { useWebSocket } from '@/hooks/useWebSocket';
 import { MempoolBubbles } from '@/components/MempoolBubbles';
+import { MempoolTreemap } from '@/components/MempoolTreemap';
 
 interface MempoolTransaction {
   txid: string;
@@ -26,6 +29,10 @@ export default function MempoolLiveClient() {
   const [stats, setStats] = useState<{ total: number; shieldedPct: number }>({ total: 0, shieldedPct: 0 });
   const [blockPulse, setBlockPulse] = useState(0);
   const router = useRouter();
+  // ?view=treemap so the screensaver opens in whichever visualization the
+  // visitor was already looking at, and so the choice is linkable.
+  const searchParams = useSearchParams();
+  const view = searchParams.get('view') === 'treemap' ? 'treemap' : 'bubbles';
 
   // ESC returns to the regular mempool page
   useEffect(() => {
@@ -38,11 +45,11 @@ export default function MempoolLiveClient() {
 
   const fetchMempool = async () => {
     try {
-      const apiUrl = `${getApiUrl()}/api/mempool`;
+      const apiUrl = `${getApiUrl()}/v1/mempool`;
       const response = await fetch(apiUrl);
       if (!response.ok) return;
-      const result = await response.json();
-      if (result.success) {
+      const result = await readApiData(response);
+      if (result) {
         setTransactions(result.transactions);
         setStats({
           total: result.count,
@@ -100,22 +107,33 @@ export default function MempoolLiveClient() {
   }, []);
 
   return (
-    <div className="fixed inset-0 z-[9999] bg-cipher-bg-dark group/live">
-      <MempoolBubbles
-        transactions={transactions}
-        className="h-full"
-        ambient
-        stats={stats}
-        blockPulse={blockPulse}
-      />
+    <div className="mempool-visualization fixed inset-0 z-[9999] bg-cipher-bg-dark group/live" data-immersive="true">
+      {view === 'treemap' ? (
+        <MempoolTreemap transactions={transactions} className="h-full" ambient />
+      ) : (
+        <MempoolBubbles
+          transactions={transactions}
+          className="h-full"
+          ambient
+          stats={{ total: stats.total, shieldedPct: summarizeMempool(transactions).shieldedShare ?? 0 }}
+          blockPulse={blockPulse}
+        />
+      )}
 
       {/* Back to mempool — HUD style, visible on mouse movement */}
       <Link
         href="/mempool"
-        className="absolute top-5 left-5 z-50 flex items-center gap-2 px-3 py-1.5 rounded font-mono text-[10px] tracking-[0.25em] text-cipher-cyan/70 border border-cipher-cyan/25 bg-cipher-bg-dark/80 backdrop-blur-sm hover:text-primary hover:border-cipher-cyan/60 hover:bg-cipher-cyan/10 transition duration-300 opacity-0 group-hover/live:opacity-100 focus-visible:opacity-100"
+        className="absolute top-5 left-5 z-50 flex items-center gap-2 px-3 py-1.5 rounded font-mono text-caption tracking-[0.25em] text-cipher-gold/70 border border-cipher-gold/25 bg-cipher-bg-dark/80 backdrop-blur-sm hover:text-primary hover:border-cipher-gold/60 hover:bg-brand-gold/10 transition duration-300 opacity-100 sm:opacity-0 sm:group-hover/live:opacity-100 focus-visible:opacity-100"
       >
         [ EXIT ]
-        <kbd className="px-1 py-px rounded border border-white/15 text-[8px] text-white/40 tracking-normal">ESC</kbd>
+        <kbd className="px-1 py-px rounded border border-white/15 text-caption text-white/40 tracking-normal">ESC</kbd>
+      </Link>
+
+      <Link
+        href={view === 'treemap' ? '/mempool/live' : '/mempool/live?view=treemap'}
+        className="absolute top-5 right-5 z-50 flex items-center gap-2 px-3 py-1.5 rounded font-mono text-caption tracking-[0.25em] text-cipher-gold/70 border border-cipher-gold/25 bg-cipher-bg-dark/80 backdrop-blur-sm hover:text-primary hover:border-cipher-gold/60 hover:bg-brand-gold/10 transition duration-300 opacity-100 sm:opacity-0 sm:group-hover/live:opacity-100 focus-visible:opacity-100"
+      >
+        [ {view === 'treemap' ? 'BUBBLES' : 'TREEMAP'} ]
       </Link>
     </div>
   );

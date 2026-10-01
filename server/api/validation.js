@@ -64,7 +64,7 @@ const schemas = {
   // GET /api/crosschain/trends
   crosschainTrends: {
     query: z.object({
-      period: z.enum(['7d', '30d', '90d']).default('30d'),
+      period: z.enum(['7d', '30d', '90d', '1y', 'all']).default('30d'),
       granularity: z.enum(['daily', 'weekly']).default('daily'),
     }),
   },

@@ -64,6 +64,8 @@ const MAX_RECONNECT_MS = 30000;
 const HEARTBEAT_INTERVAL_MS = 25000;
 
 function buildWsUrl(): string {
+  // A local read-only v1 preview can keep using the deployed event feed.
+  if (process.env.NEXT_PUBLIC_WS_URL) return process.env.NEXT_PUBLIC_WS_URL;
   const apiUrl = getApiUrl();
   return apiUrl.replace(/^http/, 'ws').replace(/\/api$/, '');
 }

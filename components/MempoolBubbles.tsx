@@ -1,5 +1,6 @@
 'use client';
 
+import { ChartWatermark } from '@/components/ChartWatermark';
 import { useRef, useEffect, useCallback, useState, forwardRef, useImperativeHandle } from 'react';
 import { useRouter } from 'next/navigation';
 
@@ -54,25 +55,27 @@ export interface MempoolBubblesHandle {
 
 // Resolve theme-aware colors from CSS variables at runtime so bubbles
 // adapt to light/dark mode (brand colors differ between themes).
-function readThemeColors() {
+function readThemeColors(element?: HTMLElement | null, immersive = false) {
   if (typeof window === 'undefined') {
     return {
-      cyan: '0 212 255',
-      purple: '167 139 250',
-      orange: '255 107 53',
+      brandGold: '248 188 33',
+      transparent: '161 169 173',
+      shielded: '248 188 33',
+      mixed: '100 110 125',
       isLight: false,
       labelText: 'rgba(255, 255, 255, 0.95)',
       labelShadow: 'rgba(0, 0, 0, 0.45)',
     };
   }
-  const root = getComputedStyle(document.documentElement);
-  const isLight = document.documentElement.classList.contains('light');
+  const root = getComputedStyle(element ?? document.documentElement);
+  const isLight = !immersive && document.documentElement.classList.contains('light');
   return {
-    cyan: root.getPropertyValue('--color-cyan-rgb').trim() || '0 212 255',
-    purple: root.getPropertyValue('--color-purple-rgb').trim() || '167 139 250',
-    orange: root.getPropertyValue('--color-orange-rgb').trim() || '255 107 53',
+    brandGold: root.getPropertyValue('--color-gold-rgb').trim() || '248 188 33',
+    transparent: root.getPropertyValue('--tx-transparent-rgb').trim() || '161 169 173',
+    shielded: root.getPropertyValue('--tx-shielded-rgb').trim() || '248 188 33',
+    mixed: root.getPropertyValue('--tx-mixed-rgb').trim() || '100 110 125',
     isLight,
-    labelText: isLight ? 'rgba(255, 255, 255, 0.98)' : 'rgba(255, 255, 255, 0.92)',
+    labelText: isLight ? 'rgb(23, 26, 32)' : 'rgba(255, 255, 255, 0.92)',
     labelShadow: isLight ? 'rgba(0, 0, 0, 0.5)' : 'rgba(0, 0, 0, 0.45)',
   };
 }
@@ -94,24 +97,24 @@ function buildColors(theme: ReturnType<typeof readThemeColors>): Record<'transpa
   const popA = theme.isLight ? 0.7 : 0.6;
   return {
     shielded: {
-      fill: `rgba(${theme.purple.replace(/ /g, ', ')}, ${fillA})`,
-      stroke: `rgba(${theme.purple.replace(/ /g, ', ')}, ${strokeA})`,
-      glow: `rgba(${theme.purple.replace(/ /g, ', ')}, ${glowA})`,
-      pop: `rgba(${theme.purple.replace(/ /g, ', ')}, ${popA})`,
+      fill: `rgba(${theme.shielded.replace(/ /g, ', ')}, ${fillA})`,
+      stroke: `rgba(${theme.shielded.replace(/ /g, ', ')}, ${strokeA})`,
+      glow: `rgba(${theme.shielded.replace(/ /g, ', ')}, ${glowA})`,
+      pop: `rgba(${theme.shielded.replace(/ /g, ', ')}, ${popA})`,
       label: theme.labelText,
     },
     mixed: {
-      fill: `rgba(${theme.orange.replace(/ /g, ', ')}, ${fillA - 0.04})`,
-      stroke: `rgba(${theme.orange.replace(/ /g, ', ')}, ${strokeA - 0.05})`,
-      glow: `rgba(${theme.orange.replace(/ /g, ', ')}, ${glowA - 0.02})`,
-      pop: `rgba(${theme.orange.replace(/ /g, ', ')}, ${popA - 0.1})`,
+      fill: `rgba(${theme.mixed.replace(/ /g, ', ')}, ${fillA - 0.04})`,
+      stroke: `rgba(${theme.mixed.replace(/ /g, ', ')}, ${strokeA - 0.05})`,
+      glow: `rgba(${theme.mixed.replace(/ /g, ', ')}, ${glowA - 0.02})`,
+      pop: `rgba(${theme.mixed.replace(/ /g, ', ')}, ${popA - 0.1})`,
       label: theme.labelText,
     },
     transparent: {
-      fill: `rgba(${theme.cyan.replace(/ /g, ', ')}, ${fillA - 0.12})`,
-      stroke: `rgba(${theme.cyan.replace(/ /g, ', ')}, ${strokeA - 0.15})`,
-      glow: `rgba(${theme.cyan.replace(/ /g, ', ')}, ${glowA - 0.06})`,
-      pop: `rgba(${theme.cyan.replace(/ /g, ', ')}, ${popA - 0.15})`,
+      fill: `rgba(${theme.transparent.replace(/ /g, ', ')}, ${fillA - 0.12})`,
+      stroke: `rgba(${theme.transparent.replace(/ /g, ', ')}, ${strokeA - 0.15})`,
+      glow: `rgba(${theme.transparent.replace(/ /g, ', ')}, ${glowA - 0.06})`,
+      pop: `rgba(${theme.transparent.replace(/ /g, ', ')}, ${popA - 0.15})`,
       label: theme.labelText,
     },
   };
@@ -212,14 +215,14 @@ export const MempoolBubbles = forwardRef<MempoolBubblesHandle, MempoolBubblesPro
   // Watch for theme changes (light/dark class on <html>)
   useEffect(() => {
     const refresh = () => {
-      themeRef.current = readThemeColors();
+      themeRef.current = readThemeColors(containerRef.current, ambient || isFullscreen);
       colorsRef.current = buildColors(themeRef.current);
     };
     refresh();
     const observer = new MutationObserver(refresh);
     observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
     return () => observer.disconnect();
-  }, []);
+  }, [ambient, isFullscreen]);
 
   // Sync transactions to bubbles
   useEffect(() => {
@@ -315,39 +318,20 @@ export const MempoolBubbles = forwardRef<MempoolBubblesHandle, MempoolBubblesPro
       ctx.clearRect(0, 0, w, h);
 
       timeRef.current += 1;
-      const t = timeRef.current;
       const bubbles = bubblesRef.current;
       const theme = themeRef.current;
-      const cyanRgb = theme.cyan.replace(/ /g, ', ');
-      const purpleRgb = theme.purple.replace(/ /g, ', ');
-      // In light mode, the canvas sits on a near-white surface; ambient effects
-      // use dark tints, grid lines use black, hex chars use brand cyan at low alpha.
-      const tintRgb = theme.isLight ? '15, 23, 42' : '255, 255, 255';
-      const gridLineAlpha = theme.isLight ? 0.03 : 0.02;
-      const gridDotAlpha = theme.isLight ? 0.06 : 0.04;
-      const hexCharAlpha = theme.isLight ? 0.07 : 0.04;
-      const ambientCyanAlpha = theme.isLight ? 0.05 : 0.03;
-      const ambientPurpleAlpha = theme.isLight ? 0.04 : 0.025;
-      const scanAlpha = theme.isLight ? 0.05 : 0.03;
+      const goldRgb = theme.brandGold.replace(/ /g, ', ');
 
-      // === BACKGROUND LAYER (cypherpunk vibe) ===
-
-      // Radial gradient atmosphere (cyan/purple corners)
-      const bgGrad1 = ctx.createRadialGradient(w * 0.15, h * 0.2, 0, w * 0.15, h * 0.2, w * 0.5);
-      bgGrad1.addColorStop(0, `rgba(${cyanRgb}, ${ambientCyanAlpha})`);
-      bgGrad1.addColorStop(1, 'rgba(0, 0, 0, 0)');
-      ctx.fillStyle = bgGrad1;
-      ctx.fillRect(0, 0, w, h);
-
-      const bgGrad2 = ctx.createRadialGradient(w * 0.85, h * 0.8, 0, w * 0.85, h * 0.8, w * 0.5);
-      bgGrad2.addColorStop(0, `rgba(${purpleRgb}, ${ambientPurpleAlpha})`);
-      bgGrad2.addColorStop(1, 'rgba(0, 0, 0, 0)');
-      ctx.fillStyle = bgGrad2;
-      ctx.fillRect(0, 0, w, h);
-
-      // Grid lines
+      // === BACKGROUND GRATICULE ===
+      // The rebrand stripped this canvas's whole background layer. Most of
+      // that was right to lose — cyan/purple ambient washes, a scan line, and
+      // drifting hex glyphs that implied chain data which did not exist. The
+      // grid was not decoration though: it gives the bubbles a reference
+      // plane, and it is the same language as the homepage hero graticule.
+      // Restored neutral (not gold) because colored bubbles sit on top of it.
+      const gridTint = theme.isLight ? '15, 23, 42' : '255, 255, 255';
       const gridSpacing = 50;
-      ctx.strokeStyle = `rgba(${tintRgb}, ${gridLineAlpha})`;
+      ctx.strokeStyle = `rgba(${gridTint}, ${theme.isLight ? 0.03 : 0.02})`;
       ctx.lineWidth = 0.5;
       for (let gx = gridSpacing; gx < w; gx += gridSpacing) {
         ctx.beginPath();
@@ -361,9 +345,7 @@ export const MempoolBubbles = forwardRef<MempoolBubblesHandle, MempoolBubblesPro
         ctx.lineTo(w, gy);
         ctx.stroke();
       }
-
-      // Grid intersection dots
-      ctx.fillStyle = `rgba(${tintRgb}, ${gridDotAlpha})`;
+      ctx.fillStyle = `rgba(${gridTint}, ${theme.isLight ? 0.06 : 0.04})`;
       for (let gx = gridSpacing; gx < w; gx += gridSpacing) {
         for (let gy = gridSpacing; gy < h; gy += gridSpacing) {
           ctx.beginPath();
@@ -371,28 +353,6 @@ export const MempoolBubbles = forwardRef<MempoolBubblesHandle, MempoolBubblesPro
           ctx.fill();
         }
       }
-
-      // Floating hex characters (faint, drifting slowly)
-      ctx.font = '10px ui-monospace, "SF Mono", Menlo, monospace';
-      ctx.fillStyle = `rgba(${cyanRgb}, ${hexCharAlpha})`;
-      const hexChars = '0123456789abcdef';
-      const seed = t * 0.3;
-      for (let i = 0; i < 20; i++) {
-        const hx = ((Math.sin(seed * 0.01 + i * 7.3) * 0.5 + 0.5) * w);
-        const hy = ((Math.cos(seed * 0.008 + i * 4.1) * 0.5 + 0.5) * h);
-        const char1 = hexChars[Math.floor(Math.abs(Math.sin(i * 13.7 + t * 0.005)) * 16)];
-        const char2 = hexChars[Math.floor(Math.abs(Math.cos(i * 9.2 + t * 0.007)) * 16)];
-        ctx.fillText(`${char1}${char2}`, hx, hy);
-      }
-
-      // Scan line
-      const scanY = (t * 0.5) % (h + 40) - 20;
-      const scanGrad = ctx.createLinearGradient(0, scanY - 15, 0, scanY + 15);
-      scanGrad.addColorStop(0, `rgba(${cyanRgb}, 0)`);
-      scanGrad.addColorStop(0.5, `rgba(${cyanRgb}, ${scanAlpha})`);
-      scanGrad.addColorStop(1, `rgba(${cyanRgb}, 0)`);
-      ctx.fillStyle = scanGrad;
-      ctx.fillRect(0, scanY - 15, w, 30);
 
       // Remove dead bubbles
       bubblesRef.current = bubbles.filter(b => b.state !== 'dead');
@@ -675,7 +635,7 @@ export const MempoolBubbles = forwardRef<MempoolBubblesHandle, MempoolBubblesPro
         // Type letter inside — only for medium-large bubbles
         if (drawRadius > 13 && b.state !== 'popping') {
           const letter = TYPE_LABEL[b.type];
-          const fontSize = Math.max(11, Math.min(drawRadius * 0.7, 22));
+          const fontSize = Math.max(12, Math.min(drawRadius * 0.7, 22));
           ctx.font = `600 ${fontSize}px ui-monospace, "SF Mono", Menlo, monospace`;
           ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
@@ -684,7 +644,7 @@ export const MempoolBubbles = forwardRef<MempoolBubblesHandle, MempoolBubblesPro
           ctx.globalAlpha = b.opacity * 0.6;
           ctx.fillText(letter, b.x, b.y + 1);
           // Letter
-          ctx.fillStyle = colors.label;
+          ctx.fillStyle = theme.isLight && isHovered && b.type !== 'transparent' ? 'white' : colors.label;
           ctx.globalAlpha = b.opacity;
           ctx.fillText(letter, b.x, b.y);
           ctx.textAlign = 'start';
@@ -711,13 +671,13 @@ export const MempoolBubbles = forwardRef<MempoolBubblesHandle, MempoolBubblesPro
         const waveAlpha = Math.max(0, 0.4 * (1 - wave.r / waveMaxR));
         if (waveAlpha > 0.01) {
           ctx.save();
-          ctx.strokeStyle = `rgba(${cyanRgb}, ${waveAlpha})`;
+          ctx.strokeStyle = `rgba(${goldRgb}, ${waveAlpha})`;
           ctx.lineWidth = 2;
           ctx.beginPath();
           ctx.arc(w / 2, h / 2, wave.r, 0, Math.PI * 2);
           ctx.stroke();
           // Softer trailing ring for depth
-          ctx.strokeStyle = `rgba(${cyanRgb}, ${waveAlpha * 0.35})`;
+          ctx.strokeStyle = `rgba(${goldRgb}, ${waveAlpha * 0.35})`;
           ctx.lineWidth = 7;
           ctx.beginPath();
           ctx.arc(w / 2, h / 2, Math.max(0, wave.r - 10), 0, Math.PI * 2);
@@ -849,7 +809,8 @@ export const MempoolBubbles = forwardRef<MempoolBubblesHandle, MempoolBubblesPro
   return (
     <div
       ref={containerRef}
-      className={`relative w-full overflow-hidden ${className} ${isFullscreen || ambient ? 'bg-cipher-bg-dark' : ''}`}
+      data-immersive={isFullscreen || ambient}
+      className={`mempool-visualization relative w-full overflow-hidden ${className} ${isFullscreen || ambient ? 'bg-cipher-bg-dark' : ''}`}
       style={{ cursor: (isFullscreen || ambient) && !cursorVisible ? 'none' : undefined }}
     >
       <canvas
@@ -861,20 +822,21 @@ export const MempoolBubbles = forwardRef<MempoolBubblesHandle, MempoolBubblesPro
         className={`w-full h-full ${isFullscreen || ambient ? '' : 'rounded-xl'}`}
       />
 
+      <ChartWatermark size="map" className="z-10" />
       {/* HUD corner brackets */}
-      <div className="absolute top-2 left-2 w-5 h-5 border-t border-l border-cipher-cyan/20 rounded-tl pointer-events-none" />
-      <div className="absolute top-2 right-2 w-5 h-5 border-t border-r border-cipher-cyan/20 rounded-tr pointer-events-none" />
-      <div className="absolute bottom-2 left-2 w-5 h-5 border-b border-l border-cipher-cyan/20 rounded-bl pointer-events-none" />
-      <div className="absolute bottom-2 right-2 w-5 h-5 border-b border-r border-cipher-cyan/20 rounded-br pointer-events-none" />
+      <div className="absolute top-2 left-2 w-5 h-5 border-t border-l border-cipher-gold/20 rounded-tl pointer-events-none" />
+      <div className="absolute top-2 right-2 w-5 h-5 border-t border-r border-cipher-gold/20 rounded-tr pointer-events-none" />
+      <div className="absolute bottom-2 left-2 w-5 h-5 border-b border-l border-cipher-gold/20 rounded-bl pointer-events-none" />
+      <div className="absolute bottom-2 right-2 w-5 h-5 border-b border-r border-cipher-gold/20 rounded-br pointer-events-none" />
 
       {/* Top-left HUD label — shifts down in ambient to avoid EXIT button overlap */}
-      <div className={`absolute ${ambient ? 'top-14' : 'top-4'} left-6 font-mono text-[9px] text-cipher-cyan/30 tracking-widest pointer-events-none select-none`}>
+      <div className={`absolute ${ambient ? 'top-14' : 'top-4'} left-6 font-mono text-caption text-cipher-gold/30 tracking-widest pointer-events-none select-none`}>
         MEMPOOL_LIVE // {transactions.length} TX
       </div>
 
       {/* Top-right timestamp */}
       <div
-        className={`absolute ${ambient ? 'top-14' : 'top-4'} right-6 font-mono text-[9px] tracking-wider pointer-events-none select-none text-muted/60`}
+        className={`hidden sm:block absolute ${ambient ? 'top-14' : 'top-4'} right-6 font-mono text-caption tracking-wider pointer-events-none select-none text-muted`}
       >
         {new Date().toISOString().slice(11, 19)} UTC
       </div>
@@ -889,23 +851,19 @@ export const MempoolBubbles = forwardRef<MempoolBubblesHandle, MempoolBubblesPro
           }}
         >
           <div
-            className="rounded-lg px-3 py-2 shadow-xl text-xs min-w-[210px] border"
+            className="rounded-lg px-4 py-3 text-xs min-w-[210px] border"
             style={{
-              background: 'var(--color-surface-solid)',
+              background: 'var(--color-surface)',
               borderColor: 'var(--color-border)',
             }}
           >
-            <div className="font-mono text-cipher-cyan mb-1.5 truncate text-[10px] tracking-wider">
+            <div className="font-mono text-cipher-gold mb-1.5 truncate text-caption tracking-wider">
               &gt; {hoveredTx.txid.slice(0, 16)}...{hoveredTx.txid.slice(-8)}
             </div>
             <div className="space-y-0.5">
               <div className="flex items-center justify-between gap-4">
                 <span className="text-muted">Type</span>
-                <span className={
-                  hoveredTx.type === 'shielded' ? 'text-cipher-purple font-mono' :
-                  hoveredTx.type === 'mixed' ? 'text-cipher-orange font-mono' :
-                  'text-cipher-cyan font-mono'
-                }>
+                <span className="tx-category-label font-mono" data-type={hoveredTx.type}>
                   {hoveredTx.type.toUpperCase()}
                 </span>
               </div>
@@ -916,7 +874,7 @@ export const MempoolBubbles = forwardRef<MempoolBubblesHandle, MempoolBubblesPro
               {(hoveredTx as any).ironwoodActions ? (
                 <div className="flex items-center justify-between gap-4">
                   <span className="text-muted">Ironwood</span>
-                  <span className="text-cipher-yellow font-mono">{(hoveredTx as any).ironwoodActions} actions</span>
+                  <span className="text-cipher-ironwood font-mono">{(hoveredTx as any).ironwoodActions} actions</span>
                 </div>
               ) : hoveredTx.orchardActions ? (
                 <div className="flex items-center justify-between gap-4">
@@ -926,11 +884,11 @@ export const MempoolBubbles = forwardRef<MempoolBubblesHandle, MempoolBubblesPro
               ) : hoveredTx.vShieldedSpend > 0 || hoveredTx.vShieldedOutput > 0 ? (
                 <div className="flex items-center justify-between gap-4">
                   <span className="text-muted">Sapling</span>
-                  <span className="text-cipher-purple font-mono">{hoveredTx.vShieldedSpend}s → {hoveredTx.vShieldedOutput}o</span>
+                  <span className="text-cipher-green font-mono">{hoveredTx.vShieldedSpend}s → {hoveredTx.vShieldedOutput}o</span>
                 </div>
               ) : null}
             </div>
-            <div className="text-[10px] text-muted mt-1.5 pt-1.5 border-t border-cipher-border">Click to view transaction</div>
+            <div className="text-caption text-muted mt-1.5 pt-1.5 border-t border-cipher-border">Click to view transaction</div>
           </div>
         </div>
       )}
@@ -938,22 +896,22 @@ export const MempoolBubbles = forwardRef<MempoolBubblesHandle, MempoolBubblesPro
       {/* Legend — hidden in fullscreen/ambient to avoid clutter */}
       {!isFullscreen && !ambient && (
         <div
-          className="absolute bottom-3 right-3 flex items-center gap-4 text-[10px] text-secondary font-mono backdrop-blur-sm rounded-lg px-3 py-1.5 border"
+          className="absolute bottom-3 right-3 flex items-center gap-4 text-caption text-secondary font-mono backdrop-blur-sm rounded-lg px-3 py-1.5 border"
           style={{
             background: 'var(--color-surface)',
             borderColor: 'var(--color-border)',
           }}
         >
           <div className="flex items-center gap-1.5">
-            <div className="w-2.5 h-2.5 rounded-full bg-cipher-cyan/40 border border-cipher-cyan/70" />
+            <div className="tx-category-swatch rounded-full" data-type="transparent" aria-hidden="true" />
             <span>T · Transparent</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <div className="w-2.5 h-2.5 rounded-full bg-cipher-orange/40 border border-cipher-orange/70" />
+            <div className="tx-category-swatch rounded-full" data-type="mixed" aria-hidden="true" />
             <span>M · Mixed</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <div className="w-2.5 h-2.5 rounded-full bg-cipher-purple/50 border border-cipher-purple/80" />
+            <div className="tx-category-swatch rounded-full" data-type="shielded" aria-hidden="true" />
             <span>S · Shielded</span>
           </div>
         </div>
@@ -963,11 +921,11 @@ export const MempoolBubbles = forwardRef<MempoolBubblesHandle, MempoolBubblesPro
       {!ambient && isFullscreen && (
         <button
           onClick={toggleFullscreen}
-          className="absolute top-5 left-5 z-50 flex items-center gap-2 px-3 py-1.5 rounded font-mono text-[10px] tracking-[0.25em] text-cipher-cyan/70 border border-cipher-cyan/25 bg-cipher-bg-dark/80 backdrop-blur-sm hover:text-primary hover:border-cipher-cyan/60 hover:bg-cipher-cyan/10 transition duration-300"
+          className="absolute top-5 left-5 z-50 flex items-center gap-2 px-3 py-1.5 rounded font-mono text-caption tracking-[0.25em] text-cipher-gold/70 border border-cipher-gold/25 bg-cipher-bg-dark/80 backdrop-blur-sm hover:text-primary hover:border-cipher-gold/60 hover:bg-brand-gold/10 transition duration-300"
           style={{ opacity: cursorVisible ? 1 : 0 }}
         >
           [ EXIT ]
-          <kbd className="px-1 py-px rounded border border-white/15 text-[8px] text-white/40 tracking-normal">ESC</kbd>
+          <kbd className="px-1 py-px rounded border border-white/15 text-caption text-white/40 tracking-normal">ESC</kbd>
         </button>
       )}
 
@@ -979,26 +937,26 @@ export const MempoolBubbles = forwardRef<MempoolBubblesHandle, MempoolBubblesPro
             className="absolute bottom-6 left-6 font-mono pointer-events-none select-none transition-opacity duration-1000"
             style={{ opacity: cursorVisible ? 0.7 : 0.25 }}
           >
-            <div className="text-[11px] text-white/50 tracking-widest uppercase mb-1">
-              CipherScan {typeof window !== 'undefined' && window.location.hostname.includes('testnet') ? 'Testnet' : 'Mainnet'}
+            <div className="text-caption text-white/50 tracking-widest uppercase mb-1">
+              ZecBlock {typeof window !== 'undefined' && window.location.hostname.includes('testnet') ? 'Testnet' : 'Mainnet'}
             </div>
             {stats && (
-              <div className="text-[10px] tracking-wider">
+              <div className="text-caption tracking-wider">
                 <span className="text-white/50">{stats.total} pending</span>
                 <span className="text-white/20 mx-1.5">·</span>
-                <span className="text-cipher-purple/60">{stats.shieldedPct}% shielded</span>
+                <span className="tx-category-label" data-type="shielded">{stats.shieldedPct}% shielded + mixed (shown)</span>
               </div>
             )}
           </div>
 
           {/* Compact legend in ambient — top-right area, fades with cursor */}
           <div
-            className="absolute top-5 right-6 flex items-center gap-3 font-mono text-[9px] pointer-events-none select-none transition-opacity duration-1000"
+            className="absolute top-5 right-6 flex items-center gap-3 font-mono text-caption pointer-events-none select-none transition-opacity duration-1000"
             style={{ opacity: cursorVisible ? 0.5 : 0.2 }}
           >
-            <span className="text-cipher-cyan/70">T</span>
-            <span className="text-cipher-orange/70">M</span>
-            <span className="text-cipher-purple/70">S</span>
+            <span className="tx-category-label" data-type="transparent">T</span>
+            <span className="tx-category-label" data-type="mixed">M</span>
+            <span className="tx-category-label" data-type="shielded">S</span>
           </div>
         </>
       )}
@@ -1006,12 +964,12 @@ export const MempoolBubbles = forwardRef<MempoolBubblesHandle, MempoolBubblesPro
       {/* Empty state overlay */}
       {transactions.length === 0 && (
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 pointer-events-none">
-          <div className="w-8 h-8 border border-cipher-cyan/20 rounded-full flex items-center justify-center animate-pulse">
-            <div className="w-2 h-2 bg-cipher-cyan/40 rounded-full" />
+          <div className="w-8 h-8 border border-cipher-gold/20 rounded-full flex items-center justify-center animate-pulse">
+            <div className="w-2 h-2 bg-brand-gold/40 rounded-full" />
           </div>
           <div className="text-center">
             <p className="text-muted font-mono text-xs tracking-wider">&gt; SCANNING MEMPOOL...</p>
-            <p className="font-mono text-[10px] mt-1 text-muted/50">
+            <p className="font-mono text-caption mt-1 text-muted">
               awaiting pending transactions
             </p>
           </div>

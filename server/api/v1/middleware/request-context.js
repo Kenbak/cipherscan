@@ -16,8 +16,13 @@ function createRequestContext(config, internalClient) {
   const CACHE_MS = 5_000;
 
   return function requestContext(req, res, next) {
-    const requestId = req.headers['x-request-id']?.toString().slice(0, 100) || newRequestId();
+    const suppliedId = req.headers['x-request-id'];
+    const requestId = typeof suppliedId === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(suppliedId) ? suppliedId : newRequestId();
+    const controller = new AbortController();
+    const abort = () => { if (!res.writableEnded) controller.abort(); };
+    res.once('close', abort);
     req.v1 = {
+      abortSignal: controller.signal,
       requestId,
       network: config.network,
       startedAt: Date.now(),
@@ -32,6 +37,8 @@ function createRequestContext(config, internalClient) {
     // rather than fabricating a value or failing the whole request, since
     // most /v1 endpoints remain useful without it.
     req.v1.resolveIndexedHeight = async () => {
+      const localHeight = req.app?.locals?.chainTip?.height;
+      if (Number.isSafeInteger(localHeight) && localHeight >= 0) req.v1.indexedHeight = localHeight;
       if (req.v1.indexedHeight !== null) return req.v1.indexedHeight;
       if (cachedIndexedHeight !== null && Date.now() - cachedAt < CACHE_MS) {
         req.v1.indexedHeight = cachedIndexedHeight;

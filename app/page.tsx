@@ -1,6 +1,8 @@
+import { readApiData } from '@/lib/api-client';
 import Link from 'next/link';
-import Image from 'next/image';
 import { SearchBar } from '@/components/SearchBar';
+import { HeroBlockGrid } from '@/components/HeroBlockGrid';
+import { HomeBlocksProvider } from '@/components/HomeBlocksProvider';
 import { SectionHeader } from '@/components/ui/SectionHeader';
 import { HomeFeedCard } from '@/components/HomeFeedCard';
 import { RelativeTimeProvider } from '@/components/RelativeTime';
@@ -13,8 +15,20 @@ import { getApiUrl } from '@/lib/api-config';
 import { isCrosslink, isTestnet } from '@/lib/config';
 import { fetchWithDeadline } from '@/lib/server-fetch';
 import { retainLastGoodOrBuildFallback } from '@/lib/isr-fallback';
+import { buildPageMetadata, getBaseUrl, getSiteCopy } from '@/lib/seo';
+import type { Metadata } from 'next';
 
 export const revalidate = 30;
+
+const homeMetadata = buildPageMetadata({ ...getSiteCopy(), path: '/', indexOnTestnet: true });
+
+export const metadata: Metadata = {
+  ...homeMetadata,
+  alternates: {
+    ...homeMetadata.alternates,
+    types: { 'application/rss+xml': `${getBaseUrl()}/newsletter/rss` },
+  },
+};
 
 interface Block {
   height: number;
@@ -52,15 +66,15 @@ function upstreamError(context: string, status: number): Error {
 
 async function getRecentBlocks(): Promise<Block[]> {
   try {
-    const response = await fetchWithDeadline(`${API_URL}/api/blocks?limit=5`, {
+    const response = await fetchWithDeadline(`${API_URL}/v1/blocks?limit=5`, {
       next: { revalidate: 30, tags: ['chain-tip'] },
     });
 
     if (!response.ok) throw upstreamError('Recent blocks', response.status);
 
-    const data = await response.json();
-    if (!Array.isArray(data.blocks)) throw new Error('Recent blocks payload is malformed');
-    return data.blocks.map((b: any) => ({
+    const data = await readApiData(response);
+    if (!Array.isArray(data)) throw new Error('Recent blocks payload is malformed');
+    return data.map((b: any) => ({
       height: parseInt(b.height),
       hash: b.hash,
       timestamp: parseInt(b.timestamp),
@@ -75,13 +89,13 @@ async function getRecentBlocks(): Promise<Block[]> {
 
 async function getRecentShieldedTxs(): Promise<ShieldedTx[]> {
   try {
-    const response = await fetchWithDeadline(`${API_URL}/api/tx/shielded?limit=5`, {
+    const response = await fetchWithDeadline(`${API_URL}/v1/transactions/shielded-summary?limit=5`, {
       next: { revalidate: 30, tags: ['chain-tip'] },
     });
 
     if (!response.ok) throw upstreamError('Recent shielded transactions', response.status);
 
-    const data = await response.json();
+    const data = await readApiData(response);
     if (!Array.isArray(data.transactions)) {
       throw new Error('Recent shielded transactions payload is malformed');
     }
@@ -101,39 +115,46 @@ export default async function Home() {
   ]);
 
   return (
-    <div className="home-page max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 lg:py-16">
-      {/* Hero Section - z-index for dropdown to appear above widgets */}
-      <div className="text-center mb-10 sm:mb-14 relative z-30">
-        {/* Tagline - SEO friendly */}
-        <h1 className="text-xl sm:text-2xl lg:text-3xl font-semibold text-primary mb-3 sm:mb-4 animate-fade-in inline-flex items-center justify-center gap-3 tracking-tight text-balance">
-          <Image
-            src="/zec-logo.png"
-            alt="Zcash"
-            width={32}
-            height={32}
-            priority
-            className="w-7 h-7 sm:w-8 sm:h-8"
-          />
-          {crosslinkMode
-            ? 'CipherScan: Zcash Crosslink Explorer'
-            : isTestnet
-              ? 'CipherScan: Zcash Testnet Explorer (TAZ)'
-              : 'CipherScan: Zcash Block Explorer'}
-        </h1>
-        <p className="text-sm sm:text-base text-muted/60 mb-7 sm:mb-8 max-w-xl mx-auto text-center leading-relaxed">
-          {crosslinkMode
-            ? 'Explore the Zcash Crosslink hybrid PoW/PoS feature net. Track finality, staking windows, validators, and blocks in real time.'
-            : isTestnet
-              ? 'Search TAZ blocks, transactions, and addresses on the Zcash testnet. Monitor pending transactions and network activity before using mainnet.'
-              : 'Explore blocks, transactions, and addresses on the Zcash blockchain. Track shielded pool activity, privacy scores, and network health — all in real time.'}
-        </p>
+    <HomeBlocksProvider initialBlocks={initialBlocks}>
+    <div className="home-page">
+      {/* Full-bleed hero band. The band, not the container, owns the hero's
+          vertical rhythm, and it deliberately has no border of its own, so it
+          does not add a fourth chrome edge under the nav. No `overflow: hidden` here: the search suggestions
+          dropdown is absolutely positioned inside and must escape the band. */}
+      <section className="home-hero-band">
+        {/* Shares the max-w-7xl container so the hero, the logo above it and
+            the feed tables below all start on the same left edge.
+            z-index so the search dropdown sits above the widgets below. */}
+        <div className="home-hero relative z-30 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <HeroBlockGrid />
+          <div className="home-introduction">
+            {/* Kept small on purpose: this line is the indexable page subject,
+                not the visual centrepiece. The search field below is what the
+                page is actually for, so it gets the visual weight. */}
+            <h1 className="type-section text-primary">
+              {crosslinkMode
+                ? 'The Zcash Crosslink Explorer'
+                : isTestnet
+                  ? 'The Zcash Testnet Explorer (TAZ)'
+                  : 'The Zcash Blockchain Explorer'}
+            </h1>
+            <p className="home-hero-intro text-secondary">
+              {crosslinkMode
+                ? 'Explore the Zcash Crosslink hybrid PoW/PoS feature net. Track finality, staking windows, validators, and blocks in real time.'
+                : isTestnet
+                  ? 'Search TAZ blocks, transactions, and addresses on the Zcash testnet. Monitor pending transactions and network activity before using mainnet.'
+                  : 'Inspect the Zcash network. Blocks, transactions and shielded pools.'}
+            </p>
+          </div>
 
-        {/* Search Section */}
-        <div>
-          <SearchBar />
+          {/* Search shares the centered hero column; input contents remain left-aligned. */}
+          <div className="home-command">
+            <SearchBar />
+          </div>
         </div>
-      </div>
+      </section>
 
+      <div className="home-body max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8 sm:pb-10 lg:pb-12">
       {/* Crosslink: Network Stats + Staking Day */}
       {crosslinkMode && (
         <div className="relative z-10 space-y-4">
@@ -142,7 +163,7 @@ export default async function Home() {
           <div className="grid grid-cols-2 gap-3">
             <Link
               href="/learn/crosslink"
-              className="text-xs font-mono text-muted hover:text-primary px-3 py-2.5 rounded-lg border border-white/[0.06] hover:border-cipher-cyan/30 transition text-center"
+              className="text-xs font-mono text-muted hover:text-primary px-3 py-2.5 rounded-lg border border-white/[0.06] hover:border-cipher-gold/30 transition text-center"
             >
               Learn Crosslink →
             </Link>
@@ -150,7 +171,7 @@ export default async function Home() {
               href="https://github.com/ShieldedLabs/crosslink_monolith/releases/tag/season-1-workshop-1"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-xs font-mono text-muted hover:text-primary px-3 py-2.5 rounded-lg border border-white/[0.06] hover:border-cipher-cyan/30 transition text-center"
+              className="text-xs font-mono text-muted hover:text-primary px-3 py-2.5 rounded-lg border border-white/[0.06] hover:border-cipher-gold/30 transition text-center"
             >
               Join Season 1 →
             </a>
@@ -163,7 +184,7 @@ export default async function Home() {
           {/* Hero — embedded dual-chain graph (covers PoW blocks + BFT links) */}
           <div className="mt-8 sm:mt-12 lg:mt-14">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-sm sm:text-base font-bold font-mono text-secondary flex items-center gap-2">
+              <h2 className="text-sm sm:text-base font-semibold font-mono text-secondary flex items-center gap-2">
                 <span className="text-muted opacity-50">{'>'}</span>
                 CHAIN_VIEW
               </h2>
@@ -183,11 +204,10 @@ export default async function Home() {
         </>
       ) : (
         <RelativeTimeProvider initialNow={Date.now()}>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-10 mt-10 sm:mt-12 lg:mt-16">
+          <div className="home-feeds home-table-section grid grid-cols-1 lg:grid-cols-2 gap-8">
             <HomeFeedCard
               storageKey="cipherscan-home-card-left"
               defaultType="blocks"
-              initialBlocks={initialBlocks}
             />
             <HomeFeedCard
               storageKey="cipherscan-home-card-right"
@@ -204,7 +224,7 @@ export default async function Home() {
       {/* Pending Mempool — fixed, not customizable: always the baseline
           "what's about to confirm" view regardless of what the two cards
           above are set to. */}
-      <div className="mt-10 sm:mt-12 lg:mt-16">
+      <div className="home-mempool home-table-section mt-10 sm:mt-12 lg:mt-16">
         <SectionHeader label="MEMPOOL" live size="lg" />
         <RecentMempool
           footer={
@@ -214,6 +234,8 @@ export default async function Home() {
           }
         />
       </div>
+      </div>
     </div>
+    </HomeBlocksProvider>
   );
 }

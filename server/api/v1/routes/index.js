@@ -10,9 +10,13 @@
  */
 
 const express = require('express');
+const { buildNamesHandler } = require('./names');
+const { createAskRouter } = require('./ask');
 const { MANIFEST } = require('../inventory/manifest');
 const { buildAdapterHandler, buildStubHandler } = require('../lib/build-route');
 const { createRateLimiter } = require('../lib/rate-limit');
+const queryParameters = require('../inventory/query-parameters.json');
+const { sendProblem } = require('../lib/problem');
 
 /**
  * Manifest entries declare `v1.path` fully-qualified (e.g. "/v1/blocks") so
@@ -52,24 +56,42 @@ function resolveRateLimitOptions(rateLimitKey, config) {
  * @param {ReturnType<typeof import('../lib/internal-client').createInternalClient>} internalClient
  * @param {ReturnType<typeof import('../config').loadV1Config>} config
  */
-function buildV1Routes(internalClient, config) {
+function buildV1Routes(internalClient, config, env = {}) {
   const router = express.Router();
   let mounted = 0;
   const limiters = []; // for test/shutdown cleanup (limiter._stop())
+  const askRouter = createAskRouter(env, { internalClient });
+  router.use('/ask', askRouter);
+  limiters.push({ _stop: askRouter.stop });
 
-  for (const entry of MANIFEST) {
+  // Literal resources such as /uncles/stats must precede /uncles/:hash.
+  // Keep this independent of documentation/inventory order.
+  const entries = [...MANIFEST].sort((a, b) =>
+    (a.v1.path?.match(/:/g)?.length || 0) - (b.v1.path?.match(/:/g)?.length || 0));
+  for (const entry of entries) {
     if (entry.v1.status === 'excluded') continue;
+    if (entry.v1.nativeKey === 'ask') { mounted++; continue; }
 
     const method = entry.method.toLowerCase();
     if (typeof router[method] !== 'function') {
       throw new Error(`v1 routes: unsupported HTTP method "${entry.method}" for ${entry.legacyPath}`);
     }
 
-    const handler = entry.v1.status === 'adapter'
+    const handler = entry.v1.status === 'native'
+      ? buildNamesHandler(entry, config)
+      : entry.v1.status === 'adapter'
       ? buildAdapterHandler(entry, internalClient, config)
       : buildStubHandler(entry);
 
     const middlewares = [];
+    middlewares.push((req, res, next) => {
+      const allowed = queryParameters[`${entry.method} ${entry.v1.path}`] || [];
+      const errors = Object.entries(req.query).flatMap(([field, value]) =>
+        !allowed.includes(field) ? [{ field, issue: 'Unknown query parameter.' }]
+          : typeof value !== 'string' ? [{ field, issue: 'Provide one scalar value.' }] : []);
+      if (errors.length) return sendProblem(res, 'validation-error', { detail: 'Invalid query parameters.', errors });
+      next();
+    });
     if (entry.v1.rateLimitKey) {
       const options = resolveRateLimitOptions(entry.v1.rateLimitKey, config);
       const limiter = createRateLimiter({ ...options, key: entry.v1.path });

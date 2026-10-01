@@ -1,4 +1,7 @@
 'use client';
+import { readApiData } from '@/lib/api-client';
+import { LoadingRegion, MetricSkeletons } from '@/components/ui/Skeleton';
+import { SkeletonTable } from '@/components/ui/EmptyState';
 
 import { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'next/navigation';
@@ -10,6 +13,7 @@ import { CURRENCY } from '@/lib/config';
 import { getApiUrl } from '@/lib/api-config';
 import { displayPubkey } from '@/lib/utils';
 import { getFinalizerLabel, finalizerAvatarStyle, type FinalizerLabel } from '@/lib/finalizer-labels';
+import { PageHeader } from '@/components/ui/SectionHeader';
 import { CopyButton } from '@/components/CopyButton';
 import { HashLink } from '@/components/ui/HashLink';
 
@@ -52,7 +56,7 @@ function FinalizerHero({
 
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-3 flex-wrap">
-            <h1 className="text-2xl sm:text-3xl font-semibold text-primary tracking-tight">
+            <h1 className="type-page text-primary ">
               {label?.name ?? `Finalizer ${rank ? `#${rank}` : ''}`}
             </h1>
             {isActive ? (
@@ -72,7 +76,7 @@ function FinalizerHero({
               href={label.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 text-xs text-cipher-cyan hover:underline mt-1.5 font-mono"
+              className="inline-flex items-center gap-1 text-xs text-cipher-gold hover:underline mt-1.5 font-mono"
             >
               <svg
                 className="w-3 h-3"
@@ -101,13 +105,13 @@ function FinalizerHero({
             </code>
             <button
               onClick={() => setShowFullPubkey((v) => !v)}
-              className="hidden sm:inline-block text-[10px] font-mono text-muted hover:text-primary transition-colors px-2 py-1 rounded border border-cipher-border hover:border-cipher-cyan/40 shrink-0"
+              className="hidden sm:inline-block text-caption font-mono text-muted hover:text-primary transition-colors px-2 py-1 rounded border border-cipher-border hover:border-cipher-gold/40 shrink-0"
             >
               {showFullPubkey ? 'short' : 'full'}
             </button>
             <CopyButton text={pubkey} size="md" label="Copy pubkey" />
           </div>
-          <p className="mt-1.5 text-[10px] text-muted font-mono">
+          <p className="mt-1.5 text-caption text-muted font-mono">
             Shown in GUI byte order — matches your Crosslink desktop app.
           </p>
         </div>
@@ -188,23 +192,23 @@ export default function FinalizerPage() {
   const fetchData = useCallback(async () => {
     try {
       const [finRes, crossRes, bftRes, partRes] = await Promise.all([
-        fetch(`${getApiUrl()}/api/finalizer/${pubkey}`),
-        fetch(`${getApiUrl()}/api/crosslink`),
-        fetch(`${getApiUrl()}/api/crosslink/bft-tip`),
-        fetch(`${getApiUrl()}/api/finalizer/${pubkey}/participation?window=500`),
+        fetch(`${getApiUrl()}/v1/crosslink/finalizers/${pubkey}`),
+        fetch(`${getApiUrl()}/v1/crosslink`),
+        fetch(`${getApiUrl()}/v1/crosslink/bft-tip`),
+        fetch(`${getApiUrl()}/v1/crosslink/finalizers/${pubkey}/participation?window=500`),
       ]);
       if (!finRes.ok) {
         if (finRes.status === 404) throw new Error('Finalizer not found');
         throw new Error(`API error: ${finRes.status}`);
       }
-      const json: ApiResponse = await finRes.json();
-      if (!json.success) throw new Error('API returned failure');
+      const json: ApiResponse = await readApiData(finRes);
+      if (!json) throw new Error('API returned failure');
       setData(json.finalizer);
       setActions(json.stakeActions);
 
       if (crossRes.ok) {
-        const j = await crossRes.json();
-        if (j.success)
+        const j = await readApiData(crossRes);
+        if (j)
           setStats({
             tipHeight: j.tipHeight,
             finalizedHeight: j.finalizedHeight,
@@ -213,8 +217,8 @@ export default function FinalizerPage() {
           });
       }
       if (bftRes.ok) {
-        const j = await bftRes.json();
-        if (j.success)
+        const j = await readApiData(bftRes);
+        if (j)
           setBftTip({
             votedBlockHash: j.votedBlockHash,
             signatureCount: j.signatureCount,
@@ -222,8 +226,8 @@ export default function FinalizerPage() {
           });
       }
       if (partRes.ok) {
-        const j = await partRes.json();
-        if (j.success) {
+        const j = await readApiData(partRes);
+        if (j) {
           setParticipation({
             window_start: j.window_start,
             window_end: j.window_end,
@@ -251,15 +255,12 @@ export default function FinalizerPage() {
   if (loading) {
     return (
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
-        <div className="h-8 w-64 bg-cipher-border rounded animate-pulse mb-6" />
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="card p-4 animate-pulse">
-              <div className="h-3 w-16 bg-cipher-border rounded mb-2" />
-              <div className="h-6 w-20 bg-cipher-border rounded" />
-            </div>
-          ))}
-        </div>
+        <PageHeader eyebrow="FINALIZER" title="Crosslink Finalizer" subtitle={<span className="font-mono break-all">{pubkey}</span>} />
+        <LoadingRegion label="Loading finalizer details">
+          <MetricSkeletons labels={['Voting power', 'Rank', 'Share', 'First seen']} className="sm:grid-cols-4 mb-4" />
+          <MetricSkeletons labels={['Last updated', 'Last seen', 'Unique delegators']} className="sm:grid-cols-3 mb-4" />
+          <div className="card p-0 overflow-hidden"><SkeletonTable rows={5} columns={4} label={null} /></div>
+        </LoadingRegion>
       </div>
     );
   }
@@ -269,12 +270,12 @@ export default function FinalizerPage() {
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <Card className="text-center">
           <CardBody className="py-16">
-            <h2 className="text-xl font-bold text-primary mb-3">
+            <h1 className="type-page font-sans text-primary mb-3">
               {error === 'Finalizer not found' ? 'Finalizer not found' : 'Error'}
-            </h2>
+            </h1>
             <p className="text-secondary mb-4">{error}</p>
             <p className="text-xs text-muted font-mono break-all max-w-md mx-auto">{pubkey}</p>
-            <Link href="/validators" className="mt-6 inline-block text-cipher-cyan hover:underline">
+            <Link href="/validators" className="btn btn-md btn-secondary mt-6">
               &larr; View all finalizers
             </Link>
           </CardBody>
@@ -344,7 +345,7 @@ export default function FinalizerPage() {
 
       <div className="mb-4 flex items-center gap-2">
         <span className="text-xs text-muted font-mono uppercase tracking-widest opacity-50">{'>'}</span>
-        <h2 className="text-sm font-bold font-mono text-secondary uppercase tracking-wider">
+        <h2 className="text-sm font-semibold font-mono text-secondary lowercase tracking-tight">
           STAKING_ACTIONS
         </h2>
         <span className="text-xs text-muted ml-1">({actions.length})</span>
@@ -366,7 +367,7 @@ export default function FinalizerPage() {
             <div className="overflow-x-auto no-scrollbar">
               <table className="w-full min-w-[640px] text-sm">
                 <thead>
-                  <tr className="border-b border-cipher-border text-[10px] text-muted font-mono uppercase tracking-wider">
+                  <tr className="border-b border-cipher-border text-caption text-muted font-mono uppercase tracking-wider">
                     <th className="px-3 sm:px-4 py-3 text-left">Action</th>
                     <th className="px-3 sm:px-4 py-3 text-left">Block</th>
                     <th className="px-3 sm:px-4 py-3 text-right">Amount ({CURRENCY})</th>
@@ -383,7 +384,7 @@ export default function FinalizerPage() {
                         <StakingActionBadge type={a.action_type} compact />
                       </td>
                       <td className="px-3 sm:px-4 py-3">
-                        <Link href={`/block/${a.block_height}`} className="text-cipher-cyan hover:underline font-mono">
+                        <Link href={`/block/${a.block_height}`} className="text-cipher-gold hover:underline font-mono">
                           #{a.block_height.toLocaleString()}
                         </Link>
                       </td>
@@ -412,7 +413,7 @@ function ParticipationPanel({ participation }: { participation: Participation })
   const accent = participation_pct >= 95
     ? 'text-cipher-green'
     : participation_pct >= 70
-    ? 'text-cipher-cyan'
+    ? 'text-cipher-gold'
     : participation_pct >= 30
     ? 'text-cipher-orange'
     : 'text-danger';
@@ -420,10 +421,10 @@ function ParticipationPanel({ participation }: { participation: Participation })
   const barColor = participation_pct >= 95
     ? 'bg-cipher-green'
     : participation_pct >= 70
-    ? 'bg-cipher-cyan'
+    ? 'bg-brand-gold'
     : participation_pct >= 30
     ? 'bg-cipher-orange'
-    : 'bg-red-500';
+    : 'bg-danger';
 
   // Render `recent` oldest → newest so the timeline reads left-to-right.
   // Each block = ~6-8px wide, stripe color = signed/missed.
@@ -438,7 +439,7 @@ function ParticipationPanel({ participation }: { participation: Participation })
               <span className="text-xs text-muted font-mono uppercase tracking-widest opacity-50">
                 {'>'}
               </span>
-              <h2 className="text-sm font-bold font-mono text-secondary uppercase tracking-wider">
+              <h2 className="text-sm font-semibold font-mono text-secondary lowercase tracking-tight">
                 BFT_VOTING_PARTICIPATION
               </h2>
             </div>
@@ -449,10 +450,10 @@ function ParticipationPanel({ participation }: { participation: Participation })
             </p>
           </div>
           <div className="text-right">
-            <div className={`text-2xl font-mono font-bold ${accent}`}>
+            <div className={`text-2xl font-mono font-semibold ${accent}`}>
               {participation_pct.toFixed(1)}%
             </div>
-            <div className="text-[10px] font-mono text-muted">
+            <div className="text-caption font-mono text-muted">
               {signed_blocks} / {window_size} blocks
             </div>
           </div>
@@ -469,7 +470,7 @@ function ParticipationPanel({ participation }: { participation: Participation })
         {/* Sparkline of the last ~50 observed BFT-carrying blocks */}
         {ordered.length > 0 && (
           <>
-            <div className="flex items-center justify-between text-[10px] font-mono text-muted mb-1">
+            <div className="flex items-center justify-between text-caption font-mono text-muted mb-1">
               <span>
                 #{Math.min(...ordered.map((r) => r.height)).toLocaleString()}
               </span>
@@ -486,7 +487,7 @@ function ParticipationPanel({ participation }: { participation: Participation })
                   className={`flex-1 rounded-sm transition-colors ${
                     r.signed
                       ? 'bg-cipher-green/60 hover:bg-cipher-green h-full'
-                      : 'bg-red-500/50 hover:bg-red-500 h-2/3'
+                      : 'bg-danger/50 hover:bg-danger h-2/3'
                   }`}
                 />
               ))}
@@ -494,16 +495,16 @@ function ParticipationPanel({ participation }: { participation: Participation })
           </>
         )}
 
-        <div className="mt-3 flex items-center gap-4 text-[10px] font-mono text-muted">
+        <div className="mt-3 flex items-center gap-4 text-caption font-mono text-muted">
           <span className="flex items-center gap-1.5">
             <span className="block w-2 h-2 rounded-sm bg-cipher-green/60" />
             signed
           </span>
           <span className="flex items-center gap-1.5">
-            <span className="block w-2 h-2 rounded-sm bg-red-500/50" />
+            <span className="block w-2 h-2 rounded-sm bg-danger/50" />
             missed
           </span>
-          <span className="ml-auto text-muted/60">
+          <span className="ml-auto text-muted">
             window: #{window_start.toLocaleString()} → #{window_end.toLocaleString()}
           </span>
         </div>
@@ -515,10 +516,10 @@ function ParticipationPanel({ participation }: { participation: Participation })
 function Stat({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
     <div className="card p-4">
-      <span className="text-[10px] font-mono text-muted uppercase tracking-wider block mb-1">
+      <span className="text-caption font-mono text-muted uppercase tracking-wider block mb-1">
         {label}
       </span>
-      <span className="text-lg sm:text-2xl font-mono font-bold text-primary">{value}</span>
+      <span className="text-lg sm:text-2xl font-mono font-semibold text-primary">{value}</span>
       {sub && <span className="ml-1 text-xs text-muted">{sub}</span>}
     </div>
   );
@@ -572,7 +573,7 @@ function DelegatorsPanel({ actions }: { actions: StakeAction[] }) {
     <>
       <div className="mb-4 flex items-center gap-2">
         <span className="text-xs text-muted font-mono uppercase tracking-widest opacity-50">{'>'}</span>
-        <h2 className="text-sm font-bold font-mono text-secondary uppercase tracking-wider">
+        <h2 className="text-sm font-semibold font-mono text-secondary lowercase tracking-tight">
           DELEGATORS
         </h2>
         <span className="text-xs text-muted ml-1">({delegators.length} bonds)</span>
@@ -583,7 +584,7 @@ function DelegatorsPanel({ actions }: { actions: StakeAction[] }) {
           <div className="overflow-x-auto no-scrollbar">
             <table className="w-full min-w-[560px] text-sm">
               <thead>
-                <tr className="border-b border-cipher-border text-[10px] text-muted font-mono uppercase tracking-wider">
+                <tr className="border-b border-cipher-border text-caption text-muted font-mono uppercase tracking-wider">
                   <th className="px-3 sm:px-4 py-3 text-left">Bond Key</th>
                   <th className="px-3 sm:px-4 py-3 text-right">Amount ({CURRENCY})</th>
                   <th className="px-3 sm:px-4 py-3 text-left">Last Action</th>
@@ -608,7 +609,7 @@ function DelegatorsPanel({ actions }: { actions: StakeAction[] }) {
                     <td className="px-3 sm:px-4 py-3">
                       <Link
                         href={`/block/${d.lastActionHeight}`}
-                        className="text-cipher-cyan hover:underline font-mono"
+                        className="text-cipher-gold hover:underline font-mono"
                       >
                         #{d.lastActionHeight.toLocaleString()}
                       </Link>

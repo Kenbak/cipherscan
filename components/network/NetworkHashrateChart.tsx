@@ -1,9 +1,11 @@
 'use client';
+import { ChartSkeleton } from '@/components/ui/Skeleton';
 
 import { useState } from 'react';
 import {
-  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer,
 } from 'recharts';
+import { ChartTooltip as Tooltip } from '@/components/charts/ChartTooltip';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getChartColors } from '@/lib/chart-theme';
 import { formatHashrate } from '@/lib/format-numbers';
@@ -28,9 +30,9 @@ function HashratePeriodSelector({ value, onChange }: { value: Period; onChange: 
           key={p}
           type="button"
           onClick={() => onChange(p)}
-          className={`px-1.5 py-0.5 text-[10px] font-mono rounded transition whitespace-nowrap ${
+          className={`px-1.5 py-0.5 text-caption font-mono rounded transition whitespace-nowrap ${
             value === p
-              ? 'bg-cipher-cyan/15 text-cipher-cyan font-bold'
+              ? 'bg-glass-6 text-primary font-semibold'
               : 'text-muted hover:text-primary'
           }`}
         >
@@ -49,24 +51,23 @@ function HashratePeriodSelector({ value, onChange }: { value: Period; onChange: 
 export function NetworkHashrateChart() {
   const { theme } = useTheme();
   const colors = getChartColors(theme);
-  const [period, setPeriod] = useState<Period>('1y');
+  const [period, setPeriod] = useState<Period>('all');
   const [window, setWindow] = useState<HashrateWindow>('24h');
-  const stats = useApiQuery<HashrateStats>('/api/network/stats', undefined, { refreshInterval: 30_000 });
+  const stats = useApiQuery<HashrateStats>('/v1/network/stats', undefined, { refreshInterval: 30_000 });
 
-  const { data, loading } = useApiQuery<HashrateHistoryResponse>(
-    '/api/network/hashrate-history',
+  const { data, loading, error } = useApiQuery<HashrateHistoryResponse>(
+    '/v1/mining/hashrate-history',
     { period, window },
     { refreshInterval: 300_000, timeoutMs: 30_000 },
   );
   const snapshot = stats.data?.mining?.hashrateEstimate;
   const points = hashrateChartPoints(data, window, snapshot);
   const current = snapshot?.windows['24h'];
-  const gradientId = 'network-hashrate-gradient';
 
   return (
     <ChartCard
       title="NETWORK_HASHRATE_TREND"
-      height={320}
+      height={280}
       watermarkSize="lg"
       controls={<div className="flex flex-wrap items-center gap-2">
         <label className="text-xs text-muted">Estimate window{' '}
@@ -78,7 +79,7 @@ export function NetworkHashrateChart() {
       </div>}
     >
       <p className="text-xs font-mono text-muted mb-3">
-        Estimated hashrate · 24h: <span className="text-cipher-cyan font-bold">{snapshot ? stats.data?.mining?.networkHashrate : '—'}</span>
+        Estimated hashrate · 24h: <span className="text-primary font-semibold">{snapshot ? stats.data?.mining?.networkHashrate : '—'}</span>
         {current && <span className="block text-muted">{current.blockCount.toLocaleString()} blocks · As of {current.windowEnd.replace('T', ' ').replace('Z', ' UTC')}</span>}
       </p>
       <p className="text-xs text-muted mb-3">
@@ -87,21 +88,24 @@ export function NetworkHashrateChart() {
         Estimates use block-header timestamps and exclude orphaned blocks.
       </p>
       {(stats.error || stats.isRefreshing) && <p className="text-xs text-muted" role="status">{stats.error ? 'Live refresh delayed; showing the last available snapshot.' : 'Refreshing estimate…'}</p>}
+      {error && <p role="status" className="text-xs text-muted">History refresh unavailable. Any retained samples are shown below.</p>}
       {!points.some(point => point.hashrate != null) ? (
         <div className="flex items-center justify-center h-[260px]">
-          <div className="animate-pulse text-muted font-mono text-xs">{loading ? 'Loading…' : 'Hashrate history unavailable'}</div>
+          {loading ? <ChartSkeleton height={260} /> : <p className="text-xs text-muted">Hashrate history unavailable</p>}
         </div>
       ) : (
         <ResponsiveContainer initialDimension={{ width: 500, height: 300 }} width="100%" height={260}>
-          <AreaChart data={points}>
-            <CartesianGrid strokeDasharray="2 6" stroke={colors.grid} opacity={0.5} />
+          <LineChart data={points} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
+            <CartesianGrid vertical={false} strokeDasharray="2 6" stroke={colors.grid} opacity={0.5} />
             <XAxis
               dataKey="timestamp"
+              minTickGap={40}
+              padding={{ left: 12, right: 20 }}
               type="number"
               scale="time"
               domain={['dataMin', 'dataMax']}
               stroke={colors.axis}
-              tick={{ fill: colors.axis, fontSize: 10 }}
+              tick={{ fill: colors.axis, fontSize: 12 }}
               tickFormatter={(d: number) => {
                 const date = new Date(d);
                 return `${date.getUTCMonth() + 1}/${date.getUTCDate()}`;
@@ -109,37 +113,30 @@ export function NetworkHashrateChart() {
             />
             <YAxis
               stroke={colors.axis}
-              tick={{ fill: colors.axis, fontSize: 10 }}
+              tick={{ fill: colors.axis, fontSize: 12 }}
               tickFormatter={(v: number) => formatHashrate(v)}
-              width={68}
+              width={100}
             />
             <Tooltip
               contentStyle={{
                 backgroundColor: colors.tooltipBg,
                 border: `1px solid ${colors.tooltipBorder}`,
                 borderRadius: 8,
-                fontSize: 11,
-                fontFamily: 'monospace',
+                fontSize: 12,
+                fontFamily: 'var(--font-geist-mono), monospace',
               }}
               labelFormatter={(d) => `${new Date(Number(d)).toISOString().replace('T', ' ').replace('Z', '')} UTC`}
               formatter={(value) => [formatHashrate(Number(value)), `Estimated hashrate · ${window}`]}
             />
-            <defs>
-              <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor={colors.cyan} stopOpacity={0.3} />
-                <stop offset="100%" stopColor={colors.cyan} stopOpacity={0} />
-              </linearGradient>
-            </defs>
-            <Area
+            <Line
               type="linear"
               connectNulls={false}
               dataKey="hashrate"
-              stroke={colors.cyan}
+              stroke={colors.gold}
               strokeWidth={2}
-              fill={`url(#${gradientId})`}
-              dot={false}
+              dot={points.filter(point => point.hashrate != null).length === 1 ? { r: 3 } : false}
             />
-          </AreaChart>
+          </LineChart>
         </ResponsiveContainer>
       )}
     </ChartCard>

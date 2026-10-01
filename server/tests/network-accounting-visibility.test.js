@@ -14,6 +14,11 @@ function render(data, { network = 'mainnet', error = null } = {}) {
     if (name === 'react/jsx-runtime') return { jsx, jsxs: jsx };
     if (name === 'react') return { useState: value => [value, () => {}] };
     if (name === 'recharts') return {};
+    if (name === 'next/link') return { default: 'a' };
+    if (name === '@/components/ui/SectionHeader') return { SectionHeader: 'SectionHeader' };
+    if (name === '@/components/charts/ChartTooltip') return { ChartTooltip: 'Tooltip' };
+    if (name === '@/contexts/ThemeContext') return { useTheme: () => ({ theme: 'dark' }) };
+    if (name === '@/lib/chart-theme') return { getChartColors: () => ({}) };
     if (name === '@/lib/config') return { NETWORK: network, CURRENCY: 'ZEC' };
     if (name === '@/components/ui/Card') return { Card: 'Card', CardBody: 'CardBody' };
     if (name === '@/hooks/useApiQuery') return { useApiQuery(url, params, options) {

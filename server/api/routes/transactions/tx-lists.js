@@ -148,7 +148,12 @@ router.get('/api/shielded/list', async (req, res) => {
   try {
     const limit = Math.min(Math.max(parseInt(req.query.limit) || 50, 1), 100);
     const cursor = req.query.cursor ? parseInt(req.query.cursor) : null;
-    const cursorId = req.query.cursor_id ? parseInt(req.query.cursor_id) : null;
+    const fullyShielded = req.query.flow_type === 'fully_shielded';
+    const cursorId = fullyShielded ? (req.query.cursor_id || null) : (req.query.cursor_id ? parseInt(req.query.cursor_id) : null);
+    const cursorTxid = typeof req.query.cursor_txid === 'string' && /^[a-f0-9]{64}$/.test(req.query.cursor_txid) ? req.query.cursor_txid : '';
+    if (fullyShielded && cursor !== null && cursorId !== null && (typeof cursorId !== 'string' || !/^[a-f0-9]{64}$/.test(cursorId))) {
+      return res.status(400).json({ error: 'Invalid transaction cursor.' });
+    }
     const direction = req.query.direction || 'next';
     const flowType = req.query.flow_type || 'all'; // all, shield, deshield, fully_shielded
     const poolFilter = req.query.pool || 'all'; // all, sapling, orchard, ironwood, mixed
@@ -156,7 +161,8 @@ router.get('/api/shielded/list', async (req, res) => {
     const isLatest = cursor === null;
     const cacheable = isCanonicalIntegerQuery(req.query.limit)
       && isCanonicalIntegerQuery(req.query.cursor)
-      && isCanonicalIntegerQuery(req.query.cursor_id)
+      && (fullyShielded || isCanonicalIntegerQuery(req.query.cursor_id))
+      && (req.query.cursor_txid === undefined || cursorTxid !== '')
       && isKnownQueryValue(req.query.direction, ['next', 'prev'])
       && isKnownQueryValue(req.query.flow_type, ['all', 'shield', 'deshield', 'fully_shielded'])
       && isKnownQueryValue(req.query.pool, ['all', 'sapling', 'orchard', 'ironwood', 'mixed'])
@@ -167,7 +173,8 @@ router.get('/api/shielded/list', async (req, res) => {
       params: {
         limit,
         cursor: finiteOrNull(cursor),
-        cursorId: isLatest ? null : finiteOrNull(cursorId || 0),
+        cursorId: isLatest ? null : (fullyShielded ? cursorId : finiteOrNull(cursorId || 0)),
+        cursorTxid: isLatest ? null : cursorTxid,
         direction: isLatest ? 'next' : (direction === 'prev' ? 'prev' : 'next'),
         flowType: typeof flowType === 'string' ? flowType : null,
         pool: typeof poolFilter === 'string' ? poolFilter : null,
@@ -356,19 +363,19 @@ router.get('/api/shielded/list', async (req, res) => {
 
       if (cursor === null) {
         result = await deps.pool.query(
-          `SELECT * FROM (${unionQuery}) u ORDER BY u.block_time DESC, u.id DESC LIMIT $1`,
+          `SELECT * FROM (${unionQuery}) u ORDER BY u.block_time DESC, u.id DESC, u.txid DESC LIMIT $1`,
           [limit]
         );
       } else if (direction === 'prev') {
         result = await deps.pool.query(
-          `SELECT * FROM (${unionQuery}) u WHERE u.block_time > $1 OR (u.block_time = $1 AND u.id > $2) ORDER BY u.block_time ASC, u.id ASC LIMIT $3`,
-          [cursor, cursorId || 0, limit]
+          `SELECT * FROM (${unionQuery}) u WHERE (u.block_time, u.id, u.txid) > ($1, $2, $3) ORDER BY u.block_time ASC, u.id ASC, u.txid ASC LIMIT $4`,
+          [cursor, cursorId || 0, cursorTxid, limit]
         );
         result.rows.reverse();
       } else {
         result = await deps.pool.query(
-          `SELECT * FROM (${unionQuery}) u WHERE u.block_time < $1 OR (u.block_time = $1 AND u.id < $2) ORDER BY u.block_time DESC, u.id DESC LIMIT $3`,
-          [cursor, cursorId || 0, limit]
+          `SELECT * FROM (${unionQuery}) u WHERE (u.block_time, u.id, u.txid) < ($1, $2, $3) ORDER BY u.block_time DESC, u.id DESC, u.txid DESC LIMIT $4`,
+          [cursor, cursorId || 0, cursorTxid, limit]
         );
       }
     } else {

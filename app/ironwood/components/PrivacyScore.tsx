@@ -32,12 +32,7 @@ const PRIVACY_VIEWS: { id: PrivacyView; label: string }[] = [
   { id: 'families', label: 'Families' },
 ];
 
-const PRIVACY_COLORS = {
-  best: '#4ade80',
-  denomPadded: '#fbbf24',
-  distinctUnpadded: '#f97316',
-  worst: '#dc2626',
-};
+
 
 type GradeKey = 'green' | 'partial2' | 'partial1' | 'weak';
 
@@ -73,6 +68,12 @@ export function PrivacyScore({
   range: PrivacyRange;
   onRangeChange: (range: PrivacyRange) => void;
 }) {
+  const PRIVACY_COLORS = {
+    best: colors.verifiedRing,
+    denomPadded: colors.denominated,
+    distinctUnpadded: colors.deshielding,
+    worst: colors.distinctive,
+  };
   const router = useRouter();
   const [view, setView] = useState<PrivacyView>('scatter');
 
@@ -215,8 +216,8 @@ export function PrivacyScore({
   const hasFilteredData = filteredTxs.length > 0;
   const shareText =
     hasFilteredData && complianceStats
-      ? `ZIP-318 compliance: ${(complianceStats.green / complianceStats.total * 100).toFixed(1)}% fully compliant (${complianceStats.green}/${complianceStats.total} txs). ${headlineStats.txPct.toFixed(0)}% use standard denominations.\n\nhttps://cipherscan.app/ironwood`
-      : `Zcash migration privacy on CipherScan.\n\nhttps://cipherscan.app/ironwood`;
+      ? `ZIP-318 compliance: ${(complianceStats.green / complianceStats.total * 100).toFixed(1)}% fully compliant (${complianceStats.green}/${complianceStats.total} txs). ${headlineStats.txPct.toFixed(0)}% use standard denominations.\n\nhttps://zecblock.com/ironwood`
+      : `Zcash migration privacy on ZecBlock.\n\nhttps://zecblock.com/ironwood`;
 
   return (
     <div
@@ -230,7 +231,7 @@ export function PrivacyScore({
         sourceHeight={tipHeight}
         isLive={activated}
         shareText={shareText}
-        fileName="cipherscan-privacy.png"
+        fileName="zecblock-privacy.png"
       >
         <div className="mb-4">
           <p className="max-w-2xl text-xs leading-relaxed text-muted">
@@ -300,7 +301,7 @@ export function PrivacyScore({
                 privacyColors={PRIVACY_COLORS}
                 denomLineColor={colors.denominated}
               />
-              <div className="shrink-0 text-[10px] font-mono text-muted">
+              <div className="shrink-0 text-caption font-mono text-muted">
                 {filteredTxs.length} txs in range · stacked volume
               </div>
             </div>
@@ -331,7 +332,7 @@ export function PrivacyScore({
                 activeGrades={visibleGrades}
                 onToggle={toggleGrade}
               />
-              <div className="shrink-0 text-[10px] font-mono text-muted">
+              <div className="shrink-0 text-caption font-mono text-muted">
                 {visiblePoints.length} txs in range · log scale
               </div>
             </div>

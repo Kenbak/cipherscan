@@ -23,6 +23,8 @@ const container = ({ children }) => React.createElement('div', null, children);
 function client(react = React, refresh = {}) {
   return load('app/name/[name]/NameClient.tsx', {
     react,
+    '@/lib/api-config': { getApiUrl: () => 'https://api.test' },
+    '@/lib/api-client': { readApiData: response => response.json() },
     'next/link': ({ children, href }) => React.createElement('a', { href }, children),
     '@/components/ui/Card': { Card: container, CardHeader: container, CardBody: container },
     '@/components/ui/Badge': { Badge: container },
@@ -48,7 +50,7 @@ test('blocked refresh preserves SSR data; successful release replaces it; unmoun
   };
   const Component = client(react, {
     startLiveRefresh(fn) { refresh = fn; return () => {}; },
-    async fetchLiveJson(url) {
+    async fetchLiveResponse(url) {
       if (response === 'blocked') throw new Error('Blocked by robots.txt');
       return url.endsWith('/events') ? { events: [] } : { pricing: null };
     },
@@ -91,7 +93,7 @@ test('ZNS transport normalizes current wire fields and rejects malformed registr
   let raw = { ...registration, last_action: 'CLAIM' }; delete raw.lastAction;
   const zns = load('lib/zns.ts', {
     'zcashname-sdk': { ZNS: class {} }, './api-config': { NETWORK: 'mainnet' },
-    './zns-rpc': { callZnsRpc: async () => raw }, './name-validation': load('lib/name-validation.ts', {}),
+    './api-client': {}, './zns-rpc': { callZnsRpc: async () => raw }, './name-validation': load('lib/name-validation.ts', {}),
   });
   const result = await zns.resolveZnsName('sacrebleu', AbortSignal.timeout(1000));
   assert.equal(result.lastAction, 'CLAIM');

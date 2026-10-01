@@ -4,16 +4,16 @@ import { buildPageMetadata, getNetwork } from '@/lib/seo';
 export function generateMetadata(): Metadata {
   if (getNetwork() === 'crosslink-testnet') {
     return {
-      title: 'Page Not Found | CipherScan',
+      title: 'Page Not Found | ZecBlock',
       description: 'This Zcash Ironwood tracker is not available on the Crosslink deployment.',
       robots: { index: false, follow: false },
     };
   }
 
   return buildPageMetadata({
-    title: 'Zcash Ironwood Upgrade & Migration Tracker | CipherScan',
+    title: 'Zcash Ironwood Upgrade & Migration Tracker | ZecBlock',
     description:
-      'Track the Zcash Ironwood (NU6.3) activation, Orchard migration, Ironwood shielded supply, and observable turnstile activity on CipherScan.',
+      'Track the Zcash Ironwood (NU6.3) activation, Orchard migration, Ironwood shielded supply, and observable turnstile activity on ZecBlock.',
     keywords: [
       'Zcash Ironwood',
       'Ironwood Zcash',
@@ -24,7 +24,7 @@ export function generateMetadata(): Metadata {
       'Zcash migration tracker',
     ],
     path: '/ironwood',
-    imageAlt: 'CipherScan Zcash Ironwood upgrade and migration tracker',
+    imageAlt: 'ZecBlock Zcash Ironwood upgrade and migration tracker',
     networks: ['mainnet'],
   });
 }

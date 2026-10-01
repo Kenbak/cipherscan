@@ -50,7 +50,7 @@ export function InflowSources({
         ironwoodZat={netZat}
       />
 
-      <p className="mb-4 min-h-[1.125rem] text-[11px] font-mono text-secondary">
+      <p className="mb-4 min-h-[1.125rem] text-caption font-mono text-secondary">
         {activeName ? (() => {
           const r = rows.find((x) => x.name === activeName);
           if (!r) return null;
@@ -62,19 +62,19 @@ export function InflowSources({
               {' · '}{path}
               {' · '}{fmt(r.zat)} · {r.txs.toLocaleString()} txs · {pct.toFixed(1)}%
               {selected === r.name ? (
-                <span className="ml-2 text-[10px] text-muted/50">(pinned)</span>
+                <span className="ml-2 text-caption text-muted">(pinned)</span>
               ) : null}
             </>
           );
         })() : (
-          <span className="text-muted/45">Click a source to pin details · hover to preview</span>
+          <span className="text-muted">Click a source to pin details · hover to preview</span>
         )}
       </p>
 
       <div className="grid grid-cols-1 gap-2 border-t border-cipher-border/20 pt-4 sm:grid-cols-3">
         <IronwoodLedgerStat
           icon={
-            <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true" className="text-emerald-400/80">
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true" className="text-cipher-green/80">
               <path d="M1 5h6M5 2l3 3-3 3" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           }
@@ -86,7 +86,7 @@ export function InflowSources({
           <>
             <IronwoodLedgerStat
               icon={
-                <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true" className="text-muted/70">
+                <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true" className="text-muted">
                   <path d="M9 5H3M7 2 4 5l3 3" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
               }
@@ -127,7 +127,7 @@ export function IronwoodInflowCard({
 }) {
   const netZat = sources.totalInZat - sources.totalOutZat;
   const fmt = (zat: number) => fmtValue(zat, currencyMode, zecPrice);
-  const shareText = `Ironwood pool inflows on Zcash: ${fmt(sources.totalInZat)} in, ${fmt(sources.totalOutZat)} out, ${fmt(netZat)} net.\n\nhttps://cipherscan.app/ironwood`;
+  const shareText = `Ironwood pool inflows on Zcash: ${fmt(sources.totalInZat)} in, ${fmt(sources.totalOutZat)} out, ${fmt(netZat)} net.\n\nhttps://zecblock.com/ironwood`;
 
   return (
     <ShareableCard
@@ -135,7 +135,7 @@ export function IronwoodInflowCard({
       sourceHeight={pools.sourceHeight}
       isLive={pools.isLive}
       shareText={shareText}
-      fileName="cipherscan-ironwood-inflows.png"
+      fileName="zecblock-ironwood-inflows.png"
       watermark={false}
     >
       <InflowSources sources={sources} colors={colors} currencyMode={currencyMode} zecPrice={zecPrice} />

@@ -1,4 +1,4 @@
-/** View model for the legacy /api/transactions/list endpoint.
+/** Shared transaction-list view model for legacy fixtures and decoded v1 items.
  * BIGINT timestamps/heights arrive as decimal strings. Monetary fields remain
  * zatoshis in their original representation; this boundary never converts ZEC.
  */
@@ -82,4 +82,21 @@ export function parseTransactionListItems(value: unknown): TransactionListItem[]
       flow_type: row.flow_type,
     };
   });
+}
+
+/** Rolling counts must use the explicitly non-coinbase field, never the inclusive fallback. */
+export function nonCoinbaseActivity(blockchain: { tx24hExclCoinbase?: unknown } | undefined, mining: { blocks24h?: unknown } | undefined) {
+  const count = (value: unknown) => {
+    if (value == null || value === '' || typeof value === 'boolean') return null;
+    const parsed = typeof value === 'number' || typeof value === 'string' ? Number(value) : NaN;
+    return Number.isSafeInteger(parsed) && parsed >= 0 ? parsed : null;
+  };
+  const txs24h = count(blockchain?.tx24hExclCoinbase);
+  const blocks24h = count(mining?.blocks24h);
+  return { txs24h, txsPerBlock: txs24h != null && blocks24h != null && blocks24h > 0 ? txs24h / blocks24h : null };
+}
+
+/** Page selection (`type=shielded`) is not an API filter on the shielded endpoint. */
+export function shieldedListParams(flow: string, pool: string, minZec: number): Record<string, string> {
+  return { flow_type: flow, pool, ...(minZec > 0 ? { min_zec: String(minZec) } : {}) };
 }

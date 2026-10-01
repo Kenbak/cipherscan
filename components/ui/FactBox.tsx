@@ -49,7 +49,7 @@ export function FactBox({
       className={`rounded-xl border border-cipher-border/70 p-3.5 ${span ? 'sm:col-span-2' : ''} ${fit ? 'w-full fact-box-fit' : ''} ${hug ? 'w-full sm:w-auto fact-box-hug' : ''} ${className}`.trim()}
     >
       <div className="flex items-center gap-1.5 mb-2">
-        <span className="text-[10px] font-mono text-muted uppercase tracking-widest">{label}</span>
+        <span className="text-caption font-mono text-muted uppercase tracking-widest">{label}</span>
         {tooltip && <Tooltip content={tooltip} />}
       </div>
       <div className="min-w-0">{children}</div>
@@ -97,7 +97,7 @@ export function BoldZec({ value, accent = 'text-primary', size = 'base' }: { val
   const valueSize = size === 'lg' ? 'text-lg sm:text-xl' : 'text-sm sm:text-base';
   return (
     <div className="flex items-baseline gap-1.5">
-      <span className={`${valueSize} font-bold font-mono tabular-nums ${accent}`}>{value.toFixed(4)}</span>
+      <span className={`${valueSize} font-semibold font-mono tabular-nums ${accent}`}>{value.toFixed(4)}</span>
       <span className="text-xs text-muted">{CURRENCY}</span>
     </div>
   );

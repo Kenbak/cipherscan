@@ -124,7 +124,7 @@ function sectionLabel(section: ParsedSection): string {
 function extractDonateAddress(text: string): { address: string | null; cleaned: string } {
   const match = text.match(/`(u1[a-z0-9]{80,})`/);
   if (!match) return { address: null, cleaned: text };
-  const cleaned = text.replace(/\*Support CipherScan:\*\s*`u1[a-z0-9]+`/, '').trim();
+  const cleaned = text.replace(/\*Support ZecBlock:\*\s*`u1[a-z0-9]+`/, '').trim();
   return { address: match[1], cleaned };
 }
 

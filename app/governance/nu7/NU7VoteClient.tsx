@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
+import { CopyableValue } from '../CopyableValue';
 import type { ReactNode } from 'react';
 import type { VoteResults as Results } from '@/lib/nu7-vote-results';
 import {
@@ -254,10 +255,10 @@ export function NU7VoteClient({ initialData, resultsState, resultsContent, initi
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
-      <Link href="/governance" className="mb-4 inline-block font-mono text-xs text-muted hover:text-cipher-cyan">← All votes</Link>
       {/* Header */}
       <PageHeader
         eyebrow="GOVERNANCE"
+        eyebrowHref="/governance"
         title={closed ? "NU7 Coinholder Vote Results" : "NU7 Coinholder Vote"}
         subtitle="Private coinholder vote on NU7 scope — issuance smoothing, Sprout deprecation, 25-second blocks, and upgrade schedule. Organized by Valar Group and Project Tachyon."
         actions={<PhaseBadge phase={phase} />}
@@ -269,12 +270,12 @@ export function NU7VoteClient({ initialData, resultsState, resultsContent, initi
       {!closed && (
       <div className="rounded-2xl border border-cipher-border bg-cipher-surface overflow-hidden mb-8">
         <div className="flex items-center gap-2 border-b border-cipher-border-subtle px-4 py-2.5 sm:px-5">
-          <span className="h-2 w-2 rounded-full bg-cipher-cyan animate-pulse" />
-          <span className="text-[10px] font-mono uppercase tracking-wider text-secondary">
+          <span className="h-2 w-2 rounded-full bg-brand-gold animate-pulse" />
+          <span className="text-caption font-mono uppercase tracking-wider text-secondary">
             {countdownLabel}
           </span>
           {phase === 'pre-snapshot' && (
-            <Link href={`/block/${NU7_VOTE.snapshotHeight}`} className="text-[10px] font-mono text-muted hover:text-primary transition-colors ml-auto">
+            <Link href={`/block/${NU7_VOTE.snapshotHeight}`} className="text-caption font-mono text-muted hover:text-primary transition-colors ml-auto">
               Block #{NU7_VOTE.snapshotHeight.toLocaleString()}
             </Link>
           )}
@@ -284,17 +285,17 @@ export function NU7VoteClient({ initialData, resultsState, resultsContent, initi
           {countdown.total > 0 && (
             <div className="flex items-center justify-center gap-3 sm:gap-5 mb-6">
               <CountdownUnit value={countdown.days} label="days" />
-              <span className="text-2xl sm:text-3xl font-bold text-muted/30 -mt-4">:</span>
+              <span className="text-2xl sm:text-3xl font-semibold text-muted -mt-4">:</span>
               <CountdownUnit value={countdown.hours} label="hours" />
-              <span className="text-2xl sm:text-3xl font-bold text-muted/30 -mt-4">:</span>
+              <span className="text-2xl sm:text-3xl font-semibold text-muted -mt-4">:</span>
               <CountdownUnit value={countdown.minutes} label="min" />
-              <span className="text-2xl sm:text-3xl font-bold text-muted/30 -mt-4">:</span>
+              <span className="text-2xl sm:text-3xl font-semibold text-muted -mt-4">:</span>
               <CountdownUnit value={countdown.seconds} label="sec" />
             </div>
           )}
 
           <div className="border-t border-cipher-border-subtle pt-5">
-            <div className="flex items-center justify-between text-[10px] font-mono text-muted mb-2">
+            <div className="flex items-center justify-between text-caption font-mono text-muted mb-2">
               <span>Ironwood shielded supply (upper bound on eligibility)</span>
               <span>{NU7_VOTE.legitimacyThreshold.toLocaleString()} ZEC threshold</span>
             </div>
@@ -302,7 +303,7 @@ export function NU7VoteClient({ initialData, resultsState, resultsContent, initi
               {initialData.ironwoodZec != null && (
                 <>
                   <div
-                    className="absolute inset-y-0 left-0 rounded-lg bg-cipher-yellow/20 border-r-2 border-cipher-yellow"
+                    className="absolute inset-y-0 left-0 rounded-lg bg-brand-gold/20 border-r-2 border-brand-gold"
                     style={{ width: `${Math.min((initialData.ironwoodZec / (initialData.ironwoodZec * 1.15)) * 100, 100)}%` }}
                   />
                   <div
@@ -312,12 +313,12 @@ export function NU7VoteClient({ initialData, resultsState, resultsContent, initi
                 </>
               )}
               <div className="absolute inset-0 flex items-center justify-between px-4">
-                <span className="text-sm font-bold font-mono text-cipher-yellow-bright tabular-nums">
+                <span className="text-sm font-semibold font-mono text-cipher-gold tabular-nums">
                   {initialData.ironwoodZec != null
                     ? `${(initialData.ironwoodZec / 1_000_000).toFixed(2)}M ZEC`
                     : '—'}
                 </span>
-                <span className="text-[10px] font-mono text-muted">
+                <span className="text-caption font-mono text-muted">
                   {initialData.ironwoodZec != null
                     ? `${((initialData.ironwoodZec / NU7_VOTE.legitimacyThreshold) * 100).toFixed(0)}% of threshold`
                     : ''}
@@ -408,7 +409,7 @@ export function NU7VoteClient({ initialData, resultsState, resultsContent, initi
               href={r.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-2.5 px-4 py-3 rounded-xl border border-cipher-border hover:border-glass-12 hover:bg-glass-1 transition-colors text-xs font-mono text-secondary hover:text-primary"
+              className="flex items-center gap-2.5 px-4 py-3 rounded-xl border border-cipher-border hover:border-glass-12 hover:bg-glass-2 transition-colors text-xs font-mono text-secondary hover:text-primary"
             >
               <ExternalIcon />
               <span className="truncate">{r.label}</span>
@@ -419,10 +420,10 @@ export function NU7VoteClient({ initialData, resultsState, resultsContent, initi
 
       {/* Methodology */}
       <div className="rounded-2xl border border-cipher-border bg-cipher-surface p-5 sm:p-6">
-        <h3 className="text-xs font-mono font-bold text-secondary uppercase tracking-wider mb-2">What CipherScan shows</h3>
+        <h3 className="text-xs font-mono font-semibold text-secondary uppercase tracking-wider mb-2">What ZecBlock shows</h3>
         <p className="text-xs text-muted leading-relaxed max-w-3xl">
           This page displays public vote parameters, published aggregate results, and live chain state from the Valar
-          zvote-1 REST API. CipherScan has not independently verified the tally. Follow the verification
+          zvote-1 REST API. ZecBlock has not independently verified the tally. Follow the verification
           instructions above to check it against your own full node. Individual ballots remain private.
         </p>
       </div>
@@ -482,8 +483,8 @@ function VoteTab({
                 </div>
               ))}
             </div>
-            <p className="mt-4 text-[10px] text-muted leading-relaxed">
-              Wallets that supported this vote. CipherScan does not handle votes or keys.
+            <p className="mt-4 text-caption text-muted leading-relaxed">
+              Wallets that supported this vote. ZecBlock does not handle votes or keys.
             </p>
           </div>
         </div>
@@ -519,7 +520,7 @@ function ChainExplorerTab({ chainState }: { chainState: ChainState | null }) {
     return (
       <div className="h-64 rounded-2xl border border-cipher-border bg-cipher-surface flex items-center justify-center">
         <div className="flex flex-col items-center gap-3">
-          <div className="w-8 h-8 border-2 border-cipher-border border-t-cipher-cyan rounded-full animate-spin" />
+          <div className="w-8 h-8 border-2 border-cipher-border border-t-cipher-gold rounded-full animate-spin" />
           <span className="text-xs font-mono text-muted">Connecting to zvote-1…</span>
         </div>
       </div>
@@ -537,10 +538,10 @@ function ChainExplorerTab({ chainState }: { chainState: ChainState | null }) {
       {/* Chain overview — compact stats bar */}
       <div className="rounded-2xl border border-cipher-border bg-cipher-surface overflow-hidden">
         <div className="flex items-center gap-2 border-b border-cipher-border-subtle px-5 py-2.5">
-          <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-          <span className="text-[10px] font-mono uppercase tracking-wider text-secondary">zvote-1</span>
-          <span className="text-[10px] text-muted ml-1">— the dedicated voting chain</span>
-          <span className="ml-auto text-[10px] font-mono text-muted">
+          <span className="h-2 w-2 rounded-full bg-cipher-green animate-pulse" />
+          <span className="text-caption font-mono uppercase tracking-wider text-secondary">zvote-1</span>
+          <span className="text-caption text-muted ml-1">— the dedicated voting chain</span>
+          <span className="ml-auto text-caption font-mono text-muted">
             {chainState.time ? formatBlockTime(chainState.time) + ' UTC' : ''}
           </span>
         </div>
@@ -558,20 +559,20 @@ function ChainExplorerTab({ chainState }: { chainState: ChainState | null }) {
         {/* Vote activity — blocks with submissions */}
         <div>
           <SectionLabel label="RECENT_TRANSACTIONS" live />
-          <p className="text-[11px] text-muted -mt-2 mb-3">
+          <p className="text-caption text-muted -mt-2 mb-3">
             Blocks with protocol transactions. Each voter generates multiple: a delegation proof, one ballot per question, and share reveals.
           </p>
           {chainState.voteActivity.blocksWithVotes.length > 0 ? (
             <div className="rounded-2xl border border-cipher-border bg-cipher-surface">
               <div className="flex items-center justify-between border-b border-cipher-border-subtle px-4 py-2.5">
-                <span className="text-[10px] font-mono text-muted">
+                <span className="text-caption font-mono text-muted">
                   Since page load · not a turnout count
                 </span>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-xs font-mono">
                   <thead>
-                    <tr className="border-b border-cipher-border-subtle text-[10px] text-muted uppercase tracking-wider">
+                    <tr className="border-b border-cipher-border-subtle text-caption text-muted uppercase tracking-wider">
                       <th className="text-left px-4 py-2.5 font-medium">Height</th>
                       <th className="text-left px-4 py-2.5 font-medium">Time</th>
                       <th className="text-center px-4 py-2.5 font-medium">
@@ -584,18 +585,18 @@ function ChainExplorerTab({ chainState }: { chainState: ChainState | null }) {
                   </thead>
                   <tbody className="divide-y divide-cipher-border-subtle">
                     {chainState.voteActivity.blocksWithVotes.map(b => (
-                      <tr key={b.height} className="hover:bg-glass-1 transition-colors">
+                      <tr key={b.height} className="hover:bg-glass-2 transition-colors">
                         <td className="px-4 py-2 text-primary tabular-nums">{b.height.toLocaleString()}</td>
                         <td className="px-4 py-2 text-muted tabular-nums">
                           {b.time ? formatBlockTime(b.time) : '—'}
                         </td>
                         <td className="px-4 py-2 text-center">
-                          <span className="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-cipher-cyan/10 text-cipher-cyan-bright font-semibold text-[10px]">
+                          <span className="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-brand-gold/10 text-cipher-gold-bright font-semibold text-caption">
                             {b.txCount}
                           </span>
                         </td>
                         <td className="px-4 py-2 text-center">
-                          <span className={`tabular-nums ${b.sigCount === chainState.validators.length ? 'text-emerald-400' : 'text-cipher-yellow'}`}>
+                          <span className={`tabular-nums ${b.sigCount === chainState.validators.length ? 'text-cipher-green' : 'text-brand-gold'}`}>
                             {b.sigCount}/{chainState.validators.length}
                           </span>
                         </td>
@@ -615,7 +616,7 @@ function ChainExplorerTab({ chainState }: { chainState: ChainState | null }) {
         {/* Key Ceremony — horizontal card */}
         <div>
           <SectionLabel label="KEY_CEREMONY" />
-          <p className="text-[11px] text-muted -mt-2 mb-3">
+          <p className="text-caption text-muted -mt-2 mb-3">
             <Tip text="Distributed Key Generation — validators jointly create an encryption key without anyone holding the full private key">DKG</Tip>
             {' '}splits decryption power across validators so no single party can read votes.
           </p>
@@ -625,35 +626,35 @@ function ChainExplorerTab({ chainState }: { chainState: ChainState | null }) {
                 {/* Left: status + progress */}
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-mono font-semibold border ${
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-caption font-mono font-semibold border ${
                       ceremonyStatus === 'Finalized'
-                        ? 'border-emerald-500/30 text-emerald-400 bg-emerald-500/5'
-                        : 'border-cipher-yellow/30 text-cipher-yellow bg-cipher-yellow/5'
+                        ? 'border-cipher-green/30 text-cipher-green bg-cipher-green/5'
+                        : 'border-brand-gold/30 text-brand-gold bg-brand-gold/5'
                     }`}>
                       {ceremonyStatus}
                     </span>
-                    <span className="text-[10px] text-muted font-mono">
+                    <span className="text-caption text-muted font-mono">
                       <Tip text="Minimum validators needed to decrypt the final tally.">Threshold</Tip>: {chainState.ceremony.threshold} of {chainState.ceremony.validatorCount}
                     </span>
                   </div>
                   <div>
-                    <div className="flex justify-between text-[10px] font-mono text-muted mb-1.5">
+                    <div className="flex justify-between text-caption font-mono text-muted mb-1.5">
                       <span><Tip text="Each validator must confirm they received and verified their share of the encryption key">Confirmations</Tip></span>
                       <span className="text-secondary">{chainState.ceremony.ackCount}/{chainState.ceremony.validatorCount}</span>
                     </div>
                     <div className="h-1.5 rounded-full bg-glass-6 overflow-hidden">
                       <div
-                        className="h-full rounded-full bg-emerald-400 transition-[width] duration-500"
+                        className="h-full rounded-full bg-cipher-green transition-[width] duration-500"
                         style={{ width: `${(chainState.ceremony.ackCount / Math.max(chainState.ceremony.validatorCount, 1)) * 100}%` }}
                       />
                     </div>
                   </div>
                   <div>
-                    <div className="text-[10px] font-mono text-muted mb-1">
+                    <div className="text-caption font-mono text-muted mb-1">
                       <Tip text="The combined public key used to encrypt all votes. No single validator holds the matching private key.">Election authority key</Tip>
                     </div>
-                    <div className="font-mono text-[11px] text-secondary bg-glass-3 rounded-lg px-3 py-2 break-all leading-relaxed">
-                      {chainState.ceremony.eaPk}
+                    <div className="font-mono text-caption text-secondary bg-glass-3 rounded-lg px-3 py-2 break-all leading-relaxed">
+                      <CopyableValue value={chainState.ceremony.eaPk} label="election authority key" />
                     </div>
                   </div>
                 </div>
@@ -663,18 +664,18 @@ function ChainExplorerTab({ chainState }: { chainState: ChainState | null }) {
 
                 {/* Right: key holders */}
                 <div>
-                  <div className="text-[10px] font-mono text-muted uppercase tracking-wider mb-2">
+                  <div className="text-caption font-mono text-muted uppercase tracking-wider mb-2">
                     <Tip text="Independent organizations that each hold a piece of the decryption key. They produce blocks and store encrypted vote shares.">Key holders</Tip>
                   </div>
                   <div className="grid grid-cols-2 gap-1.5">
                     {chainState.validators.map(v => (
-                      <div key={v.operatorAddress} className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-glass-1">
-                        <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${v.jailed ? 'bg-red-400' : 'bg-emerald-400'}`} />
-                        <span className="text-[11px] font-mono text-secondary truncate">{v.moniker}</span>
+                      <div key={v.operatorAddress} className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-glass-2">
+                        <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${v.jailed ? 'bg-danger' : 'bg-cipher-green'}`} />
+                        <span className="text-caption font-mono text-secondary truncate">{v.moniker}</span>
                       </div>
                     ))}
                   </div>
-                  <p className="text-[10px] text-muted mt-2.5">
+                  <p className="text-caption text-muted mt-2.5">
                     At least {chainState.ceremony.threshold} must cooperate to reveal the final tally.
                   </p>
                 </div>
@@ -688,7 +689,7 @@ function ChainExplorerTab({ chainState }: { chainState: ChainState | null }) {
         {/* Network participants — unified */}
         <div>
           <SectionLabel label="NETWORK_PARTICIPANTS" />
-          <p className="text-[11px] text-muted -mt-2 mb-3">
+          <p className="text-caption text-muted -mt-2 mb-3">
             Each organization runs a <Tip text="A validator produces blocks, runs a vote server for wallets, and holds a share of the decryption key. They are all three roles at once.">validator + vote server</Tip>. Some also operate <Tip text="Private Information Retrieval servers let wallets prove eligibility without revealing which Zcash note they own.">PIR servers</Tip>.
           </p>
           <div className="rounded-2xl border border-cipher-border bg-cipher-surface overflow-hidden">
@@ -700,8 +701,8 @@ function ChainExplorerTab({ chainState }: { chainState: ChainState | null }) {
                 );
                 return (
                   <div key={s.label} className="px-4 py-3 flex flex-col items-center text-center">
-                    <span className="h-2 w-2 rounded-full bg-emerald-400 mb-2" />
-                    <span className="text-[11px] font-mono font-semibold text-primary">{s.label}</span>
+                    <span className="h-2 w-2 rounded-full bg-cipher-green mb-2" />
+                    <span className="text-caption font-mono font-semibold text-primary">{s.label}</span>
                     <div className="flex items-center gap-1 mt-1.5">
                       <RoleDot label="V" title="Validator" active />
                       <RoleDot label="S" title="Vote server" active />
@@ -712,7 +713,7 @@ function ChainExplorerTab({ chainState }: { chainState: ChainState | null }) {
               })}
             </div>
             {/* Legend */}
-            <div className="border-t border-cipher-border-subtle px-4 py-2.5 flex items-center gap-4 text-[10px] text-muted font-mono">
+            <div className="border-t border-cipher-border-subtle px-4 py-2.5 flex items-center gap-4 text-caption text-muted font-mono">
               <span className="flex items-center gap-1"><RoleDot label="V" title="" active /> Validator</span>
               <span className="flex items-center gap-1"><RoleDot label="S" title="" active /> Vote server</span>
               <span className="flex items-center gap-1"><RoleDot label="P" title="" active /> PIR server</span>
@@ -724,7 +725,7 @@ function ChainExplorerTab({ chainState }: { chainState: ChainState | null }) {
         {/* How it works — full width, compact */}
         <div className="rounded-2xl border border-cipher-border bg-cipher-surface p-5">
           <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-8">
-            <div className="text-[10px] font-mono text-muted uppercase tracking-wider shrink-0">How voting works</div>
+            <div className="text-caption font-mono text-muted uppercase tracking-wider shrink-0">How voting works</div>
             <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
               <StepInline n={1} text="Prove Ironwood funds (ZK)" />
               <StepArrow />
@@ -746,10 +747,10 @@ function ChainExplorerTab({ chainState }: { chainState: ChainState | null }) {
 function CountdownUnit({ value, label }: { value: number; label: string }) {
   return (
     <div className="text-center">
-      <div className="text-3xl sm:text-4xl font-bold font-mono tabular-nums tracking-tight text-primary">
+      <div className="text-3xl sm:text-4xl font-semibold font-mono tabular-nums tracking-tight text-primary">
         {String(value).padStart(2, '0')}
       </div>
-      <div className="text-[10px] font-mono text-muted uppercase tracking-wider mt-1">{label}</div>
+      <div className="text-caption font-mono text-muted uppercase tracking-wider mt-1">{label}</div>
     </div>
   );
 }
@@ -766,12 +767,12 @@ function PhaseBadge({ phase }: { phase: Phase }) {
   return <Badge color={c.color}>{c.label}</Badge>;
 }
 
-function MetricCell({ label, value, accent }: { label: string; value: string; accent?: 'yellow' | 'cyan' }) {
-  const valueColor = accent === 'yellow' ? 'text-cipher-yellow-bright' : accent === 'cyan' ? 'text-cipher-cyan-bright' : 'text-primary';
+function MetricCell({ label, value, accent }: { label: string; value: string; accent?: 'yellow' | 'gold' }) {
+  const valueColor = accent === 'yellow' ? 'text-cipher-gold' : accent === 'gold' ? 'text-cipher-gold-bright' : 'text-primary';
   return (
     <div>
-      <div className="text-[10px] font-mono uppercase tracking-wider text-muted">{label}</div>
-      <div className={`mt-1 text-sm sm:text-base font-bold font-mono tabular-nums ${valueColor}`}>
+      <div className="text-caption font-mono uppercase tracking-wider text-muted">{label}</div>
+      <div className={`mt-1 text-sm sm:text-base font-semibold font-mono tabular-nums ${valueColor}`}>
         {value}
       </div>
     </div>
@@ -782,7 +783,7 @@ function SectionLabel({ label, live }: { label: string; live?: boolean }) {
   return (
     <div className="flex items-center gap-2 mb-3">
       <span className="text-xs text-muted font-mono uppercase tracking-widest opacity-50">{'>'}</span>
-      <h2 className="text-xs font-bold font-mono text-secondary uppercase tracking-wider">{label}</h2>
+      <h2 className="text-xs font-semibold font-mono text-secondary lowercase tracking-tight">{label}</h2>
       {live && (
         <span className="relative flex h-2 w-2" aria-label="Live">
           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cipher-green opacity-60" />
@@ -796,12 +797,12 @@ function SectionLabel({ label, live }: { label: string; live?: boolean }) {
 function QuestionContent({ q }: { q: PollQuestion }) {
   return (
     <div>
-      <h3 className="text-base font-bold text-primary mb-2">{q.title}</h3>
+      <h3 className="text-base font-semibold text-primary mb-2">{q.title}</h3>
       <p className="text-xs text-secondary leading-relaxed mb-5">{q.description}</p>
       <div className="space-y-2.5">
         {q.options.map((opt, i) => (
           <div key={i} className="flex items-start gap-3 px-3.5 py-2.5 rounded-lg bg-glass-2 border border-cipher-border-subtle">
-            <span className="shrink-0 w-6 h-6 rounded-md bg-glass-6 text-secondary flex items-center justify-center text-[10px] font-mono font-bold mt-0.5">
+            <span className="shrink-0 w-6 h-6 rounded-md bg-glass-6 text-secondary flex items-center justify-center text-caption font-mono font-semibold mt-0.5">
               {String.fromCharCode(65 + i)}
             </span>
             <span className="text-xs text-secondary leading-relaxed">{opt}</span>
@@ -816,7 +817,7 @@ function StatusRow({ label, value, accent, mono }: { label: string; value: strin
   return (
     <div className="flex items-center justify-between">
       <span className="text-xs font-mono text-muted">{label}</span>
-      <span className={`text-xs font-mono font-semibold ${accent ? 'text-emerald-400' : 'text-secondary'} ${mono ? 'tabular-nums' : ''}`}>
+      <span className={`text-xs font-mono font-semibold ${accent ? 'text-cipher-green' : 'text-secondary'} ${mono ? 'tabular-nums' : ''}`}>
         {value}
       </span>
     </div>
@@ -825,12 +826,12 @@ function StatusRow({ label, value, accent, mono }: { label: string; value: strin
 
 function WalletBadge({ status }: { status: 'confirmed' | 'expected' | 'unknown' }) {
   if (status === 'confirmed') {
-    return <span className="text-[10px] font-mono font-semibold text-emerald-400 border border-emerald-500/20 bg-emerald-500/5 rounded-full px-2 py-0.5">Confirmed</span>;
+    return <span className="text-caption font-mono font-semibold text-cipher-green border border-cipher-green/20 bg-cipher-green/5 rounded-full px-2 py-0.5">Confirmed</span>;
   }
   if (status === 'expected') {
-    return <span className="text-[10px] font-mono font-semibold text-cipher-yellow border border-cipher-yellow/20 bg-cipher-yellow/5 rounded-full px-2 py-0.5">Expected</span>;
+    return <span className="text-caption font-mono font-semibold text-brand-gold border border-brand-gold/20 bg-brand-gold/5 rounded-full px-2 py-0.5">Expected</span>;
   }
-  return <span className="text-[10px] font-mono font-semibold text-muted border border-cipher-border rounded-full px-2 py-0.5">Unknown</span>;
+  return <span className="text-caption font-mono font-semibold text-muted border border-cipher-border rounded-full px-2 py-0.5">Unknown</span>;
 }
 
 function formatVoteDate(iso: string): string {
@@ -884,12 +885,12 @@ const votingWindowDays = Math.floor(
 function DateCell({ label, date, time, note }: { label: string; date: string; time: string; note: string }) {
   return (
     <div className="p-5">
-      <div className="text-[10px] font-mono uppercase tracking-wider text-muted mb-1">{label}</div>
-      <div className="text-sm font-bold font-mono text-primary">
+      <div className="text-caption font-mono uppercase tracking-wider text-muted mb-1">{label}</div>
+      <div className="text-sm font-semibold font-mono text-primary">
         {date}
         {time && <span className="text-muted font-normal ml-1.5">· {time}</span>}
       </div>
-      <div className="text-[11px] text-muted mt-1">{note}</div>
+      <div className="text-caption text-muted mt-1">{note}</div>
     </div>
   );
 }
@@ -906,10 +907,10 @@ function Tip({ text, children }: { text: string; children: React.ReactNode }) {
   return (
     <span className="group/tip relative inline-flex items-center gap-0.5 cursor-help border-b border-dashed border-muted/40">
       {children}
-      <svg className="w-2.5 h-2.5 text-muted/50 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <svg className="w-2.5 h-2.5 text-muted inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
       </svg>
-      <span className="absolute left-0 top-full mt-2 px-3 py-2 rounded-lg bg-cipher-bg border border-cipher-border text-[10px] text-secondary leading-relaxed normal-case tracking-normal font-normal w-52 opacity-0 pointer-events-none group-hover/tip:opacity-100 group-hover/tip:pointer-events-auto transition-opacity z-50 shadow-lg">
+      <span className="absolute left-0 top-full mt-2 px-3 py-2 rounded-lg bg-cipher-bg border border-cipher-border text-caption text-secondary leading-relaxed normal-case tracking-normal font-normal w-52 opacity-0 pointer-events-none group-hover/tip:opacity-100 group-hover/tip:pointer-events-auto transition-opacity z-50 shadow-lg">
         {text}
       </span>
     </span>
@@ -919,9 +920,9 @@ function Tip({ text, children }: { text: string; children: React.ReactNode }) {
 function StatCell({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
     <div className="bg-cipher-surface p-4">
-      <div className="text-[10px] font-mono text-muted uppercase tracking-wider">{label}</div>
-      <div className="text-lg font-bold font-mono text-primary tabular-nums mt-1">{value}</div>
-      {sub && <div className="text-[10px] text-muted mt-0.5">{sub}</div>}
+      <div className="text-caption font-mono text-muted uppercase tracking-wider">{label}</div>
+      <div className="text-lg font-semibold font-mono text-primary tabular-nums mt-1">{value}</div>
+      {sub && <div className="text-caption text-muted mt-0.5">{sub}</div>}
     </div>
   );
 }
@@ -929,10 +930,10 @@ function StatCell({ label, value, sub }: { label: string; value: string; sub?: s
 function Step({ n, text }: { n: number; text: string }) {
   return (
     <div className="flex items-start gap-3">
-      <span className="shrink-0 w-5 h-5 rounded-full bg-glass-6 text-secondary flex items-center justify-center text-[10px] font-mono font-bold mt-0.5">
+      <span className="shrink-0 w-5 h-5 rounded-full bg-glass-6 text-secondary flex items-center justify-center text-caption font-mono font-semibold mt-0.5">
         {n}
       </span>
-      <span className="text-[11px] text-secondary leading-relaxed">{text}</span>
+      <span className="text-caption text-secondary leading-relaxed">{text}</span>
     </div>
   );
 }
@@ -941,10 +942,10 @@ function RoleDot({ label, title, active }: { label: string; title: string; activ
   return (
     <span
       title={title}
-      className={`inline-flex items-center justify-center w-4 h-4 rounded text-[8px] font-mono font-bold ${
+      className={`inline-flex items-center justify-center w-4 h-4 rounded text-caption font-mono font-semibold ${
         active
           ? 'bg-glass-6 text-primary'
-          : 'bg-glass-3 text-muted/30'
+          : 'bg-glass-3 text-muted'
       }`}
     >
       {label}
@@ -955,17 +956,17 @@ function RoleDot({ label, title, active }: { label: string; title: string; activ
 function StepInline({ n, text }: { n: number; text: string }) {
   return (
     <span className="flex items-center gap-1.5">
-      <span className="w-4 h-4 rounded-full bg-glass-6 text-secondary flex items-center justify-center text-[9px] font-mono font-bold shrink-0">
+      <span className="w-4 h-4 rounded-full bg-glass-6 text-secondary flex items-center justify-center text-caption font-mono font-semibold shrink-0">
         {n}
       </span>
-      <span className="text-[11px] text-secondary">{text}</span>
+      <span className="text-caption text-secondary">{text}</span>
     </span>
   );
 }
 
 function StepArrow() {
   return (
-    <svg className="w-3 h-3 text-muted/30 shrink-0 hidden sm:block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <svg className="w-3 h-3 text-muted shrink-0 hidden sm:block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
     </svg>
   );

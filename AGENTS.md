@@ -17,7 +17,7 @@ Treat SEO as part of the definition of done for every new or changed page, route
 ### 2. Add complete, unique metadata
 
 - Give every indexable route a unique, intent-specific title and meta description. Do not inherit homepage copy on a child route.
-- Keep the primary topic first and include `CipherScan` once as the brand. Prefer natural language over repeated keyword variants.
+- Keep the primary topic first and include the approved brand for the target branch/release once. Resolve brand and host from its metadata configuration and the wiki launch status; do not assume a redesign's ZecBlock identity is already live in the CipherScan production release. Prefer natural language over repeated keyword variants.
 - Add a self-referencing absolute canonical, using the correct network host.
 - Add complete Open Graph and Twitter metadata: title, description, canonical URL, image, image dimensions/alt text where supported, site name, and card/type.
 - When a route replaces an older URL, update internal links and add a permanent redirect from the old URL.
@@ -42,13 +42,13 @@ Treat SEO as part of the definition of done for every new or changed page, route
 ### 5. Add structured data
 
 - Add the most specific valid JSON-LD type available and ensure it describes visible page content.
-- Use stable `@id` values and connect pages to the CipherScan `WebSite`/`Organization` entities.
+- Use stable `@id` values and connect pages to the target release's shared `WebSite`/`Organization` entities.
 - Dynamic data cards should expose the full identifier, URL, network, lifecycle status, and relevant block/transaction facts. Do not invent unsupported schema properties or hidden claims.
 - Validate JSON-LD and keep it consistent with canonical, title, description, and visible data.
 
 ### 6. Connect the page to the crawl graph
 
-- Add stable indexable routes to `app/sitemap.ts` with the canonical URL, meaningful `lastModified`, suitable change frequency, and priority. Under the current policy, the testnet sitemap contains only its homepage.
+- Add stable indexable routes through `lib/sitemaps.ts`, `app/sitemap.xml/route.ts`, and `app/sitemaps/[slug]/route.ts`, as applicable, with the canonical URL and meaningful `lastModified` where available. Under the current policy, the testnet sitemap contains only its homepage.
 - Add rolling dynamic URLs only when the sitemap can be refreshed reliably; use crawlable pagination/archive pages so older blocks and transactions remain discoverable after they leave the rolling window.
 - Add at least one normal HTML link from a relevant hub, navigation, footer, list, related-content module, or breadcrumb. Do not rely on client-only controls or sitemap discovery alone.
 - When adding pagination, use crawlable URLs and links, not only button state or API offsets.
@@ -67,6 +67,16 @@ Treat SEO as part of the definition of done for every new or changed page, route
 ## Communication
 
 Call out any assumption or guess that affects indexation, canonical identity, visible copy, or content accuracy. Do not silently infer editorial claims.
+
+## Release verification and cross-repo consistency
+
+- Identify the target branch, exact commit, network, and preview/production environment before release work. Keep redesign previews distinct from main-based production releases; do not infer a deployment from a push or merge.
+- After a push that triggers deployments, check every affected Vercel project at that exact commit until it reaches a terminal state. A successful Next.js build does not prove Vercel accepted the routes or completed deployment. Report any pending, failed, or unverified target explicitly.
+- Check GitHub Actions conclusions and the latest run attempt. Diagnose failures before retrying; record an unchanged successful retry without hiding the original failure or weakening tests.
+- Verify applicable deployed routes and API health. Distinguish local tests, protected-preview checks, and production observations; authentication or sandbox limits must not become a claimed pass.
+- Before deploying APIs/indexers, reconcile the intended release with current main and the source/artifact running on each affected host. Record node version, Rust dependency pin, and running indexer artifact separately; updating Zakura alone does not update the parser compiled into the indexer. Keep passive standby writers inactive.
+- For routing changes, check platform constraints as well as Next.js behavior. Vercel permits at most 16 entries per `has` or `missing` condition array; retain regression coverage when filters grow.
+- For NU7 claims, use serving-node activation parameters and exact zatoshi accounting. Separate measured historical replay capacity from native stream/reorg tests and real activation fixtures. Keep outstanding gates in `architecture/nu7-readiness.md` in the wiki.
 
 ## Wiki synchronization
 
@@ -87,6 +97,8 @@ deployment, operations, security posture, or product status.
 - Verify the wiki diff before handoff and commit it in the wiki repository. The
   wiki is currently local-only and has no Git remote; do not claim it was
   pushed unless a remote is later configured and the push succeeds.
+- Preserve unrelated wiki edits and stage only the current task's changes. Keep
+  historical entries dated and make the current verified state easy to find.
 
 <!-- BEGIN:nextjs-agent-rules -->
 

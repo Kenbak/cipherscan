@@ -2,7 +2,7 @@
 
 import { ReactNode } from 'react';
 
-export type BadgeColor = 'cyan' | 'purple' | 'green' | 'orange' | 'amber' | 'danger' | 'muted';
+export type BadgeColor = 'shielded' | 'ironwood' | 'gold' | 'purple' | 'green' | 'orange' | 'amber' | 'danger' | 'muted';
 
 interface BadgeProps {
   children: ReactNode;
@@ -26,21 +26,25 @@ interface BadgeProps {
  * Small status indicators with semantic colors.
  *
  * Colors:
- * - cyan: Information, links, highlights
- * - purple: Shielded, privacy-related
+ * - gold: Information, links, highlights
+ * - shielded: Aggregate privacy state (gold)
+ * - ironwood: Ironwood pool identity (honey gold)
+ * - purple: Orchard and unrelated categorical uses
  * - green: Success, confirmed
  * - orange: Warning, attention
  * - muted: Neutral, inactive
  */
 export function Badge({
   children,
-  color = 'cyan',
+  color = 'gold',
   icon,
   className = '',
   variant = 'solid',
 }: BadgeProps) {
   const colorClasses: Record<BadgeColor, string> = {
-    cyan: 'badge-cyan',
+    shielded: 'badge-shielded',
+    ironwood: 'badge-ironwood',
+    gold: 'badge-gold',
     purple: 'badge-purple',
     green: 'badge-green',
     orange: 'badge-orange',
@@ -122,7 +126,7 @@ export function StatusBadge({ status, className = '', variant = 'solid' }: Statu
     },
     shielded: {
       label: 'SHIELDED',
-      color: 'purple',
+      color: 'shielded',
       icon: (
         <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
@@ -164,7 +168,7 @@ interface CountBadgeProps {
   className?: string;
 }
 
-export function CountBadge({ count, color = 'cyan', className = '' }: CountBadgeProps) {
+export function CountBadge({ count, color = 'gold', className = '' }: CountBadgeProps) {
   return (
     <Badge color={color} className={`badge-count ${className}`}>
       {count}

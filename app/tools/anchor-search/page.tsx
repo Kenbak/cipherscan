@@ -2,7 +2,7 @@ import AnchorSearchClient from './AnchorSearchClient';
 import { buildPageMetadata } from '@/lib/seo';
 
 export const metadata = buildPageMetadata({
-  title: 'Anchor Root Search - Wallet Debugging Tool | CipherScan',
+  title: 'Anchor Root Search - Wallet Debugging Tool | ZecBlock',
   description: 'Search for Sapling and Orchard commitment tree anchor roots across canonical and orphaned blocks. Helps debug wallet sync issues and fork detection.',
   keywords: [
     'zcash anchor root',

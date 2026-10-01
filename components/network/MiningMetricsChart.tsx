@@ -2,8 +2,9 @@
 
 import { useState } from 'react';
 import {
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer,
 } from 'recharts';
+import { ChartTooltip as Tooltip } from '@/components/charts/ChartTooltip';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getChartColors } from '@/lib/chart-theme';
 import { formatDifficulty, formatHashrate } from '@/lib/format-numbers';
@@ -13,11 +14,11 @@ import { ChartCard } from './ChartCard';
 type MetricKey = 'solrate' | 'difficulty' | 'blockTime' | 'txFees' | 'txCount';
 
 const METRICS: { key: MetricKey; label: string; color: string; format: (v: number) => string }[] = [
-  { key: 'solrate', label: 'Solrate', color: 'cyan', format: (v) => formatHashrate(v) },
+  { key: 'solrate', label: 'Solrate', color: 'gold', format: (v) => formatHashrate(v) },
   { key: 'difficulty', label: 'Difficulty', color: 'yellow', format: (v) => formatDifficulty(v) },
   { key: 'blockTime', label: 'Block time', color: 'green', format: (v) => `~${Math.round(v)}s` },
   { key: 'txFees', label: 'TX fees', color: 'purple', format: (v) => `${v.toFixed(6)} ZEC` },
-  { key: 'txCount', label: 'TX count', color: 'cyan', format: (v) => v.toFixed(1) },
+  { key: 'txCount', label: 'TX count', color: 'gold', format: (v) => v.toFixed(1) },
 ];
 
 interface MiningMetricsData {
@@ -33,14 +34,14 @@ export function MiningMetricsChart() {
   const [window, setWindow] = useState(20);
 
   const { data } = useApiQuery<MiningMetricsData>(
-    '/api/network/mining-metrics',
+    '/v1/mining/metrics',
     { window, limit: 120 },
   );
   const points = data?.points ?? [];
   const latest = data?.latest ?? {};
 
   const metric = METRICS.find((m) => m.key === active)!;
-  const stroke = metric.color === 'cyan' ? colors.cyan : metric.color === 'yellow' ? colors.yellow : metric.color === 'green' ? colors.orchard : colors.purple;
+  const stroke = metric.color === 'gold' ? colors.gold : metric.color === 'yellow' ? colors.yellow : metric.color === 'green' ? colors.orchard : colors.purple;
 
   return (
     <div className="space-y-4">
@@ -50,13 +51,13 @@ export function MiningMetricsChart() {
             key={m.key}
             type="button"
             onClick={() => setActive(m.key)}
-            className={`card p-3 text-left transition ${active === m.key ? 'ring-1 ring-cipher-cyan/40' : 'opacity-80 hover:opacity-100'}`}
+            className={`card p-3 text-left transition ${active === m.key ? 'ring-1 ring-cipher-gold/40' : 'opacity-80 hover:opacity-100'}`}
           >
-            <p className="text-[10px] text-muted font-mono uppercase mb-1">{m.label}</p>
-            <p className="text-sm font-bold font-mono text-primary whitespace-nowrap truncate">
+            <p className="text-caption text-muted font-mono uppercase mb-1">{m.label}</p>
+            <p className="text-sm font-semibold font-mono text-primary whitespace-nowrap truncate">
               {latest[m.key] != null ? m.format(latest[m.key]) : '—'}
             </p>
-            <p className="text-[9px] text-muted font-mono mt-0.5">{window} blk avg</p>
+            <p className="text-caption text-muted font-mono mt-0.5">{window} blk avg</p>
           </button>
         ))}
       </div>
@@ -68,12 +69,12 @@ export function MiningMetricsChart() {
             <XAxis
               dataKey="height"
               stroke={colors.axis}
-              tick={{ fill: colors.axis, fontSize: 10 }}
+              tick={{ fill: colors.axis, fontSize: 12 }}
               tickFormatter={(h) => `${Math.round(h / 1000)}k`}
             />
             <YAxis
               stroke={colors.axis}
-              tick={{ fill: colors.axis, fontSize: 10 }}
+              tick={{ fill: colors.axis, fontSize: 12 }}
               tickFormatter={(v) => (active === 'difficulty' ? formatDifficulty(v) : active === 'solrate' ? formatHashrate(v) : String(Math.round(v * 100) / 100))}
             />
             <Tooltip
