@@ -86,7 +86,7 @@ async function liveCandidates(pool, now) {
         AND t.value_balance_orchard>0 AND t.value_balance_ironwood<=-1000000000000
       ORDER BY abs(t.value_balance_ironwood) DESC LIMIT 1`, [at]);
     for (const row of migrations) candidates.push(policy.candidate('migration', `migration:${row.txid}`,
-      `${(Number(row.amount_zat)/1e8).toLocaleString('en-US',{maximumFractionDigits:2})} ZEC entered Ironwood in a pool migration with an Orchard withdrawal.\nNo transparent inputs or outputs; this is not new shielding.\nhttps://cipherscan.app/tx/${row.txid}`, row, 10));
+      `${(Number(row.amount_zat)/1e8).toLocaleString('en-US',{maximumFractionDigits:2})} ZEC entered Ironwood in a pool migration with an Orchard withdrawal.\nNo transparent inputs or outputs; this is not new shielding.\nhttps://zecblock.com/tx/${row.txid}`, row, 10));
     candidates.push(...await reorgCandidates(db,now));
     return { candidates, decisions };
   });
@@ -97,7 +97,7 @@ async function reorgCandidates(db,now) {
     WHERE detected_at >= $1::timestamptz-interval '1 hour' AND detected_at<=$1 AND depth>=2
     ORDER BY detected_at DESC LIMIT 3`, [now.toISOString()]);
   return rows.map(row => policy.candidate('reorg', `reorg:${row.id}`,
-    `Zcash chain reorganization detected: depth ${row.depth}, fork height ${row.fork_height}.\nRecent transaction confirmations can change as the canonical chain changes.\nhttps://cipherscan.app/network`, row, 100));
+    `Zcash chain reorganization detected: depth ${row.depth}, fork height ${row.fork_height}.\nRecent transaction confirmations can change as the canonical chain changes.\nhttps://zecblock.com/network`, row, 100));
 }
 
 async function activityCandidates(pool, now, includeWeekly) {
@@ -176,7 +176,7 @@ async function crosschainDaily(pool, now) {
     const inflow = Number(row.inflow), outflow = Number(row.outflow), net = inflow-outflow;
     const usd = n => `$${Math.round(n).toLocaleString('en-US')}`;
     return policy.candidate('crosschain_daily', `analysis:crosschain:${target}`,
-      `NEAR 1Click ZEC swaps, ${target} UTC:\n${usd(inflow)} in / ${usd(outflow)} out; net ${usd(Math.abs(net))} ${net>=0?'in':'out'}.\nTop route by USD: ${row.top_route.toUpperCase()}. Largest swap: ${usd(Number(row.largest))}.\nObserved completed external routes; reported source USD.\nhttps://cipherscan.app/crosschain`, row, 5);
+      `NEAR 1Click ZEC swaps, ${target} UTC:\n${usd(inflow)} in / ${usd(outflow)} out; net ${usd(Math.abs(net))} ${net>=0?'in':'out'}.\nTop route by USD: ${row.top_route.toUpperCase()}. Largest swap: ${usd(Number(row.largest))}.\nObserved completed external routes; reported source USD.\nhttps://zecblock.com/crosschain`, row, 5);
   });
 }
 

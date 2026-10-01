@@ -23,7 +23,7 @@ test('daily activity explains share in percentage points and counts once', () =>
 
 test('flow rank uses same-direction samples, includes ties and never invents precision',()=>{
   const flow={flow_type:'shield',amount_zat:89999975000,sample_count:10000,greater_count:4,equal_count:2,pool:'ironwood',txid:'a'.repeat(64)};
-  const c=p.flowStory(flow);assert.match(c.content,/900 ZEC shielded/);assert.match(c.content,/Top 0.07%/);
+  const c=p.flowStory(flow);assert.match(c.content,/899\.99 ZEC shielded/);assert.match(c.content,/Top 0.07%/);
   assert.equal(p.flowStory({...flow,amount_zat:49999999999}),null);
   assert.equal(p.flowStory({...flow,equal_count:1000}),null);
   assert.equal(p.flowStory({...flow,sample_count:50}),null);

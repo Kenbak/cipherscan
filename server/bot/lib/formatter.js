@@ -8,7 +8,7 @@
  * Links provide provenance only.
  */
 
-const BASE_URL = 'https://cipherscan.app';
+const BASE_URL = 'https://zecblock.com';
 
 function fmtZec(zat) {
   const zec = zat / 1e8;

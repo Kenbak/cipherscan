@@ -1,7 +1,7 @@
 'use strict';
 
 /**
- * CipherScan Data Bot — Orchestrator
+ * ZecBlock Data Bot — Orchestrator
  *
  * Entry point for the bot service. Manages cron scheduling:
  *  - Every 5 minutes: ranked flows, swaps, migrations and reorgs
@@ -17,7 +17,7 @@
 const { getPool, getReadPool } = require('../lib/db-pool');
 const { XClient } = require('./lib/x-client');
 const editorial = require('./jobs/editorial');
-const { renderEditorial } = require('./lib/card-renderer');
+const { renderEditorial } = require('./lib/zecblock-cards');
 
 const pool = getPool({ max: 5, idleTimeoutMillis: 60000, connectionTimeoutMillis: 5000 });
 
@@ -60,7 +60,7 @@ async function tick() {
 // ─── Startup ─────────────────────────────────────────────────────────────────
 
 async function start() {
-  logger.info(`CipherScan Data Bot starting (dry_run=${dryRun})`);
+  logger.info(`ZecBlock Data Bot starting (dry_run=${dryRun})`);
 
   try {
     const { rows } = await pool.query('SELECT NOW() as t, current_database() as db');

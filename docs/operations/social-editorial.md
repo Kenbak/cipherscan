@@ -10,6 +10,25 @@ human review or Telegram approval, and explicitly requested **new events only**.
 No LLM writes the copy. Calculations, qualification rules and templates determine
 all claims. No messages are sent to a new Telegram destination.
 
+## ZecBlock image integration
+
+The live orchestrator imports `renderEditorial` from `lib/zecblock-cards.js`.
+All scheduled story types use a fixed 1200×675 image with the ZecBlock logo,
+Geist typography, source URL and UTC observation date or reporting period.
+Daily activity/signals draw only their recorded observations; hashrate uses
+its evidenced previous-peak comparison, not an invented historical line.
+Swaps preserve the actual direction, weekly ranks preserve ties, and all
+methodological qualifications remain visible. Missing data or overflowing copy
+fails to the existing text-only fallback instead of publishing a misleading image.
+All active post links use `zecblock.com`. Flow amounts are truncated to two
+decimal places in both copy and images so rounding cannot increase the amount.
+
+The source change does not alter credentials, automatic posting cadence,
+activation watermark, deduplication, selection thresholds or historical claims.
+Changing the X profile is a separate account setting. Render regression fixtures
+never contact X; they exercise all scheduled types and the media-upload handoff
+with a fake client. Deployment evidence belongs in the private operations wiki.
+
 ## Activation and cadence
 
 First live execution atomically inserts `analysis:activation:v1` into the existing
