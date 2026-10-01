@@ -9,7 +9,7 @@
  * Network is auto-detected from the domain:
  * - cipherscan.app → mainnet
  * - testnet.zecblock.com → testnet
- * - crosslink.cipherscan.app → crosslink-testnet
+ * - crosslink.zecblock.com → crosslink-testnet
  * - localhost → testnet (default)
  */
 import {
@@ -46,7 +46,7 @@ const DEFAULT_API_URLS: Record<Network, string> = {
   'mainnet': 'https://api.zecblock.com',
   'testnet': 'https://api.testnet.zecblock.com',
   'crosslink-testnet': normalizeApiBaseUrl(
-    process.env.NEXT_PUBLIC_CROSSLINK_API_URL || 'https://api.crosslink.cipherscan.app',
+    process.env.NEXT_PUBLIC_CROSSLINK_API_URL || 'https://api.crosslink.zecblock.com',
   ),
 };
 

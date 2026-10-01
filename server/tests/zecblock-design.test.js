@@ -73,7 +73,7 @@ test('metadata uses the new mainnet identity and preserves network indexation bo
     // Versioned so X/Discord refetch the card after the image changes.
     assert.ok(shareImage.searchParams.get('v'));
     assert.equal(meta.twitter.images[0], meta.openGraph.images[0].url);
-    assert.equal(meta.alternates.canonical, network === 'mainnet' ? 'https://zecblock.com/pools' : network === 'testnet' ? 'https://testnet.zecblock.com/pools' : 'https://crosslink.cipherscan.app/pools');
+    assert.equal(meta.alternates.canonical, network === 'mainnet' ? 'https://zecblock.com/pools' : network === 'testnet' ? 'https://testnet.zecblock.com/pools' : 'https://crosslink.zecblock.com/pools');
     const home = seo.buildPageMetadata({ title: 'Explorer | ZecBlock', description: 'Search', path: '/', indexOnTestnet: true });
     assert.equal(home.robots.index, network !== 'crosslink-testnet');
   }
@@ -147,5 +147,21 @@ test('privacy identities agree across chart, flow, CSS and pool registries', () 
       assert.ok(block.includes(`--color-${role}-rgb: ${rgb};`));
       assert.ok(block.includes(`--color-${role}-ink: ${p[`${role}Ink`]};`));
     }
+  }
+});
+
+test('legacy Crosslink hostname redirects to the same path on ZecBlock without capturing other networks', async () => {
+  const config = load('next.config.ts').default;
+  const redirects = await config.redirects();
+  const rule = redirects.find((r) => r.destination === 'https://crosslink.zecblock.com/:path*');
+  assert.ok(rule);
+  assert.equal(rule.source, '/:path*');
+  assert.equal(rule.permanent, true);
+  assert.equal(rule.has.length, 1);
+  assert.equal(rule.has[0].type, 'host');
+  const host = new RegExp(`^(?:${rule.has[0].value})$`);
+  assert.ok(host.test('crosslink.cipherscan.app'));
+  for (const other of ['cipherscan.app', 'testnet.cipherscan.app', 'zecblock.com', 'crosslink.zecblock.com']) {
+    assert.equal(host.test(other), false);
   }
 });

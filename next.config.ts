@@ -33,7 +33,13 @@ const nextConfig: NextConfig = {
   },
   async redirects() {
     return [
-      // Mainnet brand migration only; testnet and Crosslink keep their own identity.
+      {
+        source: '/:path*',
+        has: [{ type: 'host', value: 'crosslink\\.cipherscan\\.app' }],
+        destination: 'https://crosslink.zecblock.com/:path*',
+        permanent: true,
+      },
+      // Preserve each network while redirecting legacy brand hostnames.
       {
         source: '/:path*',
         has: [{ type: 'host', value: '(?:www\\.)?cipherscan\\.app' }],
