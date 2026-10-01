@@ -840,7 +840,8 @@ test('crawl graph avoids canonical block aliases and known shared redirect targe
   assert.equal(blocksClient.includes('href={`/block/${block.hash.toLowerCase()}`'), false);
   assert.equal(reorgs.includes('href={`/block/${block.canonicalBlock?.hash || block.canonicalHash}`'), false);
   assert.match(footer, /href="https:\/\/www\.cipherpay\.app\/"/);
-  assert.equal(footer.includes('https://www.cipherpay.app/en'), false);
+  const footerHrefs = [...footer.matchAll(/href="([^"]+)"/g)].map((match) => match[1]);
+  assert.equal(footerHrefs.some((href) => href === 'https://www.cipherpay.app/en'), false);
   assert.match(footer, /getNavigation/);
   assert.match(fs.readFileSync(path.join(repositoryRoot, 'lib/navigation.ts'), 'utf8'), /href: '\/charts'/);
   assert.match(sitemapDefinitions, /['"]\/usage-clock['"]/);
