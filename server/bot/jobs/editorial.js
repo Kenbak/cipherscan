@@ -93,6 +93,7 @@ async function run(pool, xClient, { now = new Date(), logger = console, render, 
         ['hashrate', () => collectors.hashrateCandidate(reader,now)],
         ['signals', () => collectors.signalCandidates(reader,now)],
         ['crosschain', () => collectors.crosschainDaily(reader,now)],
+        ['milestones', () => collectors.milestoneCandidates?.(reader,now) ?? []],
       ]) {
         const key = `analysis:scan:${name}:${target}`;
         if (!history.some(p => p.dedup_key === key)) await collect(name,fn,key);

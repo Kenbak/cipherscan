@@ -55,9 +55,11 @@ async function liveCandidates(pool, now) {
       FROM valid h WHERE h.flow_type=c.flow_type AND h.block_time<c.block_time
         AND h.block_time>=c.block_time-90*86400
     ) s`, [at]);
-    const candidates = flows.map(policy.flowStory).filter(Boolean);
+    const context = await eventContext(db, now);
+    const candidates = flows.map(flow => policy.flowStory(withContext(flow, context))).filter(Boolean);
     const decisions = flows.filter(f => !candidates.some(c => c.key === `large_flow:${f.txid}`))
       .map(f => ({ key: `large_flow:${f.txid}`, reason: 'flow-baseline-or-significance' }));
+    if (context.unavailable) decisions.push({ key: 'event-context', reason: 'context-unavailable', detail: context.unavailable });
 
     const { rows: [sync] } = await db.query(`SELECT updated_at FROM sync_state WHERE job_name='crosschain_swaps'`);
     const syncAge = now - new Date(sync?.updated_at || 0);
@@ -85,8 +87,11 @@ async function liveCandidates(pool, now) {
         AND NOT t.is_coinbase AND t.vin_count=0 AND t.vout_count=0
         AND t.value_balance_orchard>0 AND t.value_balance_ironwood<=-1000000000000
       ORDER BY abs(t.value_balance_ironwood) DESC LIMIT 1`, [at]);
-    for (const row of migrations) candidates.push(policy.candidate('migration', `migration:${row.txid}`,
-      `${(Number(row.amount_zat)/1e8).toLocaleString('en-US',{maximumFractionDigits:2})} ZEC entered Ironwood in a pool migration with an Orchard withdrawal.\nNo transparent inputs or outputs; this is not new shielding.\nhttps://zecblock.com/tx/${row.txid}`, row, 10));
+    for (const row of migrations) {
+      const story = policy.migrationStory({ ...row, price_usd: priceFor(context, row.block_time),
+        ironwood_zat: context.pools?.ironwood_pool_size, orchard_zat: context.pools?.orchard_pool_size });
+      if (story) candidates.push(story);
+    }
     candidates.push(...await reorgCandidates(db,now));
     return { candidates, decisions };
   });
@@ -96,8 +101,42 @@ async function reorgCandidates(db,now) {
   const { rows } = await db.query(`SELECT id,depth,fork_height,detected_at FROM fork_events
     WHERE detected_at >= $1::timestamptz-interval '1 hour' AND detected_at<=$1 AND depth>=2
     ORDER BY detected_at DESC LIMIT 3`, [now.toISOString()]);
-  return rows.map(row => policy.candidate('reorg', `reorg:${row.id}`,
-    `Zcash chain reorganization detected: depth ${row.depth}, fork height ${row.fork_height}.\nRecent transaction confirmations can change as the canonical chain changes.\nhttps://zecblock.com/network`, row, 100));
+  return rows.map(policy.reorgStory).filter(Boolean);
+}
+
+// Prices and balances are context, never qualification: when either is
+// missing or stale the story still posts, just without that sentence.
+// A failed lookup is reported as a decision and rolled back to a savepoint so
+// the surrounding snapshot transaction stays usable.
+async function eventContext(db, now) {
+  await db.query('SAVEPOINT editorial_context');
+  try {
+    const { rows: prices } = await db.query(`SELECT date::text AS date, price_usd::float8 AS price FROM zec_price_daily
+      WHERE date >= ($1::timestamptz AT TIME ZONE 'UTC')::date - 2 ORDER BY date`, [now.toISOString()]);
+    const { rows: [pools] } = await db.query(`SELECT sapling_pool_size::text, orchard_pool_size::text,
+        COALESCE(ironwood_pool_size,0)::text AS ironwood_pool_size, transparent_pool_size::text,
+        shielded_pool_size::text, updated_at FROM privacy_stats ORDER BY updated_at DESC LIMIT 1`);
+    await db.query('RELEASE SAVEPOINT editorial_context');
+    const fresh = pools && now - new Date(pools.updated_at) <= 3 * 3600000 && now - new Date(pools.updated_at) >= -600000;
+    return { prices, pools: fresh ? pools : null, unavailable: null };
+  } catch (error) {
+    await db.query('ROLLBACK TO SAVEPOINT editorial_context');
+    return { prices: [], pools: null, unavailable: error.code || 'query-failed' };
+  }
+}
+
+// Daily price for the event's UTC date, or the previous day while today's row
+// is still pending. Older prices are not used.
+function priceFor(context, blockTime) {
+  const day = new Date(Number(blockTime) * 1000).toISOString().slice(0, 10);
+  const row = context.prices.find(p => p.date === day) || context.prices.find(p => p.date === addDays(day, -1));
+  return row?.price > 0 ? row.price : null;
+}
+
+function withContext(flow, context) {
+  const column = { sapling: 'sapling_pool_size', orchard: 'orchard_pool_size', ironwood: 'ironwood_pool_size', mixed: 'shielded_pool_size' }[flow.pool];
+  return { ...flow, price_usd: priceFor(context, flow.block_time),
+    pool_zat: column ? context.pools?.[column] : null, transparent_zat: context.pools?.transparent_pool_size };
 }
 
 async function activityCandidates(pool, now, includeWeekly) {
@@ -173,11 +212,22 @@ async function crosschainDaily(pool, now) {
       FROM valid`, [target,end]);
     // Missing direction/value stays unavailable, never converted into a zero.
     if (!row || row.inflow == null || row.outflow == null || Number(row.count) < 10) return null;
-    const inflow = Number(row.inflow), outflow = Number(row.outflow), net = inflow-outflow;
-    const usd = n => `$${Math.round(n).toLocaleString('en-US')}`;
-    return policy.candidate('crosschain_daily', `analysis:crosschain:${target}`,
-      `NEAR 1Click ZEC swaps, ${target} UTC:\n${usd(inflow)} in / ${usd(outflow)} out; net ${usd(Math.abs(net))} ${net>=0?'in':'out'}.\nTop route by USD: ${row.top_route.toUpperCase()}. Largest swap: ${usd(Number(row.largest))}.\nObserved completed external routes; reported source USD.\nhttps://zecblock.com/crosschain`, row, 5);
+    return policy.crosschainStory(row, target);
   });
 }
 
-module.exports = { VALID_FLOWS, VALID_SWAPS, snapshot, assertMainnetFresh, liveCandidates, activityCandidates, hashrateCandidate, signalCandidates, crosschainDaily, reorgCandidates };
+// Completed-day closes from the hourly privacy snapshots, priced on the same
+// UTC date. Only days up to the target are read; today's partial row is not.
+async function milestoneCandidates(pool, now) {
+  return snapshot(pool, async db => {
+    await assertMainnetFresh(db, now);
+    const target = addDays(now.toISOString().slice(0, 10), -1);
+    const { rows } = await db.query(`SELECT t.date::text AS date, t.pool_size::text, t.chain_supply::text,
+        t.ironwood_pool_size::text, p.price_usd::float8 AS price_usd
+      FROM privacy_trends_daily t LEFT JOIN zec_price_daily p ON p.date=t.date
+      WHERE t.date <= $1::date ORDER BY t.date`, [target]);
+    return policy.milestoneStories(rows, target);
+  });
+}
+
+module.exports = { VALID_FLOWS, VALID_SWAPS, snapshot, assertMainnetFresh, liveCandidates, activityCandidates, hashrateCandidate, signalCandidates, crosschainDaily, reorgCandidates, milestoneCandidates, eventContext, priceFor };
