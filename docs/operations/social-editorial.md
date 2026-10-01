@@ -10,18 +10,49 @@ human review or Telegram approval, and explicitly requested **new events only**.
 No LLM writes the copy. Calculations, qualification rules and templates determine
 all claims. No messages are sent to a new Telegram destination.
 
+## Copy voice (copy version 2)
+
+Every post starts with the ZecBlock marker 🟨, leads with the event in plain
+words, adds one sentence on why it matters, then the `zecblock.com` link.
+Template: "🟨 {amount} ZEC ({usd}) just left Ironwood. / One of the largest
+{tail}% of deshielding transactions in 90 days. Ironwood now holds {balance} ZEC."
+Methodology stays exact but short: "One of the largest x%" is the inclusive
+upper tail, rounded up; NEAR Intents swaps say "we've tracked"; MVRV is "a
+valuation gauge, not a forecast"; exchange deposits are "not necessarily a sale";
+migrations say "no new ZEC was shielded". Posts never say "a wallet" did
+something. `lib/editorial-format.js` holds the shared rounding: ZEC amounts and
+balances are truncated with integer zatoshi arithmetic, USD values are floored,
+percentile tails round up, so no figure overstates its source.
+
+Prices and balances are context, never qualification. Flow and migration copy
+adds USD from `zec_price_daily` for the event's UTC date (or the previous day
+while today's row is pending) and pool balances from the latest `privacy_stats`
+row only when it is under three hours old. When either is missing or stale the
+sentence is omitted. A failed lookup rolls back to a savepoint, keeps the scan
+running and records a `context-unavailable` decision.
+
 ## ZecBlock image integration
 
 The live orchestrator imports `renderEditorial` from `lib/zecblock-cards.js`.
-All scheduled story types use a fixed 1200×675 image with the ZecBlock logo,
-Geist typography, source URL and UTC observation date or reporting period.
-Daily activity/signals draw only their recorded observations; hashrate uses
-its evidenced previous-peak comparison, not an invented historical line.
-Swaps preserve the actual direction, weekly ranks preserve ties, and all
-methodological qualifications remain visible. Missing data or overflowing copy
-fails to the existing text-only fallback instead of publishing a misleading image.
-All active post links use `zecblock.com`. Flow amounts are truncated to two
-decimal places in both copy and images so rounding cannot increase the amount.
+Each story builds its card (`evidence.card`) next to its tweet copy, so the two
+cannot disagree. All cards are 1200×675 with the ZecBlock dark tokens, Geist /
+Geist Mono, the logotype, one headline number, one sentence, one short
+qualifier, the shortened source link and UTC date. Visuals by type:
+
+- Shield/deshield: green `+amount` or red `−amount`; Transparent (outline) above
+  the pool with a neutral white arrow and current balances. USD sits in the line,
+  for example "left Ironwood (≈ $2.13M)".
+- Migration: Orchard above Ironwood, Ironwood tone, "Pool migration, not new shielding."
+- Swap: chain icons with ZEC ringed in gold; green into ZEC, red out of ZEC.
+- Daily activity, signals, hashrate, milestones: a series with a zero-based
+  y-axis and a dashed reference (30-day average, previous peak or the level).
+  Hashrate charts only the samples behind the claim, at most 91 days.
+- Weekly activity: a top-ten rank strip when ranked ≤10, otherwise number only.
+- Cross-chain daily: into/out-of-ZEC bars. Reorg: a fork diagram.
+
+Missing values, a non-`zecblock.com` link, or text that cannot fit at a minimum
+size throw, and delivery falls back to text instead of a clipped or misleading
+image. `node output/bot-examples/render.js` renders every fixture type locally.
 
 The source change does not alter credentials, automatic posting cadence,
 activation watermark, deduplication, selection thresholds or historical claims.
@@ -54,8 +85,8 @@ with at least 20 minutes between routine posts. Reorgs bypass that spacing.
 Deferred analysis is recomputed before eventual publication; completed scans
 are recorded once per collector/day as `editorial_scan/evaluated`. Source failures
 remain eligible for retry. Posting priority: reorg, exceptional swap, shielding
-or deshielding, weekly activity, hashrate, daily activity, contextual network
-signal, ordinary swap, cross-chain daily summary, pool migration.
+or deshielding, milestone, weekly activity, hashrate, daily activity, contextual
+network signal, ordinary swap, cross-chain daily summary, pool migration.
 
 ## Selection and data contracts
 
@@ -73,13 +104,15 @@ signal, ordinary swap, cross-chain daily summary, pool migration.
 | Cross-chain daily | One completed UTC day; >=10 valued swaps, both directions available | Positive source USD on observed successful external routes; in/out/net, top route by USD, largest observed swap. Missing directional valuation is unavailable, not zero. Ingestion updated_at must be <=20 minutes old; this is an operational freshness gate, not proof of provider completeness. |
 | Migration | >=10,000 ZEC, max one/day | Orchard withdrawal with Ironwood deposit and no transparent I/O; explicitly not new shielding. |
 | Reorg | Depth >=2 | `fork_events`; describe confirmation changes without claiming permanent finality. |
+| Milestones | Ironwood every 250K ZEC; total shielded every 250K ZEC; shielded share of supply every 1%; shielded USD value every $1B. Max one/day | `privacy_trends_daily` completed UTC day (last hourly update of the day) joined to `zec_price_daily` for that date. Posts only when the target day's close is the first ever at or above the level versus the max of all prior days, with >=30 prior samples. Outbox key `milestone:<metric>:<level>` makes each level one-time. A level skipped by the daily cap is not retried, because the next day's prior max already includes it. |
 
 Live event scans cover the preceding hour; chain flows/migrations settle for two
 minutes. This catches some delayed ingestion but is not an unbounded catch-up
 mechanism. Post caps, source failures and events delayed more than an hour can
 still suppress an alert. Journal decisions identify rejected candidates and caps.
-Routine privacy linkage warnings, raw sigma pulse posts, pool/USD round-number
-milestones and the old migration-heavy daily digest are no longer scheduled.
+Routine privacy linkage warnings, raw sigma pulse posts and the old
+migration-heavy daily digest are no longer scheduled. Round-number milestones
+returned in copy version 2 with the first-ever-close rule above.
 
 ## Delivery and operations
 
@@ -139,3 +172,11 @@ PostgreSQL fixture passed; server regressions passed 118 with four unrelated
 opt-in fixtures skipped. Six example cards rendered successfully; the hashrate
 card was visually inspected. Scoped ESLint has zero errors and five existing
 X-client warnings. No frontend route changed, so SEO/HTML checks do not apply.
+
+Copy version 2 (2026-10-01): `npm run test:bot` passed 22 tests locally, and the
+PostgreSQL fixture passed against local PostgreSQL with
+`ACTIVITY_TEST_POSTGRES=1`, covering the context savepoint fallback, priced copy
+and milestone SQL. New tests cover milestone first-crossing, hovering, thin
+history, stale target and daily cap; worst-case 280-character bounds; integer
+truncation (512.05 ZEC stays 512.05). All 15 fixture cards were rendered and
+inspected visually.

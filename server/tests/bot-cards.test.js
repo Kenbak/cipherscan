@@ -3,17 +3,17 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('fs');
 const { createCanvas, loadImage } = require('canvas');
-const { renderEditorial, editorialModel, W, H } = require('../bot/lib/zecblock-cards');
+const { renderEditorial, W, H } = require('../bot/lib/zecblock-cards');
 const { publish } = require('../bot/jobs/editorial');
+const p = require('../bot/lib/editorial-policy');
 const stories = require('./fixtures/bot-editorial-stories');
+const byType = type => stories.find(s => s.type === type);
 
 test('all scheduled editorial types render attributed, bounded ZecBlock PNGs', async () => {
   for (const story of stories) {
     assert.ok(story);
     assert.equal(new URL(story.content.split('\n').at(-1)).origin, 'https://zecblock.com');
-    const model = editorialModel(story);
-    assert.match(model.source, /^zecblock\.com\//);
-    assert.match(model.date, /UTC$/);
+    assert.match(story.evidence.card.source, /^zecblock\.com\//);
     const file = await renderEditorial(story);
     try {
       const img = await loadImage(file);
@@ -25,16 +25,17 @@ test('all scheduled editorial types render attributed, bounded ZecBlock PNGs', a
   }
 });
 
-test('card evidence preserves outgoing routes, ties, methodology and amount precision', () => {
-  assert.equal(editorialModel(stories[0]).value, '+899.99 ZEC');
-  assert.equal(editorialModel({...stories[0], evidence:{...stories[0].evidence, amount_zat:'51205000000'}}).value, '+512.05 ZEC');
-  assert.deepEqual(editorialModel(stories[2]).visual, {kind:'flow',from:'ZEC',to:'SOL'});
-  assert.equal(editorialModel(stories[4]).visual.rank,12);
-  assert.equal(editorialModel(stories[4]).visual.tied,true);
-  assert.match(editorialModel(stories[5]).paragraphs.join(' '), /not instantaneous hashrate/);
-  assert.match(editorialModel(stories[6]).paragraphs.join(' '), /Not a price forecast/);
-  assert.match(editorialModel(stories[7]).paragraphs.join(' '), /do not establish sales/);
-  assert.match(editorialModel(stories.at(-3)).paragraphs.join(' '), /not new shielding/);
+test('cards keep direction, truncated amounts, routes and the neutral migration wording', () => {
+  const shield = byType('flow_shield').evidence.card, deshield = byType('flow_deshield').evidence.card;
+  assert.equal(shield.hero, '+899.99'); assert.equal(shield.tone, 'in'); assert.equal(shield.visual.direction, 'down');
+  assert.equal(shield.line, 'entered Ironwood (≈ $1.33M)');
+  assert.equal(deshield.hero, '−899.99'); assert.equal(deshield.tone, 'out'); assert.equal(deshield.visual.direction, 'up');
+  const odd = p.flowStory({ ...byType('flow_shield').evidence, flow_type: 'shield', amount_zat: '51205000000', sample_count: 10000, greater_count: 4, equal_count: 2 });
+  assert.equal(odd.evidence.card.hero, '+512.05');
+  assert.deepEqual(byType('swap').evidence.card.visual, { kind: 'swap', from: 'zec', to: 'sol' });
+  assert.equal(byType('migration').evidence.card.tone, 'ironwood');
+  assert.match(byType('migration').evidence.card.qualifier, /not new shielding/);
+  assert.equal(byType('reorg').evidence.card.visual.depth, 2);
 });
 
 test('image delivery uploads the new renderer output and removes the temporary file', async () => {
@@ -50,7 +51,10 @@ test('image delivery uploads the new renderer output and removes the temporary f
 });
 
 test('invalid evidence fails safely rather than fabricating chart values', async () => {
-  const story = structuredClone(stories[6]); story.evidence.rows[3].value=null;
+  const story = structuredClone(byType('network_signal')); story.evidence.card.visual.values[3]=null;
   await assert.rejects(renderEditorial(story), /Missing editorial value/);
   await assert.rejects(renderEditorial({...stories[0],content:stories[0].content.replace('https://zecblock.com','https://example.com')}), /Unexpected editorial link/);
+  await assert.rejects(renderEditorial({...stories[0],evidence:{}}), /Story has no card/);
+  const long = structuredClone(stories[0]); long.evidence.card.line = 'x'.repeat(200);
+  await assert.rejects(renderEditorial(long), /exceeds safe bounds/);
 });

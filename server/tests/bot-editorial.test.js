@@ -13,9 +13,10 @@ const log = {info(){},warn(){},error(){}};
 test('daily activity explains share in percentage points and counts once', () => {
   const days = series(0,0).map((r,i)=>({date:r.date,shielded:i===30?90:50,transparent:i===30?10:50,fully_shielded:20}));
   const c=p.dailyActivity({days},target);
-  assert.match(c.content,/90.0%/);assert.match(c.content,/40.0 percentage points/);
-  assert.match(c.content,/30-day mean \(50.0%\)/);assert.match(c.content,/Coinbase excluded/);
-  assert.match(c.content,/Highest in 31 completed days/);
+  assert.match(c.content,/^🟨 90.0% of Zcash transactions used a shielded pool on Sep 28\./);
+  assert.match(c.content,/40.0 percentage points above the 30-day average \(50.0%\)/);
+  assert.match(c.content,/The highest in 31 days/);
+  assert.equal(c.evidence.card.visual.values.length,31);
   assert.equal(p.dailyActivity({days:days.slice(1)},target),null);
   days.at(-1).shielded=NaN;
   assert.equal(p.dailyActivity({days},target)?.evidence.metric,'fully');
@@ -23,7 +24,12 @@ test('daily activity explains share in percentage points and counts once', () =>
 
 test('flow rank uses same-direction samples, includes ties and never invents precision',()=>{
   const flow={flow_type:'shield',amount_zat:89999975000,sample_count:10000,greater_count:4,equal_count:2,pool:'ironwood',txid:'a'.repeat(64)};
-  const c=p.flowStory(flow);assert.match(c.content,/899\.99 ZEC shielded/);assert.match(c.content,/Top 0.07%/);
+  const c=p.flowStory(flow);assert.match(c.content,/^🟨 899\.99 ZEC just entered Ironwood\./);
+  assert.match(c.content,/One of the largest 0.07% of shielding transactions in 90 days\./);
+  assert.doesNotMatch(c.content,/\$|now holds/);
+  const priced=p.flowStory({...flow,price_usd:1483.2445,pool_zat:'406127848872798'});
+  assert.match(priced.content,/899\.99 ZEC \(\$1\.33M\) just entered Ironwood/);assert.match(priced.content,/Ironwood now holds 4\.06M ZEC\./);
+  assert.equal(p.flowStory({...flow,price_usd:0}).evidence.usd,null);
   assert.equal(p.flowStory({...flow,amount_zat:49999999999}),null);
   assert.equal(p.flowStory({...flow,equal_count:1000}),null);
   assert.equal(p.flowStory({...flow,sample_count:50}),null);
@@ -33,18 +39,70 @@ test('flow rank uses same-direction samples, includes ties and never invents pre
 
 test('swap uses explicit provider sample and preserves full provenance URL',()=>{
   const c=p.swapStory({id:1,source_amount_usd:1500000,source_chain:'sol',dest_chain:'zec',sample_count:10000,greater_count:2,equal_count:1,zec_txid:'b'.repeat(64)});
-  assert.match(c.content,/Joint rank #3/);assert.match(c.content,/NEAR 1Click sample/);
+  assert.match(c.content,/^🟨 \$1,500,000 just crossed from Solana into ZEC\./);
+  assert.match(c.content,/One of the largest 0.04% of ZEC swaps we've tracked on NEAR Intents in 30 days/);
   assert.equal(c.evidence.exceptional,true);assert.ok(c.content.endsWith('b'.repeat(64)));
+  assert.equal(p.swapStory({id:2,source_amount_usd:1500000,source_chain:'sol',dest_chain:'eth',sample_count:10000,greater_count:2,equal_count:1}),null);
+  assert.match(p.swapStory({id:3,source_amount_usd:90000,source_chain:'zec',dest_chain:'eth',sample_count:10000,greater_count:0,equal_count:0}).content,/The largest ZEC swap/);
+});
+
+test('migrations, reorgs and cross-chain days read as plain events with exact context',()=>{
+  const m=p.migrationStory({txid:'c'.repeat(64),amount_zat:'1000000000000',block_time:1790812800,price_usd:1420.17,ironwood_zat:'406127848872798'});
+  assert.match(m.content,/10,000 ZEC \(\$14\.20M\) just moved from Orchard to Ironwood\./);assert.match(m.content,/no new ZEC was shielded/);
+  assert.equal(p.migrationStory({txid:'bad',amount_zat:'1'}),null);
+  assert.match(p.reorgStory({id:1,depth:3,fork_height:3500000,detected_at:'2026-09-30T10:00:00Z'}).content,/3-block reorg at height 3,500,000/);
+  assert.equal(p.reorgStory({id:1,depth:1,fork_height:3500000}),null);
+  const x=p.crosschainStory({inflow:'2000000',outflow:'3000000',largest:'1500000',top_route:'zec -> sol'},target);
+  assert.match(x.content,/Net \$1,000,000 flowed out of ZEC via NEAR Intents on Sep 28\./);assert.match(x.content,/Zcash → Solana/);
+  assert.equal(p.crosschainStory({inflow:'1',outflow:'1',largest:'1',top_route:'<script> -> sol'},target),null);
+});
+
+test('worst-case values stay within the 280-character tweet limit',()=>{
+  const flow=p.flowStory({flow_type:'deshield',amount_zat:'2100000000000000',sample_count:10000,greater_count:0,equal_count:0,pool:'sapling',
+    txid:'a'.repeat(64),block_time:1790812800,price_usd:99999.99,pool_zat:'2100000000000000'});
+  assert.ok(flow.content.length<=280);
+  const swap=p.swapStory({id:1,source_amount_usd:999999999,source_chain:'arbitrum_nova_x',dest_chain:'zec',sample_count:10000,greater_count:5,equal_count:0,zec_txid:'b'.repeat(64)});
+  assert.ok(swap.content.length<=280);
+  for (const metric of ['exchange_deposit_zat','daily_fees_zat','shield_volume_zat','deshield_volume_zat','mvrv'])
+    assert.ok(p.signalStory(metric,series(1,2.1e15),target).content.length<=280);
+  assert.throws(()=>p.candidate('x','k','x'.repeat(281),{}),/exceeds 280/);
+});
+
+function trend(ironwood, {shielded=() => 4.9e6, supply=1.7e7, price=1400}={}) {
+  return Array.from({length:100},(_,i)=>({date:addDays(target,i-99),pool_size:String(Math.round(shielded(i)*1e8)),
+    chain_supply:String(supply*1e8),ironwood_pool_size:String(Math.round(ironwood(i)*1e8)),price_usd:price}));
+}
+test('milestones post only the first completed close at or above a level',()=>{
+  const [m]=p.milestoneStories(trend(i=>i===99?4.01e6:3.8e6+i*1000),target);
+  assert.equal(m.key,'milestone:ironwood_zec:4000000');
+  assert.match(m.content,/^🟨 Milestone: Ironwood crossed 4M ZEC\.\n\nIt held 4\.01M ZEC \(\$5\.61B\) at the end of Sep 28, 81% of all shielded ZEC\./);
+  // Hovering back above a level already reached on an earlier day is not new.
+  assert.equal(p.milestoneStories(trend(i=>i===99?4.01e6:i===50?4.02e6:3.8e6),target).length,0);
+  // Too little history cannot prove a level is new.
+  assert.equal(p.milestoneStories(trend(i=>i===99?4.01e6:3.8e6).slice(-30),target).length,0);
+  // A stale latest day is not today's close.
+  assert.equal(p.milestoneStories(trend(i=>i===99?4.01e6:3.8e6).slice(0,-1),target).length,0);
+  const share=p.milestoneStories(trend(()=>3.8e6,{shielded:i=>i===99?5.11e6:4.9e6}),target).find(s=>s.evidence.metric==='shielded_share');
+  assert.equal(share.key,'milestone:shielded_share:30');assert.match(share.content,/30% of all ZEC is now shielded/);
+  const usd=p.milestoneStories(trend(()=>3.8e6,{price:1400}).map((r,i)=>({...r,price_usd:i===99?1450:1400})),target).find(s=>s.evidence.metric==='shielded_usd');
+  assert.equal(usd.key,'milestone:shielded_usd:7000000000');assert.match(usd.content,/more than \$7B for the first time on record/);
+});
+
+test('milestones are capped at one post per UTC day',()=>{
+  const ms=['a','b'].map(k=>({type:'milestone',key:`milestone:${k}`,score:1,evidence:{}}));
+  const result=p.select(ms,[],now);
+  assert.equal(result.selected.length,1);assert.deepEqual(result.skipped.map(s=>s.reason),['daily-cap']);
 });
 
 test('MVRV and exchange signals explain context without price or selling claims',()=>{
   const c=p.signalStory('mvrv',series(2,3),target);
-  assert.match(c.content,/50.0% above prior 30-day mean \(2.00\)/);
-  assert.match(c.content,/modeled realized cap/);assert.doesNotMatch(c.content,/overvalu|undervalu|σ/);
+  assert.match(c.content,/Zcash MVRV hit 3.00 on Sep 28, 50.0% above its 30-day average, the highest in 31 days\./);
+  assert.match(c.content,/estimated realized cap/);assert.match(c.content,/not a forecast/);
+  assert.doesNotMatch(c.content,/overvalu|undervalu|σ/);
   assert.equal(p.signalStory('mvrv',series(0,3),target),null);
   const nulls=series(2,3);nulls[4].value=null;assert.equal(p.signalStory('mvrv',nulls,target),null);
   assert.equal(p.signalStory('mvrv',series(2,3).slice(1),target),null);
-  assert.match(p.signalStory('exchange_deposit_zat',series(1e8,3e8),target).content,/do not establish sales/);
+  assert.match(p.signalStory('exchange_deposit_zat',series(1e8,3e8),target).content,/A deposit is not necessarily a sale\./);
 });
 
 function hashes(count=366) {
@@ -55,8 +113,8 @@ function hashes(count=366) {
 }
 test('hashrate records require continuous same-method windows and qualified ATH coverage',()=>{
   let h=hashes();const c=p.hashStory(h,{target,genesisComplete:true});
-  assert.match(c.content,/all-time high in daily samples/);assert.match(c.content,/7-day target-work/);
-  assert.match(c.content,/not instantaneous/);assert.ok(c.content.length<=280);
+  assert.match(c.content,/^🟨 New all-time high: Zcash hashrate hit/);assert.match(c.content,/The 7-day average is up 100.0% on the previous peak/);
+  assert.ok(c.content.length<=280);assert.ok(c.evidence.card.visual.values.length<=91);
   assert.doesNotMatch(p.hashStory(h,{target,genesisComplete:false}).content,/all-time/);
   h.points[0].unavailableReason='missing-targets';assert.doesNotMatch(p.hashStory(h,{target,genesisComplete:true}).content,/all-time/);
   h.points.at(-5).hashrate=null;assert.equal(p.hashStory(h,{target,genesisComplete:true}),null);

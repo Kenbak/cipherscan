@@ -47,12 +47,23 @@ test('editorial SQL: canonical flows, provider samples, UTC dates and atomic pub
     const reader={connect:async()=>wrap(await db.connect())};
     const live=await data.liveCandidates(reader,now);
     const flow=live.candidates.find(c=>c.type==='flow_shield');assert.ok(flow);
-    assert.equal(Number(flow.evidence.sample_count),200);assert.match(flow.content,/Top 0.50%/);
+    assert.equal(Number(flow.evidence.sample_count),200);assert.match(flow.content,/One of the largest 0\.5% of shielding/);
+    assert.ok(live.decisions.some(d=>d.reason==='context-unavailable'));assert.doesNotMatch(flow.content,/\$/);
+    await db.query(`CREATE TABLE zec_price_daily(date date,price_usd numeric);INSERT INTO zec_price_daily VALUES('2026-09-29',1400);
+      CREATE TABLE privacy_stats(sapling_pool_size bigint,orchard_pool_size bigint,ironwood_pool_size bigint,transparent_pool_size bigint,shielded_pool_size bigint,updated_at timestamptz);
+      INSERT INTO privacy_stats VALUES(1,1,406127848872798,1,406127848872800,'2026-09-29T07:30:00Z');
+      CREATE TABLE privacy_trends_daily(date date,pool_size bigint,chain_supply bigint,ironwood_pool_size bigint);
+      INSERT INTO privacy_trends_daily SELECT d,490000000000000,1700000000000000,CASE WHEN d='2026-09-28' THEN 401000000000000 ELSE 380000000000000 END
+        FROM generate_series('2026-06-01'::date,'2026-09-29'::date,interval '1 day') d;`);
+    const priced=(await data.liveCandidates(reader,now)).candidates.find(c=>c.type==='flow_shield');
+    assert.match(priced.content,/899\.99 ZEC \(\$1\.25M\) just entered Ironwood/);assert.match(priced.content,/Ironwood now holds 4\.06M ZEC/);
+    const milestones=await data.milestoneCandidates(reader,now);
+    assert.deepEqual(milestones.map(m=>m.key),['milestone:ironwood_zec:4000000']);
     const swap=live.candidates.find(c=>c.type==='swap');assert.ok(swap);assert.equal(swap.evidence.exceptional,true);
     assert.equal(Number(swap.evidence.sample_count),2001);
     const summary=await data.crosschainDaily(reader,now);assert.equal(summary.evidence.count,'2001');
     assert.equal(Number(summary.evidence.inflow),200000);assert.equal(Number(summary.evidence.outflow),200);
-    assert.match(summary.content,/2026-09-28 UTC/);
+    assert.match(summary.content,/via NEAR Intents on Sep 28\./);
     const signals=await data.signalCandidates(reader,now);assert.ok(signals.find(c=>c.evidence.metric==='mvrv'));
     // Bad balance, fully shielded migration, and coinbase must not become shielding alerts.
     await db.query('UPDATE transactions SET is_coinbase=true WHERE block_height=400');
