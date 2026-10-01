@@ -8,7 +8,7 @@ import type { ChartExportData } from '@/lib/chart-sharing';
 import { NETWORK } from '@/lib/api-config';
 import { ChartWatermark } from '@/components/ChartWatermark';
 
-const publicBase = NETWORK === 'mainnet' ? 'https://zecblock.com' : NETWORK === 'testnet' ? 'https://testnet.cipherscan.app' : 'https://crosslink.cipherscan.app';
+const publicBase = NETWORK === 'mainnet' ? 'https://zecblock.com' : NETWORK === 'testnet' ? 'https://testnet.zecblock.com' : 'https://crosslink.cipherscan.app';
 
 export function ShareableCard({title,children,sourceHeight=0,isLive=false,shareText,fileName='zecblock.png',footerNote,className='mt-4',branding='logo',exportDisabled=false,compact=false,exportData,sharePath,expandedToolbar=false}: {
   title:string; children:ReactNode; sourceHeight?:number; isLive?:boolean; shareText:string; fileName?:string;

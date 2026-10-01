@@ -55,10 +55,10 @@ for (const network of ['mainnet', 'testnet']) {
     for (const endpoint of data.endpoints) assert.ok(html.includes(endpoint.hostname));
     assert.match(html, /No endpoint is being reported as verified/);
     assert.ok(!html.includes('private-service.internal'));
-    assert.ok(html.includes(`${network === 'mainnet' ? 'https://api.zecblock.com' : 'https://api.testnet.cipherscan.app'}/v1/network/attestations`));
+    assert.ok(html.includes(`${network === 'mainnet' ? 'https://api.zecblock.com' : 'https://api.testnet.zecblock.com'}/v1/network/attestations`));
     assert.equal(page.metadata.robots.index, network === 'mainnet');
     assert.equal(page.metadata.robots.follow, true);
-    const host = network === 'mainnet' ? 'zecblock.com' : 'testnet.cipherscan.app';
+    const host = network === 'mainnet' ? 'zecblock.com' : 'testnet.zecblock.com';
     assert.equal(page.metadata.alternates.canonical, `https://${host}/network/attestations`);
     assert.equal(page.metadata.openGraph.url, page.metadata.alternates.canonical);
     assert.equal(page.metadata.twitter.card, 'summary_large_image');

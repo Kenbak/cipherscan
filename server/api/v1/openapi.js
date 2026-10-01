@@ -279,7 +279,7 @@ function buildOpenApiDocument() {
     },
     servers: [
       { url: 'https://api.zecblock.com', description: 'Mainnet API host.' },
-      { url: 'https://api.testnet.cipherscan.app', description: 'Testnet API host.' },
+      { url: 'https://api.testnet.zecblock.com', description: 'Testnet API host.' },
       { url: 'http://127.0.0.1:3002', description: 'Private read-only development preview.' },
     ],
     tags: [...tagSet].sort().map((name) => ({ name })),

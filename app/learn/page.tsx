@@ -183,7 +183,7 @@ export default function LearnPage() {
         <p>Testing on public testnet? Use testnet ZEC (TAZ) and a testnet address. Testnet coins have no monetary value.</p>
         <div className={styles.inlineLinks}>
           <Destination href="http://pool.tazminer.com:3000" className={styles.textLink}>Mine testnet ZEC in browser <Arrow external /></Destination>
-          <Destination href="https://testnet.cipherscan.app/" className={styles.textLink}>Open testnet explorer <Arrow external /></Destination>
+          <Destination href="https://testnet.zecblock.com/" className={styles.textLink}>Open testnet explorer <Arrow external /></Destination>
         </div>
       </div>
       <SectionTransition href="#reading" label="Further reading" />

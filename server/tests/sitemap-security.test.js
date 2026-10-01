@@ -444,7 +444,7 @@ test('block metadata uses resolved canonical identity through the shared builder
 test('shared metadata policy indexes blocks only on mainnet', () => {
   const cases = [
     { network: 'mainnet', baseUrl: 'https://zecblock.com', index: true },
-    { network: 'testnet', baseUrl: 'https://testnet.cipherscan.app', index: false },
+    { network: 'testnet', baseUrl: 'https://testnet.zecblock.com', index: false },
     { network: 'crosslink-testnet', baseUrl: 'https://crosslink.cipherscan.app', index: false },
   ];
 
@@ -596,7 +596,7 @@ test('root sitemap is a mainnet index, a testnet homepage set, and an empty Cros
   const sitemap = loadTypeScriptModule('lib/sitemaps.ts');
   const cases = [
     { network: 'mainnet', baseUrl: 'https://zecblock.com', root: 'sitemapindex' },
-    { network: 'testnet', baseUrl: 'https://testnet.cipherscan.app', root: 'urlset' },
+    { network: 'testnet', baseUrl: 'https://testnet.zecblock.com', root: 'urlset' },
     { network: 'crosslink-testnet', baseUrl: null, root: 'urlset' },
   ];
 
@@ -622,7 +622,7 @@ test('root sitemap is a mainnet index, a testnet homepage set, and an empty Cros
       assert.match(xml, /https:\/\/zecblock\.com\/sitemap-core\.xml/);
       assert.equal(xml.includes('<priority>'), false);
     } else if (testCase.network === 'testnet') {
-      assert.match(xml, /https:\/\/testnet\.cipherscan\.app\//);
+      assert.match(xml, /https:\/\/testnet\.zecblock\.com\//);
       assert.equal(xml.includes('/blocks'), false);
     } else {
       assert.equal(baseUrlCalls, 0);
@@ -676,7 +676,7 @@ test('child sitemap isolates static cohorts and returns explicit 404/503 failure
   assert.equal(unknown.status, 404);
 
   const testnetRoute = loadRoute('testnet');
-  const testnetChild = await testnetRoute.GET(new Request('https://testnet.cipherscan.app/sitemaps/core'), {
+  const testnetChild = await testnetRoute.GET(new Request('https://testnet.zecblock.com/sitemaps/core'), {
     params: Promise.resolve({ slug: 'core' }),
   });
   assert.equal(testnetChild.status, 404);

@@ -274,6 +274,7 @@ app.use(helmet());
 // CORS configuration (only allow your domains)
 const allowedOrigins = [
   'https://testnet.cipherscan.app',
+  'https://testnet.zecblock.com',
   'https://cipherscan.app',
   'https://zecblock.com',
   'https://www.zecblock.com',
@@ -341,6 +342,7 @@ const OWN_ORIGINS = [
   'https://www.zecblock.com',
   'https://www.cipherscan.app',
   'https://testnet.cipherscan.app',
+  'https://testnet.zecblock.com',
   'https://crosslink.cipherscan.app',
   'http://localhost:3000',
   'http://localhost:3001',

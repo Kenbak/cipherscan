@@ -17,7 +17,7 @@ import * as readline from 'node:readline';
 // CipherScan API endpoints
 const APIS = {
   mainnet: 'https://api.mainnet.cipherscan.app',
-  testnet: 'https://api.testnet.cipherscan.app',
+  testnet: 'https://api.testnet.zecblock.com',
 };
 
 const rl = readline.createInterface({

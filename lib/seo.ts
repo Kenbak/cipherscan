@@ -29,7 +29,7 @@ export function getBaseUrl(): string {
   const network = getNetwork();
   const urls: Record<SeoNetwork, string> = {
     mainnet: 'https://zecblock.com',
-    testnet: 'https://testnet.cipherscan.app',
+    testnet: 'https://testnet.zecblock.com',
     'crosslink-testnet': 'https://crosslink.cipherscan.app',
   };
   return urls[network];

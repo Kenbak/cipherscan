@@ -27,7 +27,7 @@ export default async function AttestationsPage() {
       if (data.network === network && Array.isArray(data.endpoints)) initialData = data;
     }
   } catch { /* The introduction and explicit unavailable state still render on an API outage. */ }
-  const publicApiUrl = normalizeApiBaseUrl(process.env.NEXT_PUBLIC_API_URL || (network === 'mainnet' ? 'https://api.zecblock.com' : 'https://api.testnet.cipherscan.app'));
+  const publicApiUrl = normalizeApiBaseUrl(process.env.NEXT_PUBLIC_API_URL || (network === 'mainnet' ? 'https://api.zecblock.com' : 'https://api.testnet.zecblock.com'));
   const initialNow = Date.now();
   const url = `${getBaseUrl()}/network/attestations`;
   const schema = {

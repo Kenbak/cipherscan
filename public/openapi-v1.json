@@ -15,7 +15,7 @@
       "description": "Mainnet API host."
     },
     {
-      "url": "https://api.testnet.cipherscan.app",
+      "url": "https://api.testnet.zecblock.com",
       "description": "Testnet API host."
     },
     {
