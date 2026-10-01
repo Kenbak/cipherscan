@@ -16,5 +16,6 @@ server/api/.env.*
 !lib/attestation-status.js
 !lib/canary-status.js
 !lib/mining-software.js
+!lib/pulse-copy.js
 !server/canary/
 !server/canary/config.js
