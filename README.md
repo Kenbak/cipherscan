@@ -47,7 +47,7 @@
 
 ZecBlock, formerly **CipherScan**, is a Zcash blockchain explorer built by Atmosphere Labs. Explore public transactions, blocks, shielded pool balances, network observations and tools for understanding Zcash.
 
-The same explorer project continues under a new name and design. The source repository remains `Kenbak/cipherscan`; existing API and lightwalletd hostnames are retained for compatibility. The October 1 release is being prepared on the rebrand branch; this README does not confirm a production cutover.
+The same explorer project continues under a new name and design. The source repository is `Kenbak/zecblock`; existing API and lightwalletd hostnames are retained for compatibility. ZecBlock launched on mainnet and testnet on October 1, 2026. Previous explorer website addresses redirect to the corresponding ZecBlock site.
 
 Shielded transfer details are not publicly visible. Aggregate pool flows and transaction patterns do not identify users or prove that coins were sold.
 
@@ -106,7 +106,7 @@ Shielded transfer details are not publicly visible. Aggregate pool flows and tra
 | Network | URL |
 |---------|-----|
 | **Mainnet** | [zecblock.com](https://zecblock.com) |
-| **Testnet** | [testnet.cipherscan.app](https://testnet.cipherscan.app) |
+| **Testnet** | [testnet.zecblock.com](https://testnet.zecblock.com) |
 
 ---
 
@@ -120,16 +120,13 @@ Shielded transfer details are not publicly visible. Aggregate pool flows and tra
 
 ### Installation
 
-For this staged rebrand, use the loopback v1 adapter until public v1 access and browser origins have passed launch checks. This preview reads public mainnet data; it is not a production API service.
+For local development, the loopback v1 adapter reads public mainnet data. It is not a production API service.
 
 
 ```bash
 # Clone the repository
-git clone https://github.com/Kenbak/cipherscan.git
-cd cipherscan
-
-# Before the rebrand merges to main, use the prepared release branch
-git switch codex/zecblock-assay-rebrand
+git clone https://github.com/Kenbak/zecblock.git
+cd zecblock
 
 # Install dependencies
 npm ci
@@ -249,7 +246,7 @@ credentials in the browser-facing frontend environment.
 
 ## 📋 Roadmap
 
-See [GitHub Issues](https://github.com/Kenbak/cipherscan/issues) for upcoming features and improvements.
+See [GitHub Issues](https://github.com/Kenbak/zecblock/issues) for upcoming features and improvements.
 
 Release scope and availability are tracked in issues and release notes; this README does not promise dates for unreleased features.
 
@@ -331,7 +328,7 @@ This project is licensed under the **GNU Affero General Public License v3.0 (AGP
 </p>
 
 <p align="center">
-  <a href="https://github.com/Kenbak/cipherscan">GitHub</a> •
+  <a href="https://github.com/Kenbak/zecblock">GitHub</a> •
   <a href="https://x.com/zecblock">@zecblock on X</a> •
   <a href="https://discord.gg/zcash">Discord</a> •
   <a href="https://forum.zcashcommunity.com/">Forum</a>

@@ -2,7 +2,7 @@
 
 const { addDays } = require('../../lib/transaction-activity');
 const { formatHashrate } = require('../../api/lib/hashrate');
-const BASE = 'https://cipherscan.app';
+const BASE = 'https://zecblock.com';
 const number = (n, digits = 0) => n.toLocaleString('en-US', { maximumFractionDigits: digits });
 
 // Templates use ASCII plus ordinary punctuation and deliberately fit without
@@ -93,7 +93,7 @@ function flowStory(flow) {
   const verb = flow.flow_type === 'shield' ? 'shielded' : 'deshielded';
   const pool = flow.pool === 'mixed' ? 'across pools' : `${flow.flow_type === 'shield' ? 'into' : 'from'} ${flow.pool}`;
   const roundedTail = Math.max(0.01, Math.ceil(tailPct * 100) / 100).toFixed(2);
-  return candidate(`flow_${flow.flow_type}`, `large_flow:${flow.txid}`, `${number(amount / 1e8, 2)} ZEC ${verb} ${pool}.\nTop ${roundedTail}% by size vs ${number(n)} prior ${verb} flows over 90 days (ties included).\nPublic net pool flow, not private transfer volume.\n${BASE}/tx/${flow.txid}`, { ...flow, tailPct }, amount / 1e8);
+  return candidate(`flow_${flow.flow_type}`, `large_flow:${flow.txid}`, `${number(Math.floor(amount / 1e6) / 100, 2)} ZEC ${verb} ${pool}.\nTop ${roundedTail}% by size vs ${number(n)} prior ${verb} flows over 90 days (ties included).\nPublic net pool flow, not private transfer volume.\n${BASE}/tx/${flow.txid}`, { ...flow, tailPct }, amount / 1e8);
 }
 
 function swapStory(swap) {

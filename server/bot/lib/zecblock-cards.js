@@ -6,6 +6,7 @@ const { createCanvas, registerFont, loadImage } = require('canvas');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
+const { randomUUID } = require('crypto');
 
 const ASSETS = path.join(__dirname, '..', 'assets');
 const LOGO = path.join(__dirname, '..', '..', '..', 'public', 'brand', 'zecblock-logotype.png');
@@ -75,7 +76,7 @@ function footer(ctx, left, right) {
 }
 
 function save(canvas, name) {
-  const file = path.join(os.tmpdir(), `zecblock-card-${name}-${Date.now()}.png`);
+  const file = path.join(os.tmpdir(), `zecblock-card-${name}-${randomUUID()}.png`);
   fs.writeFileSync(file, canvas.toBuffer('image/png'));
   return file;
 }
@@ -83,7 +84,8 @@ function save(canvas, name) {
 // y always starts at zero so small moves are not exaggerated.
 function lineChart(ctx, values, { x, y, w, h, color, reference, referenceLabel }) {
   const floor = 0;
-  const max = Math.max(...values, reference ?? 0) * 1.08;
+  if (values.length < 2 || values.some(v => !Number.isFinite(v) || v < 0)) throw new Error('Invalid chart observations');
+  const max = Math.max(...values, reference ?? 0, 1) * 1.08;
   const px = i => x + (i / (values.length - 1)) * w;
   const py = v => y + h - ((v - floor) / (max - floor)) * h;
   ctx.fillStyle = C.border;
@@ -227,4 +229,180 @@ async function renderMilestone({ values, value, unit, headline, qualifier, refer
   return save(canvas, 'milestone');
 }
 
-module.exports = { renderFlow, renderHashrate, renderWeekly, renderSwap, renderMilestone, W, H };
+
+// The live editorial adapter preserves every qualification in the selected
+// story. Figures come from its evidence; never synthesize a historical series.
+function editorialModel(story) {
+  const e = story.evidence || {};
+  const lines = story.content.split('\n').filter(Boolean);
+  const link = new URL(lines.at(-1));
+  if (link.origin !== 'https://zecblock.com') throw new Error('Unexpected editorial link');
+  const paragraphs = lines.slice(0, -1);
+  let value, label, visual;
+  let accent = C.gold;
+  let date = e.target || e.days?.at(-1)?.date || story.key.split(':').at(-1);
+  if (e.block_time != null) date = new Date(Number(e.block_time) * 1000).toISOString();
+  if (e.swap_created_at) date = new Date(e.swap_created_at).toISOString();
+  if (e.detected_at) date = new Date(e.detected_at).toISOString();
+  if (e.period) date = `${e.period.start || story.key.split(':').at(-1)} – ${new Date(Date.parse(e.period.endExclusive) - 86400000).toISOString().slice(0, 10)}`;
+  const numeric = n => {
+    if (n == null || !Number.isFinite(Number(n))) throw new Error('Missing editorial value');
+    return Number(n);
+  };
+  switch (story.type) {
+    case 'flow_shield':
+    case 'flow_deshield': {
+      const into = story.type === 'flow_shield';
+      const pool = e.pool === 'mixed' ? 'Shielded pools' : e.pool[0].toUpperCase() + e.pool.slice(1);
+      value = `${into ? '+' : '−'}${zecAmount(numeric(e.amount_zat) / 1e8)} ZEC`;
+      label = `${into ? 'Shielding' : 'Deshielding'} · ${pool}`;
+      accent = into ? C.shielding : C.deshielding;
+      paragraphs.shift();
+      visual = { kind: 'flow', from: into ? 'Transparent' : pool, to: into ? pool : 'Transparent' };
+      break;
+    }
+    case 'swap':
+      value = `$${fmt(numeric(e.source_amount_usd))}`;
+      label = 'Completed cross-chain swap';
+      paragraphs.shift();
+      visual = { kind: 'flow', from: e.source_chain.toUpperCase(), to: e.dest_chain.toUpperCase() };
+      break;
+    case 'activity_daily': {
+      value = e.metric === 'share' ? `${numeric(e.stats.value).toFixed(1)}%` : fmt(numeric(e.stats.value));
+      label = paragraphs[0].split(':')[0];
+      paragraphs[0] = paragraphs[0].replace(/^.*?:\s*[\d,.]+%?\.\s*/, '');
+      const get = d => e.metric === 'share' ? 100 * d.shielded / (d.shielded + d.transparent)
+        : e.metric === 'shielded' ? d.shielded : e.metric === 'fully' ? d.fully_shielded : d.shielded + d.transparent;
+      visual = { kind: 'series', values: e.days.map(get), start: e.days[0].date, end: e.days.at(-1).date, unit: e.metric === 'share' ? '%' : 'transactions' };
+      break;
+    }
+    case 'activity_weekly': {
+      const metric = e.metrics.find(m => m.noteworthy);
+      value = fmt(numeric(metric.value));
+      label = paragraphs[0].split(':')[0];
+      paragraphs[0] = paragraphs[0].replace(/^.*?:\s*[\d,.]+\.\s*/, '');
+      visual = { kind: 'rank', rank: numeric(metric.rank), tied: metric.tied };
+      break;
+    }
+    case 'hashrate':
+      value = paragraphs.shift().replace(/^Zcash estimated hashrate: /, '').replace(/\.$/, '');
+      label = 'Estimated network hashrate';
+      visual = { kind: 'comparison', values: [numeric(e.previousPeak), numeric(e.point.hashrate)], labels: ['Previous peak', 'Latest sample'] };
+      break;
+    case 'network_signal':
+      label = paragraphs[0].split(':')[0];
+      value = paragraphs.shift().slice(label.length + 2).replace(/\.$/, '');
+      visual = { kind: 'series', values: e.rows.map(r => numeric(r.value) / (e.metric.endsWith('_zat') ? 1e8 : 1)), start: e.rows[0].date, end: e.rows.at(-1).date, unit: e.metric.endsWith('_zat') ? 'ZEC' : 'ratio' };
+      date = e.rows.at(-1).date;
+      break;
+    case 'migration':
+      value = `${zecAmount(numeric(e.amount_zat) / 1e8)} ZEC`;
+      label = 'Pool migration into Ironwood';
+      paragraphs[0] = 'Ironwood deposit with an Orchard withdrawal.';
+      visual = { kind: 'flow', from: 'Orchard withdrawal', to: 'Ironwood deposit' };
+      break;
+    case 'reorg':
+      value = `${numeric(e.depth)} blocks`;
+      label = 'Chain reorganization';
+      paragraphs[0] = `Fork height: ${fmt(numeric(e.fork_height))}.`;
+      break;
+    case 'crosschain_daily': {
+      const net = numeric(e.inflow) - numeric(e.outflow);
+      value = `${net < 0 ? '−' : '+'}$${fmt(Math.abs(net))}`;
+      label = `Net ${net < 0 ? 'outflow' : 'inflow'} · NEAR 1Click`;
+      paragraphs.shift();
+      visual = { kind: 'comparison', values: [numeric(e.inflow), numeric(e.outflow)], labels: ['Into ZEC', 'Out of ZEC'] };
+      break;
+    }
+    default: throw new Error(`Unsupported editorial story: ${story.type}`);
+  }
+  if (!/^\d{4}-\d{2}-\d{2}/.test(date)) throw new Error('Missing editorial date');
+  return { value, label, paragraphs: paragraphs.filter(Boolean), visual, accent,
+    date: `${date.replace('T', ' ').replace(/\.\d{3}Z$/, '').replace(/Z$/, '')} UTC`,
+    // The post retains the full transaction link; the image has a readable source.
+    source: `zecblock.com${link.pathname.startsWith('/tx/') ? '/tx/' + link.pathname.slice(4, 12) + '…' : link.pathname}` };
+}
+
+function wrap(ctx, text, width) {
+  const lines = [];
+  let line = '';
+  for (const word of text.split(/\s+/)) {
+    if (ctx.measureText(word).width > width) throw new Error('Editorial word exceeds safe bounds');
+    const next = line ? `${line} ${word}` : word;
+    if (ctx.measureText(next).width > width) { lines.push(line); line = word; }
+    else line = next;
+  }
+  if (line) lines.push(line);
+  return lines;
+}
+
+async function renderEditorial(story) {
+  const m = editorialModel(story);
+  const { canvas, ctx } = await base({ kicker: 'Zcash · Mainnet', accent: m.accent });
+  const width = m.visual ? 625 : W - 2 * PAD;
+  let size = 106;
+  ctx.font = `500 ${size}px Geist`;
+  size = Math.min(size, Math.floor(size * width / ctx.measureText(m.value).width));
+  if (size < 42) throw new Error('Editorial headline exceeds safe bounds');
+  hero(ctx, m.value, null, { y: 244, size, color: m.accent });
+  ctx.font = '500 28px Geist'; ctx.fillStyle = C.text;
+  const labels = wrap(ctx, m.label, width);
+  if (labels.length > 2) throw new Error('Editorial label exceeds safe bounds');
+  labels.forEach((line, i) => ctx.fillText(line, PAD, 292 + i * 34));
+  const startY = 345 + (labels.length - 1) * 34;
+  let body;
+  for (size = 25; size >= 21; size--) {
+    ctx.font = `normal ${size}px Geist`;
+    body = m.paragraphs.map(p => wrap(ctx, p, width));
+    if (startY + body.reduce((n, lines) => n + lines.length * (size + 8) + 12, 0) <= H - 118) break;
+  }
+  if (size < 21) throw new Error('Editorial qualifications exceed safe bounds');
+  ctx.fillStyle = C.secondary;
+  let y = startY;
+  for (const lines of body) {
+    for (const line of lines) { ctx.fillText(line, PAD, y); y += size + 8; }
+    y += 12;
+  }
+  const v = m.visual, x = 790, w = W - PAD - x;
+  if (v?.kind === 'series') {
+    lineChart(ctx, v.values, { x, y: 230, w, h: 210, color: m.accent });
+    ctx.font = 'normal 16px GeistMono'; ctx.fillStyle = C.muted;
+    ctx.fillText(`Peak: ${fmt(Math.max(...v.values), 2)} ${v.unit}`, x, 197);
+    ctx.fillText('0', x, 465);
+    ctx.fillText(v.start, x, 506);
+    ctx.fillText(v.end, x + w - ctx.measureText(v.end).width, 506);
+  } else if (v?.kind === 'flow') {
+    ctx.font = '500 23px Geist'; ctx.fillStyle = C.secondary;
+    ctx.fillText(v.from, x + 28, 223);
+    ctx.fillStyle = C.faint; ctx.fillRect(x, 205, 14, 14);
+    ctx.fillStyle = m.accent;
+    for (let yy = 254; yy < 377; yy += 22) ctx.fillRect(x + 4, yy, 6, 6);
+    ctx.beginPath(); ctx.moveTo(x - 2, 384); ctx.lineTo(x + 16, 384); ctx.lineTo(x + 7, 398); ctx.fill();
+    ctx.fillRect(x, 424, 14, 14);
+    ctx.fillStyle = C.text; ctx.fillText(v.to, x + 28, 441);
+  } else if (v?.kind === 'rank') {
+    ctx.font = '500 75px Geist'; ctx.fillStyle = m.accent;
+    ctx.fillText(`#${v.rank}`, x, 301);
+    ctx.font = 'normal 22px Geist'; ctx.fillStyle = C.secondary;
+    ctx.fillText(v.tied ? 'Joint weekly rank' : 'Weekly rank', x, 350);
+    ctx.font = 'normal 18px GeistMono'; ctx.fillStyle = C.muted;
+    ctx.fillText('Complete weeks', x, 396);
+    ctx.fillText('since 2016-10-31', x, 423);
+  } else if (v?.kind === 'comparison') {
+    if (v.values.some(n => n < 0)) throw new Error('Invalid comparison');
+    const max = Math.max(...v.values, 1);
+    v.values.forEach((n, i) => {
+      const yy = 270 + i * 110;
+      ctx.font = 'normal 22px Geist'; ctx.fillStyle = C.secondary;
+      ctx.fillText(v.labels[i], x, yy - 24);
+      ctx.fillStyle = C.border; ctx.fillRect(x, yy, w, 18);
+      ctx.fillStyle = i ? m.accent : C.muted; ctx.fillRect(x, yy, w * n / max, 18);
+    });
+    ctx.font = 'normal 16px GeistMono'; ctx.fillStyle = C.muted;
+    ctx.fillText('Scale starts at zero', x, 456);
+  }
+  footer(ctx, m.source, m.date);
+  return save(canvas, 'editorial');
+}
+
+module.exports = { renderEditorial, editorialModel, renderFlow, renderHashrate, renderWeekly, renderSwap, renderMilestone, W, H };
