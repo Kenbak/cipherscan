@@ -100,7 +100,7 @@
     "geist": "^1.7.2",
     "gray-matter": "^4.0.3",
     "html-to-image": "^1.11.13",
-    "next": "^16.3.4",
+    "next": "^16.3.8",
     "node-fetch": "^3.3.2",
     "pg": "^8.23.0",
     "postcss": "8.5.28",
@@ -120,7 +120,7 @@
     "@tailwindcss/node": "4.3.3",
     "@types/d3-force": "^3.0.10",
     "eslint": "^9.39.5",
-    "eslint-config-next": "^16.3.4",
+    "eslint-config-next": "^16.3.8",
     "playwright": "1.63.0"
   }
 }

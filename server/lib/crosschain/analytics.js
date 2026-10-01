@@ -29,9 +29,9 @@ function parseFilters(q) {
   if (q.status && !STATUSES.includes(q.status)) throw invalid("Invalid status");
   if (q.chain && !/^[a-z0-9_-]{1,32}$/.test(q.chain))
     throw invalid("Invalid chain");
-  if (q.token && (q.token.length > 64 || /[\x00-\x1f]/.test(q.token)))
+  if (q.token != null && (typeof q.token !== "string" || q.token.length > 64 || /[\x00-\x1f]/.test(q.token)))
     throw invalid("Invalid token");
-  if (q.search && (q.search.length > 200 || /[\x00-\x1f]/.test(q.search)))
+  if (q.search != null && (typeof q.search !== "string" || q.search.length > 200 || /[\x00-\x1f]/.test(q.search)))
     throw invalid("Search must be at most 200 characters");
   for (const name of ["sourceAsset", "destAsset", "referral"])
     if (q[name] && (q[name].length > 256 || /[\x00-\x1f]/.test(q[name])))

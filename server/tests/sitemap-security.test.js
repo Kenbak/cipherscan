@@ -541,10 +541,10 @@ test('sitemap cohorts are disjoint and block ranges require aligned explicit con
   const allUrls = [...core, ...content, ...tools].map((entry) => entry.url);
 
   assert.equal(new Set(allUrls).size, allUrls.length);
-  assert.ok(allUrls.includes('https://zecblock.com/privacy/wallets'));
-  assert.ok(allUrls.includes('https://zecblock.com/newsletter/2026-07-15'));
-  assert.ok(allUrls.includes('https://zecblock.com/tools/unit-converter'));
-  assert.equal(allUrls.includes('https://zecblock.com/migration'), false);
+  assert.ok(allUrls.some((url) => url === 'https://zecblock.com/privacy/wallets'));
+  assert.ok(allUrls.some((url) => url === 'https://zecblock.com/newsletter/2026-07-15'));
+  assert.ok(allUrls.some((url) => url === 'https://zecblock.com/tools/unit-converter'));
+  assert.equal(allUrls.some((url) => url === 'https://zecblock.com/migration'), false);
 
   const indexEntries = sitemap.getMainnetSitemapIndexEntries('https://zecblock.com', ranges);
   assert.ok(indexEntries.some(({ url }) => url === 'https://zecblock.com/sitemap-core.xml'));
@@ -720,7 +720,7 @@ test('ZNS child sitemap coalesces one bounded registration refresh', async () =>
   const bodies = await Promise.all(responses.map((response) => response.text()));
   assert.equal(statusCalls, 1);
   assert.equal(registrationCalls, 10);
-  assert.ok(bodies.every((body) => body.includes('https://zecblock.com/name/name4999')));
+  assert.ok(bodies.every((body) => [...body.matchAll(/<loc>(.*?)<\/loc>/g)].some((match) => match[1] === 'https://zecblock.com/name/name4999')));
 });
 
 test('transaction archive metadata indexes only unfiltered first pages', async () => {

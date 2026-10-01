@@ -57,6 +57,8 @@ test("strict statuses, exact amounts and hidden in-flight values", () => {
   assert.throws(() => parseFilters({ period: "constructor" }));
   assert.throws(() => parseFilters({ minUsd: "20", maxUsd: "10" }));
   assert.throws(() => parseFilters({ chain: ["eth", "sol"] }));
+  assert.throws(() => parseFilters({ token: ["ZEC", "BTC"] }));
+  assert.throws(() => parseFilters({ search: { length: 1 } }));
   assert.throws(() => parseFilters({ from: "2026-02-30T00:00:00Z" }));
   assert.throws(() => parseFilters({ from: "2026-09-01T99:00:00Z" }));
   assert.equal(

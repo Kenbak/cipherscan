@@ -3,6 +3,7 @@ if (!process.env.V1_SOURCE_ENV_FILE) throw new Error('Provide the private source
 if (process.env.V1_PRIVATE_SOURCE !== 'true') throw new Error('Set V1_PRIVATE_SOURCE=true for this isolated test process.');
 require('dotenv').config({ path: process.env.V1_SOURCE_ENV_FILE, quiet: true });
 const express = require('express');
+const { rateLimit } = require('express-rate-limit');
 const { Pool } = require('pg');
 const { createInternalClient } = require('./v1/lib/internal-client');
 const { loadV1Config } = require('./v1/config');
@@ -13,6 +14,7 @@ const valuation = require('./routes/valuation');
 const blocks = require('./routes/blocks');
 const mining = require('./routes/mining');
 const app = express();
+app.use(rateLimit({ windowMs: 60_000, limit: 120, standardHeaders: true, legacyHeaders: false }));
 const pool = new Pool({ host: process.env.DB_HOST || 'localhost', port: Number(process.env.DB_PORT || 5432),
   database: process.env.DB_NAME, user: process.env.DB_USER, password: process.env.DB_PASSWORD,
   max: 2, connectionTimeoutMillis: 3000, idleTimeoutMillis: 10000,
