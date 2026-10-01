@@ -8,6 +8,7 @@ import { RecentShieldedTxs } from '@/components/RecentShieldedTxs';
 import { RecentTransactions } from '@/components/RecentTransactions';
 import { RecentReorgs } from '@/components/RecentReorgs';
 import { TopMiners } from '@/components/TopMiners';
+import { MiningSoftwareMiniChart } from '@/components/MiningSoftwareMiniChart';
 import { IronwoodProgressCard } from '@/components/IronwoodProgressCard';
 import { ShieldedPoolMiniChart } from '@/components/ShieldedPoolMiniChart';
 import { SlidersIcon } from '@/components/icons/common';
@@ -18,9 +19,9 @@ import { HomeFeedTableSkeleton } from '@/components/HomeFeedTableSkeleton';
 // feed here — swapping it into this slot breaks the fixed, no-scroll card
 // height every other option holds to. It stays available as its own
 // permanent section below instead of a Customize option.
-export type HomeFeedType = 'blocks' | 'shielded' | 'transactions' | 'reorgs' | 'miners' | 'ironwood' | 'poolsChart';
+export type HomeFeedType = 'blocks' | 'shielded' | 'transactions' | 'reorgs' | 'miners' | 'software' | 'ironwood' | 'poolsChart';
 
-const FEED_ORDER: HomeFeedType[] = ['blocks', 'shielded', 'transactions', 'reorgs', 'miners', 'ironwood', 'poolsChart'];
+const FEED_ORDER: HomeFeedType[] = ['blocks', 'shielded', 'transactions', 'reorgs', 'miners', 'software', 'ironwood', 'poolsChart'];
 
 const FEED_META: Record<HomeFeedType, { sectionLabel: string; menuLabel: string; viewAllHref: string }> = {
   blocks: { sectionLabel: 'RECENT_BLOCKS', menuLabel: 'Recent Blocks', viewAllHref: '/blocks' },
@@ -28,6 +29,7 @@ const FEED_META: Record<HomeFeedType, { sectionLabel: string; menuLabel: string;
   transactions: { sectionLabel: 'RECENT_TRANSACTIONS', menuLabel: 'Recent Transactions', viewAllHref: '/txs' },
   reorgs: { sectionLabel: 'RECENT_REORGS', menuLabel: 'Forks & Reorgs', viewAllHref: '/reorgs' },
   miners: { sectionLabel: 'TOP_MINERS', menuLabel: 'Top Miners (24h)', viewAllHref: '/mining' },
+  software: { sectionLabel: 'MINING_SOFTWARE', menuLabel: 'Mining Software (30d)', viewAllHref: '/mining#software' },
   ironwood: { sectionLabel: 'IRONWOOD_PROGRESS', menuLabel: 'Ironwood Migration', viewAllHref: '/ironwood' },
   poolsChart: { sectionLabel: 'SHIELDED_POOLS', menuLabel: 'Shielded Pool Trend', viewAllHref: '/pools' },
 };
@@ -175,6 +177,7 @@ export function HomeFeedCard({
         {type === 'transactions' && <RecentTransactions footer={viewAllLink} />}
         {type === 'reorgs' && <RecentReorgs footer={viewAllLink} />}
         {type === 'miners' && <TopMiners footer={viewAllLink} />}
+        {type === 'software' && <MiningSoftwareMiniChart footer={viewAllLink} />}
         {type === 'ironwood' && <IronwoodProgressCard footer={viewAllLink} />}
         {type === 'poolsChart' && <ShieldedPoolMiniChart footer={viewAllLink} />}
       </div>

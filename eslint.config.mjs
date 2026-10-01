@@ -34,6 +34,7 @@ export default defineConfig([
     '.netlify/**',
     '.vercel/**',
     'coverage/**',
+    'output/**',
     'public/wasm/**',
     'wasm/pkg/**',
     'packages/zcash-decoder/dist/**',

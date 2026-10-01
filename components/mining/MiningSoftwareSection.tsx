@@ -15,7 +15,7 @@ import { getApiUrl } from "@/lib/api-config";
 import { ApiError, readApiData } from "@/lib/api-client";
 import { getMiningSoftwareEmoji } from "@/lib/coinbase-client";
 import { SOFTWARE_LABELS, type MiningSoftware } from "@/lib/mining-software";
-import { getChartColors, getChartTooltipStyle } from "@/lib/chart-theme";
+import { getChartColors, getChartTooltipStyle, getMiningSoftwareColors } from "@/lib/chart-theme";
 import { useTheme } from "@/contexts/ThemeContext";
 
 type Category = {
@@ -62,14 +62,7 @@ const utcDate = (timestamp: number) =>
 export function MiningSoftwareSection() {
   const { theme } = useTheme();
   const colors = getChartColors(theme);
-  const palette: Record<MiningSoftware, string> = {
-    zebra: colors.axis,
-    zakura: colors.zakura,
-    other: colors.orchard,
-    unknown: colors.referenceLine,
-    conflicting: colors.distinctive,
-    missing: colors.deshielding,
-  };
+  const palette = getMiningSoftwareColors(theme);
   const [period, setPeriod] = useState("all");
   const [range, setRange] = useState<{ from: string; to: string } | null>(null);
   const [bucket, setBucket] = useState("auto");

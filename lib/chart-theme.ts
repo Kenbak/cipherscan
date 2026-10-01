@@ -1,4 +1,17 @@
 import { getPrivacyColors } from './privacy-palette';
+import type { MiningSoftware } from './mining-software';
+
+export function getMiningSoftwareColors(theme: 'dark' | 'light'): Record<MiningSoftware, string> {
+  const colors = getChartColors(theme);
+  return {
+    zebra: colors.axis,
+    zakura: colors.zakura,
+    other: colors.orchard,
+    unknown: colors.referenceLine,
+    conflicting: colors.distinctive,
+    missing: colors.deshielding,
+  };
+}
 
 /** Assay information palette. Match semantic roles in app/globals.css. */
 export function getChartColors(theme: 'dark' | 'light') {
