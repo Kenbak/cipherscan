@@ -445,7 +445,7 @@ test('shared metadata policy indexes blocks only on mainnet', () => {
   const cases = [
     { network: 'mainnet', baseUrl: 'https://zecblock.com', index: true },
     { network: 'testnet', baseUrl: 'https://testnet.zecblock.com', index: false },
-    { network: 'crosslink-testnet', baseUrl: 'https://crosslink.cipherscan.app', index: false },
+    { network: 'crosslink-testnet', baseUrl: 'https://crosslink.zecblock.com', index: false },
   ];
 
   for (const testCase of cases) {

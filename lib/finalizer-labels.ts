@@ -31,7 +31,7 @@ const KNOWN_FINALIZERS: Record<string, FinalizerLabel> = {
   // GUI form: 79ce78ee4b5ce05b0fe11213941c4ed1584b09e57e6f15135006a46f2d98172c
   '2c17982d6fa4065013156f7ee5094b58d14e1c941312e10f5be05c4bee78ce79': {
     name: 'ZecBlock',
-    url: 'https://crosslink.cipherscan.app',
+    url: 'https://crosslink.zecblock.com',
     description: 'Atmosphere Labs — Zcash explorer & Crosslink validator',
   },
   // Frontier Compute Cash.
