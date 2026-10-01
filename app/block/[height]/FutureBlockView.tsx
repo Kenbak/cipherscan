@@ -1,100 +1,52 @@
 'use client';
 
-import { readApiData } from '@/lib/api-client';
-import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Card, CardBody } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
-import { getApiUrl } from '@/lib/api-config';
-import { NETWORK_UPGRADES } from '@/lib/config';
-
-import { scheduledSeconds, type BlockSchedule } from '@/lib/block-timing';
-
-function formatDuration(seconds: number): string {
-  if (seconds < 60) return `${Math.round(seconds)}s`;
-  if (seconds < 3600) return `${Math.floor(seconds / 60)}m ${Math.round(seconds % 60)}s`;
-  if (seconds < 86400) {
-    const h = Math.floor(seconds / 3600);
-    const m = Math.floor((seconds % 3600) / 60);
-    return `${h}h ${m}m`;
-  }
-  const d = Math.floor(seconds / 86400);
-  const h = Math.floor((seconds % 86400) / 3600);
-  return `${d}d ${h}h`;
-}
-
-function formatEstimatedDate(date: Date): string {
-  return date.toLocaleDateString('en-US', {
-    weekday: 'short',
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    timeZoneName: 'short',
-  });
-}
+import { NETWORK } from '@/lib/config';
+import { useApiQuery } from '@/hooks/useApiQuery';
+import { scheduledSeconds } from '@/lib/block-timing';
+import { readUpgradeSnapshot, getBlockUpgrade, estimateBlockArrival, formatUpgradeDuration } from '@/lib/network-upgrades';
 
 export function FutureBlockView({
   targetHeight,
   currentHeight: initialCurrentHeight,
+  initialStats,
 }: {
   targetHeight: number;
   currentHeight: number;
+  initialStats?: unknown;
 }) {
-  const [currentHeight, setCurrentHeight] = useState(initialCurrentHeight);
-  const [schedule, setSchedule] = useState<BlockSchedule | null>(null);
-  const [now, setNow] = useState(() => Date.now());
-
-  // Poll for updated tip height every 30s
-  useEffect(() => {
-    const poll = async () => {
-      try {
-        const apiUrl = `${getApiUrl()}/v1/network/stats`;
-        const res = await fetch(apiUrl);
-        if (res.ok) {
-          const data = await readApiData(res);
-          setSchedule(data.mining?.schedule ?? null);
-          const h = Number(data.blockchain?.height);
-          if (Number.isSafeInteger(h) && h >= 0) {
-            setCurrentHeight(h);
-          }
-        } else { setSchedule(null); }
-      } catch { setSchedule(null); }
-    };
-    void poll();
-    const interval = setInterval(poll, 30_000);
-    return () => clearInterval(interval);
-  }, []);
-
-  // Update countdown every second
-  useEffect(() => {
-    const interval = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(interval);
-  }, []);
-
-  const upgrade = NETWORK_UPGRADES[targetHeight] ?? null;
-  const blocksRemaining = targetHeight - currentHeight;
-  const secondsRemaining = scheduledSeconds(schedule, currentHeight, targetHeight);
-  const estimatedDate = secondsRemaining === null ? null : new Date(now + secondsRemaining * 1000);
+  const network = NETWORK === 'crosslink' ? 'crosslink-testnet' : NETWORK;
+  const { data, error } = useApiQuery<unknown>('/v1/network/stats', undefined, {
+    enabled: NETWORK !== 'crosslink', refreshInterval: 30_000,
+    initialData: initialStats ?? undefined,
+  });
+  const lastVerifiedSnapshot = readUpgradeSnapshot(data, network);
+  const snapshot = error ? null : lastVerifiedSnapshot;
+  const currentHeight = lastVerifiedSnapshot?.height ?? initialCurrentHeight;
+  const schedule = snapshot?.schedule ?? null;
+  const upgrade = getBlockUpgrade(targetHeight, network, lastVerifiedSnapshot);
+  const blocksRemaining = Math.max(0, targetHeight - currentHeight);
+  const estimate = estimateBlockArrival(snapshot, targetHeight);
   const progress = currentHeight / targetHeight;
 
   // If the block has been mined while we're on this page, link to it
-  if (blocksRemaining <= 0) {
+  if (blocksRemaining <= 0 && !error) {
     return (
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-fade-in">
         <Card>
           <CardBody className="text-center py-16">
             <h1 className="type-page font-mono text-primary mb-3">
-              Block #{targetHeight.toLocaleString()} Has Been Mined!
+              Chain Reached Block #{targetHeight.toLocaleString()}
             </h1>
             {upgrade ? (
               <p className="text-secondary mb-6">
-                <span className="text-cipher-yellow-bright font-semibold">{upgrade.name}</span> has activated on the Zcash network.
+                <span className="text-cipher-yellow-bright font-semibold">{upgrade.name}</span> reached its scheduled height. Open the block to verify its canonical status.
               </p>
             ) : (
               <p className="text-secondary mb-6">
-                This block is now part of the Zcash blockchain.
+                The latest chain height reached this block. Open it to view its current status.
               </p>
             )}
             <div className="flex flex-wrap items-center justify-center gap-3">
@@ -126,7 +78,7 @@ export function FutureBlockView({
         <span className="text-caption font-mono text-muted tracking-wider">&gt; FUTURE_BLOCK</span>
         <div className="flex flex-wrap items-center gap-3 mt-1">
           <h1 className="type-page font-mono text-primary">
-            Zcash Block #{targetHeight.toLocaleString()}
+            {upgrade?.name === 'NU7 activation' ? 'NU7 Activation' : 'Zcash Block'} #{targetHeight.toLocaleString('en-US')}
           </h1>
           {upgrade ? (
             <Badge color="amber">{upgrade.badge || 'NETWORK UPGRADE'}</Badge>
@@ -135,8 +87,7 @@ export function FutureBlockView({
           )}
         </div>
         <p className="mt-3 text-xs sm:text-sm text-secondary">
-          This block has not been mined yet. Estimates use the serving node&apos;s
-          announced target-spacing schedule.
+          {error ? 'Live block status is temporarily unavailable.' : 'This block has not been mined yet.'} {estimate ? `Estimated arrival uses ${estimate.basis} and the serving node’s announced spacing changes.` : 'Arrival estimates are currently unavailable.'}
         </p>
       </div>
 
@@ -172,21 +123,23 @@ export function FutureBlockView({
         </div>
       )}
 
+      {error && <p role="status" className="mb-4 text-sm text-muted">Live network data is unavailable. The block count shows the last verified network snapshot; the time estimate is paused.</p>}
+
       {/* Countdown Card */}
       <Card className="mb-6">
         <CardBody>
           <div className="text-center py-6">
             {/* Big countdown */}
             <div className="font-mono text-4xl sm:text-5xl font-semibold text-primary mb-2 tabular-nums">
-              {secondsRemaining === null ? 'Unavailable' : formatDuration(secondsRemaining)}
+              {estimate === null ? 'Unavailable' : formatUpgradeDuration(estimate.seconds)}
             </div>
             <div className="text-sm text-muted font-mono">estimated time remaining</div>
 
             {/* Estimated date */}
             <div className="mt-6 pt-6 border-t border-cipher-border">
-              <div className="text-xs text-muted uppercase tracking-wider mb-1">Estimated arrival</div>
+              <div className="text-xs text-muted uppercase tracking-wider mb-1">Estimate basis</div>
               <div className="font-mono text-sm text-secondary">
-                {estimatedDate === null ? 'Unavailable' : formatEstimatedDate(estimatedDate)}
+                {estimate === null ? 'Waiting for a verified network schedule' : `Based on ${estimate.basis}; refreshed every 30 seconds`}
               </div>
             </div>
           </div>
@@ -264,7 +217,7 @@ export function FutureBlockView({
 
       {/* Disclaimer */}
       <div className="text-center text-xs text-muted font-mono space-y-1">
-        <p>Estimates follow known target-spacing changes. Unscheduled upgrades and mining variance can change arrival times.</p>
+        <p>The block count determines activation. Days and hours are estimates; mining variance and unscheduled upgrades can change arrival times.</p>
         <p>Actual times vary due to mining difficulty adjustments and hash rate fluctuations.</p>
       </div>
     </div>

@@ -23,6 +23,8 @@ function loadTypeScriptModule(relativePath, imports = {}) {
   const module = { exports: {} };
   const localRequire = (specifier) => {
     if (Object.prototype.hasOwnProperty.call(imports, specifier)) return imports[specifier];
+    if (specifier === '@/lib/network-upgrades-server') return { getUpgradeStats: async () => null };
+    if (specifier === '@/lib/network-upgrades') return { readUpgradeSnapshot: () => null, getBlockUpgrade: () => null };
     if (specifier === '@/lib/api-client') return loadTypeScriptModule('lib/api-client.ts');
     return require(specifier);
   };
