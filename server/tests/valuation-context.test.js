@@ -6,7 +6,27 @@ const { valuationRow } = require('../api/lib/valuation-values');
 const { parseZcashTrends, importSnapshot } = require('../lib/google-trends');
 const code = ts.transpileModule(fs.readFileSync('lib/valuation.ts','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;
 const m = {exports:{}};new Function('module','exports',code)(m,m.exports);
-const { dailyMarketContext, quoteIsFresh, modeledPremium } = m.exports;
+const { dailyMarketContext, quoteIsFresh, modeledPremium, valuationChartPoints } = m.exports;
+test('weekly search interest stays connected, including the provisional segment',()=>{
+  const points=[
+    {date:'2026-09-13',interest:39,provisional:null},
+    {date:'2026-09-20',interest:26,provisional:26},
+    {date:'2026-09-27',interest:null,provisional:18},
+  ];
+  assert.deepEqual(valuationChartPoints(points,7),points);
+});
+test('missing daily and weekly observations break lines without inventing values',()=>{
+  for(const [interval,first,missing,last] of [
+    [1,'2026-09-01','2026-09-02','2026-09-03'],
+    [7,'2026-09-06','2026-09-13','2026-09-20'],
+  ]) {
+    const points=[{date:first,value:0},{date:last,value:26}];
+    assert.deepEqual(valuationChartPoints(points,interval),[points[0],{date:missing},points[1]]);
+  }
+  const daily=[{date:'2026-09-01',value:0},{date:'2026-09-02',value:null}];
+  assert.deepEqual(valuationChartPoints(daily),daily);
+  assert.deepEqual(valuationChartPoints([],7),[]);
+});
 const now=Date.parse('2026-09-07T00:00:00Z');
 const quote={price:100,timestamp:now,sourceUpdatedAt:now};
 test('missing actual SOPR stays unavailable even when the pool proxy exists; zero survives',()=>{

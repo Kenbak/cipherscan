@@ -18,6 +18,16 @@ export interface PriceQuote { price: number | null; change24h: number | null; ti
 export const finite = (value: unknown): value is number => typeof value === 'number' && Number.isFinite(value);
 export const positive = (value: unknown): value is number => finite(value) && value > 0;
 export function utcDay(value: string): number { return Date.parse(`${value.slice(0, 10)}T00:00:00Z`); }
+/** Break lines only when an expected daily or weekly observation is missing. */
+export function valuationChartPoints<T extends { date: string }>(ordered: T[], intervalDays: 1 | 7 = 1): Array<T | { date: string }> {
+  const interval = intervalDays * 86400_000;
+  return ordered.flatMap((row, index): Array<T | { date: string }> => {
+    const previous = ordered[index - 1];
+    return previous && Date.parse(row.date) - Date.parse(previous.date) > interval * 1.5
+      ? [{ date: new Date(Date.parse(previous.date) + interval).toISOString().slice(0, 10) }, row]
+      : [row];
+  });
+}
 export function quoteIsFresh(quote: PriceQuote | null, now: number): boolean {
   if (quote?.sourceUpdatedAt === null) return false;
   if (quote?.sourceUpdatedAt !== undefined && (!finite(quote.sourceUpdatedAt) || now < quote.sourceUpdatedAt || now - quote.sourceUpdatedAt > 5 * 60_000)) return false;

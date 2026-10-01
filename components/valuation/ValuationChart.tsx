@@ -6,20 +6,18 @@ import { ChartTooltip } from '@/components/charts/ChartTooltip';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getChartColors } from '@/lib/chart-theme';
 import { ChartSkeleton } from '@/components/ui/Skeleton';
+import { valuationChartPoints } from '@/lib/valuation';
 
 export interface ChartSeries { key: string; label: string; color: string; area?: boolean; stack?: boolean; dashed?: boolean }
-export function ValuationChart({ title, description, data, series, format, loading, reference, controls, footer, domain }: {
+export function ValuationChart({ title, description, data, series, format, loading, reference, controls, footer, domain, intervalDays = 1 }: {
   title: string; description: string; data: Array<{date: string; [key: string]: unknown}>;
   series: ChartSeries[]; format: (v: number) => string; loading: boolean;
+  intervalDays?: 1 | 7;
   domain?: [number,number]; reference?: {value: number; label: string}; controls?: ReactNode; footer?: ReactNode;
 }) {
   const { theme } = useTheme(); const c = getChartColors(theme);
   const ordered = [...data].sort((a,b)=>Date.parse(a.date)-Date.parse(b.date));
-  const plotted = ordered.flatMap((row,index)=>{
-    const previous=ordered[index-1];
-    return previous && Date.parse(row.date)-Date.parse(previous.date)>36*3600000
-      ? [{date:new Date(Date.parse(previous.date)+86400000).toISOString().slice(0,10)},row] : [row];
-  });
+  const plotted = valuationChartPoints(ordered, intervalDays);
   const latest = ordered.findLast(p=>series.some(s=>typeof p[s.key]==='number' && Number.isFinite(p[s.key])));
   const multiYear = ordered.length>1 && Date.parse(ordered.at(-1)!.date)-Date.parse(ordered[0].date)>365*86400000;
   const hasData = data.some(p => series.some(s => typeof p[s.key] === 'number' && Number.isFinite(p[s.key])));
