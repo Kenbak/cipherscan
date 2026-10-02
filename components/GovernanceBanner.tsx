@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 import { isMainnet, isCrosslink, NETWORK } from '@/lib/config';
 import type { Announcement } from '@/lib/governance';
 import { useApiQuery } from '@/hooks/useApiQuery';
-import { readUpgradeSnapshot, estimateBlockArrival, formatUpgradeDuration } from '@/lib/network-upgrades';
+import { readUpgradeSnapshot, estimateBlockArrival, formatUpgradeTime } from '@/lib/network-upgrades';
 
 export function GovernanceBanner() {
   const [announcement, setAnnouncement] = useState<Announcement | null>(null);
@@ -21,7 +21,7 @@ export function GovernanceBanner() {
   const displayed = pending ? {
     key: `nu7:${network}:${activationHeight}`,
     href: `/block/${activationHeight}`,
-    text: `${isMainnet ? 'Mainnet' : 'Testnet'} NU7 · ${(activationHeight - snapshot.height).toLocaleString('en-US')} blocks left${estimate ? ` · est. ${formatUpgradeDuration(estimate.seconds)}` : ''}`,
+    text: estimate ? `NU7 arrives in about ${formatUpgradeTime(estimate.seconds)}` : 'NU7 is on its way',
   } : announcement;
   const displayedKey = displayed?.key;
   const visible = Boolean(displayed && dismissed !== displayedKey);
@@ -59,8 +59,19 @@ export function GovernanceBanner() {
   }, [visible]);
   if (!visible || !displayed) return null;
   return <div ref={ref} role="region" aria-label={pending ? 'NU7 activation countdown' : 'Governance announcement'} className="ironwood-banner sticky top-[calc(var(--app-nav-height,4rem)+var(--app-stats-height,2.75rem))] z-40 border-b border-cipher-border/50 backdrop-blur-xl">
-    <div className="relative mx-auto flex min-h-10 max-w-7xl items-center justify-center px-4 pr-12 py-2 sm:px-12">
-      <Link href={displayed.href} className="text-center font-mono text-xs text-brand-gold hover:underline">{displayed.text} →</Link>
+    <div className="relative mx-auto flex min-h-12 max-w-7xl items-center justify-center px-4 pr-12 py-2.5 sm:px-12">
+      <Link href={displayed.href} className={pending ? 'group flex items-center gap-3' : 'text-center font-mono text-xs text-brand-gold hover:underline'}>
+        {pending ? <>
+          <span aria-hidden="true" className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-cipher-gold/20 bg-cipher-gold/10 text-cipher-gold">
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+          </span>
+          <span className="flex flex-col gap-0.5 sm:flex-row sm:items-center sm:gap-4">
+            <span className="text-sm font-medium text-primary group-hover:text-cipher-gold transition-colors">{displayed.text}</span>
+            <span className="text-xs text-secondary"><span className="tabular-nums">{(activationHeight - snapshot.height).toLocaleString('en-US')}</span> {activationHeight - snapshot.height === 1 ? 'block' : 'blocks'} to go</span>
+          </span>
+          <svg aria-hidden="true" className="h-4 w-4 shrink-0 text-cipher-gold transition-transform group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 12h14m-6-6 6 6-6 6" /></svg>
+        </> : <>{displayed.text} →</>}
+      </Link>
       <button aria-label={pending ? 'Dismiss NU7 activation countdown' : 'Dismiss governance announcement'} className="absolute right-3 flex h-8 w-8 items-center justify-center text-muted hover:text-primary" onClick={() => { dismissedKeys.current.add(displayed.key); try { sessionStorage.setItem(`governance:${displayed.key}`, '1'); } catch { /* In-memory fallback. */ } setDismissed(displayed.key); }}>×</button>
     </div>
   </div>;

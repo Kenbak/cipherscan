@@ -74,6 +74,13 @@ test('time is an observation-based estimate and follows announced spacing change
   assert.equal(estimateBlockArrival(snapshot, activation - 101), null);
 });
 
+test('announcement time is readable and explicitly approximate', () => {
+  assert.equal(helpers.formatUpgradeTime(86400 * 4.3), '4 days');
+  assert.equal(helpers.formatUpgradeTime(86400), '1 day');
+  assert.equal(helpers.formatUpgradeTime(3600 * 7.2), '7 hours');
+  assert.equal(helpers.formatUpgradeTime(45), '1 minute');
+});
+
 test('future activation server HTML has one meaningful H1, full height and seeded countdown', () => {
   const html = renderComponent('app/block/[height]/FutureBlockView.tsx', 'FutureBlockView', {
     targetHeight: activation, currentHeight: activation - 100, initialStats: stats(),
@@ -81,14 +88,14 @@ test('future activation server HTML has one meaningful H1, full height and seede
   assert.equal((html.match(/<h1/g) || []).length, 1);
   assert.match(html, /NU7 Activation.*4,465,026/);
   assert.match(html, /NU7 ACTIVATION/);
-  assert.match(html, /15m/);
+  assert.match(html, /About 15 minutes/);
   assert.match(html, /recent block times/);
-  assert.match(html, /Blocks Remaining/);
+  assert.match(html, /100<\/span> blocks/);
   const unavailable = renderComponent('app/block/[height]/FutureBlockView.tsx', 'FutureBlockView', {
     targetHeight: activation, currentHeight: activation - 100,
   }, stats(), 'Offline');
   assert.match(unavailable, /time estimate is paused/);
-  assert.match(unavailable, /Unavailable/);
+  assert.match(unavailable, /Time unavailable/);
   assert.match(unavailable, /NU7 ACTIVATION/);
 });
 
@@ -97,7 +104,7 @@ test('site banner has remaining blocks/time, disappears at activation and return
   for (const height of [activation - 100, activation - 1, activation - 2]) {
     const html = renderComponent(file, 'GovernanceBanner', {}, stats(height));
     assert.match(html, /NU7 activation countdown/);
-    assert.match(html, /blocks left.*est\./);
+    assert.match(html, /NU7 arrives in about .*blocks? to go/);
     assert.match(html, /href="\/block\/4465026"/);
   }
   for (const data of [stats(activation), stats(activation + 1), stats(3503108, 'main', null), null]) {
@@ -119,8 +126,8 @@ test('mined activation tag persists and orphan blocks never claim activation', (
   const reached = renderComponent('app/block/[height]/FutureBlockView.tsx', 'FutureBlockView', {
     targetHeight: activation, currentHeight: activation - 100,
   }, stats(activation));
-  assert.match(reached, /Chain Reached Block/);
-  assert.match(reached, /verify its canonical status/);
+  assert.match(reached, /Block #4,465,026 has been reached/);
+  assert.match(reached, /check the latest status/);
   assert.doesNotMatch(reached, /has activated/);
 });
 
