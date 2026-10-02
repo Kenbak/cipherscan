@@ -88,7 +88,7 @@ test('daily subsidy estimates adapt to observed 75-second and 25-second cadences
 });
 
 test('incomplete, lagging, or unusable cadence produces no fabricated timing estimate', async () => {
-  for (const rows of [[], blocks().slice(0, 1), blocks().slice(1), blocks().filter((_, i) => i !== 30), blocks(0), blocks(-25)]) {
+  for (const rows of [[], blocks().slice(0, 1), blocks(75, 3_499_987), blocks().filter((_, i) => i !== 30), blocks(0), blocks(-25)]) {
     const { body } = await request('/api/network/emission', { blockRows: rows });
     assert.equal(body.dailyEmissionEstimate, null);
     assert.equal(body.cadence, null);
@@ -138,4 +138,11 @@ test('halving route extrapolates observed cadence and caches for five minutes', 
   });
   assert.equal(body.estimatedSeconds, (4_406_400 - 3_500_000) * 25);
   assert.equal(stored[0][1], 300);
+});
+
+test('brief polling lag uses the complete indexed cadence window and discloses its height lag', async () => {
+ const { body } = await request('/api/network/emission', { blockRows: blocks(75, 3_499_995) });
+ assert.equal(body.dailyEmissionEstimate,1800);
+ assert.equal(body.cadence.endHeight,3499995);
+ assert.equal(body.cadence.lagBlocks,5);
 });

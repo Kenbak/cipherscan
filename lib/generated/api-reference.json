@@ -1591,7 +1591,7 @@
     ],
     "listKey": null,
     "zatoshiFields": [],
-    "note": "Supply history preserves observed decreases and gaps. circulatingZat and emissionZat are integer zatoshis; ZEC values are display conversions. Invalid or missing supply (including legacy zero sentinels) is null. supplyHistoryTable and supplyObservedAt identify the selected stored source and its latest timestamp; stored history is not live supply. The legacy dailyEmission array is signed net chain-supply change, not gross issuance; missing or nonconsecutive days have null changes. dailyEmissionEstimate extrapolates the current node subsidy at the observed recent block cadence and is null when those inputs are unavailable.",
+    "note": "Supply history preserves observed decreases and gaps. circulatingZat and emissionZat are integer zatoshis; ZEC values are display conversions. Invalid or missing supply (including legacy zero sentinels) is null. supplyHistoryTable and supplyObservedAt identify the selected stored source and its latest timestamp; stored history is not live supply. The legacy dailyEmission array is signed net chain-supply change, not gross issuance; missing or nonconsecutive days have null changes. dailyEmissionEstimate extrapolates the current node subsidy at the observed recent block cadence and is null when those inputs are unavailable. Complete cadence windows may end up to 12 indexed blocks behind the node; cadence.lagBlocks and endHeight disclose this lag, and larger backlogs remain unavailable. Optional projection starts at a height-tagged supply snapshot and adds exact scheduled subsidies using the node activation schedule; future removals and NSM reissuance are excluded. Projection dates extrapolate observed cadence across scheduled target-spacing eras, or use consensus target spacing when measured cadence is unavailable; dateBasis identifies the basis. Missing baseline or schedule yields null projection.",
     "ownershipToken": false,
     "pagination": null,
     "parameters": [
@@ -3097,14 +3097,14 @@
   {
     "method": "GET",
     "path": "/v1/network/fee-distribution",
-    "description": "Fee distribution histogram.",
+    "description": "Daily observed fee percentiles.",
     "category": "network",
     "query": [
       "period"
     ],
     "listKey": null,
     "zatoshiFields": [],
-    "note": null,
+    "note": "Positive-fee non-coinbase transactions; percentile amounts are zatoshis. All-time history uses canonical completed-day summaries. When summaries are missing or empty, returns a bounded 30-day range with requestedPeriod all, period 30d and historyStatus unavailable.",
     "ownershipToken": false,
     "pagination": null,
     "parameters": [

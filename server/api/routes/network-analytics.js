@@ -1,3 +1,4 @@
+const { supplyProjection } = require('../lib/issuance-projection');
 const { networkSchedule, targetSeconds, targetSpacing, halvingIndex, halvingHeight } = require('../lib/network-schedule');
 const { cachedHashrateHistory } = require('../lib/hashrate');
 const { logSafeError } = require('../lib/safe-log');
@@ -414,11 +415,12 @@ function registerNetworkAnalyticsRoutes(router) {
       const latest = supplyPoints.at(-1);
       const latestSupply = latest?.circulating ?? null;
       const currentHeight = Number(await callZebraRPC('getblockcount').catch(() => NaN));
-      const [subsidy, cadence] = Number.isSafeInteger(currentHeight) && currentHeight > 0
+      const [subsidy, cadence, chainInfo] = Number.isSafeInteger(currentHeight) && currentHeight > 0
         ? await Promise.all([
           callZebraRPC('getblocksubsidy', [currentHeight]).catch(() => null),
           observedBlockCadence(pool, currentHeight).catch(() => null),
-        ]) : [null, null];
+          callZebraRPC('getblockchaininfo').catch(() => null),
+        ]) : [null, null, null];
       const dailyEstimate = subsidyZat(subsidy?.totalblocksubsidy) !== null && cadence !== null
         ? subsidy.totalblocksubsidy * (86400 / cadence.intervalSeconds) : null;
       const observations = validCount(supplyPoints);
@@ -434,6 +436,7 @@ function registerNetworkAnalyticsRoutes(router) {
         dailyEmissionEstimate: dailyEstimate,
         cadence,
         supplyHistory: supplyPoints,
+        projection: supplyProjection({ schedule: networkSchedule(chainInfo), latest, currentHeight, cadence }),
         dailyEmission,
         dailyEmissionMeaning: 'net-chain-supply-change',
         hasChainSnapshots,

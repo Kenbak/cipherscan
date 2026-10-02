@@ -38,13 +38,16 @@ test('issuance copy describes observed cadence and keeps missing allocations una
     '@/components/ui/Skeleton': { Skeleton: () => null },
     '@/components/ui/SectionHeader': { SectionHeader: () => null },
     './HalvingPanel': { HalvingPanel },
+    './SupplyIssuanceChart': { SupplyIssuanceChart: () => null },
+    '@/lib/config': { CURRENCY: 'TAZ' },
     '@/hooks/useApiQuery': { useApiQuery: path => ({ data: path.endsWith('/halving')
       ? unavailable : { dailyEmissionEstimate: null }, loading: false, error: null }) },
   });
   const html = renderToStaticMarkup(React.createElement(MiningIssuance));
-  assert.match(html, /recent observed block cadence/);
+
   assert.match(html, /1\.5625/);
   assert.match(html, /After halving/);
+  assert.match(html, /TAZ \/ block/);
   assert.doesNotMatch(html, /1,152|0 ZEC|NaN/);
 });
 

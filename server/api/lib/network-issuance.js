@@ -52,9 +52,13 @@ async function observedBlockCadence(pool, currentHeight) {
     'SELECT height, timestamp FROM blocks WHERE height <= $1 ORDER BY height DESC LIMIT 121',
     [currentHeight],
   );
-  if (rows.length < 2 || Number(rows[0].height) !== currentHeight) return null;
+  const endHeight = Number(rows[0]?.height);
+  const lagBlocks = currentHeight - endHeight;
+  // A polling indexer can trail a rapidly advancing node. Use its latest
+  // complete window while the lag is bounded; never conceal a large backlog.
+  if (rows.length < 2 || !Number.isSafeInteger(endHeight) || lagBlocks < 0 || lagBlocks > 12) return null;
   for (let i = 0; i < rows.length; i++) {
-    if (supplyZat(rows[i].height) !== currentHeight - i || supplyZat(rows[i].timestamp) === null) return null;
+    if (supplyZat(rows[i].height) !== endHeight - i || supplyZat(rows[i].timestamp) === null) return null;
   }
   const first = rows[rows.length - 1];
   const elapsed = Number(rows[0].timestamp) - Number(first.timestamp);
@@ -62,7 +66,8 @@ async function observedBlockCadence(pool, currentHeight) {
   return {
     intervalSeconds: elapsed / (rows.length - 1),
     startHeight: Number(first.height),
-    endHeight: currentHeight,
+    endHeight,
+    lagBlocks,
     intervals: rows.length - 1,
     source: 'indexed-block-timestamps',
   };

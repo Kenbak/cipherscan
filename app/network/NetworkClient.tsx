@@ -9,6 +9,8 @@ import { PageHeader, SectionHeader } from '@/components/ui/SectionHeader';
 import { isCrosslink } from '@/lib/config';
 import type { HashrateSnapshot } from '@/lib/hashrate';
 import { blockAgeLabel, observationStatus } from '@/lib/network-overview';
+import type { HalvingInfo } from '@/components/network/HalvingPanel';
+import type { EmissionResponse } from '@/lib/issuance-curve';
 import { MiningIssuance } from '@/components/network/MiningIssuance';
 import { NetworkSectionNav } from '@/components/network/NetworkSectionNav';
 import { NetworkAccounting } from '@/components/network/NetworkAccounting';
@@ -89,6 +91,8 @@ export interface NetworkPageInitialData {
   nodeStats: NodeStatsResponse | null;
   recentBlocks: RecentBlocksResponse | null;
   feeDistribution: FeeDistributionResponse | null;
+  halving?: HalvingInfo | null;
+  emission?: EmissionResponse | null;
 }
 
 export default function NetworkClient({ initialData }: { initialData: NetworkPageInitialData }) {
@@ -180,7 +184,7 @@ export default function NetworkClient({ initialData }: { initialData: NetworkPag
         <BlockTimeChart />
         <NetworkAccounting />
       </section>}
-      <MiningIssuance />
+      <MiningIssuance initialHalving={initialData.halving} initialEmission={initialData.emission} initialFetchedAt={initialData.fetchedAt} />
       <Card className="network-detail-panel card-static">
         <details id="network-technical" className="network-section network-detail-disclosure" open={technicalOpen} onToggle={event => setTechnicalOpen(event.currentTarget.open)}>
           <summary className="network-detail-toggle">
