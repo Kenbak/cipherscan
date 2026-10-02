@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import {
   getBaseUrl,
   getApiUrl,
+  getNetwork,
   getBlockResolution,
   normalizeBlockIdentifier,
   type BlockRecord,
@@ -11,6 +12,8 @@ import { fetchWithDeadline } from '@/lib/server-fetch';
 import BlockPageClient, { type BlockPageSummary } from './BlockPageClient';
 import { FutureBlockView } from './FutureBlockView';
 import { retainLastGoodOrBuildFallback } from '@/lib/isr-fallback';
+import { getUpgradeStats } from '@/lib/network-upgrades-server';
+import { readUpgradeSnapshot, getBlockUpgrade } from '@/lib/network-upgrades';
 
 function blockDescription(block: BlockRecord, height: number, hash: string): string {
   const transactionCount = Number(
@@ -54,7 +57,21 @@ export default async function BlockPage({
     if (requestedHeight !== null && requestedHeight >= 0) {
       const tipHeight = await getCurrentTipHeight();
       if (requestedHeight > tipHeight) {
-        return <FutureBlockView targetHeight={requestedHeight} currentHeight={tipHeight} />;
+        const initialStats = await getUpgradeStats();
+        const upgrade = getBlockUpgrade(requestedHeight, getNetwork(), readUpgradeSnapshot(initialStats, getNetwork()));
+        const url = `${getBaseUrl()}/block/${requestedHeight}`;
+        const name = `${upgrade?.name ?? 'Future Zcash block'} #${requestedHeight.toLocaleString('en-US')}`;
+        const description = `${name} on Zcash ${getNetwork()}. This block is pending, ${Math.max(0, requestedHeight - tipHeight).toLocaleString('en-US')} blocks beyond the verified chain tip. ${upgrade?.description ?? 'Arrival time is an estimate.'}`;
+        const schema = {
+          '@context': 'https://schema.org', '@type': 'WebPage', '@id': `${url}#webpage`,
+          url, name, description, isPartOf: { '@id': `${getBaseUrl()}/#website` },
+          mainEntity: { '@type': 'Thing', '@id': `${url}#block`, url, name, description,
+            identifier: { '@type': 'PropertyValue', propertyID: 'Zcash block height', value: String(requestedHeight) } },
+        };
+        return <>
+          <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schema).replace(/</g, '\\u003c') }} />
+          <FutureBlockView targetHeight={requestedHeight} currentHeight={tipHeight} initialStats={initialStats} />
+        </>;
       }
     }
     notFound();

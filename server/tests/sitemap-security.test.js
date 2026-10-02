@@ -367,6 +367,8 @@ test('block metadata uses resolved canonical identity through the shared builder
   const metadataCalls = [];
   const blockHash = 'd'.repeat(64);
   const layoutModule = loadTypeScriptModule('app/block/[height]/layout.tsx', {
+    '@/lib/network-upgrades-server': { getUpgradeStats: async () => null },
+    '@/lib/network-upgrades': { readUpgradeSnapshot: () => null, getBlockUpgrade: () => null },
     '@/lib/isr-fallback': {
       retainLastGoodOrBuildFallback: (fallback) => fallback,
     },

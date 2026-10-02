@@ -15,6 +15,7 @@ function load(stats, { fail = false } = {}) {
     exports, Date,
     require(name) {
       if (name === 'react/jsx-runtime') return { jsx, jsxs: jsx, Fragment: 'fragment' };
+      if (name === '@/lib/network-upgrades') return { readUpgradeSnapshot: () => null };
       if (name === 'next/link') return { default: 'Link' };
       if (name === './NetworkClient') return { default: 'NetworkClient' };
       if (name === '@/components/RelativeTime') return { RelativeTimeProvider: 'RelativeTimeProvider' };

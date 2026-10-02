@@ -5,11 +5,14 @@ import {
   buildPageMetadata,
   formatNumber,
   getApiUrl,
+  getNetwork,
   getBlockResolution,
   truncateHash,
 } from '@/lib/seo';
 import { fetchWithDeadline } from '@/lib/server-fetch';
 import { retainLastGoodOrBuildFallback } from '@/lib/isr-fallback';
+import { getUpgradeStats } from '@/lib/network-upgrades-server';
+import { readUpgradeSnapshot, getBlockUpgrade } from '@/lib/network-upgrades';
 
 type Props = {
   params: Promise<{ height: string }>;
@@ -48,14 +51,16 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     if (/^\d+$/.test(height)) {
       const tipHeight = await getTipHeight();
       if (Number(height) > tipHeight) {
-        const title = `Zcash Block #${formatNumber(Number(height))} — Estimated Arrival | ZecBlock`;
-        const description = `Zcash block #${formatNumber(Number(height))} has not been mined yet. Estimated to arrive in approximately ${formatNumber(Number(height) - tipHeight)} blocks. Arrival time depends on network upgrades and mining variance.`;
+        const stats = await getUpgradeStats();
+        const upgrade = getBlockUpgrade(Number(height), getNetwork(), readUpgradeSnapshot(stats, getNetwork()));
+        const label = upgrade?.name === 'NU7 activation' ? `NU7 Activation on Zcash ${getNetwork()}` : 'Zcash Block';
+        const title = `${label} #${formatNumber(Number(height))} — Estimated Arrival | ZecBlock`;
+        const description = `${label} #${formatNumber(Number(height))} has not been mined yet. Approximately ${formatNumber(Number(height) - tipHeight)} blocks remain. Time estimates follow recent block times and the serving node’s schedule; mining variance can change arrival times.`;
         return buildPageMetadata({
           title,
           description,
-          path: `/block/${height}`,
+          path: `/block/${Number(height)}`,
           index: false,
-          canonical: false,
           imageAlt: title,
         });
       }

@@ -1,13 +1,20 @@
 import Link from 'next/link';
-import { NETWORK_UPGRADES } from '@/lib/config';
+import { NETWORK } from '@/lib/config';
+import { useApiQuery } from '@/hooks/useApiQuery';
+import { readUpgradeSnapshot, getBlockUpgrade } from '@/lib/network-upgrades';
 import { Badge } from '@/components/ui/Badge';
 import type { BlockData } from './types';
 
 export function NetworkUpgradeBanner({ data }: { data: BlockData }) {
-  const upgrade = NETWORK_UPGRADES[data.height];
+  const { data: stats, error } = useApiQuery<unknown>('/v1/network/stats', undefined, { enabled: NETWORK !== 'crosslink', refreshInterval: 30_000 });
+  const network = NETWORK === 'crosslink' ? 'crosslink-testnet' : NETWORK;
+  const snapshot = error ? null : readUpgradeSnapshot(stats, network);
+  const upgrade = getBlockUpgrade(data.height, network, snapshot);
   if (!upgrade) return null;
 
-  const badgeLabel = upgrade.badge || 'ACTIVATED';
+  const isNu7 = upgrade.name === 'NU7 activation';
+  const pending = isNu7 && snapshot !== null && snapshot.height < data.height;
+  const badgeLabel = data.isOrphaned ? 'ORPHANED' : pending ? 'SCHEDULED' : isNu7 ? 'ACTIVATED' : upgrade.badge || 'ACTIVATED';
   const linkLabel = upgrade.linkText || 'View migration tracker →';
 
   return (
@@ -24,10 +31,11 @@ export function NetworkUpgradeBanner({ data }: { data: BlockData }) {
           <div className="flex flex-wrap items-center gap-2 mb-1">
             <span className="text-sm font-semibold text-cipher-yellow-bright">{upgrade.name}</span>
             {upgrade.zip && <Badge color="amber">{upgrade.zip}</Badge>}
-            <Badge color="green">{badgeLabel}</Badge>
+            <Badge color={data.isOrphaned || pending ? 'amber' : 'green'}>{badgeLabel}</Badge>
           </div>
           <p className="text-xs sm:text-sm text-secondary leading-relaxed">
             {upgrade.description}
+            {isNu7 && data.isOrphaned && ' This block is orphaned; it is not the canonical activation block.'}
           </p>
           {upgrade.link && (
             <Link
