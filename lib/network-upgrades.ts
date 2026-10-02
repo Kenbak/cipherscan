@@ -36,8 +36,8 @@ export function getBlockUpgrade(height: number, network: AppNetwork, snapshot: U
     const label = network === 'testnet' ? 'testnet' : 'mainnet';
     return {
       name: 'NU7 activation', zip: '', badge: 'NU7 ACTIVATION',
-      description: `The serving node announces Zcash ${label} NU7 activation at block #${height.toLocaleString('en-US')}. Activation follows the canonical chain; the arrival time is an estimate.`,
-      link: '/network#network-accounting', linkText: 'View network upgrade details →',
+      description: `NU7 begins on Zcash ${label} at block #${height.toLocaleString('en-US')}. From that block, the target block time is 25 seconds.`,
+      link: '/network#network-accounting', linkText: 'Explore the upgrade →',
     };
   }
   // Historical milestone heights belong to their own network.
@@ -61,4 +61,12 @@ export function formatUpgradeDuration(seconds: number): string {
   if (seconds < 3600) return `${Math.floor(seconds / 60)}m`;
   if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ${Math.floor(seconds % 3600 / 60)}m`;
   return `${Math.floor(seconds / 86400)}d ${Math.floor(seconds % 86400 / 3600)}h`;
+}
+
+/** Approximate, readable timing for the small site announcement. */
+export function formatUpgradeTime(seconds: number): string {
+  const [value, unit] = seconds >= 86400 ? [Math.round(seconds / 86400), 'day']
+    : seconds >= 3600 ? [Math.round(seconds / 3600), 'hour']
+      : [Math.max(1, Math.round(seconds / 60)), 'minute'];
+  return `${value} ${unit}${value === 1 ? '' : 's'}`;
 }

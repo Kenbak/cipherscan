@@ -5,8 +5,7 @@ import { Card, CardBody } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { NETWORK } from '@/lib/config';
 import { useApiQuery } from '@/hooks/useApiQuery';
-import { scheduledSeconds } from '@/lib/block-timing';
-import { readUpgradeSnapshot, getBlockUpgrade, estimateBlockArrival, formatUpgradeDuration } from '@/lib/network-upgrades';
+import { readUpgradeSnapshot, getBlockUpgrade, estimateBlockArrival, formatUpgradeTime } from '@/lib/network-upgrades';
 
 export function FutureBlockView({
   targetHeight,
@@ -25,11 +24,9 @@ export function FutureBlockView({
   const lastVerifiedSnapshot = readUpgradeSnapshot(data, network);
   const snapshot = error ? null : lastVerifiedSnapshot;
   const currentHeight = lastVerifiedSnapshot?.height ?? initialCurrentHeight;
-  const schedule = snapshot?.schedule ?? null;
   const upgrade = getBlockUpgrade(targetHeight, network, lastVerifiedSnapshot);
   const blocksRemaining = Math.max(0, targetHeight - currentHeight);
   const estimate = estimateBlockArrival(snapshot, targetHeight);
-  const progress = currentHeight / targetHeight;
 
   // If the block has been mined while we're on this page, link to it
   if (blocksRemaining <= 0 && !error) {
@@ -38,15 +35,15 @@ export function FutureBlockView({
         <Card>
           <CardBody className="text-center py-16">
             <h1 className="type-page font-mono text-primary mb-3">
-              Chain Reached Block #{targetHeight.toLocaleString()}
+              Block #{targetHeight.toLocaleString()} has been reached
             </h1>
             {upgrade ? (
               <p className="text-secondary mb-6">
-                <span className="text-cipher-yellow-bright font-semibold">{upgrade.name}</span> reached its scheduled height. Open the block to verify its canonical status.
+                <span className="text-cipher-yellow-bright font-semibold">{upgrade.name}</span> has reached its scheduled block. Open it to check the latest status.
               </p>
             ) : (
               <p className="text-secondary mb-6">
-                The latest chain height reached this block. Open it to view its current status.
+                The network has reached this block. Open it to see the details.
               </p>
             )}
             <div className="flex flex-wrap items-center justify-center gap-3">
@@ -75,7 +72,7 @@ export function FutureBlockView({
     <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 animate-fade-in">
       {/* Header */}
       <div className="mb-6">
-        <span className="text-caption font-mono text-muted tracking-wider">&gt; FUTURE_BLOCK</span>
+        <span className="text-caption font-mono text-muted tracking-wider">{upgrade ? 'Network upgrade' : 'Upcoming block'} · Zcash {NETWORK === 'testnet' ? 'testnet' : NETWORK === 'crosslink' ? 'Crosslink testnet' : 'mainnet'}</span>
         <div className="flex flex-wrap items-center gap-3 mt-1">
           <h1 className="type-page font-mono text-primary">
             {upgrade?.name === 'NU7 activation' ? 'NU7 Activation' : 'Zcash Block'} #{targetHeight.toLocaleString('en-US')}
@@ -87,7 +84,7 @@ export function FutureBlockView({
           )}
         </div>
         <p className="mt-3 text-xs sm:text-sm text-secondary">
-          {error ? 'Live block status is temporarily unavailable.' : 'This block has not been mined yet.'} {estimate ? `Estimated arrival uses ${estimate.basis} and the serving node’s announced spacing changes.` : 'Arrival estimates are currently unavailable.'}
+          {error ? 'We’re having trouble getting the latest block.' : upgrade ? 'Follow the countdown to the next network upgrade.' : 'This block is still ahead. Follow its progress below.'}
         </p>
       </div>
 
@@ -113,7 +110,7 @@ export function FutureBlockView({
               {upgrade.link && (
                 <Link
                   href={upgrade.link}
-                  className="inline-flex items-center gap-1.5 mt-3 text-xs font-mono text-cipher-yellow-bright hover:text-cipher-ironwood transition-colors"
+                  className="inline-flex items-center gap-1.5 mt-3 text-sm font-medium text-cipher-yellow-bright hover:text-cipher-ironwood transition-colors"
                 >
                   {upgrade.linkText || 'Migration tracker →'}
                 </Link>
@@ -123,103 +120,33 @@ export function FutureBlockView({
         </div>
       )}
 
-      {error && <p role="status" className="mb-4 text-sm text-muted">Live network data is unavailable. The block count shows the last verified network snapshot; the time estimate is paused.</p>}
+      {error && <p role="status" className="mb-4 text-sm text-muted">We can’t update the countdown right now. The block count is from our last update, and the time estimate is paused.</p>}
 
-      {/* Countdown Card */}
       <Card className="mb-6">
-        <CardBody>
-          <div className="text-center py-6">
-            {/* Big countdown */}
-            <div className="font-mono text-4xl sm:text-5xl font-semibold text-primary mb-2 tabular-nums">
-              {estimate === null ? 'Unavailable' : formatUpgradeDuration(estimate.seconds)}
+        <CardBody className="!p-6 sm:!p-8">
+          <div className="text-center py-4 sm:py-6">
+            <p className="text-sm text-secondary mb-3">{upgrade ? `${upgrade.name === 'NU7 activation' ? 'NU7' : upgrade.name} arrives in` : 'This block is expected in'}</p>
+            <div className="text-4xl sm:text-5xl font-semibold tracking-tight text-primary tabular-nums">
+              {estimate === null ? 'Time unavailable' : `About ${formatUpgradeTime(estimate.seconds)}`}
             </div>
-            <div className="text-sm text-muted font-mono">estimated time remaining</div>
-
-            {/* Estimated date */}
-            <div className="mt-6 pt-6 border-t border-cipher-border">
-              <div className="text-xs text-muted uppercase tracking-wider mb-1">Estimate basis</div>
-              <div className="font-mono text-sm text-secondary">
-                {estimate === null ? 'Waiting for a verified network schedule' : `Based on ${estimate.basis}; refreshed every 30 seconds`}
-              </div>
-            </div>
+            <p className="mt-3 text-sm text-secondary"><span className="font-medium text-primary tabular-nums">{blocksRemaining.toLocaleString('en-US')}</span> {blocksRemaining === 1 ? 'block' : 'blocks'} to go</p>
           </div>
+          <dl className="mt-6 grid grid-cols-1 gap-5 border-t border-cipher-border pt-6 sm:grid-cols-2 sm:gap-8">
+            <div>
+              <dt className="text-sm text-secondary mb-2">Latest block</dt>
+              <dd className="font-mono text-primary tabular-nums"><Link href={`/block/${currentHeight}`} className="hover:text-cipher-gold transition-colors">#{currentHeight.toLocaleString('en-US')}</Link></dd>
+            </div>
+            <div>
+              <dt className="text-sm text-secondary mb-2">{upgrade ? 'Activation block' : 'Upcoming block'}</dt>
+              <dd className="font-mono text-primary tabular-nums">#{targetHeight.toLocaleString('en-US')}</dd>
+            </div>
+          </dl>
         </CardBody>
       </Card>
-
-      {/* Details Card */}
-      <Card className="mb-6">
-        <CardBody className="space-y-0">
-          <div className="flex flex-col sm:flex-row sm:items-center py-3 border-b border-cipher-border gap-2 sm:gap-0">
-            <div className="flex items-center min-w-[180px] text-secondary text-xs sm:text-sm">
-              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-              </svg>
-              Current Height
-            </div>
-            <div className="flex-1 font-mono text-xs sm:text-sm text-primary">
-              <Link href={`/block/${currentHeight}`} className="text-cipher-gold hover:underline">
-                #{currentHeight.toLocaleString()}
-              </Link>
-            </div>
-          </div>
-
-          <div className="flex flex-col sm:flex-row sm:items-center py-3 border-b border-cipher-border gap-2 sm:gap-0">
-            <div className="flex items-center min-w-[180px] text-secondary text-xs sm:text-sm">
-              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-              </svg>
-              Target Height
-            </div>
-            <div className="flex-1 font-mono text-xs sm:text-sm text-primary font-semibold">
-              #{targetHeight.toLocaleString()}
-            </div>
-          </div>
-
-          <div className="flex flex-col sm:flex-row sm:items-center py-3 border-b border-cipher-border gap-2 sm:gap-0">
-            <div className="flex items-center min-w-[180px] text-secondary text-xs sm:text-sm">
-              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-              </svg>
-              Blocks Remaining
-            </div>
-            <div className="flex-1 font-mono text-xs sm:text-sm text-primary">
-              {blocksRemaining.toLocaleString()}
-            </div>
-          </div>
-
-          <div className="flex flex-col sm:flex-row sm:items-center py-3 gap-2 sm:gap-0">
-            <div className="flex items-center min-w-[180px] text-secondary text-xs sm:text-sm">
-              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              Block Interval
-            </div>
-            <div className="flex-1 font-mono text-xs sm:text-sm text-muted">
-              {scheduledSeconds(schedule, currentHeight, currentHeight + 1) != null ? `${scheduledSeconds(schedule, currentHeight, currentHeight + 1)} seconds (target)` : 'Unavailable'}
-            </div>
-          </div>
-
-          {/* Progress bar */}
-          <div className="pt-4 mt-4 border-t border-cipher-border">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-caption font-mono text-muted uppercase tracking-wider">Chain progress</span>
-              <span className="text-caption font-mono text-secondary">{(progress * 100).toFixed(4)}%</span>
-            </div>
-            <div className="h-1.5 rounded-full bg-cipher-border overflow-hidden">
-              <div
-                className="h-full rounded-full bg-gradient-to-r from-cipher-gold to-cipher-purple transition-[width] duration-1000"
-                style={{ width: `${Math.min(progress * 100, 100)}%` }}
-              />
-            </div>
-          </div>
-        </CardBody>
-      </Card>
-
-      {/* Disclaimer */}
-      <div className="text-center text-xs text-muted font-mono space-y-1">
-        <p>The block count determines activation. Days and hours are estimates; mining variance and unscheduled upgrades can change arrival times.</p>
-        <p>Actual times vary due to mining difficulty adjustments and hash rate fluctuations.</p>
-      </div>
+      <p className="text-center text-xs sm:text-sm text-muted leading-relaxed">
+        {estimate ? `Timing is based on ${estimate.basis} and updates every 30 seconds. ` : ''}
+        {upgrade ? 'The upgrade starts at its activation block. ' : ''}The arrival time may change as blocks are mined.
+      </p>
     </div>
   );
 }
