@@ -13902,7 +13902,7 @@
     "/v1/network/fee-distribution": {
       "get": {
         "operationId": "get_network_Fee-distribution",
-        "summary": "Fee distribution histogram.",
+        "summary": "Daily observed fee percentiles.",
         "tags": [
           "network"
         ],
@@ -13923,7 +13923,7 @@
         "x-cipherscan-v1-status": "adapter",
         "responses": {
           "200": {
-            "description": "Fee distribution histogram.",
+            "description": "Daily observed fee percentiles.",
             "content": {
               "application/json": {
                 "schema": {

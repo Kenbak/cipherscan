@@ -1,4 +1,5 @@
 'use client';
+import { CURRENCY } from '@/lib/config';
 import { formatDateLabelUTC } from '@/lib/utils';
 import { CHART_DATE_AXIS } from '@/lib/chart-theme';
 import { ChartWatermark } from '@/components/ChartWatermark';
@@ -17,12 +18,12 @@ import { SectionHeader } from '@/components/ui/SectionHeader';
 const PERIODS = ['7d', '30d', '90d', '1y', 'all'] as const;
 type Period = typeof PERIODS[number];
 export interface DayFees { date: string; p10: number; p25: number; median: number; p75: number; p90: number; avgFee: number; txCount: number }
-export interface FeeDistributionResponse { daily: DayFees[] }
+export interface FeeDistributionResponse { daily: DayFees[]; period?: string; historyStatus?: string }
 
 export function FeeDistributionChart({ initialData, initialFetchedAt }: { initialFetchedAt?: number; initialData?: FeeDistributionResponse | null }) {
   const { theme } = useTheme();
   const colors = getChartColors(theme);
-  const [period, setPeriod] = useState<Period>('all');
+  const [period, setPeriod] = useState<Period>('30d');
   const { data, loading, error, isRefreshing } = useApiQuery<FeeDistributionResponse>('/v1/network/fee-distribution', { period }, {
     initialFetchedAt,
     initialData: period === '30d' ? initialData ?? undefined : undefined, refreshInterval: 300_000,
@@ -42,14 +43,15 @@ export function FeeDistributionChart({ initialData, initialFetchedAt }: { initia
           <YAxis width={56} tickCount={4} tickFormatter={v => Number(v).toLocaleString(undefined, { maximumFractionDigits: 2 })} tick={{ fill: colors.axis, fontSize: 12 }} tickLine={false} axisLine={false} domain={[0, 'auto']} />
           <Tooltip labelFormatter={label => new Date(String(label)).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'UTC' })}
             contentStyle={{ background: colors.tooltipBg, border: `1px solid ${colors.tooltipBorder}`, color: colors.tooltipText, fontSize: 12 }}
-            formatter={(value, name) => [Array.isArray(value) ? `${value.map(v => Number(v).toFixed(3)).join('–')} mZEC` : `${Number(value).toFixed(3)} mZEC`, name]} />
+            formatter={(value, name) => [Array.isArray(value) ? `${value.map(v => Number(v).toFixed(3)).join('–')} m${CURRENCY}` : `${Number(value).toFixed(3)} m${CURRENCY}`, name]} />
           <Area type="linear" dataKey="range" name="P10–P90" stroke="none" fill={colors.transparent} fillOpacity={0.22} connectNulls={false} isAnimationActive={false} />
           <Line type="linear" dataKey="median" name="Median" stroke={colors.gold} strokeWidth={2} dot={points.length === 1} connectNulls={false} isAnimationActive={false} />
         </ComposedChart>
       </ResponsiveContainer><ChartWatermark /></>
       <div className="flex flex-wrap gap-x-4 gap-y-1 text-caption text-muted mt-2"><span><span aria-hidden="true" className="inline-block w-3 h-0.5 bg-cipher-gold align-middle mr-1.5" />Median</span><span><span aria-hidden="true" className="inline-block w-3 h-2 bg-muted/30 align-middle mr-1.5" />P10–P90</span></div>
-      <p className="text-caption text-muted mt-2">mZEC · 1 mZEC = 0.001 ZEC{last ? ` · latest day ${dateLabel(last.date)}` : ''}</p>
+      <p className="text-caption text-muted mt-2">m{CURRENCY} · 1 m{CURRENCY} = 0.001 {CURRENCY}{last ? ` · latest day ${dateLabel(last.date)}` : ''}</p>
     </>}
+    {data?.historyStatus === 'unavailable' && <p className="text-caption text-muted mt-3">All-time history is unavailable. Showing the last 30 days.</p>}
     {isRefreshing && <p role="status" className="text-caption text-muted mt-3">Updating range; previous observations remain visible.</p>}
     {error && <p role="status" className="text-caption text-warning mt-3">Fee history could not refresh. Last received observations are shown when available.</p>}
   </CardBody></Card>;

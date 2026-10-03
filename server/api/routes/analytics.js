@@ -184,15 +184,18 @@ router.get('/api/network/fee-distribution', async (req, res) => {
     const redisClient = req.app.locals.redisClient;
     const period = req.query.period || '30d';
 
-    const cacheKey = `analytics:fee-dist:${period}`;
+    const cacheKey = `analytics:fee-dist:v2:${period}`;
     const cached = await getCached(redisClient, cacheKey);
     if (cached) return res.json(cached);
 
-    if (period === 'all') {
+    const historyAvailable = period === 'all' && (await pool.query("SELECT to_regclass('public.analytics_history_daily') IS NOT NULL AS available")).rows[0]?.available;
+    if (historyAvailable) {
       const { rows } = await pool.query("SELECT a.date::text AS date, a.fees FROM analytics_history_daily a JOIN blocks b ON b.height=a.anchor_height AND b.hash=a.anchor_hash ORDER BY a.date");
       const response = { period, daily: rows.map(r=>({date:r.date,p10:r.fees.p10,p25:r.fees.p25,median:r.fees.median,p75:r.fees.p75,p90:r.fees.p90,avgFee:r.fees.avgFee,txCount:r.fees.txCount})), method: 'completed_utc_days_positive_fees' };
-      await setCache(redisClient, cacheKey, response);
-      return res.json(response);
+      if (response.daily.length) {
+        await setCache(redisClient, cacheKey, response);
+        return res.json(response);
+      }
     }
     const days = period === '7d' ? 7 : period === '90d' ? 90 : period === '1y' ? 365 : 30;
     const cutoff = Math.floor(Date.now() / 1000) - (days * 86400);
@@ -224,7 +227,9 @@ router.get('/api/network/fee-distribution', async (req, res) => {
       txCount: parseInt(row.tx_count),
     }));
 
-    const response = { period, daily: data, updatedAt: new Date().toISOString() };
+    const response = { period: period === 'all' ? '30d' : period, requestedPeriod: period,
+      ...(period === 'all' ? { historyStatus: 'unavailable' } : {}),
+      daily: data, updatedAt: new Date().toISOString() };
     await setCache(redisClient, cacheKey, response);
     res.json(response);
   } catch (error) {
