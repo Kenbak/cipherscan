@@ -12,6 +12,7 @@ FROM ${NODE_IMAGE} AS deps
 WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
 COPY package.json package-lock.json ./
+COPY vendor/braces ./vendor/braces
 RUN npm ci --no-audit --no-fund
 
 # ---------------------------------------------------------------------------

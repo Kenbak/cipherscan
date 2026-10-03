@@ -1,0 +1,15 @@
+[Unit]
+Description=Archive completed canonical daily chain supply
+After=network-online.target postgresql.service
+[Service]
+Type=oneshot
+WorkingDirectory=/root/cipherscan
+Environment=NODE_PATH=/root/cipherscan/server/api/node_modules
+ExecStart=/usr/bin/node server/jobs/archive-chain-supply.js
+TimeoutStartSec=600
+Nice=15
+IOSchedulingClass=idle
+CPUWeight=10
+IOWeight=10
+MemoryMax=512M
+UMask=0077

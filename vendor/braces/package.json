@@ -1,0 +1,13 @@
+{
+  "name": "@zecblock/braces",
+  "version": "3.0.3-zecblock.1",
+  "description": "Braces 3.0.3 with reviewed bounded-recursion security patch",
+  "private": true,
+  "main": "index.js",
+  "license": "MIT",
+  "dependencies": {
+    "fill-range": "^7.1.1"
+  },
+  "upstreamCommit": "d0d575e55e74a4e0218e5248fafb79efc3e54ebb",
+  "upstreamPatch": "https://github.com/micromatch/braces/pull/72"
+}

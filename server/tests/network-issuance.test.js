@@ -7,17 +7,20 @@ function blocks(spacing = 75, height = 3_500_000) {
   return Array.from({ length: 121 }, (_, index) => ({ height: height - index, timestamp: 1_800_000_000 - index * spacing }));
 }
 
-async function request(path, { snapshots = null, trends = [], blockRows = blocks(), subsidy = 1.5625, redisClient = null, rpc } = {}) {
+async function request(path, { snapshots = null, trends = [], archive = null, archiveCanonical = true, blockRows = blocks(), subsidy = 1.5625, redisClient = null, rpc } = {}) {
   const routes = new Map();
   registerNetworkAnalyticsRoutes({ get: (path, handler) => routes.set(path, handler) });
-  const pool = { async query(sql) {
-    if (sql.includes('information_schema.tables')) return { rows: snapshots === null ? [] : [{}] };
+  const pool = { async query(sql, params) {
+    if (sql.includes('information_schema.tables')) return { rows: (params[0] === 'chain_supply_daily' ? archive === null : snapshots === null) ? [] : [{}] };
+    if (sql.includes('FROM chain_supply_archive_state')) return { rows: [{ verified_height: '3500000', verified_hash: 'a'.repeat(64) }] };
+    if (sql.includes('FROM chain_supply_daily')) return { rows: archive };
     if (sql.includes('FROM chain_snapshots')) return { rows: snapshots };
     if (sql.includes('FROM privacy_trends_daily')) return { rows: trends };
     if (sql.includes('SELECT height, timestamp FROM blocks')) return { rows: blockRows };
     throw new Error(`Unexpected SQL: ${sql}`);
   } };
   const callZebraRPC = rpc || (async (method, params) => {
+    if (method === 'getblockhash') return (archiveCanonical ? 'a' : 'b').repeat(64);
     if (method === 'getblockcount') return 3_500_000;
     if (method === 'getblockchaininfo') return { chain: 'main', blocks: 3_500_000, upgrades: { b: { name: 'Blossom', activationheight: 653600 } } };
     assert.equal(method, 'getblocksubsidy');
@@ -145,4 +148,35 @@ test('brief polling lag uses the complete indexed cadence window and discloses i
  assert.equal(body.dailyEmissionEstimate,1800);
  assert.equal(body.cadence.endHeight,3499995);
  assert.equal(body.cadence.lagBlocks,5);
+});
+
+
+test('permanent canonical history fills earlier dates and snapshot gaps without changing today', async () => {
+  const { body } = await request('/api/network/emission', {
+    archive: [
+      { date: '2016-10-28', block_height: '0', chain_supply_zat: '0' },
+      { date: '2026-09-02', block_height: '3499998', chain_supply_zat: '1699999999999999' },
+      { date: '2026-09-03', block_height: '3499999', chain_supply_zat: '1699999999999999' },
+    ], snapshots: [
+      { snapshot_time: '2026-09-01T23:00:00Z', block_height: '3499997', chain_supply_zat: '1700000000000000' },
+      { snapshot_time: '2026-09-04T10:00:00Z', block_height: '3500000', chain_supply_zat: '1700000000000001' },
+    ],
+  });
+  assert.equal(body.supplyHistory[0].circulating, 0);
+  assert.equal(body.supplyHistory.length, 5);
+  assert.equal(body.supplyHistory[2].height, 3499998);
+  assert.equal(body.circulatingZat, 1700000000000001);
+  assert.equal(body.supplyObservedAt, '2026-09-04T10:00:00Z');
+  assert.equal(body.supplyHistoryTable, 'chain_supply_daily+chain_snapshots');
+});
+
+
+test('a changed node ancestry checkpoint excludes the archive instead of showing orphan supply', async () => {
+  const { body } = await request('/api/network/emission', {
+    archiveCanonical: false,
+    archive: [{ date: '2016-10-28', block_height: '0', chain_supply_zat: '0' }],
+    snapshots: [{ snapshot_time: '2026-09-04T10:00:00Z', block_height: '3500000', chain_supply_zat: '1700000000000001' }],
+  });
+  assert.equal(body.supplyHistory.length, 1);
+  assert.equal(body.supplyHistoryTable, 'chain_snapshots');
 });
