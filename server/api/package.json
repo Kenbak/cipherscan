@@ -5,7 +5,7 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "nodemon server.js",
+    "dev": "node --watch server.js",
     "test": "node --test test/*.test.js",
     "test:v1": "node --test test/v1/*.test.js",
     "test:redis": "node -e \"if (!process.env.TEST_REDIS_URL) throw new Error('TEST_REDIS_URL is required')\" && node --test test/list-cache.redis.test.js",
@@ -36,8 +36,7 @@
     "zod": "^4.5.4"
   },
   "devDependencies": {
-    "js-yaml": "^5.4.1",
-    "nodemon": "^3.0.2"
+    "js-yaml": "^5.4.1"
   },
   "overrides": {
     "brace-expansion": ">=5.0.9",

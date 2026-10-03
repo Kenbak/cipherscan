@@ -31,6 +31,7 @@ export default defineConfig([
   globalIgnores([
     '.next/**',
     'server/vendor/**',
+    'vendor/**',
     '.netlify/**',
     '.vercel/**',
     'coverage/**',
