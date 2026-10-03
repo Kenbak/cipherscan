@@ -2,7 +2,7 @@ const { supplyProjection } = require('../lib/issuance-projection');
 const { networkSchedule, targetSeconds, targetSpacing, halvingIndex, halvingHeight } = require('../lib/network-schedule');
 const { cachedHashrateHistory } = require('../lib/hashrate');
 const { logSafeError } = require('../lib/safe-log');
-const { subsidyZat, supplyZat, supplyHistory, dailyNetSupplyChanges, observedBlockCadence } = require('../lib/network-issuance');
+const { subsidyZat, supplyZat, supplyHistory, mergedSupplyHistory, dailyNetSupplyChanges, observedBlockCadence } = require('../lib/network-issuance');
 /**
  * Network analytics routes — halving, mining history, pool trends, emission, chain size.
  * Requires chain_snapshots table for size history (see docs/network-analytics-setup.md).
@@ -375,7 +375,7 @@ function registerNetworkAnalyticsRoutes(router) {
     try {
       const pool = req.app.locals.pool;
       const callZebraRPC = req.app.locals.callZebraRPC;
-      const period = req.query.period || '1y';
+      const period = req.query.period || 'all';
       const interval = periodToInterval(period);
 
       let supplyPoints = [];
@@ -395,7 +395,7 @@ function registerNetworkAnalyticsRoutes(router) {
       const trends = await pool.query(
         `SELECT date::text AS date, pool_size, chain_supply
          FROM privacy_trends_daily
-         WHERE date >= CURRENT_DATE - INTERVAL '${interval}'
+         WHERE ${period === 'all' ? 'TRUE' : `date >= CURRENT_DATE - INTERVAL '${interval}'`}
          ORDER BY date ASC`
       );
 
@@ -406,6 +406,23 @@ function registerNetworkAnalyticsRoutes(router) {
         if (validCount(fromTrends) > validCount(supplyPoints)) {
           supplyPoints = fromTrends;
           supplyHistoryTable = 'privacy_trends_daily';
+        }
+      }
+
+      if (await tableExists(pool, 'chain_supply_daily')) {
+        const state = (await pool.query('SELECT verified_height,verified_hash FROM chain_supply_archive_state WHERE id=true')).rows[0];
+        const canonical = state && await callZebraRPC('getblockhash', [Number(state.verified_height)]).catch(() => null) === state.verified_hash;
+        const archive = canonical ? await pool.query(
+          `SELECT a.date::text AS date,a.block_height,a.chain_supply_zat
+           FROM chain_supply_daily a
+           WHERE a.date < (NOW() AT TIME ZONE 'UTC')::date
+             AND ${period === 'all' ? 'TRUE' : `a.date >= (NOW() AT TIME ZONE 'UTC')::date - INTERVAL '${interval}'`}
+           ORDER BY a.date ASC`
+        ) : { rows: [] };
+        if (archive.rows.length) {
+          const recentSource = supplyPoints.length ? supplyHistoryTable : null;
+          supplyPoints = mergedSupplyHistory(archive.rows, supplyPoints);
+          supplyHistoryTable = recentSource ? `chain_supply_daily+${recentSource}` : 'chain_supply_daily';
         }
       }
 

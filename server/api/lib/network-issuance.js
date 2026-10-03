@@ -33,6 +33,25 @@ function supplyHistory(rows, source) {
     .sort((a, b) => new Date(a.date) - new Date(b.date));
 }
 
+/** Permanent archives represent completed UTC days; snapshots cover newer days. */
+function mergedSupplyHistory(archive, snapshots) {
+  const days = new Map();
+  for (const point of snapshots) {
+    const date = new Date(point.date).toISOString().slice(0, 10);
+    const previous = days.get(date);
+    if (!previous || new Date(point.date) >= new Date(previous.date)) days.set(date, point);
+  }
+  for (const row of archive) {
+    const zat = supplyZat(row.chain_supply_zat);
+    if (zat === null || (zat === 0 && Number(row.block_height) !== 0)) continue;
+    days.set(String(row.date), {
+      date: `${row.date}T23:59:59.000Z`, circulating: zat / ZAT_PER_ZEC,
+      circulatingZat: zat, height: Number(row.block_height),
+    });
+  }
+  return [...days.values()].sort((a, b) => new Date(a.date) - new Date(b.date));
+}
+
 /** Daily net supply movement is not gross issuance. Do not bridge missing days. */
 function dailyNetSupplyChanges(rows) {
   const points = supplyHistory(rows, 'privacy_trends_daily');
@@ -73,4 +92,4 @@ async function observedBlockCadence(pool, currentHeight) {
   };
 }
 
-module.exports = { ZAT_PER_ZEC, supplyZat, subsidyZat, supplyHistory, dailyNetSupplyChanges, observedBlockCadence };
+module.exports = { mergedSupplyHistory, ZAT_PER_ZEC, supplyZat, subsidyZat, supplyHistory, dailyNetSupplyChanges, observedBlockCadence };
