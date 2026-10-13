@@ -136,7 +136,7 @@ export default async function Home() {
                 ? 'Explore the Zcash Crosslink hybrid PoW/PoS feature net. Track finality, staking windows, validators, and blocks in real time.'
                 : isTestnet
                   ? 'Search TAZ blocks, transactions, and addresses on the Zcash testnet. Monitor pending transactions and network activity before using mainnet.'
-                  : 'Inspect the Zcash network. Blocks, transactions and shielded pools.'}
+                  : 'Explore Zcash with ZecBlock. Search blocks, transactions and addresses, and understand shielded pools.'}
             </p>
           </div>
 

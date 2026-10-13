@@ -6,11 +6,11 @@ const ts = require('typescript');
 const React = require('react');
 const { renderToStaticMarkup } = require('react-dom/server');
 
-function load(file, dependencies) {
+function load(file, dependencies, env = {}) {
   const exports = {};
   vm.runInNewContext(ts.transpileModule(fs.readFileSync(file, 'utf8'), {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX, esModuleInterop: true },
-  }).outputText, { exports, AbortSignal, console, process: { env: {} }, require(name) {
+  }).outputText, { exports, AbortSignal, console, process: { env }, require(name) {
     if (name in dependencies) return dependencies[name];
     if (name === 'react/jsx-runtime') return require(name);
     throw new Error(`Unexpected dependency ${name}`);
@@ -20,6 +20,54 @@ function load(file, dependencies) {
 const registration = { name: 'sacrebleu', address: 'u1full-public-resolution', txid: 'a'.repeat(64), height: 3500000, nonce: 1, signature: null, lastAction: 'CLAIM', listing: null };
 const initialData = { state: 'registered', registration, events: null };
 const container = ({ children }) => React.createElement('div', null, children);
+
+test('frontend and API name reads use the published registry for each network and preserve independent overrides', async t => {
+  const { NETWORKS } = require('zcashname-sdk');
+  const { loadV1Config } = require('../api/v1/config');
+  const overrides = {
+    ZNS_MAINNET_URL: 'https://mainnet-registry.example/rpc',
+    ZNS_TESTNET_URL: 'https://testnet-registry.example/rpc',
+  };
+
+  for (const network of ['mainnet', 'testnet', 'crosslink-testnet']) {
+    const registryNetwork = network === 'crosslink-testnet' ? 'testnet' : network;
+    for (const env of [{}, overrides]) {
+      await t.test(`${network}: ${env === overrides ? 'override' : 'published default'}`, async () => {
+        const requests = [];
+        let clientOptions;
+        const zns = load('lib/zns.ts', {
+          'zcashname-sdk': { ZNS: class { constructor(options) { clientOptions = options; } } },
+          './api-config': { NETWORK: network },
+          './api-client': {},
+          './zns-rpc': { callZnsRpc: async (...args) => { requests.push(args); return registration; } },
+          './name-validation': load('lib/name-validation.ts', {}),
+        }, env);
+        const expectedUrl = env[`ZNS_${registryNetwork.toUpperCase()}_URL`] || NETWORKS[registryNetwork].url;
+        const signal = new AbortController().signal;
+
+        assert.equal((await zns.resolveZnsName(registration.name, signal)).address, registration.address);
+        assert.equal(requests[0][0], expectedUrl);
+        assert.equal(requests[0][1], 'resolve');
+        assert.equal(requests[0][2].query, registration.name);
+        assert.equal(requests[0][3], signal, 'registry reads retain their caller deadline');
+        const firstClient = zns.getClient();
+        assert.equal(zns.getClient(), firstClient, 'the configured client remains a singleton');
+        assert.equal(clientOptions.url, expectedUrl);
+        assert.equal(clientOptions.network, registryNetwork, 'Crosslink names remain in the testnet namespace');
+
+        for (const networkKey of ['NEXT_PUBLIC_NETWORK', 'ZCASH_NETWORK', 'NETWORK']) {
+          const config = loadV1Config({ ...env, [networkKey]: network });
+          assert.equal(config.znsUrl, expectedUrl, `${networkKey} must select the same registry as SSR`);
+          assert.equal(config.network, network, 'API network identity remains distinct from the shared registry');
+        }
+      });
+    }
+  }
+
+  assert.equal(loadV1Config({}).znsUrl, NETWORKS.testnet.url, 'the existing unconfigured API default remains testnet');
+  assert.equal(loadV1Config({ NEXT_PUBLIC_NETWORK: 'testnet', NETWORK: 'mainnet' }).znsUrl, NETWORKS.testnet.url, 'explicit frontend network retains precedence');
+});
+
 function client(react = React, refresh = {}) {
   return load('app/name/[name]/NameClient.tsx', {
     react,

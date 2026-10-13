@@ -82,7 +82,7 @@ export default function TermsPage() {
           <h2 className="text-lg font-semibold text-primary mb-3">6. Intellectual Property</h2>
           <p>
             ZecBlock is open-source software. The source code is available on{' '}
-            <a href="https://github.com/Kenbak/cipherscan" target="_blank" rel="noopener noreferrer" className="legal-link">
+            <a href="https://github.com/Kenbak/zecblock" target="_blank" rel="noopener noreferrer" className="legal-link">
               GitHub
             </a>{' '}
             under its respective license. The ZecBlock name, logo, and branding are trademarks of Atmosphere Labs.
@@ -123,7 +123,7 @@ export default function TermsPage() {
               X / Twitter
             </a>{' '}
             or open an issue on{' '}
-            <a href="https://github.com/Kenbak/cipherscan" target="_blank" rel="noopener noreferrer" className="legal-link">
+            <a href="https://github.com/Kenbak/zecblock" target="_blank" rel="noopener noreferrer" className="legal-link">
               GitHub
             </a>.
           </p>

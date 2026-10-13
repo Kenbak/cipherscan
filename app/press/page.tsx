@@ -56,7 +56,7 @@ const CONTACTS = [
   {
     label: 'GitHub',
     value: 'Source repository',
-    href: 'https://github.com/Kenbak/cipherscan',
+    href: 'https://github.com/Kenbak/zecblock',
     external: true,
     icon: (
       <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">

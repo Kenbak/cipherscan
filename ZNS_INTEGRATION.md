@@ -1,122 +1,145 @@
-# ZNS Integration
+# ZNS integration
 
-CipherScan integrates the [Zcash Name System](https://github.com/zcashme/ZNS) (ZNS) so users can resolve human-readable names (e.g. `alice`) to Zcash Unified Addresses, and inspect the on-chain history of a name.
+ZecBlock integrates the [Zcash Name System](https://github.com/zcashme/ZNS)
+(ZNS) to resolve human-readable names to Zcash Unified Addresses and display
+their public registration history. This document describes the current code;
+the provider repository defines the protocol.
 
-This document describes the shipped integration. For protocol details see the ZNS repo.
+## Authority and networks
 
----
+The configured ZNS indexer is the data authority. ZecBlock does not call the
+SDK's `verify()` or display a cryptographic-attestation or custody badge.
+Matching the provider's published endpoint and registry identity during release
+verification does not turn subsequent responses into cryptographically verified
+records.
 
-## Trust model
+Mainnet and testnet names belong to separate namespaces. Crosslink uses the
+testnet registry while retaining its own explorer/API network identity.
 
-CipherScan trusts the configured ZNS indexer URL. We do not call the SDK's `verify()` (UIVK whitelist check) and we do not render cryptographic-attestation badges. The indexer URL is set per-network by the operator; if you trust the operator you trust the data.
-
-If we ever want stronger guarantees, the path is: pin admin pubkeys per network in code, call `verify()` at boot, surface verification status in the UI.
-
----
-
-## Network model
-
-ZNS namespaces are per-network. Mainnet `alice` and testnet `alice` are unrelated registrations indexed by separate indexers against separate chains. Crosslink testnet shares the testnet indexer.
-
-| CipherScan network | ZNS indexer URL | Env override |
+| Explorer network | Default registry URL | Server-side override |
 |---|---|---|
-| `mainnet` | `https://light.zcash.me/zns-mainnet-test` | `ZNS_MAINNET_URL` |
+| `mainnet` | `https://light.zcash.me/zns-mainnet` | `ZNS_MAINNET_URL` |
 | `testnet` | `https://light.zcash.me/zns-testnet` | `ZNS_TESTNET_URL` |
-| `crosslink-testnet` | testnet indexer (shared) | `ZNS_TESTNET_URL` |
+| `crosslink-testnet` | testnet registry (shared) | `ZNS_TESTNET_URL` |
 
-Env vars are server-only — the SDK never runs in the browser.
+The defaults match `zcashname-sdk@0.12.0`'s published `NETWORKS` configuration;
+the repository dependency range is `^0.12.0`. On October 13, 2026, the former
+mainnet `/zns-mainnet-test` endpoint returned HTTP 404. The current mainnet
+endpoint answered status and registration-list requests successfully, with its
+registry address and incoming viewing key matching the installed SDK's mainnet
+constants and its admin public key matching the provider's documented key.
+These are observations from that verification, not a future availability claim.
 
-The SDK's own `network` field controls action-URI generation (write paths). It must stay paired with the URL choice — the `crosslink-testnet → testnet` collapse in `lib/zns.ts` does both jobs.
+Both `lib/zns.ts` and `server/api/v1/config.js` select the network-specific
+registry and preserve operator overrides. `getClient()` creates a server-side
+SDK singleton whose `network` and URL agree; Crosslink collapses to `testnet`
+for that SDK configuration. No user-provided URL chooses the upstream.
 
----
+## Validation and search
 
-## SDK usage
+`lib/name-validation.ts` is a dependency-free validator for 1–62 lowercase ASCII
+letters or digits, with parity tests against the installed SDK. Name page
+parameters are decoded and lowercased before validation. Malformed direct page
+URLs return HTTP 404 at the request boundary; an unregistered valid name is a
+useful availability page, not a missing resource.
 
-Dependency: `zcashname-sdk@^0.7.2` (npm). Transitive deps: `@noble/ed25519`, `bech32`.
+`SearchBar` uses the validator re-exported by `lib/zns.ts` after its address,
+block, transaction and known-label checks. Valid name submissions navigate to
+`/name/[name]`. Dropdown suggestions are address labels, not ZNS registrations.
 
-The SDK is touched in exactly one cipherscan file: `lib/zns.ts`. It exports two things:
+## Server rendering and browser refresh
 
-- `getClient()` — server-only singleton, configured per-network. Used by API routes and (planned) server components.
-- `isValidName(name)` — client-safe pure validator. Wraps the SDK's instance method without leaking network/env access. Used by `SearchBar` to decide whether to route a query to `/name/[name]`.
+`lib/name-server.ts` shares one request-local React-cached resolution between
+metadata, heading/summary and page content. The registration lookup has a
+three-second deadline and calls the configured registry directly through
+`lib/zns-rpc.ts`. That transport uses an abortable JSON-RPC POST with
+`cache: 'no-store'`, validates the response envelope and preserves the distinction
+between a returned `null` registration and an upstream error. There is no
+persistent cache of uncertain missing-name states.
 
-This mirrors the `lib/api-config.ts` pattern: one file, both scopes.
+Optional event history or availability pricing has a separate one-second
+deadline. Failure of optional data preserves the resolved registration or
+available-name state. Wire fields are normalized to camelCase, including the
+current `lastAction` field; obsolete custody/expiry fields are not inferred.
 
----
+The initial HTML includes the name H1 and a resolution summary. Registered
+pages include the full resolved address and transaction identifier, last-action
+block and marketplace data where supplied. Event history is limited to 50
+events; failure displays explicit unavailability instead of an empty-history
+claim. Pricing and listing values come from the registry in zatoshis and are
+displayed as ZEC using 100,000,000 zatoshis per ZEC. Registration/marketplace
+actions link to the provider's website; ZecBlock does not submit those actions.
 
-## Search bar
+`NameClient` starts from this server snapshot and refreshes details/history
+through the explorer v1 names API every 60 seconds while visible, and on resume
+events. Refresh requests bypass browser caches and have a body-inclusive
+15-second deadline. A blocked or failed details refresh retains the last
+successful snapshot and labels it accordingly; a successful available-name
+response can replace a former registration. Unmounted requests cannot update
+state. This behavior avoids replacing useful SSR content with a loading shell.
 
-`components/SearchBar.tsx` does explicit format detection on submit. The detection chain (in order):
+## API contracts and cache policy
 
-1. Address → `/address/[addr]`
-2. All-digits → `/block/[height]`
-3. 64-char hex with leading zeros → `/block/[hash]`
-4. 64-char hex → `/tx/[hash]`
-5. Curated label match → `/address/[addr]`
-6. **Matches `isValidName` → `/name/[name]`**
-7. Otherwise → no match
+The explorer API's native v1 routes use the same configured registry:
 
-ZNS names appear in the chain as a peer to the other format checks, not as a fallthrough. Garbage input does not route anywhere.
+| Route | Purpose |
+|---|---|
+| `GET /v1/names/status` | Registry status and pricing |
+| `GET /v1/names?limit=…&cursor=…` | Registered-name collection with cursor pagination; maximum limit 500 |
+| `GET /v1/names/:name` | Registration, or `{ pricing }` when the registry authoritatively returns no registration |
+| `GET /v1/names/:name/events` | Event history for the name, limited to 50 events |
 
-ZNS does **not** appear in the search dropdown's autocomplete suggestions. The label autocomplete works because all official labels are pulled in one bulk fetch and filtered client-side. The SDK v0.7.2+ does expose `listAllRegistrations()` and `listings()` methods, but we're not using them for autocomplete — names are submit-only.
+Successful responses use the v1 `{ data, meta }` envelope and camelCase fields.
+The API metadata retains the explorer network identity, including Crosslink;
+registry freshness remains `unknown` unless separately established. Valid
+unregistered lookups return HTTP 200. Invalid API names/collection parameters
+return HTTP 400. Upstream failure returns a sanitized HTTP 502 problem response
+with `Cache-Control: no-store`, rather than claiming the name is available.
+Registry RPC requests have a five-second deadline bounded by the API request's
+abort signal and a four-MiB response limit. Successful API responses have
+`public, max-age=30, stale-while-revalidate=60` cache headers.
 
----
+The retained frontend-origin compatibility routes `/api/name/:name` and
+`/api/name/:name/events` use the SDK singleton and return unwrapped SDK data.
+The first returns `{ pricing }` with HTTP 200 for an unregistered name.
+Successful registration responses use 60-second CDN caching with a 120-second
+stale-while-revalidate window; successful event responses use 30/60 seconds.
+Both routes return HTTP 502 on upstream failure. Current page browser refreshes
+use v1, not these compatibility routes.
 
-## API surface
+## Indexation and sitemap discovery
 
-Public API routes:
+Registered mainnet name pages are eligible for indexing with their normalized
+self-canonical, unique metadata, server-rendered content and JSON-LD. Valid
+available-name pages and uncertain/error states return useful HTTP 200 pages
+with `noindex, follow`. Testnet and Crosslink name pages remain `noindex, follow`
+and are excluded from their sitemaps.
 
-| Route | SDK method | Purpose |
-|---|---|---|
-| `GET /api/name/:name` | `resolveName(name)` | Registration record (or 404) |
-| `GET /api/name/:name/events` | `events({name})` | Event history for a name |
+The mainnet names sitemap reads status and paginated registrations through the
+v1 API, bounds discovery to 5,000 registered names and uses a shared ten-second
+fetch deadline. Its data cache revalidates hourly, its process refresh wrapper
+uses a five-minute age/30-second retry interval, and successful XML uses a
+one-hour CDN age. A failed source without usable cached data returns HTTP 503,
+`Cache-Control: no-store` and `Retry-After: 60`, rather than a fabricated empty
+successful sitemap. Cached sitemap membership is a discovery hint; each page
+independently resolves its current registration and index policy.
 
-Both are thin server-side proxies. They exist for external API consumers; cipherscan's own pages will (post-rewrite) call the SDK directly via server components rather than going through these routes.
+## Relevant source and regression coverage
 
-Cache headers are set per route in `app/api/name/...`.
+- `lib/zns.ts`, `lib/zns-rpc.ts`: configured registry access and wire normalization.
+- `lib/name-validation.ts`, `lib/name-server.ts`, `lib/name-types.ts`: validation,
+  request-local server snapshots and explicit unavailable states.
+- `app/name/[name]/`: metadata, H1/summary, SSR details and browser refresh.
+- `server/api/v1/config.js`, `server/api/v1/routes/names.js`: native v1 registry
+  selection, pagination, response envelopes and failure handling.
+- `app/api/name/[name]/`: retained frontend-origin SDK compatibility routes.
+- `app/sitemaps/[slug]/route.ts`: registered-name sitemap discovery and failure policy.
+- `server/tests/name-rendering.test.js`: default endpoint parity with the installed
+  SDK, independent network overrides, Crosslink namespace pairing, server HTML,
+  refresh failure preservation and validation.
+- `server/api/test/v1/names.test.js`: native API normalization, collection boundaries,
+  missing names and sanitized failures.
 
----
-
-## Name page (`/name/[name]`)
-
-Client component that fetches data from API routes. Shows:
-- **Registered names**: ownership info, resolved address, last action, marketplace status
-- **Available names**: claim cost, pricing tiers, link to zcashnames.com to claim
-
-Features:
-- Loading skeletons during fetch
-- Copy buttons for address, txid, and block height
-- Event history table (last 50 events)
-- Badges for action type and custody (sovereign vs admin-registered)
-
-- **Registered view** renders identity (name + resolved address + custody), last-action provenance (txid, block), and marketplace status (listing + price, link to zcashnames.com to buy). No `nonce` in UI — it's protocol state, not user information. Last action surfaces as the page's status badge (CLAIM / BUY / UPDATE / DELIST). Custody (sovereign vs admin-registered, derived from `pubkey`) surfaces as a secondary badge.
-- **Available view** renders the name + an "Available" badge, the claim cost for that length, and the full pricing tier table. The CTA is a link to zcashnames.com — cipherscan does not render claim URIs or memo strings (footgun risk we don't own a recovery path for).
-- **Invalid names** (those that fail `isValidName`) get the same `notFound()` response as unregistered names. SearchBar's format check prevents invalid names from being routed in the normal flow; direct URL hits get a clean 404.
-- **Errors** (indexer unreachable, etc.) throw to Next.js's nearest error boundary; no per-route error file added in this PR.
-
-ZNS stats (registered count, listed count, synced height) are deferred — undecided whether they belong on the name page or a future `/zns` overview page.
-
-Pagination of event history is deferred — current implementation passes `limit: 50`, which covers expected name activity. If that proves insufficient, add pagination using the SDK's `EventsResult.total`.
-
----
-
-## Out of scope (this PR)
-
-- Reverse resolution on `/address/[addr]` pages
-- Wallet-side claim/buy/list/delist flows (live at zcashnames.com)
-- Dedicated names browse or marketplace page
-- ZNS suggestions in the search dropdown (needs indexer feature)
-- Live updates via WebSocket
-- Verified-attestation badges (would require admin pubkey pinning)
-
----
-
-## Files
-
-```
-lib/zns.ts                          — SDK singleton (server) + isValidName (client-safe)
-components/SearchBar.tsx            — name detection in submit chain
-app/api/name/[name]/route.ts        — public API proxy
-app/api/name/[name]/events/route.ts — public API proxy
-app/name/[name]/                    — server component page + layout (under rewrite)
-app/docs/endpoints.ts               — Names category for API docs
-```
+Dedicated names browsing/marketplace, event-history pagination, name autocomplete,
+reverse resolution on address pages and cryptographic-attestation badges remain
+separate work.

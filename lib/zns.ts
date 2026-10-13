@@ -13,7 +13,7 @@ type Status = Awaited<ReturnType<ZNS['status']>>;
 // Crosslink uses the same ZNS deployment as testnet
 
 const ZNS_URLS: Record<'mainnet' | 'testnet', string> = {
-  'mainnet': process.env.ZNS_MAINNET_URL || 'https://light.zcash.me/zns-mainnet-test',
+  'mainnet': process.env.ZNS_MAINNET_URL || 'https://light.zcash.me/zns-mainnet',
   'testnet': process.env.ZNS_TESTNET_URL || 'https://light.zcash.me/zns-testnet',
 };
 

@@ -103,7 +103,7 @@ export default function PrivacyPolicyPage() {
               X / Twitter
             </a>{' '}
             or open an issue on{' '}
-            <a href="https://github.com/Kenbak/cipherscan" target="_blank" rel="noopener noreferrer" className="legal-link">
+            <a href="https://github.com/Kenbak/zecblock" target="_blank" rel="noopener noreferrer" className="legal-link">
               GitHub
             </a>.
           </p>

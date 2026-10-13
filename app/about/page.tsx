@@ -175,7 +175,7 @@ export default async function AboutPage() {
         <h2 id="contribute-heading" className="type-section text-primary mb-2">Open source. Community funded.</h2>
         <p className="text-sm text-muted leading-relaxed mb-4">Contributions, issues and feedback are welcome.</p>
         <div className="flex flex-wrap gap-x-6 gap-y-1 text-sm">
-          <a href="https://github.com/Kenbak/cipherscan" target="_blank" rel="noopener noreferrer" className="inline-flex items-center min-h-11 text-primary underline decoration-cipher-border underline-offset-4 hover:decoration-current">GitHub ↗</a>
+          <a href="https://github.com/Kenbak/zecblock" target="_blank" rel="noopener noreferrer" className="inline-flex items-center min-h-11 text-primary underline decoration-cipher-border underline-offset-4 hover:decoration-current">GitHub ↗</a>
           <a href="https://x.com/zecblock" target="_blank" rel="noopener noreferrer" className="inline-flex items-center min-h-11 text-primary underline decoration-cipher-border underline-offset-4 hover:decoration-current">X / Twitter ↗</a>
           <Link href="/docs" className="inline-flex items-center min-h-11 text-primary underline decoration-cipher-border underline-offset-4 hover:decoration-current">API docs →</Link>
         </div>

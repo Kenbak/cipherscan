@@ -85,7 +85,7 @@ const siteJsonLd = {
       logo: 'https://zecblock.com/brand/zecblock-mark.svg',
       sameAs: [
         'https://x.com/zecblock',
-        'https://github.com/Kenbak/cipherscan',
+        'https://github.com/Kenbak/zecblock',
       ],
     },
   ],

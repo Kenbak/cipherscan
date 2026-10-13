@@ -18,7 +18,7 @@ ENV NODE_ENV=production \
     COMPACT_BLOCK_CACHE_DIR=/var/cache/cipherscan/compact-blocks
 ARG GIT_COMMIT=unknown
 LABEL org.opencontainers.image.title="cipherscan-api" \
-      org.opencontainers.image.source="https://github.com/Kenbak/cipherscan" \
+      org.opencontainers.image.source="https://github.com/Kenbak/zecblock" \
       org.opencontainers.image.revision="${GIT_COMMIT}"
 
 COPY --from=deps /app/server/api/node_modules ./node_modules
