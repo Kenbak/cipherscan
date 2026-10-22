@@ -201,9 +201,13 @@ jobs:
   # ---------------------------------------------------------------------------
   # Python ML jobs: install deps + byte-compile
   # ---------------------------------------------------------------------------
-  python-jobs:
-    name: Python jobs
+  python-environments:
+    name: Python dependencies (${{ matrix.python }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.12", "3.13"]
     defaults:
       run:
         working-directory: server/jobs
@@ -211,11 +215,25 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
         with:
-          python-version: "3.13"
+          python-version: ${{ matrix.python }}
       - name: Install dependencies
-        run: pip install -r requirements.txt
+        run: |
+          pip install -r requirements.txt
+          pip check
+      - name: Import the scheduled job without running database work
+        run: python3 -c "import runpy; runpy.run_path('ml-pattern-detector.py', run_name='dependency_check')"
       - name: Compile sources in memory
         run: python3 -c "import pathlib; [compile(path.read_text(), str(path), 'exec') for path in pathlib.Path('.').rglob('*.py')]"
+
+  python-jobs:
+    # Preserve the branch-protection check name while requiring both runtimes.
+    name: Python jobs
+    runs-on: ubuntu-latest
+    if: always()
+    needs: python-environments
+    steps:
+      - name: Require every Python environment to pass
+        run: test '${{ needs.python-environments.result }}' = success
 
   # ---------------------------------------------------------------------------
   # Shell scripts: shellcheck
